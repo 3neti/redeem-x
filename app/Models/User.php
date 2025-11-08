@@ -3,15 +3,22 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Bavix\Wallet\Interfaces\Wallet;
+use Bavix\Wallet\Traits\HasWalletFloat;
+use FrittenKeeZ\Vouchers\Concerns\HasVouchers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use LBHurtado\Wallet\Traits\HasPlatformWallets;
 
-class User extends Authenticatable
+class User extends Authenticatable implements Wallet
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
+    use HasPlatformWallets;
+    use HasWalletFloat;
+    use HasVouchers;
 
     /**
      * The attributes that are mass assignable.
