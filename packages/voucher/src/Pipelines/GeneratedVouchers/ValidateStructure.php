@@ -9,14 +9,14 @@ class ValidateStructure
     public function handle($vouchers, Closure $next)
     {
         foreach ($vouchers as $voucher) {
-            $instructions = $voucher->metadata['instructions'] ?? [];
+            $instructions = $voucher->instructions;
 
-            if (!isset($instructions['cash'], $instructions['inputs'], $instructions['feedback'])) {
+            if (!$instructions->cash || !$instructions->inputs || !$instructions->feedback) {
                 throw new \Exception("Voucher metadata incomplete for voucher ID: {$voucher->id}");
             }
 
             // Additional field-specific checks
-            if (!isset($instructions['cash']['amount'], $instructions['cash']['currency'])) {
+            if ($instructions->cash->amount === null || !$instructions->cash->currency) {
                 throw new \Exception("Cash instruction missing amount or currency for voucher ID: {$voucher->id}");
             }
         }

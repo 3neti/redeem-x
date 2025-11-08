@@ -11,10 +11,15 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { create as voucherGenerate } from '@/actions/App/Http/Controllers/VoucherGenerationController';
+import { index as vouchersIndex } from '@/actions/App/Http/Controllers/Voucher/VoucherController';
+import { index as contactsIndex } from '@/actions/App/Http/Controllers/ContactController';
+import { index as transactionsIndex } from '@/actions/App/Http/Controllers/TransactionController';
+import { start as redeemStart } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -22,6 +27,31 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'View Vouchers',
+        href: vouchersIndex.url(),
+        icon: List,
+    },
+    {
+        title: 'Generate Vouchers',
+        href: voucherGenerate.url(),
+        icon: Ticket,
+    },
+    {
+        title: 'Transactions',
+        href: transactionsIndex.url(),
+        icon: Receipt,
+    },
+    {
+        title: 'Contacts',
+        href: contactsIndex.url(),
+        icon: Users,
+    },
+    {
+        title: 'Redeem Voucher',
+        href: redeemStart.url(),
+        icon: BadgeDollarSign,
     },
 ];
 

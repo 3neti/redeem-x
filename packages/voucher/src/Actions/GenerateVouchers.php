@@ -50,12 +50,17 @@ class GenerateVouchers
             throw new \Exception('No authenticated user found. Please ensure a user is logged in.');
         }
 
-        $vouchers = Vouchers::withPrefix($prefix)
+        $voucherBuilder = Vouchers::withPrefix($prefix)
             ->withMask($mask)
             ->withMetadata(['instructions' => $instructions->toCleanArray()]) // This is most important! Pass instructions as metadata.
-            ->withExpireTimeIn($ttl)
-            ->withOwner($owner)
-            ->create($count)
+            ->withOwner($owner);
+        
+        // Only set expiration if TTL is not zero (non-expiring vouchers)
+        if ($ttl->totalSeconds > 0) {
+            $voucherBuilder = $voucherBuilder->withExpireTimeIn($ttl);
+        }
+        
+        $vouchers = $voucherBuilder->create($count)
         ;
         Log::debug('[GenerateVouchers] Raw facade response', ['raw' => $vouchers]);
 

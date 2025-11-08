@@ -10,8 +10,8 @@ class NotifyBatchCreator
     public function handle($vouchers, Closure $next)
     {
         $first = $vouchers->first();
-        $instructions = $first->metadata['instructions'] ?? [];
-        $feedback = $instructions['feedback'] ?? [];
+        $instructions = $first->instructions;
+        $feedback = $instructions->feedback ?? null;
 
 //        if (!empty($feedback['mobile'])) {
 //            Notification::route('nexmo', $feedback['mobile'])

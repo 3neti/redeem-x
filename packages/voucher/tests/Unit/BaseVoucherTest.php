@@ -71,9 +71,9 @@ it('creates vouchers using updated data structures and verifies new parameters',
                 . str_replace('*', '.', $instructions->mask) // Replace '*' with '.' and escape everything else
                 . '$/' // Ensure the entire code matches
             )
-            ->and($voucher->metadata['instructions']['cash']['amount'])->toBe(1500)
-            ->and($voucher->metadata['instructions']['cash']['currency'])->toBe('USD')
-            ->and($voucher->metadata['instructions']['inputs']['fields'])->toContain('email', 'mobile', 'reference_code')
+            ->and($voucher->instructions->cash->amount)->toBe(1500.0)
+            ->and($voucher->instructions->cash->currency)->toBe('USD')
+            ->and($voucher->instructions->inputs->fields)->toContain(VoucherInputField::EMAIL, VoucherInputField::MOBILE, VoucherInputField::REFERENCE_CODE)
 //            ->and($voucher->expires_at->diffInHours(now()))->toBe(24) // Validate expiration time
         ;
     }

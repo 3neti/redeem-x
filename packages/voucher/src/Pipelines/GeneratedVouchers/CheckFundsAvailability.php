@@ -14,9 +14,9 @@ class CheckFundsAvailability
         $currency = null;
 
         foreach ($vouchers as $voucher) {
-            $instructions = $voucher->metadata['instructions'] ?? [];
-            $amount = $instructions['cash']['amount'] ?? null;
-            $voucherCurrency = $instructions['cash']['currency'] ?? null;
+            $instructions = $voucher->instructions;
+            $amount = $instructions->cash->amount ?? null;
+            $voucherCurrency = $instructions->cash->currency ?? null;
 
             // Ensure amount and currency are present
             if (!$amount || !$voucherCurrency) {

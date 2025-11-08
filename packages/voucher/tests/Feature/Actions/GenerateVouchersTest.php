@@ -59,7 +59,7 @@ it('generates multiple vouchers using default values', function () {
     // Assert: Check if the vouchers and metadata match expectations
     expect($vouchers)->toHaveCount(1);
     expect($vouchers->first())->toBeInstanceOf(Voucher::class);
-    expect($vouchers->first()->metadata['instructions']['cash']['amount'])->toBe(1000);
+    expect($vouchers->first()->instructions->cash->amount)->toBe(1000.0);
 
     // Assert: Ensure VouchersGenerated event was dispatched
     Event::assertDispatched(VouchersGenerated::class, function ($event) use ($vouchers) {
@@ -113,7 +113,7 @@ it('generates vouchers with custom parameters', function () {
             . str_replace('*', '.', $instructions->mask) // Replace '*' with '.' and escape everything else
             . '$/' // Ensure the entire code matches
         )
-        ->and($vouchers->first()->metadata['instructions']['cash']['currency'])->toBe('USD');
+        ->and($vouchers->first()->instructions->cash->currency)->toBe('USD');
 
     // Assert: Check metadata
 

@@ -89,7 +89,8 @@
         "lbhurtado/omnichannel": "@dev",
         "lbhurtado/payment-gateway": "@dev",
         "lbhurtado/voucher": "@dev",
-        "lbhurtado/wallet": "@dev"
+        "lbhurtado/wallet": "@dev",
+        "spatie/laravel-settings": "^3.5"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

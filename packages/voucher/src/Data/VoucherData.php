@@ -41,10 +41,29 @@ class VoucherData extends Data
         public ?CashData                    $cash = null,
         public ?ContactData                 $contact = null,
 //        public ?ModelData                   $redeemer,
+        // Computed fields
+        public ?string                      $status = null,
+        public ?float                       $amount = null,
+        public ?string                      $currency = null,
+        public ?bool                        $is_expired = null,
+        public ?bool                        $is_redeemed = null,
+        public ?bool                        $can_redeem = null,
     ) {}
 
     public static function fromModel(VoucherModel $model): static
     {
+        $instructions = null;
+        try {
+            $instructions = $model->instructions instanceof VoucherInstructionsData
+                ? $model->instructions
+                : ($model->instructions
+                    ? VoucherInstructionsData::from($model->instructions)
+                    : null
+                );
+        } catch (\Exception $e) {
+            // Instructions might not exist or be invalid
+        }
+
         return new static(
             code: $model->code,
             owner: $model->owner
@@ -56,19 +75,51 @@ class VoucherData extends Data
             redeemed_at: $model->redeemed_at,
             processed_on: $model->processed_on,
             processed: $model->processed,
-            instructions: $model->instructions instanceof VoucherInstructionsData
-                ? $model->instructions
-                : ($model->instructions
-                    ? VoucherInstructionsData::from($model->instructions)
-                    : null
-                ),
+            instructions: $instructions,
             inputs: new DataCollection(InputData::class, $model->inputs),
             cash: $model->cash instanceof Cash ? CashData::fromModel($model->cash) : null,
-            contact: $model->contact instanceof Contact ? ContactData::fromModel($model->contact) : null
+            contact: $model->contact instanceof Contact ? ContactData::fromModel($model->contact) : null,
 //            redeemer: $model->redeemer
 //                ? ModelData::fromModel($model->redeemer)
 //                : null,
+            // Computed fields
+            status: static::computeStatus($model),
+            amount: $instructions?->cash?->amount,
+            currency: $instructions?->cash?->currency ?? 'PHP',
+            is_expired: $model->isExpired(),
+            is_redeemed: $model->isRedeemed(),
+            can_redeem: static::computeCanRedeem($model),
         );
+    }
+
+    /**
+     * Compute voucher status.
+     */
+    protected static function computeStatus(VoucherModel $model): string
+    {
+        if ($model->isRedeemed()) {
+            return 'redeemed';
+        }
+
+        if ($model->isExpired()) {
+            return 'expired';
+        }
+
+        if ($model->starts_at && $model->starts_at->isFuture()) {
+            return 'pending';
+        }
+
+        return 'active';
+    }
+
+    /**
+     * Check if voucher can be redeemed.
+     */
+    protected static function computeCanRedeem(VoucherModel $model): bool
+    {
+        return ! $model->isRedeemed()
+            && ! $model->isExpired()
+            && (! $model->starts_at || $model->starts_at->isPast());
     }
 }
 
