@@ -31,7 +31,7 @@ Route::prefix('transactions')->name('api.transactions.')->group(function () {
         ->name('export');
 
     // Get transaction details
-    // GET /api/v1/transactions/{transaction}
-    Route::get('/{transaction}', [\App\Actions\Api\Transactions\ShowTransaction::class, 'asController'])
+    // GET /api/v1/transactions/{voucher}
+    Route::get('/{voucher:code}', [\App\Actions\Api\Transactions\ShowTransaction::class, 'asController'])
         ->name('show');
 });
