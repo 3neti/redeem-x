@@ -60,4 +60,38 @@ class User extends Authenticatable implements Wallet, Customer
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
+
+    /**
+     * Create an API token with specific abilities.
+     *
+     * @param  string  $name  Token name (e.g., 'mobile-app', 'third-party-integration')
+     * @param  array  $abilities  Token abilities/permissions
+     * @return \Laravel\Sanctum\NewAccessToken
+     */
+    public function createApiToken(string $name, array $abilities = ['*'])
+    {
+        return $this->createToken($name, $abilities);
+    }
+
+    /**
+     * Get available API token abilities.
+     *
+     * @return array
+     */
+    public static function getApiTokenAbilities(): array
+    {
+        return [
+            'voucher:generate',
+            'voucher:list',
+            'voucher:view',
+            'voucher:cancel',
+            'transaction:list',
+            'transaction:view',
+            'transaction:export',
+            'settings:view',
+            'settings:update',
+            'contact:list',
+            'contact:view',
+        ];
+    }
 }
