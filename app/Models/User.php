@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\ModelChannel\Traits\HasChannels;
+use LBHurtado\PaymentGateway\Traits\HasMerchant;
 
 class User extends Authenticatable implements Wallet
 {
@@ -21,6 +22,7 @@ class User extends Authenticatable implements Wallet
     use HasWalletFloat;
     use HasVouchers;
     use HasChannels;
+    use HasMerchant;
 
     /**
      * The attributes that are mass assignable.
