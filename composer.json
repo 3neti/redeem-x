@@ -8,13 +8,87 @@
         "framework"
     ],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./packages/cash",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/contact",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/model-channel",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/model-input",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/money-issuer",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/omnichannel",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/payment-gateway",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/voucher",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "./packages/wallet",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "require": {
         "php": "^8.2",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "laravel/workos": "^0.1.0",
-        "laravel/wayfinder": "^0.1.9"
+        "laravel/wayfinder": "^0.1.9",
+        "lbhurtado/cash": "@dev",
+        "lbhurtado/contact": "@dev",
+        "lbhurtado/laravel-model-channel": "@dev",
+        "lbhurtado/laravel-model-input": "@dev",
+        "lbhurtado/money-issuer": "@dev",
+        "lbhurtado/omnichannel": "@dev",
+        "lbhurtado/payment-gateway": "@dev",
+        "lbhurtado/voucher": "@dev",
+        "lbhurtado/wallet": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

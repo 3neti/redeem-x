@@ -1,0 +1,57 @@
+{
+    "name": "lbhurtado/cash",
+    "description": "A package to enable assigning cash to Eloquent Models",
+    "type": "library",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./../wallet"
+        }
+    ],
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\Cash\\": "src/",
+            "LBHurtado\\Cash\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\Cash\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\Cash\\CashServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "spatie/laravel-data": "^4.16",
+        "lorisleiva/laravel-actions": "^2.9",
+        "brick/money": "^0.10.1",
+        "spatie/laravel-model-status": "^1.18",
+        "spatie/laravel-tags": "^4.10",
+        "propaganistas/laravel-phone": "^6.0",
+        "lbhurtado/wallet": "dev-main"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.3",
+        "pestphp/pest": "^3.8"
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
