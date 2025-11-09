@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { useDebounce } from '@/composables/useDebounce';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,12 +38,13 @@ const stats = ref({
 });
 
 const searchQuery = ref('');
+const debouncedSearchQuery = useDebounce(searchQuery, 500);
 const selectedStatus = ref('');
 const currentPage = ref(1);
 
 const loadVouchers = async () => {
     const result = await listVouchers({
-        search: searchQuery.value || undefined,
+        search: debouncedSearchQuery.value || undefined,
         status: selectedStatus.value || undefined,
         page: currentPage.value,
         per_page: 15,
@@ -75,6 +77,18 @@ const goToPage = (page: number) => {
     currentPage.value = page;
     loadVouchers();
 };
+
+// Auto-search when debounced query changes
+watch(debouncedSearchQuery, () => {
+    currentPage.value = 1;
+    loadVouchers();
+});
+
+// Auto-filter when status changes
+watch(selectedStatus, () => {
+    currentPage.value = 1;
+    loadVouchers();
+});
 
 onMounted(() => {
     loadVouchers();
@@ -193,26 +207,20 @@ const viewVoucher = (code: string) => {
                             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 v-model="searchQuery"
-                                placeholder="Search by code..."
+                                placeholder="Search by code... (auto-search enabled)"
                                 class="pl-8"
-                                @keyup.enter="applyFilters"
                             />
                         </div>
                         <select
                             v-model="selectedStatus"
                             class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40"
-                            @change="applyFilters"
                         >
                             <option value="">All Status</option>
                             <option value="active">Active</option>
                             <option value="redeemed">Redeemed</option>
                             <option value="expired">Expired</option>
                         </select>
-                        <Button @click="applyFilters" variant="default" :disabled="loading">
-                            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-                            Filter
-                        </Button>
-                        <Button @click="clearFilters" variant="outline">
+                        <Button @click="clearFilters" variant="outline" :disabled="loading">
                             Clear
                         </Button>
                     </div>

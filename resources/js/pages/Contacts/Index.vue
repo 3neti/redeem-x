@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useContactApi } from '@/composables/useContactApi';
+import { useDebounce } from '@/composables/useDebounce';
 import type { ContactData, ContactStats, ContactListResponse } from '@/composables/useContactApi';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
@@ -31,11 +32,12 @@ const stats = ref<ContactStats>({
 });
 
 const searchQuery = ref('');
+const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
 const fetchContacts = async (page: number = 1) => {
     try {
         const response = await listContacts({
-            search: searchQuery.value || undefined,
+            search: debouncedSearchQuery.value || undefined,
             per_page: pagination.value.per_page,
             page,
         });
@@ -110,6 +112,11 @@ const goToPage = async (page: number) => {
     }
 };
 
+// Auto-search when debounced query changes
+watch(debouncedSearchQuery, () => {
+    fetchContacts(1);
+});
+
 onMounted(async () => {
     await fetchContacts();
 });
@@ -173,15 +180,10 @@ onMounted(async () => {
                             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 v-model="searchQuery"
-                                placeholder="Search by name, mobile, or email..."
+                                placeholder="Search by name, mobile, or email... (auto-search enabled)"
                                 class="pl-8"
-                                @keyup.enter="applyFilters"
                             />
                         </div>
-                        <Button @click="applyFilters" variant="default" :disabled="loading">
-                            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-                            Search
-                        </Button>
                         <Button @click="clearFilters" variant="outline" :disabled="loading">
                             Clear
                         </Button>

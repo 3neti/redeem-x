@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useTransactionApi } from '@/composables/useTransactionApi';
+import { useDebounce } from '@/composables/useDebounce';
 import type { TransactionData, TransactionStats, TransactionListResponse } from '@/composables/useTransactionApi';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
@@ -32,13 +33,14 @@ const stats = ref<TransactionStats>({
 });
 
 const searchQuery = ref('');
+const debouncedSearchQuery = useDebounce(searchQuery, 500);
 const dateFrom = ref('');
 const dateTo = ref('');
 
 const fetchTransactions = async (page: number = 1) => {
     try {
         const response = await listTransactions({
-            search: searchQuery.value || undefined,
+            search: debouncedSearchQuery.value || undefined,
             date_from: dateFrom.value || undefined,
             date_to: dateTo.value || undefined,
             per_page: pagination.value.per_page,
@@ -81,7 +83,7 @@ const clearFilters = async () => {
 
 const exportTransactions = () => {
     exportAPI({
-        search: searchQuery.value || undefined,
+        search: debouncedSearchQuery.value || undefined,
         date_from: dateFrom.value || undefined,
         date_to: dateTo.value || undefined,
     });
@@ -142,6 +144,16 @@ const goToPage = async (page: number) => {
         await fetchTransactions(page);
     }
 };
+
+// Auto-search when debounced query changes
+watch(debouncedSearchQuery, () => {
+    fetchTransactions(1);
+});
+
+// Auto-filter when date range changes
+watch([dateFrom, dateTo], () => {
+    applyFilters();
+});
 
 onMounted(async () => {
     await Promise.all([
@@ -222,29 +234,22 @@ onMounted(async () => {
                             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 v-model="searchQuery"
-                                placeholder="Search by code..."
+                                placeholder="Search by code... (auto-search enabled)"
                                 class="pl-8"
-                                @keyup.enter="applyFilters"
                             />
                         </div>
                         <Input
                             v-model="dateFrom"
                             type="date"
                             placeholder="From date"
-                            @change="applyFilters"
                         />
                         <Input
                             v-model="dateTo"
                             type="date"
                             placeholder="To date"
-                            @change="applyFilters"
                         />
                     </div>
                     <div class="flex gap-2 pt-2">
-                        <Button @click="applyFilters" variant="default" size="sm" :disabled="loading">
-                            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-                            Apply Filters
-                        </Button>
                         <Button @click="clearFilters" variant="outline" size="sm" :disabled="loading">
                             Clear
                         </Button>
