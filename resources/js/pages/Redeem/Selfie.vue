@@ -8,8 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Camera, RotateCw } from 'lucide-vue-next';
 
+interface ImageConfig {
+    width: number;
+    height: number;
+    quality: number;
+    format: string;
+}
+
 interface Props {
     voucher_code: string;
+    image_config: ImageConfig;
 }
 
 const props = defineProps<Props>();
@@ -34,7 +42,11 @@ async function startCamera() {
     try {
         cameraError.value = null;
         stream.value = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: 640, height: 480 }
+            video: { 
+                facingMode: 'user', 
+                width: props.image_config.width, 
+                height: props.image_config.height 
+            }
         });
         
         if (videoRef.value) {
@@ -74,8 +86,8 @@ function captureSelfie() {
     if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        // Convert to base64
-        capturedImage.value = canvas.toDataURL('image/jpeg', 0.8);
+        // Convert to base64 with configured quality
+        capturedImage.value = canvas.toDataURL(props.image_config.format, props.image_config.quality);
         hasCaptured.value = true;
         
         // Stop camera after capture

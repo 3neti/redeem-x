@@ -8,8 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-vue-next';
 
+interface ImageConfig {
+    quality: number;
+    format: string;
+}
+
 interface Props {
     voucher_code: string;
+    image_config: ImageConfig;
 }
 
 const props = defineProps<Props>();
@@ -83,8 +89,8 @@ const clearSignature = () => {
 const handleSubmit = async () => {
     if (!canvas.value || !hasSignature.value || !storedData.value) return;
 
-    // Convert canvas to base64 data URL
-    signature.value = canvas.value.toDataURL('image/png');
+    // Convert canvas to base64 data URL with configured quality
+    signature.value = canvas.value.toDataURL(props.image_config.format, props.image_config.quality);
 
     try {
         // Combine stored wallet data with signature in inputs

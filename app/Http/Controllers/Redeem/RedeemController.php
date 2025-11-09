@@ -59,6 +59,7 @@ class RedeemController extends Controller
     {
         return Inertia::render('Redeem/Selfie', [
             'voucher_code' => $voucher->code,
+            'image_config' => config('model-input.image_quality.selfie'),
         ]);
     }
 
@@ -72,6 +73,7 @@ class RedeemController extends Controller
     {
         return Inertia::render('Redeem/Signature', [
             'voucher_code' => $voucher->code,
+            'image_config' => config('model-input.image_quality.signature'),
         ]);
     }
 
