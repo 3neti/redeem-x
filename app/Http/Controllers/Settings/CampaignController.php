@@ -27,7 +27,7 @@ class CampaignController extends Controller
             ->latest()
             ->get();
 
-        return Inertia::render('Settings/Campaigns/Index', [
+        return Inertia::render('settings/Campaigns/Index', [
             'campaigns' => $campaigns,
             'filters' => [
                 'search' => $request->search,
@@ -43,7 +43,7 @@ class CampaignController extends Controller
     {
         $this->authorize('create', Campaign::class);
 
-        return Inertia::render('Settings/Campaigns/Create');
+        return Inertia::render('settings/Campaigns/Create');
     }
 
     /**
@@ -71,7 +71,7 @@ class CampaignController extends Controller
 
         $campaign->load('vouchers');
 
-        return Inertia::render('Settings/Campaigns/Show', [
+        return Inertia::render('settings/Campaigns/Show', [
             'campaign' => $campaign,
             'stats' => [
                 'total_vouchers' => $campaign->vouchers->count(),
@@ -88,7 +88,7 @@ class CampaignController extends Controller
     {
         $this->authorize('update', $campaign);
 
-        return Inertia::render('Settings/Campaigns/Edit', [
+        return Inertia::render('settings/Campaigns/Edit', [
             'campaign' => $campaign,
         ]);
     }
