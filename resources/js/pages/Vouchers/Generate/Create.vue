@@ -11,7 +11,6 @@ import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 import { Head, router } from '@inertiajs/vue3';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
@@ -297,21 +296,20 @@ const handleSubmit = async () => {
                             <!-- Campaign Template Selector -->
                             <div class="space-y-2 pb-4 border-b">
                                 <Label for="campaign">Campaign Template (Optional)</Label>
-                                <Select v-model="selectedCampaignId">
-                                    <SelectTrigger id="campaign">
-                                        <SelectValue placeholder="Select a campaign template..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">None (manual entry)</SelectItem>
-                                        <SelectItem
-                                            v-for="campaign in campaigns"
-                                            :key="campaign.id"
-                                            :value="campaign.id.toString()"
-                                        >
-                                            {{ campaign.name }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <select
+                                    id="campaign"
+                                    v-model="selectedCampaignId"
+                                    class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="">None (manual entry)</option>
+                                    <option
+                                        v-for="campaign in campaigns"
+                                        :key="campaign.id"
+                                        :value="campaign.id.toString()"
+                                    >
+                                        {{ campaign.name }}
+                                    </option>
+                                </select>
                                 <p class="text-xs text-muted-foreground">
                                     Select a campaign to auto-fill the form with saved settings. You can still modify any field after selection.
                                 </p>
