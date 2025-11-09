@@ -12,6 +12,7 @@ use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Actions\RedeemVoucher;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
+use Tests\Helpers\VoucherTestHelper;
 
 uses(RefreshDatabase::class);
 
@@ -34,46 +35,13 @@ beforeEach(function () {
     ]);
 });
 
-// Helper function to create vouchers with instructions
-function createVouchersWithInstructions($user, $count = 1, $prefix = '')
-{
-    $instructions = VoucherInstructionsData::from([
-        'cash' => [
-            'amount' => 100,
-            'currency' => 'PHP',
-            'validation' => [
-                'secret' => null,
-                'mobile' => null,
-                'country' => 'PH',
-                'location' => null,
-                'radius' => null,
-            ],
-        ],
-        'inputs' => ['fields' => []],
-        'feedback' => [
-            'email' => null,
-            'mobile' => null,
-            'webhook' => null,
-        ],
-        'rider' => [
-            'message' => null,
-            'url' => null,
-        ],
-        'count' => $count,
-        'prefix' => $prefix,
-        'mask' => '****',
-        'ttl' => CarbonInterval::hours(12),
-    ]);
-
-    return GenerateVouchers::run($instructions);
-}
 
 // List Transactions Tests
 test('authenticated user can list transactions', function () {
     Sanctum::actingAs($this->user);
 
     // Create some redeemed vouchers (transactions)
-    $vouchers = createVouchersWithInstructions($this->user, 5);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 5);
     $vouchers->each(function ($voucher) {
         RedeemVoucher::run($this->contact, $voucher->code);
     });
@@ -102,7 +70,7 @@ test('transactions list can filter by date range', function () {
     Sanctum::actingAs($this->user);
 
     // Create vouchers with different redemption dates
-    $vouchers = createVouchersWithInstructions($this->user, 2);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 2);
     
     $oldVoucher = $vouchers[0];
     RedeemVoucher::run($this->contact, $oldVoucher->code);
@@ -125,11 +93,11 @@ test('transactions list can search by code', function () {
     Sanctum::actingAs($this->user);
 
     // Create voucher with TEST prefix
-    $voucher = createVouchersWithInstructions($this->user, 1, 'TEST')->first();
+    $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST')->first();
     RedeemVoucher::run($this->contact, $voucher->code);
 
     // Create other transactions
-    $otherVouchers = createVouchersWithInstructions($this->user, 3);
+    $otherVouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3);
     $otherVouchers->each(function ($v) {
         RedeemVoucher::run($this->contact, $v->code);
     });
@@ -145,7 +113,7 @@ test('transactions list supports pagination', function () {
     Sanctum::actingAs($this->user);
 
     // Create 25 transactions
-    $vouchers = createVouchersWithInstructions($this->user, 25);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 25);
     $vouchers->each(function ($voucher) {
         RedeemVoucher::run($this->contact, $voucher->code);
     });
@@ -162,7 +130,7 @@ test('transactions list supports pagination', function () {
 test('authenticated user can show transaction details', function () {
     Sanctum::actingAs($this->user);
 
-    $voucher = createVouchersWithInstructions($this->user, 1)->first();
+    $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
     $redeemed = RedeemVoucher::run($this->contact, $voucher->code);
     expect($redeemed)->toBeTrue('Voucher redemption should succeed');
     
@@ -189,7 +157,7 @@ test('authenticated user can show transaction details', function () {
 test('cannot show unredeemed voucher as transaction', function () {
     Sanctum::actingAs($this->user);
 
-    $voucher = createVouchersWithInstructions($this->user, 1)->first();
+    $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
     // Not redeemed
 
     $response = $this->getJson("/api/v1/transactions/{$voucher->code}");
@@ -205,13 +173,13 @@ test('authenticated user can get transaction stats', function () {
     Sanctum::actingAs($this->user);
 
     // Create transactions
-    $vouchers = createVouchersWithInstructions($this->user, 10);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 10);
     $vouchers->each(function ($voucher) {
         RedeemVoucher::run($this->contact, $voucher->code);
     });
 
     // Create today's transaction
-    $todayVoucher = createVouchersWithInstructions($this->user, 1)->first();
+    $todayVoucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
     RedeemVoucher::run($this->contact, $todayVoucher->code);
 
     $response = $this->getJson('/api/v1/transactions/stats');
@@ -238,13 +206,13 @@ test('transaction stats can filter by date range', function () {
     Sanctum::actingAs($this->user);
 
     // Old transaction
-    $oldVoucher = createVouchersWithInstructions($this->user, 1)->first();
+    $oldVoucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
     RedeemVoucher::run($this->contact, $oldVoucher->code);
     $oldVoucher->redeemed_at = now()->subDays(30);
     $oldVoucher->save();
 
     // Recent transactions
-    $vouchers = createVouchersWithInstructions($this->user, 5);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 5);
     $vouchers->each(function ($voucher) {
         RedeemVoucher::run($this->contact, $voucher->code);
         $voucher->redeemed_at = now()->subDays(2);
@@ -262,7 +230,7 @@ test('authenticated user can export transactions as csv', function () {
     Sanctum::actingAs($this->user);
 
     // Create some transactions
-    $vouchers = createVouchersWithInstructions($this->user, 3);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3);
     $vouchers->each(function ($voucher) {
         RedeemVoucher::run($this->contact, $voucher->code);
     });
@@ -278,7 +246,7 @@ test('export respects date filters', function () {
     Sanctum::actingAs($this->user);
 
     // Create old transaction
-    $vouchers = createVouchersWithInstructions($this->user, 2);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 2);
     
     $oldVoucher = $vouchers[0];
     RedeemVoucher::run($this->contact, $oldVoucher->code);

@@ -11,6 +11,7 @@ use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
+use Tests\Helpers\VoucherTestHelper;
 
 uses(RefreshDatabase::class);
 
@@ -29,7 +30,7 @@ beforeEach(function () {
 // =========================
 
 test('can validate redeemable voucher code', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     $response = $this->postJson('/api/v1/redeem/validate', [
@@ -155,7 +156,7 @@ test('returns cannot redeem for expired voucher', function () {
 });
 
 test('returns cannot redeem for already redeemed voucher', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     // Redeem the voucher
@@ -184,7 +185,7 @@ test('returns cannot redeem for already redeemed voucher', function () {
 // =========================
 
 test('can redeem voucher with mobile number', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
@@ -344,7 +345,7 @@ test('can redeem voucher with inputs', function () {
 });
 
 test('validates mobile is required for redemption', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
@@ -356,7 +357,7 @@ test('validates mobile is required for redemption', function () {
 });
 
 test('validates mobile format for redemption', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
@@ -381,7 +382,7 @@ test('cannot redeem invalid voucher code', function () {
 });
 
 test('cannot redeem already redeemed voucher', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     // First redemption
@@ -446,7 +447,7 @@ test('cannot redeem expired voucher', function () {
 });
 
 test('can redeem with bank account details', function () {
-    $vouchers = createVouchersWithInstructions($this->user, 1);
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
@@ -465,32 +466,3 @@ test('can redeem with bank account details', function () {
         ]);
 });
 
-// Helper function
-function createVouchersWithInstructions($user, $count = 1, $prefix = '')
-{
-    $instructions = VoucherInstructionsData::from([
-        'cash' => [
-            'amount' => 100,
-            'currency' => 'PHP',
-            'validation' => [
-                'secret' => null,
-                'mobile' => null,
-                'country' => 'PH',
-                'location' => null,
-                'radius' => null,
-            ],
-        ],
-        'inputs' => ['fields' => []],
-        'feedback' => ['email' => null, 'mobile' => null, 'webhook' => null],
-        'rider' => ['message' => null, 'url' => null],
-        'count' => $count,
-        'prefix' => $prefix,
-        'mask' => '****',
-        'ttl' => CarbonInterval::hours(12),
-    ]);
-
-    // Authenticate as user for GenerateVouchers
-    auth()->login($user);
-    
-    return GenerateVouchers::run($instructions);
-}
