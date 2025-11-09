@@ -7,11 +7,18 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, ExternalLink } from 'lucide-vue-next';
 
 interface Props {
+    // From API flow
     voucher_code?: string;
     amount?: number;
     currency?: string;
     mobile?: string;
     message?: string;
+    // From controller flow
+    voucher?: {
+        code: string;
+        amount: number;
+        currency: string;
+    };
     rider?: {
         message?: string;
         url?: string;
@@ -24,14 +31,19 @@ const props = withDefaults(defineProps<Props>(), {
     currency: 'PHP',
 });
 
+// Computed values that work for both flows
+const voucherCode = computed(() => props.voucher_code || props.voucher?.code);
+const voucherAmount = computed(() => props.amount || props.voucher?.amount || 0);
+const voucherCurrency = computed(() => props.currency || props.voucher?.currency || 'PHP');
+
 const countdown = ref(props.redirect_timeout);
 const isRedirecting = ref(false);
 
 const formattedAmount = computed(() => {
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
-        currency: props.currency || 'PHP',
-    }).format(props.amount || 0);
+        currency: voucherCurrency.value,
+    }).format(voucherAmount.value);
 });
 
 const hasRiderUrl = computed(() => {
@@ -94,7 +106,7 @@ onMounted(() => {
                     <div class="space-y-2">
                         <div class="flex justify-between rounded-md border p-4">
                             <span class="text-muted-foreground">Voucher Code:</span>
-                            <span class="font-mono font-semibold">{{ voucher_code }}</span>
+                            <span class="font-mono font-semibold">{{ voucherCode }}</span>
                         </div>
                         <div v-if="mobile" class="flex justify-between rounded-md border p-4">
                             <span class="text-muted-foreground">Mobile Number:</span>

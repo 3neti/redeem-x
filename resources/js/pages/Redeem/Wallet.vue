@@ -69,10 +69,9 @@ const handleSubmit = async () => {
         });
 
         // Navigate to success page with result
-        router.visit('/redeem/success', {
+        router.visit(`/redeem/${result.voucher.code}/success`, {
             method: 'get',
             data: {
-                voucher_code: result.voucher.code,
                 amount: result.voucher.amount,
                 currency: result.voucher.currency,
                 mobile: form.value.mobile,
