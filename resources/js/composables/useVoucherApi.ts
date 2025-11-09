@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 export interface VoucherData {
     code: string;

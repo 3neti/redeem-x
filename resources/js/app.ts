@@ -5,6 +5,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { initializeTheme } from './composables/useAppearance';
+import './lib/axios'; // Initialize axios configuration
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
