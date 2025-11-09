@@ -30,8 +30,11 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
     // Voucher-specific routes (route model binding by code)
     Route::prefix('{voucher:code}')->group(function () {
         // Step 1: Collect bank account
-        Route::get('/wallet', [RedeemWizardController::class, 'wallet'])->name('wallet');
+        Route::get('/wallet', [RedeemController::class, 'wallet'])->name('wallet');
         Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
+
+        // Step 2: Signature (API-first flow)
+        Route::get('/signature', [RedeemController::class, 'signature'])->name('signature');
 
         // Step 3: Finalize and review (must be before plugin route)
         Route::get('/finalize', [RedeemWizardController::class, 'finalize'])->name('finalize');

@@ -24,6 +24,32 @@ use Propaganistas\LaravelPhone\PhoneNumber;
 class RedeemController extends Controller
 {
     /**
+     * Show the wallet page (API-first flow).
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function wallet(Voucher $voucher): Response
+    {
+        return Inertia::render('Redeem/Wallet', [
+            'voucher_code' => $voucher->code,
+        ]);
+    }
+
+    /**
+     * Show the signature page (API-first flow).
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function signature(Voucher $voucher): Response
+    {
+        return Inertia::render('Redeem/Signature', [
+            'voucher_code' => $voucher->code,
+        ]);
+    }
+
+    /**
      * Show the redemption start page.
      * If code is provided in query string, validate and redirect to wallet step.
      *

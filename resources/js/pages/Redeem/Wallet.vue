@@ -28,6 +28,7 @@ const form = ref({
     bank_code: '',
     account_number: '',
     secret: '',
+    inputs: {} as Record<string, any>,
 });
 
 const banks = [
@@ -55,9 +56,47 @@ const hasSecret = computed(() => {
     return voucherInfo.value?.required_validation?.secret || false;
 });
 
+const requiredInputs = computed(() => {
+    return (voucherInfo.value?.required_inputs || []).filter(field => field !== 'signature');
+});
+
+const requiresSignature = computed(() => {
+    return (voucherInfo.value?.required_inputs || []).includes('signature');
+});
+
+// Field configuration for dynamic inputs
+const fieldConfig: Record<string, { label: string; type: string; placeholder?: string }> = {
+    name: { label: 'Full Name', type: 'text', placeholder: 'Juan Dela Cruz' },
+    email: { label: 'Email Address', type: 'email', placeholder: 'juan@example.com' },
+    address: { label: 'Full Address', type: 'text', placeholder: '123 Main St, City' },
+    birth_date: { label: 'Birth Date', type: 'date' },
+    gross_monthly_income: { label: 'Gross Monthly Income', type: 'number', placeholder: '0' },
+    location: { label: 'Location', type: 'text', placeholder: 'Current location' },
+    reference_code: { label: 'Reference Code', type: 'text', placeholder: 'REF-12345' },
+    otp: { label: 'OTP Code', type: 'text', placeholder: '1234' },
+};
+
 const handleSubmit = async () => {
     validationErrors.value = {};
     
+    // If signature is required, save wallet data and navigate to signature page
+    if (requiresSignature.value) {
+        // Store wallet and input data in sessionStorage for signature page
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify({
+            mobile: form.value.mobile,
+            country: form.value.country,
+            secret: form.value.secret || undefined,
+            bank_code: form.value.bank_code || undefined,
+            account_number: form.value.account_number || undefined,
+            inputs: form.value.inputs,
+        }));
+        
+        // Navigate to signature page
+        router.visit(`/redeem/${props.voucher_code}/signature`);
+        return;
+    }
+    
+    // Otherwise, proceed with redemption directly
     try {
         const result = await redeemVoucher({
             code: props.voucher_code,
@@ -66,6 +105,7 @@ const handleSubmit = async () => {
             secret: form.value.secret || undefined,
             bank_code: form.value.bank_code || undefined,
             account_number: form.value.account_number || undefined,
+            inputs: Object.keys(form.value.inputs).length > 0 ? form.value.inputs : undefined,
         });
 
         // Navigate to success page with result
@@ -94,6 +134,15 @@ onMounted(async () => {
 
         if (!result.can_redeem) {
             router.visit('/redeem');
+        }
+
+        // Initialize inputs with empty values for required fields (excluding signature)
+        if (result.required_inputs && result.required_inputs.length > 0) {
+            result.required_inputs
+                .filter(field => field !== 'signature')
+                .forEach((field) => {
+                    form.value.inputs[field] = '';
+                });
         }
     } catch (err) {
         router.visit('/redeem');
@@ -184,6 +233,28 @@ onMounted(async () => {
                                 </p>
                                 <p class="text-xs text-muted-foreground">
                                     This voucher requires a secret code to redeem
+                                </p>
+                            </div>
+
+                            <!-- Dynamic Input Fields -->
+                            <div
+                                v-for="field in requiredInputs"
+                                :key="field"
+                                class="space-y-2"
+                            >
+                                <Label :for="field">
+                                    {{ fieldConfig[field]?.label || field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }} *
+                                </Label>
+                                <Input
+                                    :id="field"
+                                    v-model="form.inputs[field]"
+                                    :type="fieldConfig[field]?.type || 'text'"
+                                    :placeholder="fieldConfig[field]?.placeholder"
+                                    required
+                                    :disabled="loading"
+                                />
+                                <p v-if="validationErrors[`inputs.${field}`]" class="text-sm text-red-600">
+                                    {{ validationErrors[`inputs.${field}`] }}
                                 </p>
                             </div>
 

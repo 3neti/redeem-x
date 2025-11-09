@@ -1,32 +1,26 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
-import { storePlugin } from '@/actions/App/Http/Controllers/Redeem/RedeemWizardController';
+import { ref, onMounted } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { useRedemptionApi } from '@/composables/useRedemptionApi';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-vue-next';
 
 interface Props {
     voucher_code: string;
-    voucher: {
-        code: string;
-        amount: number;
-        currency: string;
-    };
-    plugin: string;
-    requested_fields: string[];
-    default_values: Record<string, any>;
 }
 
 const props = defineProps<Props>();
 
+const { loading, error, redeemVoucher } = useRedemptionApi();
+
 const canvas = ref<HTMLCanvasElement | null>(null);
 const isDrawing = ref(false);
 const hasSignature = ref(false);
-
-const form = useForm({
-    signature: '',
-});
+const signature = ref('');
+const storedData = ref<any>(null);
 
 let ctx: CanvasRenderingContext2D | null = null;
 
@@ -83,31 +77,86 @@ const clearSignature = () => {
     if (!ctx || !canvas.value) return;
     ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
     hasSignature.value = false;
-    form.signature = '';
+    signature.value = '';
 };
 
-const handleSubmit = () => {
-    if (!canvas.value || !hasSignature.value) return;
+const handleSubmit = async () => {
+    if (!canvas.value || !hasSignature.value || !storedData.value) return;
 
     // Convert canvas to base64 data URL
-    form.signature = canvas.value.toDataURL('image/png');
+    signature.value = canvas.value.toDataURL('image/png');
 
-    form.post(
-        storePlugin.url({
-            voucher: props.voucher_code,
-            plugin: props.plugin,
-        })
-    );
+    try {
+        // Combine stored wallet data with signature in inputs
+        const inputs = {
+            ...storedData.value.inputs,
+            signature: signature.value,
+        };
+
+        const result = await redeemVoucher({
+            code: props.voucher_code,
+            mobile: storedData.value.mobile,
+            country: storedData.value.country,
+            secret: storedData.value.secret,
+            bank_code: storedData.value.bank_code,
+            account_number: storedData.value.account_number,
+            inputs: Object.keys(inputs).length > 0 ? inputs : undefined,
+        });
+
+        // Clear stored data
+        sessionStorage.removeItem(`redeem_${props.voucher_code}`);
+
+        // Navigate to success page with result
+        router.visit(`/redeem/${result.voucher.code}/success`, {
+            method: 'get',
+            data: {
+                amount: result.voucher.amount,
+                currency: result.voucher.currency,
+                mobile: storedData.value.mobile,
+                message: result.message,
+                rider: result.rider,
+            },
+        });
+    } catch (err: any) {
+        // Handle errors - will be shown via error ref from composable
+        console.error('Redemption failed:', err);
+    }
 };
 
-// Initialize canvas when component mounts
-setTimeout(initCanvas, 100);
+// Load stored data and initialize canvas when component mounts
+onMounted(() => {
+    // Load stored wallet data from sessionStorage
+    const stored = sessionStorage.getItem(`redeem_${props.voucher_code}`);
+    if (!stored) {
+        // No stored data, redirect back to wallet
+        router.visit(`/redeem/${props.voucher_code}/wallet`);
+        return;
+    }
+    
+    storedData.value = JSON.parse(stored);
+    
+    // Initialize canvas
+    setTimeout(initCanvas, 100);
+});
 </script>
 
 <template>
     <PublicLayout>
         <div class="container mx-auto max-w-2xl px-4 py-8">
-            <Card>
+            <!-- Loading State -->
+            <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
+                <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+
+            <!-- Error Alert -->
+            <Alert v-if="error" variant="destructive" class="mb-6">
+                <AlertCircle class="h-4 w-4" />
+                <AlertDescription>
+                    {{ error }}
+                </AlertDescription>
+            </Alert>
+
+            <Card v-if="!loading">
                 <CardHeader>
                     <CardTitle>Signature Required</CardTitle>
                     <CardDescription>
@@ -128,8 +177,8 @@ setTimeout(initCanvas, 100);
                                     @mousemove="draw"
                                     @mouseup="stopDrawing"
                                     @mouseleave="stopDrawing"
-                                    @touchstart="startDrawing"
-                                    @touchmove="draw"
+                                    @touchstart.prevent="startDrawing"
+                                    @touchmove.prevent="draw"
                                     @touchend="stopDrawing"
                                 />
                                 <div
@@ -139,9 +188,6 @@ setTimeout(initCanvas, 100);
                                     Sign here
                                 </div>
                             </div>
-                            <p v-if="form.errors.signature" class="text-sm text-red-600">
-                                {{ form.errors.signature }}
-                            </p>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -159,17 +205,17 @@ setTimeout(initCanvas, 100);
                                 type="button"
                                 variant="outline"
                                 class="flex-1"
-                                @click="$inertia.visit(`/redeem/${voucher_code}/wallet`)"
-                                :disabled="form.processing"
+                                @click="router.visit(`/redeem/${props.voucher_code}/wallet`)"
+                                :disabled="loading"
                             >
                                 Back
                             </Button>
                             <Button
                                 type="submit"
                                 class="flex-1"
-                                :disabled="!hasSignature || form.processing"
+                                :disabled="!hasSignature || loading"
                             >
-                                {{ form.processing ? 'Processing...' : 'Continue' }}
+                                {{ loading ? 'Processing...' : 'Continue' }}
                             </Button>
                         </div>
                     </form>
