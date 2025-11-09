@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import VoucherGenerationController from '@/actions/App/Http/Controllers/VoucherGenerationController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
-import { Form, Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useVoucherApi } from '@/composables/useVoucherApi';
 
 interface Props {
     wallet_balance: number;
@@ -22,6 +21,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { loading, error, generateVouchers } = useVoucherApi();
+const validationErrors = ref<Record<string, string>>({});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Vouchers', href: '#' },
@@ -157,6 +159,38 @@ const jsonPreview = computed(() => {
 });
 
 const showJsonPreview = ref(false);
+
+// Form submission
+const handleSubmit = async () => {
+    if (insufficientFunds.value) return;
+
+    validationErrors.value = {};
+
+    const result = await generateVouchers({
+        amount: amount.value,
+        count: count.value,
+        prefix: prefix.value || undefined,
+        mask: mask.value || undefined,
+        ttl_days: ttlDays.value || undefined,
+        input_fields: selectedInputFields.value.length > 0 ? selectedInputFields.value : undefined,
+        validation_secret: validationSecret.value || undefined,
+        validation_mobile: validationMobile.value || undefined,
+        feedback_email: feedbackEmail.value || undefined,
+        feedback_mobile: feedbackMobile.value || undefined,
+        feedback_webhook: feedbackWebhook.value || undefined,
+        rider_message: riderMessage.value || undefined,
+        rider_url: riderUrl.value || undefined,
+    });
+
+    if (result) {
+        // Success - redirect to success page
+        router.visit(`/vouchers/generate/success/${result.count}`);
+    } else if (error.value) {
+        // Handle validation errors
+        // The error.value contains the error message
+        console.error('Generation failed:', error.value);
+    }
+};
 </script>
 
 <template>
@@ -169,10 +203,9 @@ const showJsonPreview = ref(false);
                 description="Create vouchers with custom instructions and validation rules"
             />
 
-            <Form
-                v-bind="VoucherGenerationController.store.form()"
+            <form
+                @submit.prevent="handleSubmit"
                 class="grid gap-6 lg:grid-cols-3"
-                v-slot="{ errors, processing }"
             >
                 <!-- Main Form -->
                 <div class="space-y-6 lg:col-span-2">
@@ -200,7 +233,7 @@ const showJsonPreview = ref(false);
                                         step="0.01"
                                         required
                                     />
-                                    <InputError :message="errors.amount" />
+                                    <InputError :message="validationErrors.amount" />
                                 </div>
 
                                 <div class="space-y-2">
@@ -213,7 +246,7 @@ const showJsonPreview = ref(false);
                                         :min="1"
                                         required
                                     />
-                                    <InputError :message="errors.count" />
+                                    <InputError :message="validationErrors.count" />
                                 </div>
                             </div>
 
@@ -226,7 +259,7 @@ const showJsonPreview = ref(false);
                                         v-model="prefix"
                                         placeholder="e.g., PROMO"
                                     />
-                                    <InputError :message="errors.prefix" />
+                                    <InputError :message="validationErrors.prefix" />
                                 </div>
 
                                 <div class="space-y-2">
@@ -237,7 +270,7 @@ const showJsonPreview = ref(false);
                                         v-model="mask"
                                         placeholder="e.g., ****-****"
                                     />
-                                    <InputError :message="errors.mask" />
+                                    <InputError :message="validationErrors.mask" />
                                     <p class="text-xs text-muted-foreground">
                                         Use * for random chars, - for separators (4-6
                                         asterisks)
@@ -255,7 +288,7 @@ const showJsonPreview = ref(false);
                                     :min="1"
                                     placeholder="30"
                                 />
-                                <InputError :message="errors.ttl_days" />
+                                <InputError :message="validationErrors.ttl_days" />
                                 <p class="text-xs text-muted-foreground">
                                     Leave empty for non-expiring vouchers
                                 </p>
@@ -301,7 +334,7 @@ const showJsonPreview = ref(false);
                                 :value="field"
                             />
                             <InputError
-                                :message="errors.input_fields"
+                                :message="validationErrors.input_fields"
                                 class="mt-2"
                             />
                         </CardContent>
@@ -327,7 +360,7 @@ const showJsonPreview = ref(false);
                                     v-model="validationSecret"
                                     placeholder="e.g., SECRET2025"
                                 />
-                                <InputError :message="errors.validation_secret" />
+                                <InputError :message="validationErrors.validation_secret" />
                             </div>
 
                             <div class="space-y-2">
@@ -340,7 +373,7 @@ const showJsonPreview = ref(false);
                                     v-model="validationMobile"
                                     placeholder="e.g., +639171234567"
                                 />
-                                <InputError :message="errors.validation_mobile" />
+                                <InputError :message="validationErrors.validation_mobile" />
                             </div>
                         </CardContent>
                     </Card>
@@ -366,7 +399,7 @@ const showJsonPreview = ref(false);
                                     v-model="feedbackEmail"
                                     placeholder="notifications@example.com"
                                 />
-                                <InputError :message="errors.feedback_email" />
+                                <InputError :message="validationErrors.feedback_email" />
                             </div>
 
                             <div class="space-y-2">
@@ -377,7 +410,7 @@ const showJsonPreview = ref(false);
                                     v-model="feedbackMobile"
                                     placeholder="+639171234567"
                                 />
-                                <InputError :message="errors.feedback_mobile" />
+                                <InputError :message="validationErrors.feedback_mobile" />
                             </div>
 
                             <div class="space-y-2">
@@ -389,7 +422,7 @@ const showJsonPreview = ref(false);
                                     v-model="feedbackWebhook"
                                     placeholder="https://example.com/webhook"
                                 />
-                                <InputError :message="errors.feedback_webhook" />
+                                <InputError :message="validationErrors.feedback_webhook" />
                             </div>
                         </CardContent>
                     </Card>
@@ -414,7 +447,7 @@ const showJsonPreview = ref(false);
                                     v-model="riderMessage"
                                     placeholder="Thank you for redeeming!"
                                 />
-                                <InputError :message="errors.rider_message" />
+                                <InputError :message="validationErrors.rider_message" />
                             </div>
 
                             <div class="space-y-2">
@@ -426,7 +459,7 @@ const showJsonPreview = ref(false);
                                     v-model="riderUrl"
                                     placeholder="https://example.com/thank-you"
                                 />
-                                <InputError :message="errors.rider_url" />
+                                <InputError :message="validationErrors.rider_url" />
                             </div>
                         </CardContent>
                     </Card>
@@ -567,12 +600,12 @@ const showJsonPreview = ref(false);
                             <Button
                                 type="submit"
                                 class="w-full"
-                                :disabled="processing || insufficientFunds"
+                                :disabled="loading || insufficientFunds"
                             >
                                 {{
                                     insufficientFunds
                                         ? 'Insufficient Funds'
-                                        : processing
+                                        : loading
                                           ? 'Generating...'
                                           : 'Generate Vouchers'
                                 }}
@@ -587,7 +620,7 @@ const showJsonPreview = ref(false);
                         </CardContent>
                     </Card>
                 </div>
-            </Form>
+            </form>
         </div>
     </AppLayout>
 </template>
