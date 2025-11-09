@@ -37,6 +37,19 @@ class RedeemController extends Controller
     }
 
     /**
+     * Show the location page (API-first flow).
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function location(Voucher $voucher): Response
+    {
+        return Inertia::render('Redeem/Location', [
+            'voucher_code' => $voucher->code,
+        ]);
+    }
+
+    /**
      * Show the signature page (API-first flow).
      *
      * @param  Voucher  $voucher

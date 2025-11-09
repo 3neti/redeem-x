@@ -33,7 +33,10 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         Route::get('/wallet', [RedeemController::class, 'wallet'])->name('wallet');
         Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
 
-        // Step 2: Signature (API-first flow)
+        // Step 2a: Location (API-first flow)
+        Route::get('/location', [RedeemController::class, 'location'])->name('location');
+
+        // Step 2b: Signature (API-first flow)
         Route::get('/signature', [RedeemController::class, 'signature'])->name('signature');
 
         // Step 3: Finalize and review (must be before plugin route)

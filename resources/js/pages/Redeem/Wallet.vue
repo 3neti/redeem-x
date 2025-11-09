@@ -57,7 +57,12 @@ const hasSecret = computed(() => {
 });
 
 const requiredInputs = computed(() => {
-    return (voucherInfo.value?.required_inputs || []).filter(field => field !== 'signature');
+    return (voucherInfo.value?.required_inputs || [])
+        .filter(field => field !== 'signature' && field !== 'location');
+});
+
+const requiresLocation = computed(() => {
+    return (voucherInfo.value?.required_inputs || []).includes('location');
 });
 
 const requiresSignature = computed(() => {
@@ -79,19 +84,27 @@ const fieldConfig: Record<string, { label: string; type: string; placeholder?: s
 const handleSubmit = async () => {
     validationErrors.value = {};
     
-    // If signature is required, save wallet data and navigate to signature page
+    // Prepare stored data for multi-step flow
+    const storedData = {
+        mobile: form.value.mobile,
+        country: form.value.country,
+        secret: form.value.secret || undefined,
+        bank_code: form.value.bank_code || undefined,
+        account_number: form.value.account_number || undefined,
+        inputs: form.value.inputs,
+        required_inputs: voucherInfo.value?.required_inputs || [],
+    };
+    
+    // If location is required, save data and navigate to location page
+    if (requiresLocation.value) {
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
+        router.visit(`/redeem/${props.voucher_code}/location`);
+        return;
+    }
+    
+    // If signature is required (but not location), save data and navigate to signature page
     if (requiresSignature.value) {
-        // Store wallet and input data in sessionStorage for signature page
-        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify({
-            mobile: form.value.mobile,
-            country: form.value.country,
-            secret: form.value.secret || undefined,
-            bank_code: form.value.bank_code || undefined,
-            account_number: form.value.account_number || undefined,
-            inputs: form.value.inputs,
-        }));
-        
-        // Navigate to signature page
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/signature`);
         return;
     }
@@ -136,10 +149,10 @@ onMounted(async () => {
             router.visit('/redeem');
         }
 
-        // Initialize inputs with empty values for required fields (excluding signature)
+        // Initialize inputs with empty values for required fields (excluding signature and location)
         if (result.required_inputs && result.required_inputs.length > 0) {
             result.required_inputs
-                .filter(field => field !== 'signature')
+                .filter(field => field !== 'signature' && field !== 'location')
                 .forEach((field) => {
                     form.value.inputs[field] = '';
                 });
