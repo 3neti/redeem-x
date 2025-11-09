@@ -17,36 +17,13 @@ use LBHurtado\Contact\Models\Contact;
 class ContactController extends Controller
 {
     /**
-     * Display a listing of contacts.
+     * Display the contacts page.
      *
-     * @param  Request  $request
      * @return Response
      */
-    public function index(Request $request): Response
+    public function index(): Response
     {
-        $query = Contact::query()
-            ->orderByDesc('updated_at');
-
-        // Search by name or mobile
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('mobile', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        // Paginate
-        $contacts = $query->paginate(15)->withQueryString();
-
-        return Inertia::render('Contacts/Index', [
-            'contacts' => $contacts,
-            'filters' => [
-                'search' => $request->input('search'),
-            ],
-            'stats' => $this->getContactStats(),
-        ]);
+        return Inertia::render('Contacts/Index');
     }
 
     /**
@@ -62,17 +39,4 @@ class ContactController extends Controller
         ]);
     }
 
-    /**
-     * Get contact statistics.
-     *
-     * @return array
-     */
-    protected function getContactStats(): array
-    {
-        $total = Contact::count();
-        $withEmail = Contact::whereNotNull('email')->count();
-        $withName = Contact::whereNotNull('name')->count();
-
-        return compact('total', 'withEmail', 'withName');
-    }
 }
