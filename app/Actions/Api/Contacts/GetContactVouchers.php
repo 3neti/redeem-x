@@ -22,8 +22,14 @@ class GetContactVouchers
 
     public function asController(Contact $contact): JsonResponse
     {
-        // Get vouchers redeemed by this contact
-        $vouchers = $contact->vouchers()->orderByDesc('redeemed_at')->get();
+        // Get vouchers where this contact is the owner (polymorphic relationship)
+        // Vouchers are linked to contacts via owner_type and owner_id
+        $vouchers = \LBHurtado\Voucher\Models\Voucher::query()
+            ->where('owner_type', Contact::class)
+            ->where('owner_id', $contact->id)
+            ->whereNotNull('redeemed_at')
+            ->orderByDesc('redeemed_at')
+            ->get();
 
         // Transform to VoucherData DTOs
         $vouchersData = new DataCollection(VoucherData::class, $vouchers);
