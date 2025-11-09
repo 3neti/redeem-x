@@ -1,183 +1,252 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
-import { storeWallet } from '@/actions/App/Http/Controllers/Redeem/RedeemWizardController';
+import { ref, computed, onMounted } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { useRedemptionApi } from '@/composables/useRedemptionApi';
+import type { ValidateVoucherResponse } from '@/composables/useRedemptionApi';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import type { Bank } from '@/types/redemption';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-vue-next';
 
 interface Props {
     voucher_code: string;
-    voucher: {
-        code: string;
-        amount: number;
-        currency: string;
-        expires_at?: string;
-    };
-    country: string;
-    banks: Bank[];
-    has_secret: boolean;
 }
 
 const props = defineProps<Props>();
 
-const form = useForm({
+const { loading, error, validateVoucher, redeemVoucher } = useRedemptionApi();
+
+const voucherInfo = ref<ValidateVoucherResponse | null>(null);
+const validationErrors = ref<Record<string, string>>({});
+
+const form = ref({
     mobile: '',
-    country: props.country,
+    country: 'PH',
     bank_code: '',
     account_number: '',
     secret: '',
 });
 
+const banks = [
+    { code: 'BDO', name: 'BDO Unibank' },
+    { code: 'BPI', name: 'Bank of the Philippine Islands' },
+    { code: 'MBTC', name: 'Metrobank' },
+    { code: 'UBP', name: 'UnionBank' },
+    { code: 'SECB', name: 'Security Bank' },
+    { code: 'RCBC', name: 'RCBC' },
+    { code: 'PNB', name: 'Philippine National Bank' },
+    { code: 'LBP', name: 'Land Bank of the Philippines' },
+    { code: 'DBP', name: 'Development Bank of the Philippines' },
+    { code: 'CBC', name: 'Chinabank' },
+];
+
 const formattedAmount = computed(() => {
+    if (!voucherInfo.value) return '';
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
-        currency: props.voucher.data?.currency || 'PHP',
-    }).format(props.voucher.data?.amount || 0);
+        currency: voucherInfo.value.voucher.currency || 'PHP',
+    }).format(voucherInfo.value.voucher.amount || 0);
 });
 
-const handleSubmit = () => {
-    form.post(storeWallet.url({ voucher: props.voucher_code }));
+const hasSecret = computed(() => {
+    return voucherInfo.value?.required_validation?.secret || false;
+});
+
+const handleSubmit = async () => {
+    validationErrors.value = {};
+    
+    try {
+        const result = await redeemVoucher({
+            code: props.voucher_code,
+            mobile: form.value.mobile,
+            country: form.value.country,
+            secret: form.value.secret || undefined,
+            bank_code: form.value.bank_code || undefined,
+            account_number: form.value.account_number || undefined,
+        });
+
+        // Navigate to success page with result
+        router.visit('/redeem/success', {
+            method: 'get',
+            data: {
+                voucher_code: result.voucher.code,
+                amount: result.voucher.amount,
+                currency: result.voucher.currency,
+                mobile: form.value.mobile,
+                message: result.message,
+                rider: result.rider,
+            },
+        });
+    } catch (err: any) {
+        // Handle validation errors
+        if (err.response?.data?.errors) {
+            validationErrors.value = err.response.data.errors;
+        }
+    }
 };
+
+onMounted(async () => {
+    try {
+        const result = await validateVoucher(props.voucher_code);
+        voucherInfo.value = result;
+
+        if (!result.can_redeem) {
+            router.visit('/redeem');
+        }
+    } catch (err) {
+        router.visit('/redeem');
+    }
+});
 </script>
 
 <template>
     <PublicLayout>
         <div class="container mx-auto max-w-2xl px-4 py-8">
-            <!-- Debug Output -->
-            <div class="mb-4 rounded border bg-gray-100 p-4">
-                <pre class="text-xs">{{ voucher }}</pre>
+            <!-- Loading State -->
+            <div v-if="!voucherInfo" class="flex min-h-[50vh] items-center justify-center">
+                <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            
-            <!-- Voucher Info Card -->
-            <Card class="mb-6">
-                <CardHeader>
-                    <CardTitle>Voucher Details</CardTitle>
-                </CardHeader>
-                <CardContent class="space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Code:</span>
-                        <span class="font-mono font-semibold">{{ voucher.data?.code }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-muted-foreground">Amount:</span>
-                        <span class="text-lg font-bold text-green-600">{{ formattedAmount }}</span>
-                    </div>
-                    <div v-if="voucher.data?.expires_at" class="flex justify-between">
-                        <span class="text-muted-foreground">Expires:</span>
-                        <span>{{ new Date(voucher.data.expires_at).toLocaleDateString() }}</span>
-                    </div>
-                </CardContent>
-            </Card>
 
-            <!-- Wallet Form Card -->
-            <Card>
-                <CardHeader>
-                    <CardTitle>Contact & Payment Details</CardTitle>
-                    <CardDescription>
-                        Provide your mobile number and bank account to receive the cash
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form @submit.prevent="handleSubmit" class="space-y-6">
-                        <!-- Mobile Number -->
-                        <div class="space-y-2">
-                            <Label for="mobile">Mobile Number *</Label>
-                            <Input
-                                id="mobile"
-                                v-model="form.mobile"
-                                type="tel"
-                                placeholder="+63 917 123 4567"
-                                required
-                                :disabled="form.processing"
-                            />
-                            <p v-if="form.errors.mobile" class="text-sm text-red-600">
-                                {{ form.errors.mobile }}
-                            </p>
-                            <p class="text-xs text-muted-foreground">
-                                Philippine mobile number format: +63 9XX XXX XXXX
-                            </p>
-                        </div>
+            <template v-else>
+                <!-- Error Alert -->
+                <Alert v-if="error" variant="destructive" class="mb-6">
+                    <AlertCircle class="h-4 w-4" />
+                    <AlertDescription>
+                        {{ error }}
+                    </AlertDescription>
+                </Alert>
 
-                        <!-- Secret (if required) -->
-                        <div v-if="has_secret" class="space-y-2">
-                            <Label for="secret">Secret Code *</Label>
-                            <Input
-                                id="secret"
-                                v-model="form.secret"
-                                type="password"
-                                placeholder="Enter secret code"
-                                :required="has_secret"
-                                :disabled="form.processing"
-                            />
-                            <p v-if="form.errors.secret" class="text-sm text-red-600">
-                                {{ form.errors.secret }}
-                            </p>
-                            <p class="text-xs text-muted-foreground">
-                                This voucher requires a secret code to redeem
-                            </p>
+                <!-- Voucher Info Card -->
+                <Card class="mb-6">
+                    <CardHeader>
+                        <CardTitle>Voucher Details</CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">Code:</span>
+                            <span class="font-mono font-semibold">{{ voucherInfo.voucher.code }}</span>
                         </div>
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">Amount:</span>
+                            <span class="text-lg font-bold text-green-600">{{ formattedAmount }}</span>
+                        </div>
+                        <div v-if="voucherInfo.voucher.expires_at" class="flex justify-between">
+                            <span class="text-muted-foreground">Expires:</span>
+                            <span>{{ new Date(voucherInfo.voucher.expires_at).toLocaleDateString() }}</span>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                        <!-- Bank Selection -->
-                        <div class="space-y-2">
-                            <Label for="bank">Bank (Optional)</Label>
-                            <select
-                                id="bank"
-                                v-model="form.bank_code"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                :disabled="form.processing"
-                            >
-                                <option value="">Select a bank</option>
-                                <option v-for="bank in banks" :key="bank.code" :value="bank.code">
-                                    {{ bank.name }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.bank_code" class="text-sm text-red-600">
-                                {{ form.errors.bank_code }}
-                            </p>
-                        </div>
+                <!-- Wallet Form Card -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Contact & Payment Details</CardTitle>
+                        <CardDescription>
+                            Provide your mobile number and bank account to receive the cash
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form @submit.prevent="handleSubmit" class="space-y-6">
+                            <!-- Mobile Number -->
+                            <div class="space-y-2">
+                                <Label for="mobile">Mobile Number *</Label>
+                                <Input
+                                    id="mobile"
+                                    v-model="form.mobile"
+                                    type="tel"
+                                    placeholder="+63 917 123 4567"
+                                    required
+                                    :disabled="loading"
+                                />
+                                <p v-if="validationErrors.mobile" class="text-sm text-red-600">
+                                    {{ validationErrors.mobile }}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    Philippine mobile number format: +63 9XX XXX XXXX
+                                </p>
+                            </div>
 
-                        <!-- Account Number -->
-                        <div v-if="form.bank_code" class="space-y-2">
-                            <Label for="account_number">Account Number *</Label>
-                            <Input
-                                id="account_number"
-                                v-model="form.account_number"
-                                type="text"
-                                placeholder="Enter account number"
-                                :required="!!form.bank_code"
-                                :disabled="form.processing"
-                            />
-                            <p v-if="form.errors.account_number" class="text-sm text-red-600">
-                                {{ form.errors.account_number }}
-                            </p>
-                        </div>
+                            <!-- Secret (if required) -->
+                            <div v-if="hasSecret" class="space-y-2">
+                                <Label for="secret">Secret Code *</Label>
+                                <Input
+                                    id="secret"
+                                    v-model="form.secret"
+                                    type="password"
+                                    placeholder="Enter secret code"
+                                    :required="hasSecret"
+                                    :disabled="loading"
+                                />
+                                <p v-if="validationErrors.secret" class="text-sm text-red-600">
+                                    {{ validationErrors.secret }}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    This voucher requires a secret code to redeem
+                                </p>
+                            </div>
 
-                        <!-- Submit Button -->
-                        <div class="flex gap-3 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                class="flex-1"
-                                @click="$inertia.visit('/redeem')"
-                                :disabled="form.processing"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                class="flex-1"
-                                :disabled="form.processing"
-                            >
-                                {{ form.processing ? 'Processing...' : 'Continue' }}
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+                            <!-- Bank Selection -->
+                            <div class="space-y-2">
+                                <Label for="bank">Bank (Optional)</Label>
+                                <select
+                                    id="bank"
+                                    v-model="form.bank_code"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                    :disabled="loading"
+                                >
+                                    <option value="">Select a bank</option>
+                                    <option v-for="bank in banks" :key="bank.code" :value="bank.code">
+                                        {{ bank.name }}
+                                    </option>
+                                </select>
+                                <p v-if="validationErrors.bank_code" class="text-sm text-red-600">
+                                    {{ validationErrors.bank_code }}
+                                </p>
+                            </div>
+
+                            <!-- Account Number -->
+                            <div v-if="form.bank_code" class="space-y-2">
+                                <Label for="account_number">Account Number *</Label>
+                                <Input
+                                    id="account_number"
+                                    v-model="form.account_number"
+                                    type="text"
+                                    placeholder="Enter account number"
+                                    :required="!!form.bank_code"
+                                    :disabled="loading"
+                                />
+                                <p v-if="validationErrors.account_number" class="text-sm text-red-600">
+                                    {{ validationErrors.account_number }}
+                                </p>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    class="flex-1"
+                                    @click="router.visit('/redeem')"
+                                    :disabled="loading"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    class="flex-1"
+                                    :disabled="loading"
+                                >
+                                    <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+                                    {{ loading ? 'Processing...' : 'Redeem Voucher' }}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </template>
         </div>
     </PublicLayout>
 </template>

@@ -1,24 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ExternalLink } from 'lucide-vue-next';
-import type { RiderInfo } from '@/types/redemption';
 
 interface Props {
-    voucher: {
-        code: string;
-        amount: number;
-        currency: string;
+    voucher_code?: string;
+    amount?: number;
+    currency?: string;
+    mobile?: string;
+    message?: string;
+    rider?: {
+        message?: string;
+        url?: string;
     };
-    rider: RiderInfo;
     redirect_timeout?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     redirect_timeout: 10,
+    currency: 'PHP',
 });
 
 const countdown = ref(props.redirect_timeout);
@@ -27,8 +30,8 @@ const isRedirecting = ref(false);
 const formattedAmount = computed(() => {
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
-        currency: props.voucher.data?.currency || 'PHP',
-    }).format(props.voucher.data?.amount || 0);
+        currency: props.currency || 'PHP',
+    }).format(props.amount || 0);
 });
 
 const hasRiderUrl = computed(() => {
@@ -36,7 +39,7 @@ const hasRiderUrl = computed(() => {
 });
 
 const displayMessage = computed(() => {
-    return props.rider?.message || 'Thank you for redeeming your voucher! The cash will be transferred shortly.';
+    return props.rider?.message || props.message || 'Thank you for redeeming your voucher! The cash will be transferred shortly.';
 });
 
 const handleRedirect = () => {
@@ -87,11 +90,15 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Voucher Code -->
+                    <!-- Details -->
                     <div class="space-y-2">
                         <div class="flex justify-between rounded-md border p-4">
                             <span class="text-muted-foreground">Voucher Code:</span>
-                            <span class="font-mono font-semibold">{{ voucher.data?.code }}</span>
+                            <span class="font-mono font-semibold">{{ voucher_code }}</span>
+                        </div>
+                        <div v-if="mobile" class="flex justify-between rounded-md border p-4">
+                            <span class="text-muted-foreground">Mobile Number:</span>
+                            <span class="font-semibold">{{ mobile }}</span>
                         </div>
                     </div>
 
@@ -119,10 +126,10 @@ onMounted(() => {
                         <p class="text-sm text-muted-foreground">Redirecting...</p>
                     </div>
 
-                    <!-- No Redirect - Close Window -->
+                    <!-- No Redirect - Show Redeem Another -->
                     <div v-else class="pt-4">
-                        <Button class="w-full" @click="window.close()">
-                            Close
+                        <Button class="w-full" @click="router.visit('/redeem')">
+                            Redeem Another Voucher
                         </Button>
                     </div>
 
