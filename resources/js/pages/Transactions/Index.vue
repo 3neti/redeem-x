@@ -1,81 +1,90 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { index as transactionsIndex, exportMethod as transactionsExport } from '@/actions/App/Http/Controllers/TransactionController';
+import { ref, onMounted, computed } from 'vue';
+import { useTransactionApi } from '@/composables/useTransactionApi';
+import type { TransactionData, TransactionStats, TransactionListResponse } from '@/composables/useTransactionApi';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp } from 'lucide-vue-next';
+import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2 } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
-
-interface TransactionData {
-    id: number;
-    code: string;
-    amount: number;
-    currency: string;
-    redeemed_at: string;
-    created_at: string;
-}
-
-interface Props {
-    transactions: {
-        data: TransactionData[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-        links: Array<{ url: string | null; label: string; active: boolean }>;
-    };
-    filters?: {
-        search?: string;
-        date_from?: string;
-        date_to?: string;
-    };
-    stats?: {
-        total: number;
-        total_amount: number;
-        today: number;
-        this_month: number;
-    };
-}
-
-const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Transactions', href: '#' },
 ];
 
-const searchQuery = ref(props.filters?.search || '');
-const dateFrom = ref(props.filters?.date_from || '');
-const dateTo = ref(props.filters?.date_to || '');
+const { loading, listTransactions, getStats, exportTransactions: exportAPI } = useTransactionApi();
 
-const applyFilters = () => {
-    router.get(transactionsIndex.url(), {
-        search: searchQuery.value || undefined,
-        date_from: dateFrom.value || undefined,
-        date_to: dateTo.value || undefined,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+const transactions = ref<TransactionListResponse['data']>([]);
+const pagination = ref({
+    current_page: 1,
+    per_page: 20,
+    total: 0,
+    last_page: 1,
+});
+const stats = ref<TransactionStats>({
+    total: 0,
+    total_amount: 0,
+    today: 0,
+    this_month: 0,
+    currency: 'PHP',
+});
+
+const searchQuery = ref('');
+const dateFrom = ref('');
+const dateTo = ref('');
+
+const fetchTransactions = async (page: number = 1) => {
+    try {
+        const response = await listTransactions({
+            search: searchQuery.value || undefined,
+            date_from: dateFrom.value || undefined,
+            date_to: dateTo.value || undefined,
+            per_page: pagination.value.per_page,
+            page,
+        });
+        
+        transactions.value = response.data;
+        pagination.value = response.pagination;
+    } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+    }
 };
 
-const clearFilters = () => {
+const fetchStats = async () => {
+    try {
+        const response = await getStats({
+            date_from: dateFrom.value || undefined,
+            date_to: dateTo.value || undefined,
+        });
+        
+        stats.value = response;
+    } catch (error) {
+        console.error('Failed to fetch stats:', error);
+    }
+};
+
+const applyFilters = async () => {
+    await Promise.all([
+        fetchTransactions(1),
+        fetchStats(),
+    ]);
+};
+
+const clearFilters = async () => {
     searchQuery.value = '';
     dateFrom.value = '';
     dateTo.value = '';
-    applyFilters();
+    await applyFilters();
 };
 
 const exportTransactions = () => {
-    const params = new URLSearchParams();
-    if (searchQuery.value) params.append('search', searchQuery.value);
-    if (dateFrom.value) params.append('date_from', dateFrom.value);
-    if (dateTo.value) params.append('date_to', dateTo.value);
-    
-    window.location.href = `${transactionsExport.url()}?${params.toString()}`;
+    exportAPI({
+        search: searchQuery.value || undefined,
+        date_from: dateFrom.value || undefined,
+        date_to: dateTo.value || undefined,
+    });
 };
 
 const formatAmount = (amount: number, currency: string) => {
@@ -94,6 +103,52 @@ const formatDate = (date: string) => {
         minute: '2-digit',
     });
 };
+
+// Pagination helpers
+const paginationLinks = computed(() => {
+    const links = [];
+    
+    // Previous
+    links.push({
+        label: '&laquo; Previous',
+        page: pagination.value.current_page - 1,
+        active: false,
+        disabled: pagination.value.current_page === 1,
+    });
+    
+    // Pages
+    for (let i = 1; i <= pagination.value.last_page; i++) {
+        links.push({
+            label: i.toString(),
+            page: i,
+            active: i === pagination.value.current_page,
+            disabled: false,
+        });
+    }
+    
+    // Next
+    links.push({
+        label: 'Next &raquo;',
+        page: pagination.value.current_page + 1,
+        active: false,
+        disabled: pagination.value.current_page === pagination.value.last_page,
+    });
+    
+    return links;
+});
+
+const goToPage = async (page: number) => {
+    if (page >= 1 && page <= pagination.value.last_page) {
+        await fetchTransactions(page);
+    }
+};
+
+onMounted(async () => {
+    await Promise.all([
+        fetchTransactions(),
+        fetchStats(),
+    ]);
+});
 </script>
 
 <template>
@@ -105,14 +160,17 @@ const formatDate = (date: string) => {
             />
 
             <!-- Stats Cards -->
-            <div class="grid gap-4 md:grid-cols-4">
+            <div v-if="loading" class="flex justify-center py-8">
+                <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <div v-else class="grid gap-4 md:grid-cols-4">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Total Transactions</CardTitle>
                         <Receipt class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.total || 0 }}</div>
+                        <div class="text-2xl font-bold">{{ stats.total }}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -121,7 +179,7 @@ const formatDate = (date: string) => {
                         <DollarSign class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ formatAmount(stats?.total_amount || 0, 'PHP') }}</div>
+                        <div class="text-2xl font-bold">{{ formatAmount(stats.total_amount, stats.currency) }}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -130,7 +188,7 @@ const formatDate = (date: string) => {
                         <Calendar class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.today || 0 }}</div>
+                        <div class="text-2xl font-bold">{{ stats.today }}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -139,7 +197,7 @@ const formatDate = (date: string) => {
                         <TrendingUp class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.this_month || 0 }}</div>
+                        <div class="text-2xl font-bold">{{ stats.this_month }}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -150,9 +208,9 @@ const formatDate = (date: string) => {
                     <div class="flex items-center justify-between">
                         <div>
                             <CardTitle>Redemption History</CardTitle>
-                            <CardDescription>{{ transactions?.total || 0 }} transactions found</CardDescription>
+                            <CardDescription>{{ pagination.total }} transactions found</CardDescription>
                         </div>
-                        <Button @click="exportTransactions" variant="outline">
+                        <Button @click="exportTransactions" variant="outline" :disabled="loading">
                             <Download class="mr-2 h-4 w-4" />
                             Export CSV
                         </Button>
@@ -183,10 +241,11 @@ const formatDate = (date: string) => {
                         />
                     </div>
                     <div class="flex gap-2 pt-2">
-                        <Button @click="applyFilters" variant="default" size="sm">
+                        <Button @click="applyFilters" variant="default" size="sm" :disabled="loading">
+                            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
                             Apply Filters
                         </Button>
-                        <Button @click="clearFilters" variant="outline" size="sm">
+                        <Button @click="clearFilters" variant="outline" size="sm" :disabled="loading">
                             Clear
                         </Button>
                     </div>
@@ -204,48 +263,55 @@ const formatDate = (date: string) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr
-                                    v-for="transaction in transactions.data"
-                                    :key="transaction.id"
-                                    class="border-b hover:bg-muted/50"
-                                >
-                                    <td class="px-4 py-3 font-mono font-semibold">
-                                        {{ transaction.code }}
-                                    </td>
-                                    <td class="px-4 py-3 text-right font-semibold text-green-600">
-                                        {{ formatAmount(transaction.amount, transaction.currency) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-muted-foreground">
-                                        {{ formatDate(transaction.redeemed_at) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-muted-foreground">
-                                        {{ formatDate(transaction.created_at) }}
+                                <tr v-if="loading">
+                                    <td colspan="4" class="px-4 py-8 text-center">
+                                        <Loader2 class="inline h-6 w-6 animate-spin text-muted-foreground" />
                                     </td>
                                 </tr>
-                                <tr v-if="transactions.data.length === 0">
-                                    <td colspan="4" class="px-4 py-8 text-center text-muted-foreground">
-                                        No transactions found
-                                    </td>
-                                </tr>
+                                <template v-else>
+                                    <tr
+                                        v-for="transaction in transactions"
+                                        :key="transaction.code"
+                                        class="border-b hover:bg-muted/50"
+                                    >
+                                        <td class="px-4 py-3 font-mono font-semibold">
+                                            {{ transaction.code }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-semibold text-green-600">
+                                            {{ formatAmount(transaction.amount, transaction.currency) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-muted-foreground">
+                                            {{ formatDate(transaction.redeemed_at) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-muted-foreground">
+                                            {{ formatDate(transaction.created_at) }}
+                                        </td>
+                                    </tr>
+                                    <tr v-if="transactions.length === 0">
+                                        <td colspan="4" class="px-4 py-8 text-center text-muted-foreground">
+                                            No transactions found
+                                        </td>
+                                    </tr>
+                                </template>
                             </tbody>
                         </table>
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="transactions.last_page > 1" class="mt-4 flex items-center justify-between">
+                    <div v-if="pagination.last_page > 1" class="mt-4 flex items-center justify-between">
                         <div class="text-sm text-muted-foreground">
-                            Showing {{ (transactions.current_page - 1) * transactions.per_page + 1 }} to
-                            {{ Math.min(transactions.current_page * transactions.per_page, transactions.total) }}
-                            of {{ transactions.total }} results
+                            Showing {{ (pagination.current_page - 1) * pagination.per_page + 1 }} to
+                            {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
+                            of {{ pagination.total }} results
                         </div>
                         <div class="flex gap-2">
                             <Button
-                                v-for="link in transactions.links"
+                                v-for="link in paginationLinks"
                                 :key="link.label"
                                 :variant="link.active ? 'default' : 'outline'"
                                 size="sm"
-                                :disabled="!link.url"
-                                @click="link.url && router.visit(link.url)"
+                                :disabled="link.disabled || loading"
+                                @click="goToPage(link.page)"
                                 v-html="link.label"
                             />
                         </div>
