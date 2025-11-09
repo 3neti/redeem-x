@@ -17,6 +17,7 @@ const props = withDefaults(
 
 const hasError = ref(false);
 const error = ref<Error | null>(null);
+const isDev = import.meta.env.DEV;
 
 onErrorCaptured((err: Error, instance, info) => {
     hasError.value = true;
@@ -58,7 +59,7 @@ const reset = () => {
                     <p class="mb-4">
                         An unexpected error occurred while loading this content. Please try again.
                     </p>
-                    <p v-if="import.meta.env.DEV && error" class="mb-4 text-sm font-mono">
+                    <p v-if="isDev && error" class="mb-4 text-sm font-mono">
                         {{ error.message }}
                     </p>
                     <Button variant="outline" size="sm" @click="reset">
