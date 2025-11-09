@@ -6,6 +6,7 @@ namespace App\Actions\Api\Vouchers;
 
 use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
+use App\Models\CampaignVoucher;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -55,16 +56,13 @@ class GenerateVouchers
         if (!empty($validated['campaign_id'])) {
             $campaign = Campaign::find($validated['campaign_id']);
             if ($campaign && $campaign->user_id === $request->user()->id) {
-                $now = now();
-                $pivotData = $vouchers->map(fn ($voucher) => [
-                    'campaign_id' => $campaign->id,
-                    'voucher_id' => $voucher->id,
-                    'instructions_snapshot' => json_encode($campaign->instructions->toArray()),
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ])->toArray();
-                
-                DB::table('campaign_voucher')->insert($pivotData);
+                foreach ($vouchers as $voucher) {
+                    CampaignVoucher::create([
+                        'campaign_id' => $campaign->id,
+                        'voucher_id' => $voucher->id,
+                        'instructions_snapshot' => $campaign->instructions->toArray(),
+                    ]);
+                }
             }
         }
 

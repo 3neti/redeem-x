@@ -77,8 +77,21 @@ npm run dev          # Development with HMR
 - Each user automatically gets 2 default campaigns: "Blank Template" and "Standard Campaign"
 - Campaigns define: cash amount, input fields, validations, feedback, rider info, count, prefix, mask, TTL
 - Uses many-to-many relationship with vouchers via `campaign_voucher` pivot table
+- **CampaignVoucher Pivot Model**: Dedicated `CampaignVoucher` model (extends `Pivot`) for type-safe access
+  - Auto-casts `instructions_snapshot` to array
+  - Provides `campaign()` and `voucher()` relationships
+  - Used via `$campaign->campaignVouchers()` or `$campaign->vouchers()` (with `->using(CampaignVoucher::class)`)
+  - Keeps Voucher package clean (no modifications needed)
 - Pivot table stores `instructions_snapshot` for historical auditability
 - Settings > Campaigns UI for CRUD operations
+
+### Reusable Components
+**VoucherInstructionsForm.vue** - Shared form component for voucher instructions:
+- Used in: Generate Vouchers, Create Campaign, Edit Campaign, View Voucher (readonly)
+- Props: `modelValue`, `inputFieldOptions`, `validationErrors`, `showCountField`, `showJsonPreview`, `readonly`
+- Supports v-model binding for reactive form data
+- Readonly mode for displaying voucher/campaign details
+- Includes: Basic Settings, Input Fields, Validation Rules, Feedback Channels, Rider, JSON Preview
 
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.

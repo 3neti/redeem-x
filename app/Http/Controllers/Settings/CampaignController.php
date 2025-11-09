@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\Voucher\Enums\VoucherInputField;
 
 class CampaignController extends Controller
 {
@@ -43,7 +44,9 @@ class CampaignController extends Controller
     {
         $this->authorize('create', Campaign::class);
 
-        return Inertia::render('settings/Campaigns/Create');
+        return Inertia::render('settings/Campaigns/Create', [
+            'input_field_options' => VoucherInputField::options(),
+        ]);
     }
 
     /**
@@ -69,14 +72,18 @@ class CampaignController extends Controller
     {
         $this->authorize('view', $campaign);
 
-        $campaign->load('vouchers');
+        // Use campaignVouchers relationship (no dependency on Voucher model having campaigns())
+        $totalVouchers = $campaign->campaignVouchers()->count();
+        $redeemedVouchers = $campaign->campaignVouchers()
+            ->whereHas('voucher', fn($q) => $q->whereNotNull('redeemed_at'))
+            ->count();
 
         return Inertia::render('settings/Campaigns/Show', [
             'campaign' => $campaign,
             'stats' => [
-                'total_vouchers' => $campaign->vouchers->count(),
-                'redeemed' => $campaign->vouchers->filter->redeemed_at->count(),
-                'pending' => $campaign->vouchers->filter(fn($v) => !$v->redeemed_at)->count(),
+                'total_vouchers' => $totalVouchers,
+                'redeemed' => $redeemedVouchers,
+                'pending' => $totalVouchers - $redeemedVouchers,
             ],
         ]);
     }
@@ -90,6 +97,7 @@ class CampaignController extends Controller
 
         return Inertia::render('settings/Campaigns/Edit', [
             'campaign' => $campaign,
+            'input_field_options' => VoucherInputField::options(),
         ]);
     }
 

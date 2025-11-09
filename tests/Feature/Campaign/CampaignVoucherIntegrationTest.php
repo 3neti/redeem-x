@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Campaign;
+use App\Models\CampaignVoucher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -30,10 +30,8 @@ test('vouchers attach to campaign via pivot table', function () {
     
     $response->assertStatus(201);
     
-    // Check pivot table has entries
-    $pivotCount = DB::table('campaign_voucher')
-        ->where('campaign_id', $campaign->id)
-        ->count();
+    // Check pivot table has entries using CampaignVoucher model
+    $pivotCount = CampaignVoucher::where('campaign_id', $campaign->id)->count();
     
     expect($pivotCount)->toBe(2);
 });
@@ -52,16 +50,13 @@ test('pivot table stores instructions snapshot', function () {
     
     $response->assertStatus(201);
     
-    $pivot = DB::table('campaign_voucher')
-        ->where('campaign_id', $campaign->id)
-        ->first();
+    $pivot = CampaignVoucher::where('campaign_id', $campaign->id)->first();
     
     expect($pivot)->not->toBeNull()
-        ->and($pivot->instructions_snapshot)->toBeJson();
+        ->and($pivot->instructions_snapshot)->toBeArray();
     
-    $snapshot = json_decode($pivot->instructions_snapshot, true);
-    expect($snapshot)->toHaveKey('cash')
-        ->and($snapshot)->toHaveKey('inputs');
+    expect($pivot->instructions_snapshot)->toHaveKey('cash')
+        ->and($pivot->instructions_snapshot)->toHaveKey('inputs');
 });
 
 test('campaign shows voucher count', function () {
@@ -94,6 +89,6 @@ test('voucher generation without campaign works', function () {
     $response->assertStatus(201);
     
     // No pivot entries
-    $pivotCount = DB::table('campaign_voucher')->count();
+    $pivotCount = CampaignVoucher::count();
     expect($pivotCount)->toBe(0);
 });
