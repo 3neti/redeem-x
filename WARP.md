@@ -94,6 +94,14 @@ npm run dev          # Development with HMR
 - Includes: Basic Settings, Input Fields, Validation Rules, Feedback Channels, Rider, JSON Preview
 - Voucher Show page uses tabs to separate Details and Instructions views
 
+**RedeemWidget.vue** - Configurable voucher redemption widget for iframe embedding:
+- Single input field for voucher code with submit button
+- Configurable via `config/redeem.php` or environment variables
+- Elements can be shown/hidden: logo, app name, label, title, description
+- Customizable text: title, label, placeholder, button text
+- Uses Wayfinder route functions for type-safe navigation
+- Perfect for embedding in external sites via iframe
+
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.
 
