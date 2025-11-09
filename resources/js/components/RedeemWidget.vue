@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { ref, computed, onMounted } from 'vue';
+import { useForm, usePage, router } from '@inertiajs/vue3';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
-import { wallet } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
+import { wallet, start } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
 
 interface Props {
     showLogo?: boolean;
@@ -21,12 +21,14 @@ interface Props {
     placeholder?: string;
     buttonText?: string;
     buttonProcessingText?: string;
+    initialCode?: string | null;
 }
 
 const props = defineProps<Props>();
 
 const page = usePage();
 const appName = (page.props.name as string) || 'Redeem-X';
+const errors = computed(() => page.props.errors as Record<string, string>);
 
 // Get config from props or fallback to shared config
 const config = computed(() => {
@@ -49,16 +51,43 @@ const config = computed(() => {
 });
 
 const form = useForm({
-    voucher_code: '',
+    code: props.initialCode || '',
+});
+
+// Debug logging
+onMounted(() => {
+    console.log('[RedeemWidget] onMounted called');
+    console.log('[RedeemWidget] props.initialCode:', props.initialCode);
+    console.log('[RedeemWidget] form.code:', form.code);
+    
+    // Focus button if code is pre-filled, otherwise focus input
+    if (props.initialCode && submitButton.value) {
+        // Access the underlying DOM element from the Button component
+        const buttonEl = submitButton.value.$el as HTMLElement;
+        buttonEl?.focus();
+    }
 });
 
 const voucherInput = ref<HTMLInputElement | null>(null);
+const submitButton = ref<HTMLButtonElement | null>(null);
 
 function submit() {
-    form.voucher_code = form.voucher_code.trim().toUpperCase();
+    form.code = form.code.trim().toUpperCase();
     
-    form.get(wallet.url(form.voucher_code), {
-        preserveState: true,
+    // Submit to start route which will validate and redirect
+    form.get(start.url(), {
+        preserveState: (page) => {
+            // Preserve state only if there are no errors
+            const hasErrors = Object.keys(page.props.errors || {}).length > 0;
+            console.log('[RedeemWidget] Response errors:', page.props.errors);
+            console.log('[RedeemWidget] Has errors:', hasErrors);
+            console.log('[RedeemWidget] Preserve state:', !hasErrors);
+            return !hasErrors;
+        },
+        preserveScroll: true,
+        onError: (errors) => {
+            console.log('[RedeemWidget] onError callback:', errors);
+        },
     });
 }
 </script>
@@ -97,25 +126,26 @@ function submit() {
         <form @submit.prevent="submit" class="space-y-6">
             <!-- Voucher Code -->
             <div class="flex flex-col gap-2">
-                <Label v-if="config.showLabel" for="voucher_code">{{ config.label }}</Label>
+                <Label v-if="config.showLabel" for="code">{{ config.label }}</Label>
                 <Input
-                    id="voucher_code"
-                    v-model="form.voucher_code"
+                    id="code"
+                    v-model="form.code"
                     :placeholder="config.placeholder"
                     required
                     autofocus
                     ref="voucherInput"
                     class="text-center text-lg tracking-wider"
-                    @input="form.voucher_code = form.voucher_code.toUpperCase()"
+                    @input="form.code = form.code.toUpperCase()"
                 />
-                <InputError :message="form.errors.voucher_code" class="mt-1" />
+                <InputError :message="errors.code" class="mt-1" />
             </div>
 
             <!-- Submit Button -->
             <Button 
+                ref="submitButton"
                 type="submit"
                 class="w-full"
-                :disabled="form.processing || !form.voucher_code.trim()"
+                :disabled="form.processing || !form.code?.trim()"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}
             </Button>
