@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import axios from '@/lib/axios';
+import { useApiError, type ApiError } from './useApiError';
 
 export interface VoucherData {
     code: string;
@@ -60,7 +61,8 @@ export interface GenerateVouchersResponse {
 
 export function useVoucherApi() {
     const loading = ref(false);
-    const error = ref<string | null>(null);
+    const error = ref<ApiError | null>(null);
+    const { handleError } = useApiError();
 
     const listVouchers = async (params?: {
         per_page?: number;
@@ -74,8 +76,8 @@ export function useVoucherApi() {
         try {
             const response = await axios.get('/api/v1/vouchers', { params });
             return response.data.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch vouchers';
+        } catch (err) {
+            error.value = handleError(err);
             return null;
         } finally {
             loading.value = false;
@@ -89,8 +91,8 @@ export function useVoucherApi() {
         try {
             const response = await axios.get(`/api/v1/vouchers/${code}`);
             return response.data.data.voucher;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch voucher';
+        } catch (err) {
+            error.value = handleError(err);
             return null;
         } finally {
             loading.value = false;
@@ -106,8 +108,8 @@ export function useVoucherApi() {
         try {
             const response = await axios.post('/api/v1/vouchers', data);
             return response.data.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to generate vouchers';
+        } catch (err) {
+            error.value = handleError(err);
             return null;
         } finally {
             loading.value = false;
@@ -121,8 +123,8 @@ export function useVoucherApi() {
         try {
             await axios.delete(`/api/v1/vouchers/${code}`);
             return true;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to cancel voucher';
+        } catch (err) {
+            error.value = handleError(err);
             return false;
         } finally {
             loading.value = false;

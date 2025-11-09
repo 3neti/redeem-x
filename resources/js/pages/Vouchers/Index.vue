@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2 } from 'lucide-vue-next';
+import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2, AlertCircle } from 'lucide-vue-next';
 import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -110,7 +112,14 @@ const viewVoucher = (code: string) => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-7xl space-y-6 p-6">
+        <ErrorBoundary>
+            <div class="mx-auto max-w-7xl space-y-6 p-6">
+                <!-- Error Alert -->
+                <Alert v-if="error" variant="destructive" class="mb-4">
+                    <AlertCircle class="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{{ error.message }}</AlertDescription>
+                </Alert>
             <Heading
                 title="Vouchers"
                 description="Manage and track all your vouchers"
@@ -307,6 +316,7 @@ const viewVoucher = (code: string) => {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+            </div>
+        </ErrorBoundary>
     </AppLayout>
 </template>
