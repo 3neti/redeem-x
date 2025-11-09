@@ -26,6 +26,7 @@ const storedData = ref<any>(null);
 const geoAlertRef = ref<InstanceType<typeof GeoPermissionAlert> | null>(null);
 const submitting = ref(false);
 const apiError = ref<string | null>(null);
+const coordinatesCopied = ref(false);
 
 const parsedLocation = computed(() => {
     return location.value;
@@ -33,6 +34,32 @@ const parsedLocation = computed(() => {
 
 const formattedAddress = computed(() => {
     return parsedLocation.value?.address?.formatted || '';
+});
+
+const staticMapUrl = computed(() => {
+    if (!location.value) return '';
+    
+    const { latitude, longitude } = location.value;
+    const zoom = 16;
+    const size = 600;
+    
+    // Using Mapbox Static Images API - free tier (50,000 requests/month)
+    // You'll need to set VITE_MAPBOX_TOKEN in .env
+    const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+    
+    console.log('[Location] Mapbox token present?', !!mapboxToken);
+    console.log('[Location] Token value:', mapboxToken ? mapboxToken.substring(0, 10) + '...' : 'none');
+    
+    if (mapboxToken && mapboxToken !== 'your_actual_token_here') {
+        const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${longitude},${latitude})/${longitude},${latitude},${zoom},0/${size}x300@2x?access_token=${mapboxToken}`;
+        console.log('[Location] Using Mapbox URL:', url.substring(0, 100) + '...');
+        return url;
+    }
+    
+    // Fallback: Google Maps static (no API key needed for basic usage)
+    const googleUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}x300&markers=color:red%7C${latitude},${longitude}`;
+    console.log('[Location] Using Google Maps URL:', googleUrl);
+    return googleUrl;
 });
 
 const requiresSignature = computed(() => {
@@ -55,6 +82,18 @@ async function fetchLocation() {
     } else if (!data.address?.formatted) {
         console.warn('[Location] No formatted address in response');
     }
+}
+
+function copyCoordinates() {
+    if (!location.value) return;
+    
+    const coords = `${location.value.latitude.toFixed(6)}, ${location.value.longitude.toFixed(6)}`;
+    navigator.clipboard.writeText(coords).then(() => {
+        coordinatesCopied.value = true;
+        setTimeout(() => {
+            coordinatesCopied.value = false;
+        }, 2000);
+    });
 }
 
 const handleSubmit = async () => {
@@ -168,49 +207,55 @@ onMounted(() => {
                     </CardHeader>
                     <CardContent>
                         <form @submit.prevent="handleSubmit" class="space-y-6">
-                            <!-- Location Input -->
-                            <div class="space-y-2">
-                                <Label for="location">Current Location</Label>
-                                <div class="flex items-center gap-2">
-                                    <Input
-                                        id="location"
-                                        :value="formattedAddress"
-                                        class="flex-1"
-                                        required
-                                        readonly
-                                        placeholder="Click 'Get Location' to capture"
-                                    />
-                                    <Button
-                                        type="button"
-                                        @click="fetchLocation"
-                                        :disabled="geoLoading"
-                                        variant="outline"
-                                    >
-                                        <Loader2 v-if="geoLoading" class="h-4 w-4 animate-spin mr-2" />
-                                        {{ geoLoading ? 'Getting...' : 'Get Location' }}
-                                    </Button>
-                                </div>
-                                <p class="text-xs text-muted-foreground">
-                                    Your browser will request permission to access your location
+                            <!-- Get Location Button (shown when no location captured) -->
+                            <div v-if="!parsedLocation" class="flex flex-col items-center justify-center py-8 space-y-4">
+                                <MapPin class="h-12 w-12 text-muted-foreground" />
+                                <p class="text-sm text-muted-foreground text-center">
+                                    We need to capture your current location to continue
                                 </p>
+                                <Button
+                                    type="button"
+                                    @click="fetchLocation"
+                                    :disabled="geoLoading"
+                                    size="lg"
+                                >
+                                    <Loader2 v-if="geoLoading" class="h-4 w-4 animate-spin mr-2" />
+                                    {{ geoLoading ? 'Getting Location...' : 'Capture My Location' }}
+                                </Button>
                             </div>
 
-                            <!-- Location Details (when captured) -->
-                            <div v-if="parsedLocation" class="rounded-md border p-4 space-y-2">
-                                <div class="text-sm font-medium">Location Details:</div>
-                                <div class="text-sm text-muted-foreground space-y-1">
-                                    <div v-if="parsedLocation.address?.city">
-                                        <strong>City:</strong> {{ parsedLocation.address.city }}
+                            <!-- Static Map & Location Info (when location captured) -->
+                            <div v-if="parsedLocation" class="space-y-4">
+                                <!-- Map Image -->
+                                <div class="rounded-lg border overflow-hidden">
+                                    <img
+                                        :src="staticMapUrl"
+                                        alt="Map showing your location"
+                                        class="w-full h-64 object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+
+                                <!-- Location Address & Coordinates -->
+                                <div class="space-y-3">
+                                    <div class="text-sm font-medium">
+                                        {{ formattedAddress }}
                                     </div>
-                                    <div v-if="parsedLocation.address?.state">
-                                        <strong>State:</strong> {{ parsedLocation.address.state }}
-                                    </div>
-                                    <div v-if="parsedLocation.address?.country">
-                                        <strong>Country:</strong> {{ parsedLocation.address.country }}
-                                    </div>
-                                    <div class="pt-2 text-xs">
-                                        <strong>Coordinates:</strong> {{ parsedLocation.latitude.toFixed(6) }}, {{ parsedLocation.longitude.toFixed(6) }}
-                                    </div>
+                                    
+                                    <!-- Copyable Coordinates -->
+                                    <button
+                                        type="button"
+                                        @click="copyCoordinates"
+                                        class="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        <span>{{ parsedLocation.latitude.toFixed(6) }}, {{ parsedLocation.longitude.toFixed(6) }}</span>
+                                        <svg v-if="!coordinatesCopied" class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        <svg v-else class="h-3 w-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
 
