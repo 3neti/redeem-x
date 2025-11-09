@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreCampaignRequest;
 use App\Http\Requests\Settings\UpdateCampaignRequest;
 use App\Models\Campaign;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CampaignController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
