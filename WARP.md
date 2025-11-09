@@ -72,6 +72,14 @@ npm run dev          # Development with HMR
 - **Database**: SQLite (default), supports MySQL/PostgreSQL
 - **Testing**: Pest PHP
 
+### Campaign System
+**Campaigns** are reusable voucher generation templates that store complete `VoucherInstructionsData`:
+- Each user automatically gets 2 default campaigns: "Blank Template" and "Standard Campaign"
+- Campaigns define: cash amount, input fields, validations, feedback, rider info, count, prefix, mask, TTL
+- Uses many-to-many relationship with vouchers via `campaign_voucher` pivot table
+- Pivot table stores `instructions_snapshot` for historical auditability
+- Settings > Campaigns UI for CRUD operations
+
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.
 

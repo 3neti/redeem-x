@@ -5,6 +5,7 @@ namespace LBHurtado\Voucher\Models;
 use FrittenKeeZ\Vouchers\Models\Redeemer;
 use FrittenKeeZ\Vouchers\Models\Voucher as BaseVoucher;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LBHurtado\Cash\Models\Cash;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;

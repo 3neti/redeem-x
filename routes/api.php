@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\Campaign;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -46,6 +48,19 @@ Route::prefix('v1')
 
         // Contact management API
         require base_path('routes/api/contacts.php');
+
+        // Campaigns API (for Generate Vouchers dropdown)
+        Route::get('/campaigns', function (\Illuminate\Http\Request $request) {
+            return Campaign::where('user_id', $request->user()->id)
+                ->where('status', 'active')
+                ->select('id', 'name', 'slug', 'instructions')
+                ->get();
+        });
+
+        Route::get('/campaigns/{campaign}', function (Campaign $campaign) {
+            Gate::authorize('view', $campaign);
+            return $campaign;
+        });
     });
 
 /**

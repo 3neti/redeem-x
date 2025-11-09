@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\CampaignController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use App\Http\Controllers\Settings\WalletController;
@@ -27,4 +28,10 @@ Route::middleware([
 
     Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
     Route::patch('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
+
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::resource('campaigns', CampaignController::class);
+        Route::post('campaigns/{campaign}/duplicate', [CampaignController::class, 'duplicate'])
+            ->name('campaigns.duplicate');
+    });
 });
