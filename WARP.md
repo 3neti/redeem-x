@@ -90,8 +90,9 @@ npm run dev          # Development with HMR
 - Used in: Generate Vouchers, Create Campaign, Edit Campaign, View Voucher (readonly)
 - Props: `modelValue`, `inputFieldOptions`, `validationErrors`, `showCountField`, `showJsonPreview`, `readonly`
 - Supports v-model binding for reactive form data
-- Readonly mode for displaying voucher/campaign details
+- Readonly mode for displaying voucher/campaign details (used in Voucher Show page)
 - Includes: Basic Settings, Input Fields, Validation Rules, Feedback Channels, Rider, JSON Preview
+- Voucher Show page uses tabs to separate Details and Instructions views
 
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.

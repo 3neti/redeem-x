@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\Voucher\Data\VoucherData;
+use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Models\Voucher;
 
 /**
@@ -55,6 +56,7 @@ class VoucherController extends Controller
         return Inertia::render('Vouchers/Show', [
             'voucher' => VoucherData::fromModel($voucher),
             'redemption' => $redemptionData,
+            'input_field_options' => VoucherInputField::options(),
         ]);
     }
 
