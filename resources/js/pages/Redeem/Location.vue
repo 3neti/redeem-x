@@ -62,6 +62,10 @@ const staticMapUrl = computed(() => {
     return googleUrl;
 });
 
+const requiresSelfie = computed(() => {
+    return (storedData.value?.required_inputs || []).includes('selfie');
+});
+
 const requiresSignature = computed(() => {
     return (storedData.value?.required_inputs || []).includes('signature');
 });
@@ -104,7 +108,25 @@ const handleSubmit = async () => {
 
     apiError.value = null;
 
-    // If signature is required, navigate to signature page
+    // If selfie is required, navigate to selfie page
+    if (requiresSelfie.value) {
+        // Update stored data with location
+        const updatedData = {
+            ...storedData.value,
+            inputs: {
+                ...storedData.value.inputs,
+                location: JSON.stringify(location.value),
+            },
+        };
+        
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(updatedData));
+        
+        // Navigate to selfie page
+        router.visit(`/redeem/${props.voucher_code}/selfie`);
+        return;
+    }
+
+    // If signature is required (but not selfie), navigate to signature page
     if (requiresSignature.value) {
         // Update stored data with location
         const updatedData = {

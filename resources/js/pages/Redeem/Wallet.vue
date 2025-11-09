@@ -58,11 +58,15 @@ const hasSecret = computed(() => {
 
 const requiredInputs = computed(() => {
     return (voucherInfo.value?.required_inputs || [])
-        .filter(field => field !== 'signature' && field !== 'location');
+        .filter(field => field !== 'signature' && field !== 'location' && field !== 'selfie');
 });
 
 const requiresLocation = computed(() => {
     return (voucherInfo.value?.required_inputs || []).includes('location');
+});
+
+const requiresSelfie = computed(() => {
+    return (voucherInfo.value?.required_inputs || []).includes('selfie');
 });
 
 const requiresSignature = computed(() => {
@@ -102,7 +106,14 @@ const handleSubmit = async () => {
         return;
     }
     
-    // If signature is required (but not location), save data and navigate to signature page
+    // If selfie is required (but not location), save data and navigate to selfie page
+    if (requiresSelfie.value) {
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
+        router.visit(`/redeem/${props.voucher_code}/selfie`);
+        return;
+    }
+    
+    // If signature is required (but not location/selfie), save data and navigate to signature page
     if (requiresSignature.value) {
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/signature`);
@@ -149,10 +160,10 @@ onMounted(async () => {
             router.visit('/redeem');
         }
 
-        // Initialize inputs with empty values for required fields (excluding signature and location)
+        // Initialize inputs with empty values for required fields (excluding signature, location, selfie)
         if (result.required_inputs && result.required_inputs.length > 0) {
             result.required_inputs
-                .filter(field => field !== 'signature' && field !== 'location')
+                .filter(field => field !== 'signature' && field !== 'location' && field !== 'selfie')
                 .forEach((field) => {
                     form.value.inputs[field] = '';
                 });

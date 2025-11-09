@@ -13,5 +13,6 @@ return [
         'location' => ['required', 'string'],
         'reference_code' => ['required', 'string'],
         'otp' => ['required', 'string', 'min:4', 'max:6'],
+        'selfie' => ['required', 'string', 'min:8'], // base64 image data
     ],
 ];

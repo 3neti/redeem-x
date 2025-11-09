@@ -50,6 +50,19 @@ class RedeemController extends Controller
     }
 
     /**
+     * Show the selfie page (API-first flow).
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function selfie(Voucher $voucher): Response
+    {
+        return Inertia::render('Redeem/Selfie', [
+            'voucher_code' => $voucher->code,
+        ]);
+    }
+
+    /**
      * Show the signature page (API-first flow).
      *
      * @param  Voucher  $voucher

@@ -36,7 +36,10 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         // Step 2a: Location (API-first flow)
         Route::get('/location', [RedeemController::class, 'location'])->name('location');
 
-        // Step 2b: Signature (API-first flow)
+        // Step 2b: Selfie (API-first flow)
+        Route::get('/selfie', [RedeemController::class, 'selfie'])->name('selfie');
+
+        // Step 2c: Signature (API-first flow)
         Route::get('/signature', [RedeemController::class, 'signature'])->name('signature');
 
         // Step 3: Finalize and review (must be before plugin route)

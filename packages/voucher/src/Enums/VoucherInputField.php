@@ -15,6 +15,7 @@ enum VoucherInputField: string
     case GROSS_MONTHLY_INCOME = 'gross_monthly_income';
     case LOCATION = 'location';
     case OTP = 'otp';
+    case SELFIE = 'selfie';
     public static function valuesToCsv(): string
     {
         return implode(',', array_column(self::cases(), 'value'));
@@ -43,6 +44,7 @@ enum VoucherInputField: string
             self::GROSS_MONTHLY_INCOME => 'Gross Monthly Income',
             self::LOCATION => 'Location',
             self::OTP => 'OTP',
+            self::SELFIE => 'Selfie Photo',
             // Add more custom labels here as needed
             default => $case->value,
         };
