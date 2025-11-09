@@ -1,67 +1,66 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { index as vouchersIndex } from '@/actions/App/Http/Controllers/Voucher/VoucherController';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Eye, Download, TicketCheck, Clock, XCircle, ListFilter } from 'lucide-vue-next';
+import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2 } from 'lucide-vue-next';
+import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
 import type { BreadcrumbItem } from '@/types';
-
-interface VoucherData {
-    id: number;
-    code: string;
-    status: string;
-    amount: number;
-    currency: string;
-    created_at: string;
-    expires_at?: string;
-    redeemed_at?: string;
-    is_expired: boolean;
-    is_redeemed: boolean;
-}
-
-interface Props {
-    vouchers: {
-        data: VoucherData[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-        links: Array<{ url: string | null; label: string; active: boolean }>;
-    };
-    filters?: {
-        status?: string;
-        search?: string;
-    };
-    stats?: {
-        total: number;
-        active: number;
-        redeemed: number;
-        expired: number;
-    };
-}
-
-const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Vouchers', href: '#' },
 ];
 
-const searchQuery = ref(props.filters?.search || '');
-const selectedStatus = ref(props.filters?.status || '');
+const { loading, error, listVouchers } = useVoucherApi();
 
-const applyFilters = () => {
-    router.get(vouchersIndex.url(), {
+const vouchers = ref<VoucherData[]>([]);
+const pagination = ref({
+    current_page: 1,
+    per_page: 15,
+    total: 0,
+    last_page: 1,
+    from: 0,
+    to: 0,
+});
+
+const stats = ref({
+    total: 0,
+    active: 0,
+    redeemed: 0,
+    expired: 0,
+});
+
+const searchQuery = ref('');
+const selectedStatus = ref('');
+const currentPage = ref(1);
+
+const loadVouchers = async () => {
+    const result = await listVouchers({
         search: searchQuery.value || undefined,
         status: selectedStatus.value || undefined,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
+        page: currentPage.value,
+        per_page: 15,
     });
+
+    if (result) {
+        vouchers.value = result.data;
+        pagination.value = result.pagination;
+        
+        // Calculate stats from voucher data
+        stats.value.total = result.pagination.total;
+        stats.value.active = result.data.filter((v) => !v.is_expired && !v.is_redeemed).length;
+        stats.value.redeemed = result.data.filter((v) => v.is_redeemed).length;
+        stats.value.expired = result.data.filter((v) => v.is_expired && !v.is_redeemed).length;
+    }
+};
+
+const applyFilters = () => {
+    currentPage.value = 1;
+    loadVouchers();
 };
 
 const clearFilters = () => {
@@ -69,6 +68,15 @@ const clearFilters = () => {
     selectedStatus.value = '';
     applyFilters();
 };
+
+const goToPage = (page: number) => {
+    currentPage.value = page;
+    loadVouchers();
+};
+
+onMounted(() => {
+    loadVouchers();
+});
 
 const getStatusBadge = (voucher: VoucherData) => {
     if (voucher.is_redeemed) {
@@ -95,8 +103,8 @@ const formatDate = (date: string) => {
     });
 };
 
-const viewVoucher = (id: number) => {
-    router.visit(`/vouchers/${id}`);
+const viewVoucher = (code: string) => {
+    router.visit(`/vouchers/${code}`);
 };
 </script>
 
@@ -116,7 +124,10 @@ const viewVoucher = (id: number) => {
                         <ListFilter class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.total || 0 }}</div>
+                        <div class="text-2xl font-bold">
+                            <Loader2 v-if="loading" class="h-6 w-6 animate-spin" />
+                            <span v-else>{{ stats.total }}</span>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -125,7 +136,10 @@ const viewVoucher = (id: number) => {
                         <Clock class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.active || 0 }}</div>
+                        <div class="text-2xl font-bold">
+                            <Loader2 v-if="loading" class="h-6 w-6 animate-spin" />
+                            <span v-else>{{ stats.active }}</span>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -134,7 +148,10 @@ const viewVoucher = (id: number) => {
                         <TicketCheck class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.redeemed || 0 }}</div>
+                        <div class="text-2xl font-bold">
+                            <Loader2 v-if="loading" class="h-6 w-6 animate-spin" />
+                            <span v-else>{{ stats.redeemed }}</span>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -143,7 +160,10 @@ const viewVoucher = (id: number) => {
                         <XCircle class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stats?.expired || 0 }}</div>
+                        <div class="text-2xl font-bold">
+                            <Loader2 v-if="loading" class="h-6 w-6 animate-spin" />
+                            <span v-else>{{ stats.expired }}</span>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -154,7 +174,7 @@ const viewVoucher = (id: number) => {
                     <div class="flex items-center justify-between">
                         <div>
                             <CardTitle>All Vouchers</CardTitle>
-                            <CardDescription>{{ vouchers?.total || 0 }} vouchers total</CardDescription>
+                            <CardDescription>{{ pagination.total }} vouchers total</CardDescription>
                         </div>
                     </div>
                     
@@ -179,7 +199,8 @@ const viewVoucher = (id: number) => {
                             <option value="redeemed">Redeemed</option>
                             <option value="expired">Expired</option>
                         </select>
-                        <Button @click="applyFilters" variant="default">
+                        <Button @click="applyFilters" variant="default" :disabled="loading">
+                            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
                             Filter
                         </Button>
                         <Button @click="clearFilters" variant="outline">
@@ -202,9 +223,15 @@ const viewVoucher = (id: number) => {
                                 </tr>
                             </thead>
                             <tbody>
+                                <tr v-if="loading">
+                                    <td colspan="6" class="px-4 py-8 text-center">
+                                        <Loader2 class="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                                    </td>
+                                </tr>
                                 <tr
-                                    v-for="voucher in vouchers.data"
-                                    :key="voucher.id"
+                                    v-else
+                                    v-for="voucher in vouchers"
+                                    :key="voucher.code"
                                     class="border-b hover:bg-muted/50"
                                 >
                                     <td class="px-4 py-3 font-mono font-semibold">
@@ -229,13 +256,13 @@ const viewVoucher = (id: number) => {
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            @click="viewVoucher(voucher.id)"
+                                            @click="viewVoucher(voucher.code)"
                                         >
                                             <Eye class="h-4 w-4" />
                                         </Button>
                                     </td>
                                 </tr>
-                                <tr v-if="vouchers.data.length === 0">
+                                <tr v-if="!loading && vouchers.length === 0">
                                     <td colspan="6" class="px-4 py-8 text-center text-muted-foreground">
                                         No vouchers found
                                     </td>
@@ -245,22 +272,37 @@ const viewVoucher = (id: number) => {
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="vouchers.last_page > 1" class="mt-4 flex items-center justify-between">
+                    <div v-if="pagination.last_page > 1" class="mt-4 flex items-center justify-between">
                         <div class="text-sm text-muted-foreground">
-                            Showing {{ (vouchers.current_page - 1) * vouchers.per_page + 1 }} to
-                            {{ Math.min(vouchers.current_page * vouchers.per_page, vouchers.total) }}
-                            of {{ vouchers.total }} results
+                            Showing {{ pagination.from }} to {{ pagination.to }} of {{ pagination.total }} results
                         </div>
                         <div class="flex gap-2">
                             <Button
-                                v-for="link in vouchers.links"
-                                :key="link.label"
-                                :variant="link.active ? 'default' : 'outline'"
+                                variant="outline"
                                 size="sm"
-                                :disabled="!link.url"
-                                @click="link.url && router.visit(link.url)"
-                                v-html="link.label"
-                            />
+                                :disabled="pagination.current_page === 1 || loading"
+                                @click="goToPage(pagination.current_page - 1)"
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                v-for="page in Math.min(pagination.last_page, 5)"
+                                :key="page"
+                                :variant="page === pagination.current_page ? 'default' : 'outline'"
+                                size="sm"
+                                :disabled="loading"
+                                @click="goToPage(page)"
+                            >
+                                {{ page }}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                :disabled="pagination.current_page === pagination.last_page || loading"
+                                @click="goToPage(pagination.current_page + 1)"
+                            >
+                                Next
+                            </Button>
                         </div>
                     </div>
                 </CardContent>

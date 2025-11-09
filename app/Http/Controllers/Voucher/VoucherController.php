@@ -19,51 +19,16 @@ use LBHurtado\Voucher\Models\Voucher;
 class VoucherController extends Controller
 {
     /**
-     * Display a listing of vouchers with filters.
+     * Display the vouchers page.
+     * 
+     * Data is loaded via API from the frontend.
      *
      * @param  Request  $request
      * @return Response
      */
     public function index(Request $request): Response
     {
-        $query = Voucher::query()
-            ->with(['owner'])
-            ->orderByDesc('created_at');
-
-        // Filter by status
-        if ($request->filled('status')) {
-            $status = $request->input('status');
-            
-            match ($status) {
-                'active' => $query->where('redeemed_at', null)
-                    ->where(function ($q) {
-                        $q->whereNull('expires_at')
-                            ->orWhere('expires_at', '>', now());
-                    }),
-                'redeemed' => $query->whereNotNull('redeemed_at'),
-                'expired' => $query->whereNull('redeemed_at')
-                    ->where('expires_at', '<=', now()),
-                default => null,
-            };
-        }
-
-        // Search by code
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where('code', 'like', "%{$search}%");
-        }
-
-        // Paginate
-        $vouchers = $query->paginate(15)->withQueryString();
-
-        return Inertia::render('Vouchers/Index', [
-            'vouchers' => VoucherData::collection($vouchers),
-            'filters' => [
-                'status' => $request->input('status'),
-                'search' => $request->input('search'),
-            ],
-            'stats' => $this->getVoucherStats(),
-        ]);
+        return Inertia::render('Vouchers/Index');
     }
 
     /**
@@ -81,25 +46,4 @@ class VoucherController extends Controller
         ]);
     }
 
-    /**
-     * Get voucher statistics.
-     *
-     * @return array
-     */
-    protected function getVoucherStats(): array
-    {
-        $total = Voucher::count();
-        $active = Voucher::whereNull('redeemed_at')
-            ->where(function ($q) {
-                $q->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
-            ->count();
-        $redeemed = Voucher::whereNotNull('redeemed_at')->count();
-        $expired = Voucher::whereNull('redeemed_at')
-            ->where('expires_at', '<=', now())
-            ->count();
-
-        return compact('total', 'active', 'redeemed', 'expired');
-    }
 }
