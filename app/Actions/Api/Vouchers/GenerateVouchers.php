@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Actions\Api\Vouchers;
 
 use App\Http\Responses\ApiResponse;
+use App\Models\Campaign;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherData;
@@ -48,6 +50,23 @@ class GenerateVouchers
 
         // Generate vouchers using package action
         $vouchers = BaseGenerateVouchers::run($instructions);
+
+        // Attach vouchers to campaign if campaign_id provided
+        if (!empty($validated['campaign_id'])) {
+            $campaign = Campaign::find($validated['campaign_id']);
+            if ($campaign && $campaign->user_id === $request->user()->id) {
+                $now = now();
+                $pivotData = $vouchers->map(fn ($voucher) => [
+                    'campaign_id' => $campaign->id,
+                    'voucher_id' => $voucher->id,
+                    'instructions_snapshot' => json_encode($campaign->instructions->toArray()),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->toArray();
+                
+                DB::table('campaign_voucher')->insert($pivotData);
+            }
+        }
 
         // Transform to VoucherData DTOs using DataCollection
         $voucherData = new DataCollection(VoucherData::class, $vouchers->all());
@@ -106,6 +125,8 @@ class GenerateVouchers
 
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
+
+            'campaign_id' => 'nullable|integer|exists:campaigns,id',
         ];
     }
 

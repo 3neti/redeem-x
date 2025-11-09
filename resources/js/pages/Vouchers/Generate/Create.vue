@@ -11,9 +11,11 @@ import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 import { Head, router } from '@inertiajs/vue3';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
+import axios from 'axios';
 
 interface Props {
     wallet_balance: number;
@@ -24,6 +26,76 @@ const props = defineProps<Props>();
 
 const { loading, error, generateVouchers } = useVoucherApi();
 const validationErrors = ref<Record<string, string>>({});
+
+// Campaign selection
+interface Campaign {
+    id: number;
+    name: string;
+    slug: string;
+    instructions: any;
+}
+
+const campaigns = ref<Campaign[]>([]);
+const selectedCampaignId = ref<string>('');
+const selectedCampaign = ref<Campaign | null>(null);
+
+// Load campaigns on mount
+axios.get('/api/v1/campaigns').then(response => {
+    campaigns.value = response.data;
+}).catch(err => console.error('Failed to load campaigns:', err));
+
+// Watch campaign selection and populate form
+watch(selectedCampaignId, async (campaignId) => {
+    if (!campaignId) {
+        selectedCampaign.value = null;
+        return;
+    }
+
+    try {
+        const response = await axios.get(`/api/v1/campaigns/${campaignId}`);
+        const campaign = response.data;
+        selectedCampaign.value = campaign;
+
+        // Populate form from campaign instructions
+        const inst = campaign.instructions;
+        
+        if (inst.cash) {
+            amount.value = inst.cash.amount || 50;
+        }
+        
+        if (inst.inputs?.fields) {
+            selectedInputFields.value = [...inst.inputs.fields];
+        }
+        
+        if (inst.cash?.validation) {
+            validationSecret.value = inst.cash.validation.secret || '';
+            validationMobile.value = inst.cash.validation.mobile || '';
+        }
+        
+        if (inst.feedback) {
+            feedbackEmail.value = inst.feedback.email || '';
+            feedbackMobile.value = inst.feedback.mobile || '';
+            feedbackWebhook.value = inst.feedback.webhook || '';
+        }
+        
+        if (inst.rider) {
+            riderMessage.value = inst.rider.message || '';
+            riderUrl.value = inst.rider.url || window.location.origin;
+        }
+        
+        count.value = inst.count || 1;
+        prefix.value = inst.prefix || '';
+        mask.value = inst.mask || '';
+        
+        // Parse TTL if present (format: P30D)
+        if (inst.ttl) {
+            const match = inst.ttl.match(/P(\d+)D/);
+            ttlDays.value = match ? parseInt(match[1]) : 30;
+        }
+    } catch (err) {
+        console.error('Failed to load campaign:', err);
+    }
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Vouchers', href: '#' },
@@ -180,6 +252,7 @@ const handleSubmit = async () => {
         feedback_webhook: feedbackWebhook.value || undefined,
         rider_message: riderMessage.value || undefined,
         rider_url: riderUrl.value || undefined,
+        campaign_id: selectedCampaignId.value || undefined,
     });
 
     if (result) {
@@ -221,6 +294,29 @@ const handleSubmit = async () => {
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
+                            <!-- Campaign Template Selector -->
+                            <div class="space-y-2 pb-4 border-b">
+                                <Label for="campaign">Campaign Template (Optional)</Label>
+                                <Select v-model="selectedCampaignId">
+                                    <SelectTrigger id="campaign">
+                                        <SelectValue placeholder="Select a campaign template..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">None (manual entry)</SelectItem>
+                                        <SelectItem
+                                            v-for="campaign in campaigns"
+                                            :key="campaign.id"
+                                            :value="campaign.id.toString()"
+                                        >
+                                            {{ campaign.name }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p class="text-xs text-muted-foreground">
+                                    Select a campaign to auto-fill the form with saved settings. You can still modify any field after selection.
+                                </p>
+                            </div>
+
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div class="space-y-2">
                                     <Label for="amount">Amount (PHP)</Label>
