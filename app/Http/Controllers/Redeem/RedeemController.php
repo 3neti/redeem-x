@@ -123,6 +123,34 @@ class RedeemController extends Controller
     }
 
     /**
+     * Show the inputs page (API-first flow).
+     * Collects email, birthdate, name, and other text inputs.
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function inputs(Voucher $voucher): Response
+    {
+        return Inertia::render('Redeem/Inputs', [
+            'voucher_code' => $voucher->code,
+        ]);
+    }
+
+    /**
+     * Show the finalize page.
+     * This page displays a summary of all collected data before final confirmation.
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function finalize(Voucher $voucher): Response
+    {
+        return Inertia::render('Redeem/Finalize', [
+            'voucher_code' => $voucher->code,
+        ]);
+    }
+
+    /**
      * Show the redemption start page.
      * If code is provided in query string, validate and redirect to wallet step.
      *

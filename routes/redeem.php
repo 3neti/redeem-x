@@ -33,6 +33,9 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         Route::get('/wallet', [RedeemController::class, 'wallet'])->name('wallet');
         Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
 
+        // Step 2: Inputs (API-first flow) - Collect email, birthdate, name, etc.
+        Route::get('/inputs', [RedeemController::class, 'inputs'])->name('inputs');
+
         // Step 2a: Location (API-first flow)
         Route::get('/location', [RedeemController::class, 'location'])->name('location');
 
@@ -42,8 +45,11 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         // Step 2c: Signature (API-first flow)
         Route::get('/signature', [RedeemController::class, 'signature'])->name('signature');
 
-        // Step 3: Finalize and review (must be before plugin route)
-        Route::get('/finalize', [RedeemWizardController::class, 'finalize'])->name('finalize');
+        // Step 2d: Finalize - Review before confirmation
+        Route::get('/finalize', [RedeemController::class, 'finalize'])->name('finalize');
+
+        // Step 3: Finalize and review (wizard flow - must be before plugin route)
+        // Note: This is handled by the same route above but renders FinalizeApi for API flow
 
         // Step 4: Confirm and execute redemption
         Route::post('/confirm', [RedeemController::class, 'confirm'])->name('confirm');

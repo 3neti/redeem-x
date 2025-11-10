@@ -124,44 +124,27 @@ const handleSubmit = async () => {
         return;
     }
     
-    // Otherwise, proceed with redemption directly
+    // Otherwise, proceed to finalize page for confirmation
     try {
         submitting.value = true;
         
-        // Combine all inputs including selfie
-        const inputs = {
-            ...storedData.value.inputs,
-            selfie: capturedImage.value,
+        // Update stored data with selfie
+        const updatedData = {
+            ...storedData.value,
+            inputs: {
+                ...storedData.value.inputs,
+                selfie: capturedImage.value,
+            },
         };
         
-        const result = await redeemVoucher({
-            code: props.voucher_code,
-            mobile: storedData.value.mobile,
-            country: storedData.value.country,
-            secret: storedData.value.secret,
-            bank_code: storedData.value.bank_code,
-            account_number: storedData.value.account_number,
-            inputs: Object.keys(inputs).length > 0 ? inputs : undefined,
-        });
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(updatedData));
         
-        // Clear stored data
-        sessionStorage.removeItem(`redeem_${props.voucher_code}`);
-        
-        // Navigate to success page with result
-        router.visit(`/redeem/${result.voucher.code}/success`, {
-            method: 'get',
-            data: {
-                amount: result.voucher.amount,
-                currency: result.voucher.currency,
-                mobile: storedData.value.mobile,
-                message: result.message,
-                rider: result.rider,
-            },
-        });
+        // Navigate to finalize page
+        router.visit(`/redeem/${props.voucher_code}/finalize`);
     } catch (err: any) {
         submitting.value = false;
-        apiError.value = err.response?.data?.message || 'Failed to redeem voucher. Please try again.';
-        console.error('Redemption failed:', err);
+        apiError.value = err.message || 'Failed to proceed. Please try again.';
+        console.error('Navigation failed:', err);
     }
 };
 

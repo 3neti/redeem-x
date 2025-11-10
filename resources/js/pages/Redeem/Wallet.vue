@@ -148,10 +148,6 @@ const hasSecret = computed(() => {
     return voucherInfo.value?.required_validation?.secret || false;
 });
 
-const requiredInputs = computed(() => {
-    return (voucherInfo.value?.required_inputs || [])
-        .filter(field => field !== 'signature' && field !== 'location' && field !== 'selfie');
-});
 
 const requiresLocation = computed(() => {
     return (voucherInfo.value?.required_inputs || []).includes('location');
@@ -165,17 +161,6 @@ const requiresSignature = computed(() => {
     return (voucherInfo.value?.required_inputs || []).includes('signature');
 });
 
-// Field configuration for dynamic inputs
-const fieldConfig: Record<string, { label: string; type: string; placeholder?: string }> = {
-    name: { label: 'Full Name', type: 'text', placeholder: 'Juan Dela Cruz' },
-    email: { label: 'Email Address', type: 'email', placeholder: 'juan@example.com' },
-    address: { label: 'Full Address', type: 'text', placeholder: '123 Main St, City' },
-    birth_date: { label: 'Birth Date', type: 'date' },
-    gross_monthly_income: { label: 'Gross Monthly Income', type: 'number', placeholder: '0' },
-    location: { label: 'Location', type: 'text', placeholder: 'Current location' },
-    reference_code: { label: 'Reference Code', type: 'text', placeholder: 'REF-12345' },
-    otp: { label: 'OTP Code', type: 'text', placeholder: '1234' },
-};
 
 const handleSubmit = async () => {
     validationErrors.value = {};
@@ -187,9 +172,20 @@ const handleSubmit = async () => {
         secret: form.value.secret || undefined,
         bank_code: form.value.bank_code || undefined,
         account_number: form.value.account_number || undefined,
-        inputs: form.value.inputs,
+        inputs: {},
         required_inputs: voucherInfo.value?.required_inputs || [],
     };
+    
+    // Check if there are text-based inputs (not location, selfie, signature)
+    const textBasedInputs = (voucherInfo.value?.required_inputs || [])
+        .filter((input: string) => !['location', 'selfie', 'signature'].includes(input));
+    
+    // If there are text-based inputs, go to Inputs page
+    if (textBasedInputs.length > 0) {
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
+        router.visit(`/redeem/${props.voucher_code}/inputs`);
+        return;
+    }
     
     // If location is required, save data and navigate to location page
     if (requiresLocation.value) {
@@ -212,34 +208,12 @@ const handleSubmit = async () => {
         return;
     }
     
-    // Otherwise, proceed with redemption directly
+    // No additional fields needed, proceed to finalize for confirmation
     try {
-        const result = await redeemVoucher({
-            code: props.voucher_code,
-            mobile: form.value.mobile,
-            country: form.value.country,
-            secret: form.value.secret || undefined,
-            bank_code: form.value.bank_code || undefined,
-            account_number: form.value.account_number || undefined,
-            inputs: Object.keys(form.value.inputs).length > 0 ? form.value.inputs : undefined,
-        });
-
-        // Navigate to success page with result
-        router.visit(`/redeem/${result.voucher.code}/success`, {
-            method: 'get',
-            data: {
-                amount: result.voucher.amount,
-                currency: result.voucher.currency,
-                mobile: form.value.mobile,
-                message: result.message,
-                rider: result.rider,
-            },
-        });
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
+        router.visit(`/redeem/${props.voucher_code}/finalize`);
     } catch (err: any) {
-        // Handle validation errors
-        if (err.response?.data?.errors) {
-            validationErrors.value = err.response.data.errors;
-        }
+        console.error('Navigation failed:', err);
     }
 };
 
@@ -252,14 +226,7 @@ onMounted(async () => {
             router.visit('/redeem');
         }
 
-        // Initialize inputs with empty values for required fields (excluding signature, location, selfie)
-        if (result.required_inputs && result.required_inputs.length > 0) {
-            result.required_inputs
-                .filter(field => field !== 'signature' && field !== 'location' && field !== 'selfie')
-                .forEach((field) => {
-                    form.value.inputs[field] = '';
-                });
-        }
+        // Input fields are handled in Inputs.vue, not here
         
         // Focus mobile input after data is loaded
         await nextTick();
@@ -335,7 +302,7 @@ onMounted(async () => {
                 </Card>
 
                 <!-- Instruction Details Card -->
-                <Card v-if="config?.show_instruction_details_card && (requiredInputs.length > 0 || hasSecret || requiresLocation || requiresSelfie || requiresSignature)" class="mb-6">
+                <Card v-if="config?.show_instruction_details_card && (hasSecret || requiresLocation || requiresSelfie || requiresSignature)" class="mb-6">
                     <CardHeader v-if="config?.instruction_details?.show_header">
                         <CardTitle v-if="config?.instruction_details?.show_title">
                             {{ config?.instruction_details?.title || 'What You\'ll Need' }}
@@ -345,16 +312,6 @@ onMounted(async () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
-                        <!-- Required Inputs -->
-                        <div v-if="config?.instruction_details?.show_required_inputs && requiredInputs.length > 0">
-                            <p class="text-sm font-medium mb-2">{{ config?.instruction_details?.required_inputs_label || 'Required Information' }}:</p>
-                            <ul class="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                                <li v-for="field in requiredInputs" :key="field">
-                                    {{ fieldConfig[field]?.label || field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }}
-                                </li>
-                            </ul>
-                        </div>
-                        
                         <!-- Validation Requirements -->
                         <div v-if="config?.instruction_details?.show_validation_requirements && hasSecret">
                             <p class="text-sm font-medium mb-2">{{ config?.instruction_details?.validation_label || 'Validation Required' }}:</p>
@@ -425,27 +382,7 @@ onMounted(async () => {
                                 </p>
                             </div>
 
-                            <!-- Dynamic Input Fields -->
-                            <div
-                                v-for="field in requiredInputs"
-                                :key="field"
-                                class="space-y-2"
-                            >
-                                <Label :for="field">
-                                    {{ fieldConfig[field]?.label || field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') }} *
-                                </Label>
-                                <Input
-                                    :id="field"
-                                    v-model="form.inputs[field]"
-                                    :type="fieldConfig[field]?.type || 'text'"
-                                    :placeholder="fieldConfig[field]?.placeholder"
-                                    required
-                                    :disabled="loading"
-                                />
-                                <p v-if="validationErrors[`inputs.${field}`]" class="text-sm text-red-600">
-                                    {{ validationErrors[`inputs.${field}`] }}
-                                </p>
-                            </div>
+                            <!-- Input fields removed - they belong in Inputs.vue -->
 
                             <!-- Bank Selection -->
                             <div v-if="config?.contact_payment?.show_bank_fields" class="space-y-2">

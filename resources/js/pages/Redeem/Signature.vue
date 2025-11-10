@@ -93,39 +93,21 @@ const handleSubmit = async () => {
     signature.value = canvas.value.toDataURL(props.image_config.format, props.image_config.quality);
 
     try {
-        // Combine stored wallet data with signature in inputs
-        const inputs = {
-            ...storedData.value.inputs,
-            signature: signature.value,
-        };
-
-        const result = await redeemVoucher({
-            code: props.voucher_code,
-            mobile: storedData.value.mobile,
-            country: storedData.value.country,
-            secret: storedData.value.secret,
-            bank_code: storedData.value.bank_code,
-            account_number: storedData.value.account_number,
-            inputs: Object.keys(inputs).length > 0 ? inputs : undefined,
-        });
-
-        // Clear stored data
-        sessionStorage.removeItem(`redeem_${props.voucher_code}`);
-
-        // Navigate to success page with result
-        router.visit(`/redeem/${result.voucher.code}/success`, {
-            method: 'get',
-            data: {
-                amount: result.voucher.amount,
-                currency: result.voucher.currency,
-                mobile: storedData.value.mobile,
-                message: result.message,
-                rider: result.rider,
+        // Update stored data with signature
+        const updatedData = {
+            ...storedData.value,
+            inputs: {
+                ...storedData.value.inputs,
+                signature: signature.value,
             },
-        });
+        };
+        
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(updatedData));
+        
+        // Navigate to finalize page
+        router.visit(`/redeem/${props.voucher_code}/finalize`);
     } catch (err: any) {
-        // Handle errors - will be shown via error ref from composable
-        console.error('Redemption failed:', err);
+        console.error('Navigation failed:', err);
     }
 };
 
