@@ -24,11 +24,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Code, Settings } from 'lucide-vue-next';
+import { Code, Settings, DollarSign } from 'lucide-vue-next';
 import CashInstructionForm from './CashInstructionForm.vue';
 import InputFieldsForm from './InputFieldsForm.vue';
 import FeedbackInstructionForm from './FeedbackInstructionForm.vue';
 import RiderInstructionForm from './RiderInstructionForm.vue';
+import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import type { VoucherInputFieldOption, CashInstruction, InputFields, FeedbackInstruction, RiderInstruction } from '@/types/voucher';
 
 interface Props {
@@ -71,6 +72,7 @@ const localValue = computed({
 });
 
 const showJsonPreviewCollapsible = ref(false);
+const showPricingBreakdown = ref(true);
 
 // Transform flat structure to nested structure for atomic components
 const cashInstruction = computed<CashInstruction>({
@@ -193,6 +195,34 @@ const jsonPreview = computed(() => {
     
     return removeNulls(data);
 });
+
+// Pricing calculation (only if not readonly)
+const instructionsForPricing = computed(() => ({
+    cash: {
+        amount: localValue.value.amount,
+        currency: 'PHP',
+    },
+    inputs: {
+        fields: localValue.value.selectedInputFields,
+    },
+    feedback: {
+        email: localValue.value.feedbackEmail || null,
+        mobile: localValue.value.feedbackMobile || null,
+        webhook: localValue.value.feedbackWebhook || null,
+    },
+    rider: {
+        message: localValue.value.riderMessage || null,
+        url: localValue.value.riderUrl || null,
+    },
+    count: localValue.value.count,
+    prefix: localValue.value.prefix || null,
+    mask: localValue.value.mask || null,
+    ttl: localValue.value.ttlDays ? `P${localValue.value.ttlDays}D` : null,
+}));
+
+const { breakdown, loading: pricingLoading, error: pricingError } = props.readonly 
+    ? { breakdown: ref(null), loading: ref(false), error: ref(null) }
+    : useChargeBreakdown(instructionsForPricing, { debounce: 500, autoCalculate: true });
 </script>
 
 <template>
@@ -299,6 +329,67 @@ const jsonPreview = computed(() => {
             :validation-errors="validationErrors"
             :readonly="readonly"
         />
+
+        <!-- Pricing Breakdown -->
+        <Collapsible v-if="!readonly" v-model:open="showPricingBreakdown">
+            <Card>
+                <CollapsibleTrigger class="w-full">
+                    <CardHeader class="cursor-pointer hover:bg-muted/50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <DollarSign class="h-5 w-5" />
+                                <CardTitle>Pricing Breakdown</CardTitle>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span v-if="breakdown" class="text-sm font-semibold text-primary">
+                                    {{ breakdown.total_formatted }}
+                                </span>
+                                <span class="text-sm text-muted-foreground">
+                                    {{ showPricingBreakdown ? '▼' : '▶' }}
+                                </span>
+                            </div>
+                        </div>
+                        <CardDescription>
+                            Real-time cost calculation
+                        </CardDescription>
+                    </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <CardContent>
+                        <div v-if="pricingLoading" class="text-sm text-muted-foreground">
+                            Calculating charges...
+                        </div>
+                        <div v-else-if="pricingError" class="text-sm text-destructive">
+                            Error calculating charges. Please try again.
+                        </div>
+                        <div v-else-if="breakdown" class="space-y-3">
+                            <div class="space-y-2">
+                                <div 
+                                    v-for="item in breakdown.breakdown" 
+                                    :key="item.index"
+                                    class="flex items-center justify-between text-sm"
+                                >
+                                    <span class="text-muted-foreground">{{ item.label }}</span>
+                                    <span class="font-medium">{{ item.price_formatted }}</span>
+                                </div>
+                            </div>
+                            <div class="border-t pt-2">
+                                <div class="flex items-center justify-between text-base font-semibold">
+                                    <span>Total Cost</span>
+                                    <span class="text-primary">{{ breakdown.total_formatted }}</span>
+                                </div>
+                                <p class="mt-1 text-xs text-muted-foreground">
+                                    Per voucher: {{ (breakdown.total / (localValue.count || 1) / 100).toFixed(2) }} PHP
+                                </p>
+                            </div>
+                        </div>
+                        <div v-else class="text-sm text-muted-foreground">
+                            Fill in the form to see pricing
+                        </div>
+                    </CardContent>
+                </CollapsibleContent>
+            </Card>
+        </Collapsible>
 
         <!-- JSON Preview -->
         <Collapsible v-if="showJsonPreview" v-model:open="showJsonPreviewCollapsible">

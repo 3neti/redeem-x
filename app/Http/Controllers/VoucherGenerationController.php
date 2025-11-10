@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use App\Http\Requests\VoucherGenerationRequest;
+use App\Actions\CalculateChargeAction;
+use App\Models\VoucherGenerationCharge;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,19 +27,47 @@ class VoucherGenerationController extends Controller
     /**
      * Generate vouchers based on instructions.
      */
-    public function store(VoucherGenerationRequest $request): RedirectResponse
+    public function store(VoucherGenerationRequest $request, CalculateChargeAction $calculateCharge): RedirectResponse
     {
-        $vouchers = GenerateVouchers::run($request->toInstructions());
+        $instructions = $request->toInstructions();
+        $user = auth()->user();
         
-        $count = $vouchers->count();
-
-        return redirect()
-            ->route('vouchers.generate.success', ['count' => $count])
-            ->with('success', sprintf(
-                'Successfully generated %d voucher%s',
-                $count,
-                $count > 1 ? 's' : ''
-            ));
+        return DB::transaction(function () use ($instructions, $user, $calculateCharge) {
+            // Generate vouchers
+            $vouchers = GenerateVouchers::run($instructions);
+            $count = $vouchers->count();
+            
+            // Calculate charges
+            $breakdown = $calculateCharge->handle($user, $instructions);
+            
+            // Create charge record
+            $charge = VoucherGenerationCharge::create([
+                'user_id' => $user->id,
+                'campaign_id' => null, // Could be linked if generation was from campaign
+                'voucher_codes' => $vouchers->pluck('code')->toArray(),
+                'voucher_count' => $count,
+                'instructions_snapshot' => $instructions->toArray(),
+                'charge_breakdown' => $breakdown->breakdown,
+                'total_charge' => $breakdown->total / 100, // Convert from centavos to decimal
+                'charge_per_voucher' => ($breakdown->total / $count) / 100,
+                'generated_at' => now(),
+            ]);
+            
+            // Link vouchers to user
+            foreach ($vouchers as $voucher) {
+                $user->generatedVouchers()->attach($voucher->code, [
+                    'generated_at' => now(),
+                ]);
+            }
+            
+            return redirect()
+                ->route('vouchers.generate.success', ['count' => $count])
+                ->with('success', sprintf(
+                    'Successfully generated %d voucher%s',
+                    $count,
+                    $count > 1 ? 's' : ''
+                ));
+        });
     }
 
     /**
