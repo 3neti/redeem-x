@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2, AlertCircle } from 'lucide-vue-next';
 import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
+import { VoucherCodeDisplay } from '@/components/voucher/views';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -251,8 +252,8 @@ const viewVoucher = (code: string) => {
                                     :key="voucher.code"
                                     class="border-b hover:bg-muted/50"
                                 >
-                                    <td class="px-4 py-3 font-mono font-semibold">
-                                        {{ voucher.code }}
+                                    <td class="px-4 py-3">
+                                        <VoucherCodeDisplay :code="voucher.code" size="sm" />
                                     </td>
                                     <td class="px-4 py-3">
                                         {{ formatAmount(voucher.amount, voucher.currency) }}

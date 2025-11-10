@@ -260,7 +260,7 @@ return [
         // Auto-search: {{ mobile }}, {{ bank_account }}, {{ code }} (searches recursively)
         // Special: {{ amount }} (formatted with currency)
         'show_footer_note' => env('REDEEM_SUCCESS_SHOW_FOOTER', true),
-        'footer_note' => env('REDEEM_SUCCESS_FOOTER_NOTE', "{{ voucher.cash.currency }} {{ voucher.cash.amount }} has been transferred to {{ bank_account }} using {{ code }}."),
+        'footer_note' => env('REDEEM_SUCCESS_FOOTER_NOTE', "{{ voucher.cash.currency }} {{ voucher.cash.amount }} has been transferred to {{ bank_account }} by redeeming {{ code }}."),
     ],
 
 ];

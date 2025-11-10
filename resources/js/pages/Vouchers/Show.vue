@@ -4,16 +4,11 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
-import { VoucherDetailsTabContent, VoucherOwnerView } from '@/components/voucher/views';
+import { VoucherDetailsTabContent, VoucherOwnerView, VoucherStatusCard } from '@/components/voucher/views';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-    ArrowLeft, 
-    TicketCheck, 
-    Clock, 
-    XCircle
-} from 'lucide-vue-next';
+import { ArrowLeft } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
@@ -91,38 +86,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.voucher.code, href: '#' },
 ];
 
-const statusInfo = computed(() => {
-    if (props.voucher.is_redeemed) {
-        return { 
-            variant: 'default' as const, 
-            label: 'Redeemed', 
-            icon: TicketCheck,
-            description: 'This voucher has been successfully redeemed'
-        };
-    }
-    if (props.voucher.is_expired) {
-        return { 
-            variant: 'destructive' as const, 
-            label: 'Expired', 
-            icon: XCircle,
-            description: 'This voucher has expired and can no longer be used'
-        };
-    }
-    return { 
-        variant: 'secondary' as const, 
-        label: 'Active', 
-        icon: Clock,
-        description: 'This voucher is active and can be redeemed'
-    };
-});
-
-const formatAmount = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: currency || 'PHP',
-    }).format(amount);
-};
-
 const goBack = () => {
     router.visit('/vouchers');
 };
@@ -190,29 +153,12 @@ const instructionsFormData = computed(() => {
                 </div>
 
                 <!-- Status Card -->
-                <Card>
-                    <CardContent class="pt-6">
-                        <div class="flex items-center justify-between">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <Badge :variant="statusInfo.variant" class="text-sm">
-                                        <component :is="statusInfo.icon" class="mr-1 h-3 w-3" />
-                                        {{ statusInfo.label }}
-                                    </Badge>
-                                </div>
-                                <p class="text-sm text-muted-foreground">
-                                    {{ statusInfo.description }}
-                                </p>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-sm text-muted-foreground">Amount</div>
-                                <div class="text-3xl font-bold">
-                                    {{ formatAmount(voucher.amount, voucher.currency) }}
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <VoucherStatusCard
+                    :is-redeemed="voucher.is_redeemed"
+                    :is-expired="voucher.is_expired"
+                    :amount="voucher.amount"
+                    :currency="voucher.currency"
+                />
 
                 <!-- Tabs Navigation -->
                 <div class="border-b">

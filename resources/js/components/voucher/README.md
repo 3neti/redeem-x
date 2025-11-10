@@ -19,6 +19,8 @@ voucher/
 │   ├── VoucherRedemptionView.vue
 │   ├── VoucherDetailsTabContent.vue
 │   ├── VoucherOwnerView.vue
+│   ├── VoucherStatusCard.vue    # Specialized widget
+│   ├── VoucherCodeDisplay.vue   # Specialized widget
 │   └── index.ts
 └── README.md                   # This file
 ```
@@ -403,6 +405,77 @@ View components are **read-only** display components.
 
 ---
 
+### Specialized Widget Components
+
+#### **VoucherStatusCard.vue**
+
+**Purpose**: Status widget with badge and amount display.
+
+**Props**:
+```typescript
+{
+  isRedeemed: boolean;
+  isExpired: boolean;
+  amount: number;
+  currency: string;
+}
+```
+
+**Features**:
+- Status badge with icon (Redeemed/Expired/Active)
+- Large amount display
+- Status description
+- Compact card layout
+
+**Usage**:
+```vue
+<VoucherStatusCard
+  :is-redeemed="voucher.is_redeemed"
+  :is-expired="voucher.is_expired"
+  :amount="voucher.amount"
+  :currency="voucher.currency"
+/>
+```
+
+**Use cases**: Voucher list cards, dashboard widgets, preview modals
+
+---
+
+#### **VoucherCodeDisplay.vue**
+
+**Purpose**: Minimal code display with copy button.
+
+**Props**:
+```typescript
+{
+  code: string;
+  size?: 'sm' | 'default' | 'lg';
+}
+```
+
+**Features**:
+- Compact inline display
+- Copy-to-clipboard functionality
+- Visual feedback on copy
+- Three size options
+- Perfect for tables
+
+**Usage**:
+```vue
+<!-- Default size -->
+<VoucherCodeDisplay :code="voucher.code" />
+
+<!-- Small size for tables -->
+<VoucherCodeDisplay :code="voucher.code" size="sm" />
+
+<!-- Large size for emphasis -->
+<VoucherCodeDisplay :code="voucher.code" size="lg" />
+```
+
+**Use cases**: Table cells, quick actions, lists, compact displays
+
+---
+
 ## 🎯 Usage Examples
 
 ### Example 1: Generate Vouchers Page
@@ -469,7 +542,37 @@ import { VoucherInstructionsForm } from '@/components/voucher/forms';
 </template>
 ```
 
-### Example 4: Using Individual Atomic Components
+### Example 4: Using Specialized Widgets in Lists
+```vue
+<script setup lang="ts">
+import { VoucherStatusCard, VoucherCodeDisplay } from '@/components/voucher/views';
+</script>
+
+<template>
+  <!-- Voucher List Item -->
+  <div class="space-y-4">
+    <!-- Status Card -->
+    <VoucherStatusCard
+      :is-redeemed="voucher.is_redeemed"
+      :is-expired="voucher.is_expired"
+      :amount="voucher.amount"
+      :currency="voucher.currency"
+    />
+
+    <!-- Code Display in Table -->
+    <table>
+      <tr>
+        <td>Code:</td>
+        <td>
+          <VoucherCodeDisplay :code="voucher.code" size="sm" />
+        </td>
+      </tr>
+    </table>
+  </div>
+</template>
+```
+
+### Example 5: Using Individual Atomic Components
 ```vue
 <script setup lang="ts">
 import { CashInstructionForm, FeedbackInstructionForm } from '@/components/voucher/forms';
@@ -497,6 +600,8 @@ const feedback = ref({ email: '', mobile: '', webhook: '' });
 | `VoucherRedemptionView` | Individual redemption display, Confirmation emails |
 | `VoucherDetailsTabContent` | **Voucher Show page, Preview Modals, PDF/Email Receipts** (recommended) |
 | `VoucherOwnerView` | Voucher Show, Owner info cards, Admin dashboard |
+| `VoucherStatusCard` | **Voucher lists, Dashboard widgets, Status cards** |
+| `VoucherCodeDisplay` | **Table cells, Lists, Quick actions, Compact displays** |
 | `CashInstructionForm` | Standalone cash configuration, Quick voucher creation |
 | `InputFieldsForm` | Campaign settings, Global input field configuration |
 | `FeedbackInstructionForm` | Global notification settings, Per-campaign configuration |
@@ -604,5 +709,5 @@ When modifying these components:
 
 ---
 
-**Last Updated**: 2025-11-10 (Priority 2 complete)
+**Last Updated**: 2025-11-10 (Option C specialized widgets complete)
 **Maintained By**: Development Team
