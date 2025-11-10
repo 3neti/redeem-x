@@ -113,7 +113,7 @@ return [
             'secret_hint' => env('REDEEM_WALLET_SECRET_HINT', 'This voucher requires a secret code to redeem'),
 
             'show_bank_fields' => env('REDEEM_WALLET_SHOW_BANK_FIELDS', true),
-            'bank_label' => env('REDEEM_WALLET_BANK_LABEL', 'Bank (Optional)'),
+            'bank_label' => env('REDEEM_WALLET_BANK_LABEL', 'Wallet | Bank'),
             'bank_placeholder' => env('REDEEM_WALLET_BANK_PLACEHOLDER', 'Select a bank'),
             'bank_default' => env('REDEEM_WALLET_BANK_DEFAULT', 'GXCHPHM2XXX'),
 
@@ -171,6 +171,96 @@ return [
 
         // Settlement rail filtering
         'allowed_settlement_rails' => array_filter(array_map('trim', explode(',', env('REDEEM_BANK_SELECT_ALLOWED_RAILS', 'INSTAPAY')))), // Filter banks by settlement rail (e.g., "INSTAPAY,PESONET")
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Success Page Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure the appearance and behavior of the redemption success page.
+    | Control visual hierarchy: instruction message is primary, ads secondary,
+    | voucher details factual, countdown subtle.
+    |
+    */
+
+    'success' => [
+        // Logo and branding
+        'show_logo' => env('REDEEM_SUCCESS_SHOW_LOGO', true),
+        'show_app_name' => env('REDEEM_SUCCESS_SHOW_APP_NAME', false),
+        'app_name' => env('REDEEM_SUCCESS_APP_NAME', 'Redeem'),
+
+        // Success confirmation (icon + title)
+        'show_success_confirmation' => env('REDEEM_SUCCESS_SHOW_CONFIRMATION', true),
+        'confirmation' => [
+            'show_icon' => env('REDEEM_SUCCESS_SHOW_ICON', false),
+            'show_title' => env('REDEEM_SUCCESS_SHOW_TITLE', false),
+            'title' => env('REDEEM_SUCCESS_TITLE', 'Redemption successful!'),
+            'show_subtitle' => env('REDEEM_SUCCESS_SHOW_SUBTITLE', false),
+            'subtitle' => env('REDEEM_SUCCESS_SUBTITLE', 'Cash amount has been transferred'),
+        ],
+
+        // Instruction message (PROMINENT - primary focus)
+        // Supports template variables: {{ voucher.contact.name }}, {{ name }}, {{ code }}, etc.
+        'show_instruction_message' => env('REDEEM_SUCCESS_SHOW_INSTRUCTION', true),
+        'instruction' => [
+            'default_message' => env('REDEEM_SUCCESS_DEFAULT_MESSAGE', 'Congratulations!'),
+            'show_as_card' => env('REDEEM_SUCCESS_INSTRUCTION_AS_CARD', true),
+            'style' => env('REDEEM_SUCCESS_INSTRUCTION_STYLE', 'prominent'), // 'prominent', 'highlighted', 'normal'
+        ],
+
+        // Advertisement area
+        'show_advertisement' => env('REDEEM_SUCCESS_SHOW_AD', false),
+        'advertisement' => [
+            'position' => env('REDEEM_SUCCESS_AD_POSITION', 'after-instruction'), // 'before-instruction', 'after-instruction', 'after-details', 'bottom'
+            'content' => env('REDEEM_SUCCESS_AD_CONTENT', null), // HTML content or null
+            'show_as_card' => env('REDEEM_SUCCESS_AD_AS_CARD', true),
+        ],
+
+        // Voucher details (factual, secondary)
+        'show_voucher_details' => env('REDEEM_SUCCESS_SHOW_DETAILS', false),
+        'voucher_details' => [
+            'style' => env('REDEEM_SUCCESS_DETAILS_STYLE', 'compact'), // 'compact', 'normal'
+            'show_as_card' => env('REDEEM_SUCCESS_DETAILS_AS_CARD', true),
+
+            'show_code' => env('REDEEM_SUCCESS_SHOW_CODE', true),
+            'code_label' => env('REDEEM_SUCCESS_CODE_LABEL', 'Voucher Code'),
+
+            'show_amount' => env('REDEEM_SUCCESS_SHOW_AMOUNT', true),
+            'amount_label' => env('REDEEM_SUCCESS_AMOUNT_LABEL', 'Amount Received'),
+
+            'show_mobile' => env('REDEEM_SUCCESS_SHOW_MOBILE', true),
+            'mobile_label' => env('REDEEM_SUCCESS_MOBILE_LABEL', 'Mobile Number'),
+        ],
+
+        // Redirect/countdown (subtle, low priority)
+        'show_redirect' => env('REDEEM_SUCCESS_SHOW_REDIRECT', true),
+        'redirect' => [
+            'timeout' => env('REDEEM_SUCCESS_REDIRECT_TIMEOUT', 0), // seconds (0 = manual only, no auto-redirect)
+            'style' => env('REDEEM_SUCCESS_REDIRECT_STYLE', 'subtle'), // 'subtle', 'normal', 'prominent'
+
+            'show_countdown' => env('REDEEM_SUCCESS_SHOW_COUNTDOWN', true),
+            'countdown_message' => env('REDEEM_SUCCESS_COUNTDOWN_MESSAGE', 'You will be redirected in {seconds} seconds...'),
+
+            'show_manual_button' => env('REDEEM_SUCCESS_SHOW_MANUAL_BUTTON', true),
+            'button_text' => env('REDEEM_SUCCESS_BUTTON_TEXT', 'Continue'),
+
+            'redirecting_message' => env('REDEEM_SUCCESS_REDIRECTING_MESSAGE', 'Redirecting...'),
+        ],
+
+        // Action buttons (when no redirect)
+        'show_action_buttons' => env('REDEEM_SUCCESS_SHOW_ACTIONS', true),
+        'actions' => [
+            'show_redeem_another' => env('REDEEM_SUCCESS_SHOW_REDEEM_ANOTHER', true),
+            'redeem_another_text' => env('REDEEM_SUCCESS_REDEEM_ANOTHER_TEXT', 'Redeem Another Voucher'),
+        ],
+
+        // Footer note (supports template variables with dot-notation or auto-search)
+        // Dot-notation: {{ voucher.contact.mobile }}, {{ voucher.code }}
+        // Auto-search: {{ mobile }}, {{ bank_account }}, {{ code }} (searches recursively)
+        // Special: {{ amount }} (formatted with currency)
+        'show_footer_note' => env('REDEEM_SUCCESS_SHOW_FOOTER', true),
+        'footer_note' => env('REDEEM_SUCCESS_FOOTER_NOTE', "{{ voucher.cash.currency }} {{ voucher.cash.amount }} has been transferred to {{ bank_account }} using {{ code }}."),
     ],
 
 ];

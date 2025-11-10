@@ -290,11 +290,12 @@ class RedeemController extends Controller
 
         return Inertia::render('Redeem/Success', [
             'voucher' => VoucherData::fromModel($voucher),
+            'mobile' => $voucher->contact?->mobile ?? null,
             'rider' => [
                 'message' => $voucher->instructions->rider->message ?? null,
-                'url' => $voucher->instructions->rider->url ?? config('x-change.redeem.success.rider'),
+                'url' => $voucher->instructions->rider->url ?? null,
             ],
-            'redirect_timeout' => config('x-change.redeem.success.redirect_timeout', 5),
+            'config' => config('redeem.success'),
         ]);
     }
 
