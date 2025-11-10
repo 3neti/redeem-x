@@ -15,6 +15,7 @@ use Inertia\Response;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\Voucher\Models\Voucher;
 use Propaganistas\LaravelPhone\PhoneNumber;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 /**
  * Redemption controller.
@@ -31,8 +32,52 @@ class RedeemController extends Controller
      */
     public function wallet(Voucher $voucher): Response
     {
+        // Load banks from BankRegistry
+        // TODO: Implement PesoNet settlement rail support in addition to InstaPay
+        $bankRegistry = new BankRegistry();
+        $allowedRails = config('redeem.bank_select.allowed_settlement_rails', ['INSTAPAY']);
+        
+        $banks = collect($bankRegistry->all())
+            ->filter(function ($bank) use ($allowedRails) {
+                // If no rails specified, include all banks
+                if (empty($allowedRails)) {
+                    return true;
+                }
+                
+                // Check if bank has any of the allowed settlement rails
+                $bankRails = array_keys($bank['settlement_rail'] ?? []);
+                return !empty(array_intersect($bankRails, $allowedRails));
+            })
+            ->map(fn($bank, $code) => [
+                'code' => $code,
+                'name' => $bank['full_name'] ?? $code,
+            ])
+            ->unique('code') // Remove duplicates by code
+            ->values()
+            ->toArray();
+
         return Inertia::render('Redeem/Wallet', [
             'voucher_code' => $voucher->code,
+            'voucher' => [
+                'code' => $voucher->code,
+                'amount' => $voucher->amount,
+                'currency' => $voucher->currency,
+                'created_at' => $voucher->created_at?->toIso8601String(),
+                'expires_at' => $voucher->expires_at?->toIso8601String(),
+                'owner' => $voucher->owner ? [
+                    'name' => $voucher->owner->name,
+                    'email' => $voucher->owner->email,
+                ] : null,
+                'count' => $voucher->instructions->count ?? null,
+            ],
+            'banks' => $banks,
+            'config' => array_merge(
+                config('redeem.wallet'),
+                [
+                    'bank_select' => config('redeem.bank_select'),
+                    'widget' => config('redeem.widget'),
+                ]
+            ),
         ]);
     }
 
