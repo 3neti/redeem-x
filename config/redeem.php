@@ -263,4 +263,76 @@ return [
         'footer_note' => env('REDEEM_SUCCESS_FOOTER_NOTE', "{{ voucher.cash.currency }} {{ voucher.cash.amount }} has been transferred to {{ bank_account }} by redeeming {{ code }}."),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Finalize Page Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure the appearance and behavior of the finalize (review) page.
+    | Control what elements are shown in the summary table and customize all labels.
+    |
+    */
+
+    'finalize' => [
+        // Header section
+        'show_header' => env('REDEEM_FINALIZE_SHOW_HEADER', false),
+        'header' => [
+            'show_title' => env('REDEEM_FINALIZE_SHOW_TITLE', true),
+            'title' => env('REDEEM_FINALIZE_TITLE', 'Review'),
+            'show_description' => env('REDEEM_FINALIZE_SHOW_DESCRIPTION', true),
+            'description' => env('REDEEM_FINALIZE_DESCRIPTION', 'Please verify all details before confirming'),
+        ],
+
+        // Summary table
+        'show_summary_table' => env('REDEEM_FINALIZE_SHOW_SUMMARY_TABLE', true),
+        'summary_table' => [
+            'show_header' => env('REDEEM_FINALIZE_SUMMARY_SHOW_HEADER', false),
+            'show_title' => env('REDEEM_FINALIZE_SUMMARY_SHOW_TITLE', false),
+            'title' => env('REDEEM_FINALIZE_SUMMARY_TITLE', 'Redemption Summary'),
+            'show_description' => env('REDEEM_FINALIZE_SUMMARY_SHOW_DESCRIPTION', false),
+            'description' => env('REDEEM_FINALIZE_SUMMARY_DESCRIPTION', 'Review the details below'),
+
+            // Table row controls
+            'show_voucher_code' => env('REDEEM_FINALIZE_SHOW_VOUCHER_CODE', true),
+            'voucher_code_label' => env('REDEEM_FINALIZE_VOUCHER_CODE_LABEL', 'Voucher Code'),
+
+            'show_amount' => env('REDEEM_FINALIZE_SHOW_AMOUNT', true),
+            'amount_label' => env('REDEEM_FINALIZE_AMOUNT_LABEL', 'Amount'),
+
+            'show_mobile' => env('REDEEM_FINALIZE_SHOW_MOBILE', true),
+            'mobile_label' => env('REDEEM_FINALIZE_MOBILE_LABEL', 'Mobile Number'),
+
+            'show_bank_account' => env('REDEEM_FINALIZE_SHOW_BANK_ACCOUNT', true),
+            'bank_account_label' => env('REDEEM_FINALIZE_BANK_ACCOUNT_LABEL', 'Bank Account'),
+
+            'show_collected_inputs' => env('REDEEM_FINALIZE_SHOW_COLLECTED_INPUTS', true),
+
+            'show_captured_items' => env('REDEEM_FINALIZE_SHOW_CAPTURED_ITEMS', true),
+            'captured_items_label' => env('REDEEM_FINALIZE_CAPTURED_ITEMS_LABEL', 'Captured Items'),
+
+            // Copy buttons for voucher code and mobile
+            'show_copy_buttons' => env('REDEEM_FINALIZE_SHOW_COPY_BUTTONS', false),
+        ],
+
+        // Confirmation notice
+        'show_confirmation_notice' => env('REDEEM_FINALIZE_SHOW_CONFIRMATION_NOTICE', true),
+        'confirmation_notice' => [
+            'show_title' => env('REDEEM_FINALIZE_CONFIRMATION_SHOW_TITLE', true),
+            'title' => env('REDEEM_FINALIZE_CONFIRMATION_TITLE', 'Important:'),
+            'show_message' => env('REDEEM_FINALIZE_CONFIRMATION_SHOW_MESSAGE', true),
+            'message' => env('REDEEM_FINALIZE_CONFIRMATION_MESSAGE', 'By confirming, you agree that the information provided is accurate. The cash will be transferred to the provided bank account.'),
+        ],
+
+        // Action buttons
+        'show_action_buttons' => env('REDEEM_FINALIZE_SHOW_ACTION_BUTTONS', true),
+        'action_buttons' => [
+            'show_back_button' => env('REDEEM_FINALIZE_SHOW_BACK_BUTTON', true),
+            'back_button_text' => env('REDEEM_FINALIZE_BACK_BUTTON_TEXT', 'Back'),
+
+            'show_confirm_button' => env('REDEEM_FINALIZE_SHOW_CONFIRM_BUTTON', true),
+            'confirm_button_text' => env('REDEEM_FINALIZE_CONFIRM_BUTTON_TEXT', 'Confirm Redemption'),
+            'confirm_button_processing_text' => env('REDEEM_FINALIZE_CONFIRM_BUTTON_PROCESSING_TEXT', 'Processing...'),
+        ],
+    ],
+
 ];

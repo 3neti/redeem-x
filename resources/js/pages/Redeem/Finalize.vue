@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
-import PublicLayout from '@/layouts/PublicLayout.vue';
+import { Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Loader2, AlertCircle } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Loader2, AlertCircle, Copy, CheckCircle2 } from 'lucide-vue-next';
 
 interface Props {
     voucher_code: string;
+    config: any;
 }
 
 const props = defineProps<Props>();
@@ -25,6 +27,54 @@ const formattedAmount = computed(() => {
         style: 'currency',
         currency: currency || 'PHP',
     }).format(amount || 0);
+});
+
+// Process inputs to handle special data types
+const processedInputs = computed(() => {
+    const inputs = finalizationData.value?.inputs || {};
+    const processed: Record<string, any> = {};
+    
+    for (const [key, value] of Object.entries(inputs)) {
+        if (key === 'location' && typeof value === 'string') {
+            // Parse location JSON string
+            try {
+                const locationData = JSON.parse(value as string);
+                processed[key] = locationData.address?.formatted || 'Location captured';
+            } catch (e) {
+                processed[key] = 'Location captured';
+            }
+        } else if (key === 'selfie' || key === 'signature') {
+            // Skip image fields - they're displayed separately
+            continue;
+        } else {
+            processed[key] = value;
+        }
+    }
+    
+    return processed;
+});
+
+// Captured items for display
+const capturedItems = computed(() => {
+    const items = [];
+    const inputs = finalizationData.value?.inputs || {};
+    
+    if (inputs.location) {
+        items.push({ type: 'location', label: 'Location' });
+    }
+    if (inputs.selfie) {
+        items.push({ type: 'selfie', label: 'Selfie' });
+    }
+    if (inputs.signature || finalizationData.value?.has_signature) {
+        items.push({ type: 'signature', label: 'Signature' });
+    }
+    
+    return items;
+});
+
+// Helper for showing captured items row
+const capturedItemsText = computed(() => {
+    return capturedItems.value.length > 0;
 });
 
 const formatFieldName = (field: string): string => {
@@ -131,6 +181,11 @@ const fetchFinalizationData = async () => {
             inputs: sessionData.inputs || {},
             has_signature: (sessionData.inputs?.signature) ? true : false,
         };
+        
+        // Debug logging
+        console.log('[Finalize] Complete finalizationData:', finalizationData.value);
+        console.log('[Finalize] sessionData from storage:', sessionData);
+        console.log('[Finalize] API result:', result.data);
     } catch (err: any) {
         error.value = err.message || 'Failed to load finalization data. Please try again.';
         console.error('Finalization fetch failed:', err);
@@ -145,6 +200,33 @@ const formatBankAccount = (bankCode: string | undefined, accountNumber: string |
     return `${bankCode} (${accountNumber})`;
 };
 
+const copiedCode = ref(false);
+const copiedMobile = ref(false);
+
+const copyCode = async (text: string) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        copiedCode.value = true;
+        setTimeout(() => {
+            copiedCode.value = false;
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+    }
+};
+
+const copyMobile = async () => {
+    try {
+        await navigator.clipboard.writeText(finalizationData.value?.mobile || '');
+        copiedMobile.value = true;
+        setTimeout(() => {
+            copiedMobile.value = false;
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+    }
+};
+
 const handleBack = () => {
     router.visit(`/redeem/${props.voucher_code}/wallet`);
 };
@@ -156,110 +238,163 @@ onMounted(() => {
 </script>
 
 <template>
-    <PublicLayout>
-        <div class="container mx-auto max-w-2xl px-4 py-8">
+    <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+        <Head title="Review Redemption" />
+        <div class="w-full max-w-md space-y-6">
             <!-- Loading State -->
             <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
 
             <!-- Error Alert -->
-            <Alert v-if="error" variant="destructive" class="mb-6">
+            <Alert v-if="error" variant="destructive">
                 <AlertCircle class="h-4 w-4" />
                 <AlertDescription>
                     {{ error }}
                 </AlertDescription>
             </Alert>
 
-            <!-- Finalization Review Card -->
-            <Card v-if="!loading && finalizationData">
-                <CardHeader>
-                    <CardTitle>Review & Confirm</CardTitle>
-                    <CardDescription>
-                        Please review your information before confirming redemption
-                    </CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-6">
-                    <!-- Voucher Amount -->
-                    <div class="rounded-lg bg-green-50 p-4 text-center">
-                        <div class="text-sm text-muted-foreground">You will receive</div>
-                        <div class="text-3xl font-bold text-green-600">
-                            {{ formattedAmount }}
-                        </div>
-                    </div>
+            <template v-if="!loading && finalizationData">
+                <!-- Header -->
+                <div v-if="config?.show_header" class="space-y-2">
+                    <h1 v-if="config?.header?.show_title" class="text-3xl font-bold">
+                        {{ config?.header?.title || 'Review Your Redemption' }}
+                    </h1>
+                    <p v-if="config?.header?.show_description" class="text-muted-foreground">
+                        {{ config?.header?.description || 'Please verify all details before confirming' }}
+                    </p>
+                </div>
 
-                    <!-- Contact Information -->
-                    <div class="space-y-3">
-                        <h3 class="font-semibold">Contact Information</h3>
-                        <div class="rounded-md border p-4">
-                            <div class="flex justify-between py-2">
-                                <span class="text-muted-foreground">Mobile Number:</span>
-                                <span class="font-medium">{{ finalizationData.mobile }}</span>
-                            </div>
-                            <div v-if="finalizationData.bank_account" class="flex justify-between border-t py-2">
-                                <span class="text-muted-foreground">Bank Account:</span>
-                                <span class="font-medium">{{ finalizationData.bank_account }}</span>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Summary Table -->
+                <Card v-if="config?.show_summary_table">
+                    <CardHeader v-if="config?.summary_table?.show_header">
+                        <CardTitle v-if="config?.summary_table?.show_title" class="text-lg">
+                            {{ config?.summary_table?.title || 'Redemption Summary' }}
+                        </CardTitle>
+                        <CardDescription v-if="config?.summary_table?.show_description">
+                            {{ config?.summary_table?.description || 'Review the details below' }}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="pt-6">
+                        <table class="w-full">
+                            <tbody class="divide-y">
+                                <!-- Voucher Code -->
+                                <tr v-if="config?.summary_table?.show_voucher_code">
+                                    <td class="py-3 text-sm font-medium text-muted-foreground">
+                                        {{ config?.summary_table?.voucher_code_label || 'Voucher Code' }}
+                                    </td>
+                                    <td class="py-3 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <code class="font-mono font-semibold">{{ finalizationData.voucher.code }}</code>
+                                            <Button v-if="config?.summary_table?.show_copy_buttons" variant="ghost" size="sm" @click="copyCode(finalizationData.voucher.code)">
+                                                <CheckCircle2 v-if="copiedCode" class="h-4 w-4 text-green-500" />
+                                                <Copy v-else class="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
 
-                    <!-- Additional Information -->
-                    <div v-if="Object.keys(finalizationData.inputs || {}).length > 0" class="space-y-3">
-                        <h3 class="font-semibold">Additional Information</h3>
-                        <div class="rounded-md border p-4">
-                            <div
-                                v-for="(value, key) in finalizationData.inputs"
-                                :key="key"
-                                class="flex justify-between border-b py-2 last:border-b-0"
-                            >
-                                <span class="text-muted-foreground">
-                                    {{ formatFieldName(String(key)) }}:
-                                </span>
-                                <span class="max-w-[60%] truncate font-medium" :title="String(value)">
-                                    {{ typeof value === 'string' && value.startsWith('data:') ? '(image)' : value }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                                <!-- Amount -->
+                                <tr v-if="config?.summary_table?.show_amount">
+                                    <td class="py-3 text-sm font-medium text-muted-foreground">
+                                        {{ config?.summary_table?.amount_label || 'Amount' }}
+                                    </td>
+                                    <td class="py-3 text-right text-lg font-bold">
+                                        {{ formattedAmount }}
+                                    </td>
+                                </tr>
 
-                    <!-- Signature Status -->
-                    <div v-if="finalizationData.has_signature" class="flex items-center gap-2 text-green-600">
-                        <CheckCircle :size="20" />
-                        <span class="font-medium">Signature captured</span>
-                    </div>
+                                <!-- Mobile Number -->
+                                <tr v-if="config?.summary_table?.show_mobile">
+                                    <td class="py-3 text-sm font-medium text-muted-foreground">
+                                        {{ config?.summary_table?.mobile_label || 'Mobile Number' }}
+                                    </td>
+                                    <td class="py-3 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <span class="font-medium">{{ finalizationData.mobile }}</span>
+                                            <Button v-if="config?.summary_table?.show_copy_buttons" variant="ghost" size="sm" @click="copyMobile">
+                                                <CheckCircle2 v-if="copiedMobile" class="h-4 w-4 text-green-500" />
+                                                <Copy v-else class="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
 
-                    <!-- Confirmation Notice -->
-                    <div class="rounded-md bg-amber-50 p-4 text-sm text-amber-800">
-                        <p class="font-semibold">Important:</p>
-                        <p class="mt-1">
-                            By confirming, you agree that the information provided is accurate. The
-                            cash will be transferred to the provided account or mobile number.
+                                <!-- Bank Account -->
+                                <tr v-if="config?.summary_table?.show_bank_account && finalizationData.bank_account">
+                                    <td class="py-3 text-sm font-medium text-muted-foreground">
+                                        {{ config?.summary_table?.bank_account_label || 'Bank Account' }}
+                                    </td>
+                                    <td class="py-3 text-right font-medium">{{ finalizationData.bank_account }}</td>
+                                </tr>
+
+                                <!-- Collected Data -->
+                                <tr v-if="config?.summary_table?.show_collected_inputs" v-for="(value, key) in processedInputs" :key="key">
+                                    <td class="py-3 text-sm font-medium text-muted-foreground">
+                                        {{ formatFieldName(String(key)) }}
+                                    </td>
+                                    <td class="py-3 text-right text-sm">{{ value }}</td>
+                                </tr>
+
+                                <!-- Captured Items -->
+                                <tr v-if="config?.summary_table?.show_captured_items && capturedItemsText">
+                                    <td class="py-3 text-sm font-medium text-muted-foreground">
+                                        {{ config?.summary_table?.captured_items_label || 'Captured Items' }}
+                                    </td>
+                                    <td class="py-3 text-right">
+                                        <div class="flex flex-wrap gap-2 justify-end">
+                                            <Badge 
+                                                v-for="item in capturedItems" 
+                                                :key="item.type" 
+                                                variant="secondary" 
+                                                class="bg-green-100 text-green-800"
+                                            >
+                                                <CheckCircle :size="14" class="mr-1" />
+                                                {{ item.label }}
+                                            </Badge>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </CardContent>
+                </Card>
+
+                <!-- Confirmation Notice -->
+                <Alert v-if="config?.show_confirmation_notice" class="border-amber-200 bg-amber-50">
+                    <AlertCircle class="h-4 w-4 text-amber-600" />
+                    <AlertDescription class="text-amber-800">
+                        <p v-if="config?.confirmation_notice?.show_title" class="font-semibold">
+                            {{ config?.confirmation_notice?.title || 'Important:' }}
                         </p>
-                    </div>
+                        <p v-if="config?.confirmation_notice?.show_message" class="mt-1">
+                            {{ config?.confirmation_notice?.message || 'By confirming, you agree that the information provided is accurate. The cash will be transferred to the provided account or mobile number.' }}
+                        </p>
+                    </AlertDescription>
+                </Alert>
 
-                    <!-- Action Buttons -->
-                    <div class="flex gap-3 pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            class="flex-1"
-                            @click="handleBack"
-                            :disabled="submitting"
-                        >
-                            Back
-                        </Button>
-                        <Button
-                            type="button"
-                            class="flex-1"
-                            @click="handleConfirm"
-                            :disabled="submitting"
-                        >
-                            <Loader2 v-if="submitting" class="h-4 w-4 mr-2 animate-spin" />
-                            {{ submitting ? 'Processing...' : 'Confirm Redemption' }}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                <!-- Action Buttons -->
+                <div v-if="config?.show_action_buttons" class="flex gap-3">
+                    <Button
+                        v-if="config?.action_buttons?.show_back_button"
+                        variant="outline"
+                        class="flex-1"
+                        @click="handleBack"
+                        :disabled="submitting"
+                    >
+                        {{ config?.action_buttons?.back_button_text || 'Back' }}
+                    </Button>
+                    <Button
+                        v-if="config?.action_buttons?.show_confirm_button"
+                        class="flex-1"
+                        @click="handleConfirm"
+                        :disabled="submitting"
+                    >
+                        <Loader2 v-if="submitting" class="h-4 w-4 mr-2 animate-spin" />
+                        {{ submitting ? (config?.action_buttons?.confirm_button_processing_text || 'Processing...') : (config?.action_buttons?.confirm_button_text || 'Confirm Redemption') }}
+                    </Button>
+                </div>
+            </template>
         </div>
-    </PublicLayout>
+    </div>
 </template>

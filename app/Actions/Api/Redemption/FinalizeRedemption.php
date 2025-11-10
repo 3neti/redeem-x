@@ -8,6 +8,7 @@ use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Models\Voucher;
+use LBHurtado\Voucher\Data\VoucherData;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class FinalizeRedemption
@@ -55,15 +56,18 @@ class FinalizeRedemption
                 'voucher' => $voucherCode,
             ]);
 
-            // For API flow, just return basic voucher info
+            // Convert to DTO to get computed amount and currency from instructions
+            $voucherData = VoucherData::fromModel($voucher);
+
+            // For API flow, return basic voucher info from DTO
             // The frontend will merge this with sessionStorage data
             return response()->json([
                 'success' => true,
                 'data' => [
                     'voucher' => [
-                        'code' => $voucher->code,
-                        'amount' => $voucher->amount,
-                        'currency' => $voucher->currency,
+                        'code' => $voucherData->code,
+                        'amount' => $voucherData->amount,
+                        'currency' => $voucherData->currency,
                     ],
                 ],
             ], 200);

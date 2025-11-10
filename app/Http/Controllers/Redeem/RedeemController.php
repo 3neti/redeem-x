@@ -147,6 +147,7 @@ class RedeemController extends Controller
     {
         return Inertia::render('Redeem/Finalize', [
             'voucher_code' => $voucher->code,
+            'config' => config('redeem.finalize'),
         ]);
     }
 
