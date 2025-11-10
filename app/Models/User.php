@@ -11,9 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\ModelChannel\Traits\HasChannels;
 use LBHurtado\PaymentGateway\Traits\HasMerchant;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements Wallet, Customer
 {
@@ -25,6 +27,7 @@ class User extends Authenticatable implements Wallet, Customer
     use HasVouchers;
     use HasChannels;
     use HasMerchant;
+    use HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -99,5 +102,35 @@ class User extends Authenticatable implements Wallet, Customer
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
+    }
+
+    public function generatedVouchers()
+    {
+        return $this->belongsToMany(
+            Voucher::class,
+            'user_voucher',
+            'user_id',
+            'voucher_code',
+            'id',
+            'code'
+        )->withTimestamps();
+    }
+    
+    public function voucherGenerationCharges(): HasMany
+    {
+        return $this->hasMany(VoucherGenerationCharge::class);
+    }
+    
+    public function monthlyCharges(int $year = null, int $month = null)
+    {
+        $year = $year ?? now()->year;
+        $month = $month ?? now()->month;
+        $date = \Carbon\Carbon::create($year, $month, 1);
+        
+        return $this->voucherGenerationCharges()
+            ->whereBetween('generated_at', [
+                $date->copy()->startOfMonth(),
+                $date->copy()->endOfMonth()
+            ]);
     }
 }

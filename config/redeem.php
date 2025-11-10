@@ -335,4 +335,103 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pricing Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Define pricing for each customizable instruction item.
+    | Prices are in centavos (100 = ₱1.00).
+    |
+    */
+
+    'pricelist' => [
+        'cash.amount' => [
+            'price' => 2000, // ₱20.00 base fee
+            'description' => 'Cash voucher generation base fee',
+        ],
+        'feedback.email' => [
+            'price' => 100, // ₱1.00
+            'label' => 'Email Address',
+            'description' => 'Email notification on redemption',
+        ],
+        'feedback.mobile' => [
+            'price' => 180, // ₱1.80
+            'label' => 'Mobile Number',
+            'description' => 'SMS notification',
+        ],
+        'feedback.webhook' => [
+            'price' => 190, // ₱1.90
+            'label' => 'Webhook URL',
+            'description' => 'Webhook notification',
+        ],
+        'cash.validation.secret' => [
+            'price' => 120, // ₱1.20
+            'description' => 'Secret code validation',
+        ],
+        'cash.validation.mobile' => [
+            'price' => 130, // ₱1.30
+            'description' => 'Mobile number validation',
+        ],
+        'cash.validation.location' => [
+            'price' => 150, // ₱1.50
+            'description' => 'GPS location validation',
+        ],
+        'cash.validation.radius' => [
+            'price' => 160, // ₱1.60
+            'description' => 'Radius validation',
+        ],
+        'inputs.fields.email' => [
+            'price' => 220, // ₱2.20
+            'description' => 'Email input field',
+        ],
+        'inputs.fields.mobile' => [
+            'price' => 230, // ₱2.30
+            'description' => 'Mobile number input field',
+        ],
+        'inputs.fields.name' => [
+            'price' => 240, // ₱2.40
+            'description' => 'Name input field',
+        ],
+        'inputs.fields.address' => [
+            'price' => 250, // ₱2.50
+            'label' => 'Full Address',
+            'description' => 'Address input field',
+        ],
+        'inputs.fields.birth_date' => [
+            'price' => 260, // ₱2.60
+            'description' => 'Birth date input field',
+        ],
+        'inputs.fields.gross_monthly_income' => [
+            'price' => 270, // ₱2.70
+            'description' => 'Gross monthly income input field',
+        ],
+        'inputs.fields.signature' => [
+            'price' => 280, // ₱2.80
+            'description' => 'Signature capture field',
+        ],
+        'inputs.fields.location' => [
+            'price' => 300, // ₱3.00
+            'description' => 'GPS location capture field',
+        ],
+        'inputs.fields.reference_code' => [
+            'price' => 250, // ₱2.50
+            'description' => 'Reference code input field',
+        ],
+        'inputs.fields.otp' => [
+            'price' => 400, // ₱4.00
+            'description' => 'OTP verification field',
+        ],
+        'rider.message' => [
+            'price' => 200, // ₱2.00
+            'label' => 'Rider Message',
+            'description' => 'Custom message shown after redemption',
+        ],
+        'rider.url' => [
+            'price' => 210, // ₱2.10
+            'label' => 'Rider URL',
+            'description' => 'Redirect URL after redemption',
+        ],
+    ],
+
 ];

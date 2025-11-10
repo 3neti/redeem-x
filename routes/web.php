@@ -47,6 +47,42 @@ Route::middleware([
         Route::get('{voucher}', [App\Http\Controllers\Voucher\VoucherController::class, 'show'])
             ->name('show');
     });
+    
+    // User billing routes
+    Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\User\BillingController::class, 'index'])
+            ->name('index');
+    });
+    
+    // Admin routes (requires super-admin role)
+    Route::prefix('admin')
+        ->name('admin.')
+        ->middleware('role:super-admin')
+        ->group(function () {
+            // Pricing management
+            Route::prefix('pricing')
+                ->name('pricing.')
+                ->middleware('permission:manage pricing')
+                ->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Admin\PricingController::class, 'index'])
+                        ->name('index');
+                    Route::get('{item}/edit', [\App\Http\Controllers\Admin\PricingController::class, 'edit'])
+                        ->name('edit');
+                    Route::patch('{item}', [\App\Http\Controllers\Admin\PricingController::class, 'update'])
+                        ->name('update');
+                });
+            
+            // Admin billing (view all users)
+            Route::prefix('billing')
+                ->name('billing.')
+                ->middleware('permission:view all billing')
+                ->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])
+                        ->name('index');
+                    Route::get('{charge}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])
+                        ->name('show');
+                });
+        });
 });
 
 require __DIR__.'/settings.php';

@@ -61,6 +61,10 @@ Route::prefix('v1')
             Gate::authorize('view', $campaign);
             return $campaign;
         });
+        
+        // Charge calculation API (for real-time pricing preview)
+        Route::post('/calculate-charges', \App\Http\Controllers\Api\ChargeCalculationController::class)
+            ->name('calculate-charges');
     });
 
 /**
