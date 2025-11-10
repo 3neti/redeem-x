@@ -1,3 +1,4 @@
+<script setup lang="ts">
 /**
  * VoucherInstructionsForm - Composite form component for voucher instructions
  * 
@@ -17,7 +18,6 @@
  *   :show-json-preview="true"
  * />
  */
-<script setup lang="ts">
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

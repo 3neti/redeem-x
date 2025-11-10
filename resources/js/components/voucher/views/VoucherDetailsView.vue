@@ -1,3 +1,4 @@
+<script setup lang="ts">
 /**
  * VoucherDetailsView - Display component for basic voucher information
  * 
@@ -8,7 +9,6 @@
  * @example
  * <VoucherDetailsView :voucher="voucher" />
  */
-<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

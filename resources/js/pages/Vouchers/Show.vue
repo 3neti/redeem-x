@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
-import { VoucherDetailsView, VoucherRedemptionView } from '@/components/voucher/views';
+import { VoucherDetailsTabContent, VoucherOwnerView } from '@/components/voucher/views';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +12,7 @@ import {
     ArrowLeft, 
     TicketCheck, 
     Clock, 
-    XCircle,
-    User
+    XCircle
 } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -246,7 +245,10 @@ const instructionsFormData = computed(() => {
 
                 <!-- Details Tab Content -->
                 <div v-show="activeTab === 'details'">
-                    <VoucherDetailsView :voucher="voucher" />
+                    <VoucherDetailsTabContent 
+                        :voucher="voucher" 
+                        :redemption="redemption"
+                    />
                 </div>
 
                 <!-- Instructions Tab Content -->
@@ -260,33 +262,7 @@ const instructionsFormData = computed(() => {
                 </div>
 
                 <!-- Owner Information (if available) -->
-                <Card v-if="voucher.owner">
-                    <CardHeader>
-                        <CardTitle>Owner Information</CardTitle>
-                        <CardDescription>Details about the voucher owner</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-                            <div>
-                                <dt class="flex items-center text-sm font-medium text-muted-foreground">
-                                    <User class="mr-2 h-4 w-4" />
-                                    Name
-                                </dt>
-                                <dd class="mt-1 text-sm">{{ voucher.owner.name }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-muted-foreground">Email</dt>
-                                <dd class="mt-1 text-sm">{{ voucher.owner.email }}</dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
-
-                <!-- Redemption Information (if redeemed) -->
-                <VoucherRedemptionView
-                    v-if="voucher.is_redeemed && redemption"
-                    :redemption="redemption"
-                />
+                <VoucherOwnerView v-if="voucher.owner" :owner="voucher.owner" />
             </div>
         </ErrorBoundary>
     </AppLayout>

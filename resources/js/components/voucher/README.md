@@ -17,6 +17,8 @@ voucher/
 ├── views/                      # View components (display/readonly)
 │   ├── VoucherDetailsView.vue
 │   ├── VoucherRedemptionView.vue
+│   ├── VoucherDetailsTabContent.vue
+│   ├── VoucherOwnerView.vue
 │   └── index.ts
 └── README.md                   # This file
 ```
@@ -342,6 +344,65 @@ View components are **read-only** display components.
 
 ---
 
+#### **VoucherDetailsTabContent.vue** (Composite View)
+
+**Purpose**: Combine details and redemption views into single component.
+
+**Props**:
+```typescript
+{
+  voucher: VoucherData;
+  redemption?: RedemptionData | null;
+}
+```
+
+**Features**:
+- Wraps VoucherDetailsView + VoucherRedemptionView
+- Single component for entire details tab
+- Conditional redemption display
+- Simplified prop passing
+
+**Usage**:
+```vue
+<VoucherDetailsTabContent
+  :voucher="voucher"
+  :redemption="redemption"
+/>
+```
+
+---
+
+#### **VoucherOwnerView.vue**
+
+**Purpose**: Display voucher owner information.
+
+**Props**:
+```typescript
+{
+  owner: {
+    name: string;
+    email: string;
+    mobile?: string;
+  }
+}
+```
+
+**Features**:
+- Owner name with icon
+- Email address
+- Optional mobile number
+- Consistent card layout
+
+**Usage**:
+```vue
+<VoucherOwnerView 
+  v-if="voucher.owner" 
+  :owner="voucher.owner" 
+/>
+```
+
+---
+
 ## 🎯 Usage Examples
 
 ### Example 1: Generate Vouchers Page
@@ -382,16 +443,19 @@ const instructionsFormData = ref({ /* ... */ });
 </template>
 ```
 
-### Example 3: Voucher Show Page
+### Example 3: Voucher Show Page (Simplified)
 ```vue
 <script setup lang="ts">
-import { VoucherDetailsView, VoucherRedemptionView } from '@/components/voucher/views';
+import { VoucherDetailsTabContent, VoucherOwnerView } from '@/components/voucher/views';
 import { VoucherInstructionsForm } from '@/components/voucher/forms';
 </script>
 
 <template>
-  <!-- Details Tab -->
-  <VoucherDetailsView :voucher="voucher" />
+  <!-- Details Tab (includes redemption if applicable) -->
+  <VoucherDetailsTabContent 
+    :voucher="voucher" 
+    :redemption="redemption"
+  />
 
   <!-- Instructions Tab -->
   <VoucherInstructionsForm
@@ -400,11 +464,8 @@ import { VoucherInstructionsForm } from '@/components/voucher/forms';
     :show-count-field="false"
   />
 
-  <!-- Redemption Section -->
-  <VoucherRedemptionView
-    v-if="voucher.is_redeemed && redemption"
-    :redemption="redemption"
-  />
+  <!-- Owner Information -->
+  <VoucherOwnerView v-if="voucher.owner" :owner="voucher.owner" />
 </template>
 ```
 
@@ -432,8 +493,10 @@ const feedback = ref({ email: '', mobile: '', webhook: '' });
 | Component | Use Cases |
 |-----------|-----------|
 | `VoucherInstructionsForm` | Generate Vouchers, Create Campaign, Edit Campaign, Voucher Show (readonly) |
-| `VoucherDetailsView` | Voucher Show, Preview Modals, Voucher List, PDF/Email Receipts |
-| `VoucherRedemptionView` | Voucher Show, Redemption Confirmation, Admin Dashboard |
+| `VoucherDetailsView` | Individual voucher details display, Custom layouts |
+| `VoucherRedemptionView` | Individual redemption display, Confirmation emails |
+| `VoucherDetailsTabContent` | **Voucher Show page, Preview Modals, PDF/Email Receipts** (recommended) |
+| `VoucherOwnerView` | Voucher Show, Owner info cards, Admin dashboard |
 | `CashInstructionForm` | Standalone cash configuration, Quick voucher creation |
 | `InputFieldsForm` | Campaign settings, Global input field configuration |
 | `FeedbackInstructionForm` | Global notification settings, Per-campaign configuration |
@@ -541,5 +604,5 @@ When modifying these components:
 
 ---
 
-**Last Updated**: 2025-11-10
+**Last Updated**: 2025-11-10 (Priority 2 complete)
 **Maintained By**: Development Team
