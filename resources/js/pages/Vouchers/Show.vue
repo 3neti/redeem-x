@@ -3,7 +3,8 @@ import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
-import VoucherInstructionsForm from '@/components/VoucherInstructionsForm.vue';
+import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
+import { VoucherDetailsView, VoucherRedemptionView } from '@/components/voucher/views';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +12,8 @@ import {
     ArrowLeft, 
     TicketCheck, 
     Clock, 
-    XCircle, 
-    Calendar,
-    DollarSign,
-    User,
-    Copy,
-    CheckCircle2
+    XCircle,
+    User
 } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -88,7 +85,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const copied = ref(false);
 const activeTab = ref<'details' | 'instructions'>('details');
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -128,68 +124,9 @@ const formatAmount = (amount: number, currency: string) => {
     }).format(amount);
 };
 
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-};
-
-const copyCode = async () => {
-    try {
-        await navigator.clipboard.writeText(props.voucher.code);
-        copied.value = true;
-        setTimeout(() => {
-            copied.value = false;
-        }, 2000);
-    } catch (err) {
-        console.error('Failed to copy code:', err);
-    }
-};
-
 const goBack = () => {
     router.visit('/vouchers');
 };
-
-const redeemLink = computed(() => {
-    return `${window.location.origin}/redeem/${props.voucher.code}`;
-});
-
-const copyRedeemLink = async () => {
-    try {
-        await navigator.clipboard.writeText(redeemLink.value);
-        // Could add a toast notification here
-    } catch (err) {
-        console.error('Failed to copy link:', err);
-    }
-};
-
-const locationData = computed(() => {
-    if (!props.redemption?.location) return null;
-    try {
-        return JSON.parse(props.redemption.location);
-    } catch {
-        return null;
-    }
-});
-
-const staticMapUrl = computed(() => {
-    if (!locationData.value) return '';
-    
-    const { latitude, longitude } = locationData.value;
-    const zoom = 16;
-    const size = 600;
-    const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
-    
-    if (mapboxToken && mapboxToken !== 'your_actual_token_here') {
-        return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${longitude},${latitude})/${longitude},${latitude},${zoom},0/${size}x300@2x?access_token=${mapboxToken}`;
-    }
-    
-    return '';
-});
 
 // Transform instructions for VoucherInstructionsForm
 const instructionsFormData = computed(() => {
@@ -308,82 +245,8 @@ const instructionsFormData = computed(() => {
                 </div>
 
                 <!-- Details Tab Content -->
-                <div v-show="activeTab === 'details'" class="space-y-6">
-                    <!-- Voucher Code Card -->
-                    <Card>
-                    <CardHeader>
-                        <CardTitle>Voucher Code</CardTitle>
-                        <CardDescription>Share this code or link to redeem the voucher</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="flex items-center gap-2">
-                            <code class="flex-1 rounded-md bg-muted px-4 py-3 font-mono text-lg font-semibold">
-                                {{ voucher.code }}
-                            </code>
-                            <Button variant="outline" size="icon" @click="copyCode">
-                                <CheckCircle2 v-if="copied" class="h-4 w-4 text-green-500" />
-                                <Copy v-else class="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <div v-if="!voucher.is_redeemed && !voucher.is_expired" class="space-y-2">
-                            <div class="text-sm font-medium">Redemption Link</div>
-                            <div class="flex items-center gap-2">
-                                <code class="flex-1 truncate rounded-md bg-muted px-4 py-2 text-sm">
-                                    {{ redeemLink }}
-                                </code>
-                                <Button variant="outline" size="sm" @click="copyRedeemLink">
-                                    <Copy class="mr-2 h-3 w-3" />
-                                    Copy
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <!-- Details Card -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Voucher Details</CardTitle>
-                        <CardDescription>Additional information about this voucher</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-                            <div>
-                                <dt class="flex items-center text-sm font-medium text-muted-foreground">
-                                    <DollarSign class="mr-2 h-4 w-4" />
-                                    Amount
-                                </dt>
-                                <dd class="mt-1 text-sm font-semibold">
-                                    {{ formatAmount(voucher.amount, voucher.currency) }}
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="flex items-center text-sm font-medium text-muted-foreground">
-                                    <Calendar class="mr-2 h-4 w-4" />
-                                    Created
-                                </dt>
-                                <dd class="mt-1 text-sm">{{ formatDate(voucher.created_at) }}</dd>
-                            </div>
-                            <div v-if="voucher.starts_at">
-                                <dt class="text-sm font-medium text-muted-foreground">Valid From</dt>
-                                <dd class="mt-1 text-sm">{{ formatDate(voucher.starts_at) }}</dd>
-                            </div>
-                            <div v-if="voucher.expires_at">
-                                <dt class="text-sm font-medium text-muted-foreground">Expires</dt>
-                                <dd class="mt-1 text-sm">{{ formatDate(voucher.expires_at) }}</dd>
-                            </div>
-                            <div v-else>
-                                <dt class="text-sm font-medium text-muted-foreground">Expires</dt>
-                                <dd class="mt-1 text-sm">Never</dd>
-                            </div>
-                            <div v-if="voucher.redeemed_at">
-                                <dt class="text-sm font-medium text-muted-foreground">Redeemed At</dt>
-                                <dd class="mt-1 text-sm">{{ formatDate(voucher.redeemed_at) }}</dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
-
+                <div v-show="activeTab === 'details'">
+                    <VoucherDetailsView :voucher="voucher" />
                 </div>
 
                 <!-- Instructions Tab Content -->
@@ -420,79 +283,10 @@ const instructionsFormData = computed(() => {
                 </Card>
 
                 <!-- Redemption Information (if redeemed) -->
-                <div v-if="voucher.is_redeemed && redemption" class="space-y-6">
-                    <!-- Selfie -->
-                    <Card v-if="redemption.selfie">
-                        <CardHeader>
-                            <CardTitle>Redeemer Selfie</CardTitle>
-                            <CardDescription>Photo captured during redemption</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <img
-                                :src="redemption.selfie"
-                                alt="Redeemer selfie"
-                                class="w-full max-w-md rounded-lg border"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <!-- Location Map -->
-                    <Card v-if="locationData">
-                        <CardHeader>
-                            <CardTitle>Redemption Location</CardTitle>
-                            <CardDescription>Where the voucher was redeemed</CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
-                            <img
-                                v-if="staticMapUrl"
-                                :src="staticMapUrl"
-                                alt="Redemption location map"
-                                class="w-full rounded-lg border"
-                            />
-                            <div class="text-sm">
-                                <div class="font-medium">{{ locationData.address?.formatted }}</div>
-                                <div class="text-xs text-muted-foreground mt-1">
-                                    {{ locationData.latitude.toFixed(6) }}, {{ locationData.longitude.toFixed(6) }}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <!-- Signature -->
-                    <Card v-if="redemption.signature">
-                        <CardHeader>
-                            <CardTitle>Signature</CardTitle>
-                            <CardDescription>Digital signature captured during redemption</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <img
-                                :src="redemption.signature"
-                                alt="Signature"
-                                class="w-full max-w-md rounded-lg border bg-white"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <!-- Other Redemption Inputs -->
-                    <Card v-if="Object.keys(redemption).some(key => !['selfie', 'signature', 'location'].includes(key))">
-                        <CardHeader>
-                            <CardTitle>Additional Information</CardTitle>
-                            <CardDescription>Information collected during redemption</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-                                <div v-for="(value, key) in redemption" :key="key">
-                                    <template v-if="!['selfie', 'signature', 'location'].includes(key)">
-                                        <dt class="text-sm font-medium text-muted-foreground capitalize">
-                                            {{ key.replace(/_/g, ' ') }}
-                                        </dt>
-                                        <dd class="mt-1 text-sm">{{ value }}</dd>
-                                    </template>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                </div>
+                <VoucherRedemptionView
+                    v-if="voucher.is_redeemed && redemption"
+                    :redemption="redemption"
+                />
             </div>
         </ErrorBoundary>
     </AppLayout>

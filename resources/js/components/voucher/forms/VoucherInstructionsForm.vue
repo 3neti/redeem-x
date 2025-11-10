@@ -1,0 +1,330 @@
+/**
+ * VoucherInstructionsForm - Composite form component for voucher instructions
+ * 
+ * Maps to VoucherInstructionsData.php DTO
+ * 
+ * This component combines all atomic form components (CashInstruction, InputFields,
+ * Feedback, Rider) into a single comprehensive voucher instructions form.
+ * 
+ * @component
+ * @example
+ * <VoucherInstructionsForm
+ *   v-model="formData"
+ *   :input-field-options="options"
+ *   :validation-errors="errors"
+ *   :readonly="true"
+ *   :show-count-field="false"
+ *   :show-json-preview="true"
+ * />
+ */
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import InputError from '@/components/InputError.vue';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Code, Settings } from 'lucide-vue-next';
+import CashInstructionForm from './CashInstructionForm.vue';
+import InputFieldsForm from './InputFieldsForm.vue';
+import FeedbackInstructionForm from './FeedbackInstructionForm.vue';
+import RiderInstructionForm from './RiderInstructionForm.vue';
+import type { VoucherInputFieldOption, CashInstruction, InputFields, FeedbackInstruction, RiderInstruction } from '@/types/voucher';
+
+interface Props {
+    modelValue: {
+        amount: number;
+        count: number;
+        prefix: string;
+        mask: string;
+        ttlDays: number | null;
+        selectedInputFields: string[];
+        validationSecret: string;
+        validationMobile: string;
+        feedbackEmail: string;
+        feedbackMobile: string;
+        feedbackWebhook: string;
+        riderMessage: string;
+        riderUrl: string;
+    };
+    inputFieldOptions: VoucherInputFieldOption[];
+    validationErrors?: Record<string, string>;
+    showCountField?: boolean;
+    showJsonPreview?: boolean;
+    readonly?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    validationErrors: () => ({}),
+    showCountField: true,
+    showJsonPreview: true,
+    readonly: false,
+});
+
+const emit = defineEmits<{
+    'update:modelValue': [value: Props['modelValue']];
+}>();
+
+const localValue = computed({
+    get: () => props.modelValue,
+    set: (value) => emit('update:modelValue', value),
+});
+
+const showJsonPreviewCollapsible = ref(false);
+
+// Transform flat structure to nested structure for atomic components
+const cashInstruction = computed<CashInstruction>({
+    get: () => ({
+        amount: localValue.value.amount,
+        currency: 'PHP',
+        validation: {
+            secret: localValue.value.validationSecret || null,
+            mobile: localValue.value.validationMobile || null,
+            country: 'PH',
+            location: null,
+            radius: null,
+        },
+    }),
+    set: (value) => {
+        localValue.value = {
+            ...localValue.value,
+            amount: value.amount,
+            validationSecret: value.validation.secret || '',
+            validationMobile: value.validation.mobile || '',
+        };
+    },
+});
+
+const inputFields = computed<InputFields>({
+    get: () => ({
+        fields: localValue.value.selectedInputFields as any[],
+    }),
+    set: (value) => {
+        localValue.value = {
+            ...localValue.value,
+            selectedInputFields: value.fields,
+        };
+    },
+});
+
+const feedbackInstruction = computed<FeedbackInstruction>({
+    get: () => ({
+        email: localValue.value.feedbackEmail || null,
+        mobile: localValue.value.feedbackMobile || null,
+        webhook: localValue.value.feedbackWebhook || null,
+    }),
+    set: (value) => {
+        localValue.value = {
+            ...localValue.value,
+            feedbackEmail: value.email || '',
+            feedbackMobile: value.mobile || '',
+            feedbackWebhook: value.webhook || '',
+        };
+    },
+});
+
+const riderInstruction = computed<RiderInstruction>({
+    get: () => ({
+        message: localValue.value.riderMessage || null,
+        url: localValue.value.riderUrl || null,
+    }),
+    set: (value) => {
+        localValue.value = {
+            ...localValue.value,
+            riderMessage: value.message || '',
+            riderUrl: value.url || '',
+        };
+    },
+});
+
+// Live JSON preview
+const jsonPreview = computed(() => {
+    const data = {
+        cash: {
+            amount: localValue.value.amount,
+            currency: 'PHP',
+            validation: {
+                secret: localValue.value.validationSecret || null,
+                mobile: localValue.value.validationMobile || null,
+                country: 'PH',
+                location: null,
+                radius: null,
+            },
+        },
+        inputs: {
+            fields: localValue.value.selectedInputFields,
+        },
+        feedback: {
+            email: localValue.value.feedbackEmail || null,
+            mobile: localValue.value.feedbackMobile || null,
+            webhook: localValue.value.feedbackWebhook || null,
+        },
+        rider: {
+            message: localValue.value.riderMessage || null,
+            url: localValue.value.riderUrl || null,
+        },
+        count: localValue.value.count,
+        prefix: localValue.value.prefix || null,
+        mask: localValue.value.mask || null,
+        ttl: localValue.value.ttlDays ? `P${localValue.value.ttlDays}D` : null,
+    };
+    
+    // Recursively remove null values
+    const removeNulls = (obj: any): any => {
+        if (Array.isArray(obj)) {
+            return obj.map(removeNulls).filter(v => v !== null);
+        }
+        if (obj !== null && typeof obj === 'object') {
+            return Object.entries(obj)
+                .filter(([_, v]) => v !== null)
+                .reduce((acc, [k, v]) => {
+                    const cleaned = removeNulls(v);
+                    // Only add if it's not an empty object or array
+                    if (cleaned !== null && 
+                        !(typeof cleaned === 'object' && Object.keys(cleaned).length === 0) &&
+                        !(Array.isArray(cleaned) && cleaned.length === 0)) {
+                        acc[k] = cleaned;
+                    }
+                    return acc;
+                }, {} as any);
+        }
+        return obj;
+    };
+    
+    return removeNulls(data);
+});
+</script>
+
+<template>
+    <div class="space-y-6">
+        <!-- Basic Settings -->
+        <Card>
+            <CardHeader>
+                <div class="flex items-center gap-2">
+                    <Settings class="h-5 w-5" />
+                    <CardTitle>Basic Settings</CardTitle>
+                </div>
+                <CardDescription>
+                    Configure voucher quantity, code format, and expiry
+                </CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-4">
+                <slot name="before-basic-fields" />
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div v-if="showCountField" class="space-y-2">
+                        <Label for="count">Quantity</Label>
+                        <Input
+                            id="count"
+                            type="number"
+                            v-model.number="localValue.count"
+                            :min="1"
+                            required
+                            :readonly="readonly"
+                        />
+                        <InputError :message="validationErrors.count" />
+                    </div>
+
+                    <div class="space-y-2">
+                        <Label for="ttl_days">Expiry (Days)</Label>
+                        <Input
+                            id="ttl_days"
+                            type="number"
+                            v-model.number="localValue.ttlDays"
+                            :min="1"
+                            placeholder="30"
+                            :readonly="readonly"
+                        />
+                        <InputError :message="validationErrors.ttl_days" />
+                        <p class="text-xs text-muted-foreground">
+                            Leave empty for non-expiring vouchers
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="space-y-2">
+                        <Label for="prefix">Code Prefix (Optional)</Label>
+                        <Input
+                            id="prefix"
+                            v-model="localValue.prefix"
+                            placeholder="e.g., PROMO"
+                            :readonly="readonly"
+                        />
+                        <InputError :message="validationErrors.prefix" />
+                    </div>
+
+                    <div class="space-y-2">
+                        <Label for="mask">Code Mask (Optional)</Label>
+                        <Input
+                            id="mask"
+                            v-model="localValue.mask"
+                            placeholder="e.g., ****-****"
+                            :readonly="readonly"
+                        />
+                        <InputError :message="validationErrors.mask" />
+                        <p class="text-xs text-muted-foreground">
+                            Use * for random chars, - for separators (4-6 asterisks)
+                        </p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- Cash Instruction (includes amount, currency, validation rules) -->
+        <CashInstructionForm
+            v-model="cashInstruction"
+            :validation-errors="validationErrors"
+            :readonly="readonly"
+        />
+
+        <!-- Input Fields -->
+        <InputFieldsForm
+            v-model="inputFields"
+            :input-field-options="inputFieldOptions"
+            :validation-errors="validationErrors"
+            :readonly="readonly"
+        />
+
+        <!-- Feedback Channels -->
+        <FeedbackInstructionForm
+            v-model="feedbackInstruction"
+            :validation-errors="validationErrors"
+            :readonly="readonly"
+        />
+
+        <!-- Rider Information -->
+        <RiderInstructionForm
+            v-model="riderInstruction"
+            :validation-errors="validationErrors"
+            :readonly="readonly"
+        />
+
+        <!-- JSON Preview -->
+        <Collapsible v-if="showJsonPreview" v-model:open="showJsonPreviewCollapsible">
+            <Card>
+                <CollapsibleTrigger class="w-full">
+                    <CardHeader class="cursor-pointer hover:bg-muted/50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <Code class="h-5 w-5" />
+                                <CardTitle>Live JSON Preview</CardTitle>
+                            </div>
+                            <span class="text-sm text-muted-foreground">
+                                {{ showJsonPreviewCollapsible ? '▼' : '▶' }}
+                            </span>
+                        </div>
+                        <CardDescription>
+                            Real-time voucher instructions JSON
+                        </CardDescription>
+                    </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <CardContent>
+                        <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(jsonPreview, null, 2) }}</code></pre>
+                    </CardContent>
+                </CollapsibleContent>
+            </Card>
+        </Collapsible>
+    </div>
+</template>
