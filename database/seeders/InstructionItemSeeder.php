@@ -15,7 +15,7 @@ class InstructionItemSeeder extends Seeder
         $items = config('redeem.pricelist', []);
 
         foreach ($items as $index => $data) {
-            InstructionItem::firstOrCreate(
+            InstructionItem::updateOrCreate(
                 ['index' => $index],
                 InstructionItem::attributesFromIndex($index, [
                     'price' => $data['price'],
@@ -23,6 +23,7 @@ class InstructionItemSeeder extends Seeder
                     'meta' => [
                         'description' => $data['description'] ?? null,
                         'label' => $data['label'] ?? null,
+                        'category' => $data['category'] ?? 'other',
                     ],
                 ])
             );

@@ -42,6 +42,14 @@ class InstructionItem extends Model
         ];
     }
 
+    /**
+     * Get the category from meta, defaulting to 'other'
+     */
+    public function getCategoryAttribute(): string
+    {
+        return $this->meta['category'] ?? 'other';
+    }
+
     public static function attributesFromIndex(string $index, array $overrides = []): array
     {
         return array_merge([

@@ -349,88 +349,108 @@ return [
         'cash.amount' => [
             'price' => 2000, // ₱20.00 base fee
             'description' => 'Cash voucher generation base fee',
+            'category' => 'base',
         ],
         'feedback.email' => [
             'price' => 100, // ₱1.00
             'label' => 'Email Address',
             'description' => 'Email notification on redemption',
+            'category' => 'feedback',
         ],
         'feedback.mobile' => [
             'price' => 180, // ₱1.80
             'label' => 'Mobile Number',
             'description' => 'SMS notification',
+            'category' => 'feedback',
         ],
         'feedback.webhook' => [
             'price' => 190, // ₱1.90
             'label' => 'Webhook URL',
             'description' => 'Webhook notification',
+            'category' => 'feedback',
         ],
         'cash.validation.secret' => [
             'price' => 120, // ₱1.20
             'description' => 'Secret code validation',
+            'category' => 'validation',
         ],
         'cash.validation.mobile' => [
             'price' => 130, // ₱1.30
             'description' => 'Mobile number validation',
+            'category' => 'validation',
         ],
         'cash.validation.location' => [
             'price' => 150, // ₱1.50
             'description' => 'GPS location validation',
+            'category' => 'validation',
         ],
         'cash.validation.radius' => [
             'price' => 160, // ₱1.60
             'description' => 'Radius validation',
+            'category' => 'validation',
         ],
         'inputs.fields.email' => [
             'price' => 220, // ₱2.20
             'description' => 'Email input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.mobile' => [
             'price' => 230, // ₱2.30
             'description' => 'Mobile number input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.name' => [
             'price' => 240, // ₱2.40
             'description' => 'Name input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.address' => [
             'price' => 250, // ₱2.50
             'label' => 'Full Address',
             'description' => 'Address input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.birth_date' => [
             'price' => 260, // ₱2.60
             'description' => 'Birth date input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.gross_monthly_income' => [
             'price' => 270, // ₱2.70
             'description' => 'Gross monthly income input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.signature' => [
             'price' => 280, // ₱2.80
             'description' => 'Signature capture field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.location' => [
             'price' => 300, // ₱3.00
             'description' => 'GPS location capture field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.reference_code' => [
             'price' => 250, // ₱2.50
             'description' => 'Reference code input field',
+            'category' => 'input_fields',
         ],
         'inputs.fields.otp' => [
             'price' => 400, // ₱4.00
             'description' => 'OTP verification field',
+            'category' => 'input_fields',
         ],
         'rider.message' => [
             'price' => 200, // ₱2.00
             'label' => 'Rider Message',
             'description' => 'Custom message shown after redemption',
+            'category' => 'rider',
         ],
         'rider.url' => [
             'price' => 210, // ₱2.10
             'label' => 'Rider URL',
             'description' => 'Redirect URL after redemption',
+            'category' => 'rider',
         ],
     ],
 

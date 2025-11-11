@@ -12,7 +12,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Settings } from 'lucide-vue-next';
+import { Edit, DollarSign, FileText, Bell, ShieldCheck, MessageSquare, Folder } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 
 interface InstructionItem {
@@ -24,11 +24,20 @@ interface InstructionItem {
     price_formatted: string;
     currency: string;
     meta: Record<string, any>;
+    category: string;
     updated_at: string;
 }
 
+interface CategoryConfig {
+    name: string;
+    description: string;
+    icon: string;
+    order: number;
+}
+
 interface Props {
-    items: InstructionItem[];
+    items: Record<string, InstructionItem[]>;
+    categories: Record<string, CategoryConfig>;
 }
 
 const props = defineProps<Props>();
@@ -44,13 +53,18 @@ const breadcrumbItems: BreadcrumbItem[] = [
     },
 ];
 
-const groupedItems = props.items.reduce((acc, item) => {
-    if (!acc[item.type]) {
-        acc[item.type] = [];
-    }
-    acc[item.type].push(item);
-    return acc;
-}, {} as Record<string, InstructionItem[]>);
+const iconMap: Record<string, any> = {
+    'dollar-sign': DollarSign,
+    'file-text': FileText,
+    'bell': Bell,
+    'shield-check': ShieldCheck,
+    'message-square': MessageSquare,
+    'folder': Folder,
+};
+
+const getCategoryIcon = (iconName: string) => {
+    return iconMap[iconName] || Folder;
+};
 
 const editItem = (itemId: number) => {
     router.visit(`/admin/pricing/${itemId}/edit`);
@@ -72,14 +86,14 @@ const editItem = (itemId: number) => {
             </div>
 
             <div class="space-y-4">
-                <Card v-for="(items, type) in groupedItems" :key="type">
+                <Card v-for="(items, categoryKey) in props.items" :key="categoryKey">
                     <CardHeader>
                         <div class="flex items-center gap-2">
-                            <Settings class="h-5 w-5" />
-                            <CardTitle class="capitalize">{{ type }}</CardTitle>
+                            <component :is="getCategoryIcon(props.categories[categoryKey]?.icon)" class="h-5 w-5" />
+                            <CardTitle>{{ props.categories[categoryKey]?.name || categoryKey }}</CardTitle>
                         </div>
                         <CardDescription>
-                            {{ items.length }} pricing {{ items.length === 1 ? 'item' : 'items' }}
+                            {{ props.categories[categoryKey]?.description || `${items.length} pricing items` }}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

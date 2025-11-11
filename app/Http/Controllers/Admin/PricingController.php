@@ -16,8 +16,11 @@ class PricingController extends Controller
         $items = InstructionItem::query()
             ->orderBy('type')
             ->orderBy('name')
-            ->get()
-            ->map(fn ($item) => [
+            ->get();
+
+        // Group items by category
+        $groupedItems = $items->groupBy(fn ($item) => $item->category)
+            ->map(fn ($group) => $group->map(fn ($item) => [
                 'id' => $item->id,
                 'name' => $item->name,
                 'index' => $item->index,
@@ -26,11 +29,17 @@ class PricingController extends Controller
                 'price_formatted' => '₱'.number_format($item->price / 100, 2),
                 'currency' => $item->currency,
                 'meta' => $item->meta,
+                'category' => $item->category,
                 'updated_at' => $item->updated_at->toIso8601String(),
-            ]);
+            ])->values());
+
+        // Sort categories by configured order
+        $categories = config('pricing.categories');
+        $sortedGroups = $groupedItems->sortBy(fn ($items, $key) => $categories[$key]['order'] ?? 999);
 
         return Inertia::render('admin/pricing/Index', [
-            'items' => $items,
+            'items' => $sortedGroups,
+            'categories' => $categories,
         ]);
     }
 
