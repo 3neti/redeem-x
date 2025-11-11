@@ -18,9 +18,10 @@ import { index as transactionsIndex } from '@/actions/App/Http/Controllers/Trans
 import { start as redeemStart } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import { computed } from 'vue';
 
 const mainNavItems: NavItem[] = [
     {
@@ -37,6 +38,11 @@ const mainNavItems: NavItem[] = [
         title: 'Generate Vouchers',
         href: voucherGenerate.url(),
         icon: Ticket,
+    },
+    {
+        title: 'Pricing',
+        href: '/admin/pricing',
+        icon: DollarSign,
     },
     {
         title: 'Transactions',

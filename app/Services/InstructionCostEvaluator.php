@@ -30,6 +30,7 @@ class InstructionCostEvaluator
         Log::debug('[InstructionCostEvaluator] Starting evaluation', [
             'user_id' => $customer->id,
             'instruction_items_count' => $items->count(),
+            'source_data' => $source->toArray(),
         ]);
 
         foreach ($items as $item) {
@@ -37,7 +38,33 @@ class InstructionCostEvaluator
                 continue;
             }
 
-            $value = data_get($source, $item->index);
+            // Handle inputs.fields specially - it's an array of enum objects or strings
+            if (str_starts_with($item->index, 'inputs.fields.')) {
+                $fieldName = str_replace('inputs.fields.', '', $item->index);
+                $selectedFieldsRaw = data_get($source, 'inputs.fields', []);
+                
+                // Extract string values from enum objects
+                $selectedFields = collect($selectedFieldsRaw)->map(function ($field) {
+                    // If it's an enum object like {VoucherInputField: "email"}, extract the value
+                    if (is_array($field) || is_object($field)) {
+                        $values = collect((array) $field)->values();
+                        return $values->first(); // Get the first (and only) value
+                    }
+                    return $field;
+                })->filter()->toArray();
+                
+                // Case-insensitive comparison (enum values are uppercase)
+                $isSelected = in_array(strtoupper($fieldName), array_map('strtoupper', $selectedFields));
+                
+                Log::debug("[InstructionCostEvaluator] Checking input field: {$fieldName}", [
+                    'selectedFieldsRaw' => $selectedFieldsRaw,
+                    'selectedFieldsExtracted' => $selectedFields,
+                    'isSelected' => $isSelected,
+                ]);
+                $value = $isSelected ? $fieldName : null;
+            } else {
+                $value = data_get($source, $item->index);
+            }
             
             $isTruthyString = is_string($value) && trim($value) !== '';
             $isTruthyBoolean = is_bool($value) && $value === true;

@@ -33,21 +33,29 @@ const isFieldSelected = (fieldValue: string) => {
 };
 
 const toggleField = (fieldValue: string) => {
+    console.log('[InputFieldsForm] toggleField called with:', fieldValue);
     if (props.readonly) return;
 
     const currentFields = [...localValue.value.fields];
     const index = currentFields.indexOf(fieldValue as any);
 
+    console.log('[InputFieldsForm] currentFields before:', currentFields);
     if (index > -1) {
         currentFields.splice(index, 1);
+        console.log('[InputFieldsForm] Removed field at index', index);
     } else {
         currentFields.push(fieldValue as any);
+        console.log('[InputFieldsForm] Added field');
     }
 
-    localValue.value = {
+    console.log('[InputFieldsForm] currentFields after:', currentFields);
+    const newValue = {
         ...localValue.value,
         fields: currentFields,
     };
+    console.log('[InputFieldsForm] Setting localValue to:', newValue);
+    localValue.value = newValue;
+    console.log('[InputFieldsForm] localValue after set:', localValue.value);
 };
 </script>
 
@@ -73,7 +81,7 @@ const toggleField = (fieldValue: string) => {
                         :id="`input_field_${option.value}`"
                         :checked="isFieldSelected(option.value)"
                         :disabled="readonly"
-                        @update:checked="() => toggleField(option.value)"
+                        @click="() => toggleField(option.value)"
                     />
                     <Label
                         :for="`input_field_${option.value}`"

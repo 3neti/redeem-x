@@ -17,7 +17,8 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@redeem.test'],
             [
                 'name' => 'Admin User',
-                'workos_id' => null, // Adjust based on your auth setup
+                'workos_id' => 'user_01K9H6FQS9S11T5S4MM55KA72S', // Adjust based on your auth setup
+                'avatar' => 'users/default.png',
             ]
         );
 

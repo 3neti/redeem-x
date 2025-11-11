@@ -18,7 +18,7 @@
  *   :show-json-preview="true"
  * />
  */
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -102,10 +102,12 @@ const inputFields = computed<InputFields>({
         fields: localValue.value.selectedInputFields as any[],
     }),
     set: (value) => {
+        console.log('[VoucherInstructionsForm] inputFields setter called with:', value);
         localValue.value = {
             ...localValue.value,
             selectedInputFields: value.fields,
         };
+        console.log('[VoucherInstructionsForm] localValue after inputFields update:', localValue.value);
     },
 });
 
@@ -197,28 +199,54 @@ const jsonPreview = computed(() => {
 });
 
 // Pricing calculation (only if not readonly)
-const instructionsForPricing = computed(() => ({
-    cash: {
-        amount: localValue.value.amount,
-        currency: 'PHP',
-    },
-    inputs: {
-        fields: localValue.value.selectedInputFields,
-    },
-    feedback: {
-        email: localValue.value.feedbackEmail || null,
-        mobile: localValue.value.feedbackMobile || null,
-        webhook: localValue.value.feedbackWebhook || null,
-    },
-    rider: {
-        message: localValue.value.riderMessage || null,
-        url: localValue.value.riderUrl || null,
-    },
-    count: localValue.value.count,
-    prefix: localValue.value.prefix || null,
-    mask: localValue.value.mask || null,
-    ttl: localValue.value.ttlDays ? `P${localValue.value.ttlDays}D` : null,
-}));
+const instructionsForPricing = computed(() => {
+    console.log('[VoucherInstructionsForm] instructionsForPricing computed called');
+    // Explicitly access each property to ensure reactivity tracking
+    const amount = localValue.value.amount;
+    const selectedInputFields = localValue.value.selectedInputFields;
+    const feedbackEmail = localValue.value.feedbackEmail;
+    const feedbackMobile = localValue.value.feedbackMobile;
+    const feedbackWebhook = localValue.value.feedbackWebhook;
+    const riderMessage = localValue.value.riderMessage;
+    const riderUrl = localValue.value.riderUrl;
+    const count = localValue.value.count;
+    const prefix = localValue.value.prefix;
+    const mask = localValue.value.mask;
+    const ttlDays = localValue.value.ttlDays;
+    
+    console.log('[VoucherInstructionsForm] Values:', { amount, selectedInputFields, feedbackEmail, feedbackMobile, feedbackWebhook, riderMessage, riderUrl });
+    
+    const result = {
+        cash: {
+            amount,
+            currency: 'PHP',
+        },
+        inputs: {
+            fields: selectedInputFields,
+        },
+        feedback: {
+            email: feedbackEmail || null,
+            mobile: feedbackMobile || null,
+            webhook: feedbackWebhook || null,
+        },
+        rider: {
+            message: riderMessage || null,
+            url: riderUrl || null,
+        },
+        count,
+        prefix: prefix || null,
+        mask: mask || null,
+        ttl: ttlDays ? `P${ttlDays}D` : null,
+    };
+    
+    console.log('[VoucherInstructionsForm] Returning:', result);
+    return result;
+});
+
+// Debug: watch localValue changes
+watch(localValue, (newVal) => {
+    console.log('[VoucherInstructionsForm] localValue changed:', newVal);
+}, { deep: true });
 
 const { breakdown, loading: pricingLoading, error: pricingError } = props.readonly 
     ? { breakdown: ref(null), loading: ref(false), error: ref(null) }
