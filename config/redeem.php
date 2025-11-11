@@ -337,6 +337,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cost Breakdown Display Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure how costs are displayed in the breakdown UI across the app.
+    |
+    */
+
+    'cost_breakdown' => [
+        // Label for the voucher face value (the cash to be transferred to redeemer)
+        'cash_amount_label' => env('REDEEM_COST_CASH_AMOUNT_LABEL', 'Cash Amount'),
+
+        // Show per-unit prices with quantity multiplier (e.g., "₱500 × 10 = ₱5,000")
+        // If false, shows only the total (e.g., "₱5,000")
+        'show_per_unit_prices' => env('REDEEM_COST_SHOW_PER_UNIT_PRICES', true),
+
+        // Show quantity indicator in breakdown items when count > 1
+        'show_quantity_indicator' => env('REDEEM_COST_SHOW_QUANTITY_INDICATOR', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Pricing Configuration
     |--------------------------------------------------------------------------
     |
@@ -348,6 +369,7 @@ return [
     'pricelist' => [
         'cash.amount' => [
             'price' => 2000, // ₱20.00 base fee
+            'label' => 'Transaction Fee',
             'description' => 'Cash voucher generation base fee',
             'category' => 'base',
         ],

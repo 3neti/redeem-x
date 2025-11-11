@@ -7,6 +7,8 @@ export interface ChargeItem {
     index: string;
     label: string;
     value: string | number | boolean;
+    unit_price: number;
+    quantity: number;
     price: number;
     price_formatted: string;
     currency: string;
@@ -76,14 +78,11 @@ export function useChargeBreakdown(
             console.log('[useChargeBreakdown] Response received:', response.data);
             const data = response.data;
 
-            // Format the breakdown for display
+            // Use the breakdown directly from backend (already formatted)
             const formatted: ChargeBreakdown = {
-                breakdown: data.breakdown.map((item: ChargeItem) => ({
-                    ...item,
-                    price_formatted: `₱${(item.price / 100).toFixed(2)}`,
-                })),
+                breakdown: data.breakdown,
                 total: data.total,
-                total_formatted: `₱${(data.total / 100).toFixed(2)}`,
+                total_formatted: data.total_formatted || `₱${(data.total / 100).toFixed(2)}`,
             };
 
             breakdown.value = formatted;

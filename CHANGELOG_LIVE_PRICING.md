@@ -20,32 +20,48 @@ Implemented a comprehensive live pricing system that dynamically calculates vouc
 #### Pricing Evaluation Service
 - **InstructionCostEvaluator** (`app/Services/InstructionCostEvaluator.php`)
   - Evaluates `VoucherInstructionsData` against pricing rules
+  - **Adds cash amount** (voucher face value) as first charge item
+  - **Applies count multiplication** to all charges (cash amount + fees)
   - Handles special cases:
     - Enum-to-string conversion for input fields
     - Case-insensitive field matching
     - Truthy value detection for optional features
-  - Returns itemized breakdown with labels and formatted prices
+  - Returns itemized breakdown with unit prices, quantities, and formatted prices
 
 #### API Endpoint
 - **POST `/api/v1/calculate-charges`**
   - Accepts voucher instructions payload
   - Validates via `CalculateChargeRequest`
   - Returns breakdown in centavos with formatted display values
+  - **Includes cash amount** (voucher face value) as first item
+  - **Applies quantity multiplication** to all charges
   - Response format:
     ```json
     {
       "breakdown": [
         {
-          "index": "cash.amount",
+          "index": "cash.amount.value",
           "label": "Cash Amount",
-          "value": 50,
-          "price": 5000,
-          "price_formatted": "₱50.00",
+          "value": 500,
+          "unit_price": 50000,
+          "quantity": 10,
+          "price": 500000,
+          "price_formatted": "₱500.00 × 10 = ₱5,000.00",
+          "currency": "PHP"
+        },
+        {
+          "index": "cash.amount",
+          "label": "Transaction Fee",
+          "value": 500,
+          "unit_price": 2000,
+          "quantity": 10,
+          "price": 20000,
+          "price_formatted": "₱20.00 × 10 = ₱200.00",
           "currency": "PHP"
         }
       ],
-      "total": 5000,
-      "total_formatted": "₱50.00"
+      "total": 520000,
+      "total_formatted": "₱5,200.00"
     }
     ```
 
@@ -189,8 +205,30 @@ Reka-ui Checkbox required `@click` event instead of `@update:checked` to properl
 
 ## Configuration
 
+### Cost Breakdown Display
+**Location**: `config/redeem.php` > `cost_breakdown`
+
+```php
+'cost_breakdown' => [
+    // Label for voucher face value (cash to transfer to redeemer)
+    'cash_amount_label' => env('REDEEM_COST_CASH_AMOUNT_LABEL', 'Cash Amount'),
+    
+    // Show per-unit prices with multiplier (e.g., "₱500 × 10 = ₱5,000")
+    'show_per_unit_prices' => env('REDEEM_COST_SHOW_PER_UNIT_PRICES', true),
+    
+    // Show quantity indicator when count > 1
+    'show_quantity_indicator' => env('REDEEM_COST_SHOW_QUANTITY_INDICATOR', true),
+],
+```
+
 ### Environment Variables
-All pricing is database-driven; no specific env vars needed for pricing calculation. Admin access controlled via standard role/permission system.
+```env
+REDEEM_COST_CASH_AMOUNT_LABEL="Cash Amount"
+REDEEM_COST_SHOW_PER_UNIT_PRICES=true
+REDEEM_COST_SHOW_QUANTITY_INDICATOR=true
+```
+
+All pricing is database-driven. Admin access controlled via standard role/permission system.
 
 ### Adding New Pricing Rules
 1. Add item to `config/redeem.php` pricelist with category
@@ -198,14 +236,32 @@ All pricing is database-driven; no specific env vars needed for pricing calculat
 3. Backend automatically picks up new rules
 4. Frontend displays in breakdown if applicable
 
+## Cost Calculation Formula
+
+The total cost includes **both** the voucher face value and all service fees, multiplied by quantity:
+
+```
+Per Voucher Cost = Cash Amount + Transaction Fee + Feature Fees
+Total Cost = Per Voucher Cost × Quantity
+```
+
+**Example**: 10 vouchers of ₱500 with ₱20 transaction fee:
+```
+Cash Amount: ₱500.00 × 10 = ₱5,000.00  ← transferred to redeemers
+Transaction Fee: ₱20.00 × 10 = ₱200.00     ← service charge
+Total Cost: ₱5,200.00                      ← deducted from wallet
+```
+
 ## Benefits
 
 1. **Accuracy**: Single source of truth in database
-2. **Flexibility**: Change pricing without code deployment
-3. **Transparency**: Users see itemized costs in real-time
-4. **Consistency**: Same evaluation logic across all entry points
-5. **User Experience**: Instant feedback as users configure vouchers
-6. **Maintainability**: Centralized pricing logic in evaluator service
+2. **Transparency**: Users see exact costs including cash amounts and fees
+3. **Flexibility**: Change pricing without code deployment
+4. **Real-time Calculation**: Instant feedback with quantity multiplication
+5. **Configurable Display**: Show per-unit or total pricing based on preference
+6. **Consistency**: Same evaluation logic across all entry points
+7. **User Experience**: Clear breakdown of what gets transferred vs. what gets charged
+8. **Maintainability**: Centralized pricing logic in evaluator service
 
 ## Future Enhancements
 

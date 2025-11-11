@@ -26,12 +26,40 @@ class InstructionCostEvaluator
     {
         $charges = collect();
         $items = $this->repository->all();
+        $count = $source->count ?? 1;
+        $cashAmount = $source->cash?->amount ?? 0;
 
         Log::debug('[InstructionCostEvaluator] Starting evaluation', [
             'user_id' => $customer->id,
             'instruction_items_count' => $items->count(),
+            'count' => $count,
+            'cash_amount' => $cashAmount,
             'source_data' => $source->toArray(),
         ]);
+
+        // First, add the cash amount (voucher face value) if present
+        if ($cashAmount > 0) {
+            $cashAmountLabel = config('redeem.cost_breakdown.cash_amount_label', 'Cash Amount');
+            $cashAmountInCentavos = (int) ($cashAmount * 100);
+
+            Log::info('[InstructionCostEvaluator] ✅ Adding cash amount', [
+                'label' => $cashAmountLabel,
+                'unit_price' => $cashAmountInCentavos,
+                'quantity' => $count,
+                'total_price' => $cashAmountInCentavos * $count,
+            ]);
+
+            $charges->push([
+                'index' => 'cash.amount.value',
+                'item' => null, // No InstructionItem for cash amount
+                'value' => $cashAmount,
+                'unit_price' => $cashAmountInCentavos,
+                'quantity' => $count,
+                'price' => $cashAmountInCentavos * $count,
+                'currency' => $source->cash?->currency ?? 'PHP',
+                'label' => $cashAmountLabel,
+            ]);
+        }
 
         foreach ($items as $item) {
             if (in_array($item->index, $this->excludedFields)) {
@@ -86,13 +114,18 @@ class InstructionCostEvaluator
                 Log::info('[InstructionCostEvaluator] ✅ Chargeable instruction', [
                     'index' => $item->index,
                     'label' => $label,
-                    'price' => $price,
+                    'unit_price' => $price,
+                    'quantity' => $count,
+                    'total_price' => $price * $count,
                 ]);
 
                 $charges->push([
+                    'index' => $item->index,
                     'item' => $item,
                     'value' => $value,
-                    'price' => $price,
+                    'unit_price' => $price,
+                    'quantity' => $count,
+                    'price' => $price * $count,
                     'currency' => $item->currency,
                     'label' => $label,
                 ]);
