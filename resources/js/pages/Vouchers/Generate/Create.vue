@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
+import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import axios from 'axios';
 
 interface Props {
@@ -120,25 +121,55 @@ const feedbackWebhook = ref('');
 const riderMessage = ref('');
 const riderUrl = ref(window.location.origin);
 
-// Cost calculation (mirrors InstructionCostEvaluator)
-const costBreakdown = computed(() => {
-    const baseCharge = amount.value * count.value;
-    const serviceFee = amount.value > 10000 ? baseCharge * 0.01 : 0;
-    const expiryFee = ttlDays.value && ttlDays.value > 90 ? 10 : 0;
-    const hasPremiumFeatures =
-        !!feedbackEmail.value ||
-        !!feedbackMobile.value ||
-        !!feedbackWebhook.value ||
-        !!riderMessage.value ||
-        !!riderUrl.value;
-    const premiumFee = hasPremiumFeatures ? 5 : 0;
-
+// Build instructions payload for pricing API
+const instructionsForPricing = computed(() => {
     return {
-        baseCharge,
-        serviceFee,
-        expiryFee,
-        premiumFee,
-        total: baseCharge + serviceFee + expiryFee + premiumFee,
+        cash: {
+            amount: amount.value,
+            currency: 'PHP',
+        },
+        inputs: {
+            fields: selectedInputFields.value,
+        },
+        feedback: {
+            email: feedbackEmail.value || null,
+            mobile: feedbackMobile.value || null,
+            webhook: feedbackWebhook.value || null,
+        },
+        rider: {
+            message: riderMessage.value || null,
+            url: riderUrl.value || null,
+        },
+        count: count.value,
+        prefix: prefix.value || null,
+        mask: mask.value || null,
+        ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
+    };
+});
+
+// Use live pricing API
+const { breakdown: apiBreakdown, loading: pricingLoading, error: pricingError } = useChargeBreakdown(
+    instructionsForPricing,
+    { debounce: 500, autoCalculate: true }
+);
+
+// Cost breakdown computed from API response with fallback during loading
+const costBreakdown = computed(() => {
+    // If API has returned a breakdown, use it
+    if (apiBreakdown.value) {
+        return {
+            breakdown: apiBreakdown.value.breakdown,
+            total: apiBreakdown.value.total / 100, // Convert centavos to pesos
+            total_formatted: apiBreakdown.value.total_formatted,
+        };
+    }
+    
+    // Fallback: simple calculation while loading or if API fails
+    const baseCharge = amount.value * count.value;
+    return {
+        breakdown: [],
+        total: baseCharge,
+        total_formatted: `₱${baseCharge.toFixed(2)}`,
     };
 });
 
@@ -596,55 +627,31 @@ const handleSubmit = async () => {
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-4">
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-muted-foreground"
-                                        >Base Charge</span
-                                    >
-                                    <span class="font-medium"
-                                        >₱{{
-                                            costBreakdown.baseCharge.toLocaleString()
-                                        }}</span
-                                    >
-                                </div>
+                            <!-- Loading state -->
+                            <div v-if="pricingLoading" class="text-sm text-muted-foreground text-center py-4">
+                                Calculating charges...
+                            </div>
+                            
+                            <!-- Error state -->
+                            <div v-else-if="pricingError" class="text-sm text-destructive text-center py-4">
+                                Error calculating charges. Using fallback pricing.
+                            </div>
+                            
+                            <!-- Breakdown from API -->
+                            <div v-else class="space-y-2 text-sm">
                                 <div
-                                    v-if="costBreakdown.serviceFee > 0"
+                                    v-for="item in costBreakdown.breakdown"
+                                    :key="item.index"
                                     class="flex justify-between"
                                 >
-                                    <span class="text-muted-foreground"
-                                        >Service Fee (1%)</span
-                                    >
-                                    <span class="font-medium"
-                                        >₱{{
-                                            costBreakdown.serviceFee.toLocaleString()
-                                        }}</span
-                                    >
+                                    <span class="text-muted-foreground">{{ item.label }}</span>
+                                    <span class="font-medium">{{ item.price_formatted }}</span>
                                 </div>
-                                <div
-                                    v-if="costBreakdown.expiryFee > 0"
-                                    class="flex justify-between"
-                                >
-                                    <span class="text-muted-foreground"
-                                        >Long Expiry Fee</span
-                                    >
-                                    <span class="font-medium"
-                                        >₱{{
-                                            costBreakdown.expiryFee.toLocaleString()
-                                        }}</span
-                                    >
-                                </div>
-                                <div
-                                    v-if="costBreakdown.premiumFee > 0"
-                                    class="flex justify-between"
-                                >
-                                    <span class="text-muted-foreground"
-                                        >Premium Features</span
-                                    >
-                                    <span class="font-medium"
-                                        >₱{{
-                                            costBreakdown.premiumFee.toLocaleString()
-                                        }}</span
-                                    >
+                                
+                                <!-- Fallback message if no breakdown items -->
+                                <div v-if="costBreakdown.breakdown.length === 0" class="flex justify-between">
+                                    <span class="text-muted-foreground">Base Charge</span>
+                                    <span class="font-medium">₱{{ costBreakdown.total.toLocaleString() }}</span>
                                 </div>
                             </div>
 
@@ -652,9 +659,7 @@ const handleSubmit = async () => {
 
                             <div class="flex justify-between text-base font-semibold">
                                 <span>Total Cost</span>
-                                <span
-                                    >₱{{ costBreakdown.total.toLocaleString() }}</span
-                                >
+                                <span>{{ costBreakdown.total_formatted || `₱${costBreakdown.total.toLocaleString()}` }}</span>
                             </div>
 
                             <Separator />
