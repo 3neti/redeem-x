@@ -62,7 +62,7 @@ class SendFeedbacks
      * Convert feedback map to route format for Notification::routes()
      *
      * @param  array  $feedbacks
-     * @return array  ['mail' => ..., 'engage_spark' => ...]
+     * @return array  ['mail' => ..., 'engage_spark' => ..., 'webhook' => ...]
      */
     private function getRoutesFromFeedbacks(array $feedbacks): array
     {
@@ -72,6 +72,7 @@ class SendFeedbacks
             match ($key) {
                 'email' => $routes['mail'] = $value,
                 'mobile' => $routes['engage_spark'] = $value,
+                'webhook' => $routes['webhook'] = $value,
                 default => null, // skip unrecognized keys
             };
         }

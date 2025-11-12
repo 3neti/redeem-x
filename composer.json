@@ -88,9 +88,11 @@
         "lbhurtado/money-issuer": "@dev",
         "lbhurtado/omnichannel": "@dev",
         "lbhurtado/payment-gateway": "@dev",
+        "lbhurtado/sms": "^2.4",
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
         "pusher/pusher-php-server": "^7.2",
+        "resend/resend-php": "^0.18.0",
         "spatie/laravel-permission": "^6.23",
         "spatie/laravel-settings": "^3.5"
     },

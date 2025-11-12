@@ -19,6 +19,11 @@ class ChargeInstructions
         $charges = $this->evaluator->evaluate($voucher->owner, $voucher->instructions);
 
         foreach ($charges as $charge) {
+            // Skip charges with no item (e.g., cash amount which is handled separately)
+            if ($charge['item'] === null) {
+                continue;
+            }
+            
             $owner->pay($charge['item']);
         }
 
