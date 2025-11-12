@@ -1,5 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 
+// Debug flag - set to false to suppress console logs
+const DEBUG = false;
+
 // Augment AxiosRequestConfig to include metadata
 declare module 'axios' {
     export interface AxiosRequestConfig {
@@ -57,7 +60,7 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
     (response) => {
         // Log response time in dev mode
-        if (import.meta.env.DEV && response.config.metadata) {
+        if (DEBUG && import.meta.env.DEV && response.config.metadata) {
             const duration = new Date().getTime() - response.config.metadata.startTime;
             console.log(`[Axios] ${response.config.method?.toUpperCase()} ${response.config.url} - ${duration}ms`);
         }
@@ -79,7 +82,7 @@ axios.interceptors.response.use(
 
         if (!shouldRetry) {
             // Log error in dev mode
-            if (import.meta.env.DEV) {
+            if (DEBUG && import.meta.env.DEV) {
                 console.error('[Axios] Request failed:', {
                     url: config.url,
                     method: config.method,
@@ -97,7 +100,7 @@ axios.interceptors.response.use(
         const delay = getRetryDelay(config.__retryCount - 1);
 
         // Log retry attempt in dev mode
-        if (import.meta.env.DEV) {
+        if (DEBUG && import.meta.env.DEV) {
             console.warn(`[Axios] Retrying request (${config.__retryCount}/${MAX_RETRIES}) after ${delay}ms...`);
         }
 

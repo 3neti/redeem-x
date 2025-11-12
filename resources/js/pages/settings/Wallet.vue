@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import WalletController from '@/actions/App/Http/Controllers/Settings/WalletController';
 import { edit } from '@/routes/wallet';
-import { Form, Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Form, Head, usePage } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
+import { useEcho } from '@laravel/echo-vue';
+import type { User } from '@/types';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
@@ -32,7 +34,44 @@ interface Props {
     status?: string;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+// Use real-time wallet balance, but use prop as initial value
+const balance = ref<number>(props.wallet.balance);
+const currency = ref<string>(props.wallet.currency);
+const realtimeNote = ref<string>('');
+
+// Set up Echo listener for real-time updates
+const page = usePage();
+const user = page.props.auth.user as User;
+const userWalletId = user.wallet?.id;
+
+onMounted(() => {
+    const { listen } = useEcho<{
+        walletId: number;
+        balanceFloat: number;
+        updatedAt: string;
+        message: string;
+    }>(
+        `user.${user.id}`,
+        '.balance.updated',
+        (event) => {
+            if (event.walletId !== userWalletId) {
+                return;
+            }
+
+            balance.value = event.balanceFloat;
+            realtimeNote.value = event.message;
+
+            console.log('[Wallet Settings] Balance updated via Echo:', {
+                balance: event.balanceFloat,
+                message: event.message,
+            });
+        }
+    );
+
+    listen();
+});
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -85,7 +124,12 @@ const getTransactionColor = (type: string) => {
                         <WalletIcon class="h-8 w-8 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-3xl font-bold">{{ formatAmount(wallet.balance, wallet.currency) }}</div>
+                        <div class="text-3xl font-bold">
+                            {{ formatAmount(balance, currency) }}
+                        </div>
+                        <p v-if="realtimeNote" class="text-sm text-muted-foreground mt-2">
+                            {{ realtimeNote }}
+                        </p>
                     </CardContent>
                 </Card>
 

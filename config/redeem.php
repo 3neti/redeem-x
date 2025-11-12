@@ -462,6 +462,11 @@ return [
             'description' => 'OTP verification field',
             'category' => 'input_fields',
         ],
+        'inputs.fields.selfie' => [
+            'price' => 400, // ₱4.00
+            'description' => 'Selfie',
+            'category' => 'input_fields',
+        ],
         'rider.message' => [
             'price' => 200, // ₱2.00
             'label' => 'Rider Message',

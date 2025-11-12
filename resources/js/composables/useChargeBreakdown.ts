@@ -3,6 +3,9 @@ import axios from '@/lib/axios';
 import { useApiError, type ApiError } from './useApiError';
 import { debounce } from 'lodash';
 
+// Debug flag - set to false to suppress console logs
+const DEBUG = false;
+
 export interface ChargeItem {
     index: string;
     label: string;
@@ -57,25 +60,25 @@ export function useChargeBreakdown(
     
     // Create computed payload like x-change does - this is key for reactivity!
     const payload = computed(() => {
-        console.log('[useChargeBreakdown] payload computed called, instructions:', instructions.value);
+        if (DEBUG) console.log('[useChargeBreakdown] payload computed called, instructions:', instructions.value);
         return instructions.value;
     });
 
     const calculateCharges = async (): Promise<ChargeBreakdown | null> => {
         // Don't calculate if cash amount is not set
         if (!instructions.value.cash?.amount || instructions.value.cash.amount <= 0) {
-            console.log('[useChargeBreakdown] Skipping calculation - no amount:', instructions.value.cash?.amount);
+            if (DEBUG) console.log('[useChargeBreakdown] Skipping calculation - no amount:', instructions.value.cash?.amount);
             breakdown.value = null;
             return null;
         }
 
-        console.log('[useChargeBreakdown] Calculating charges for:', instructions.value);
+        if (DEBUG) console.log('[useChargeBreakdown] Calculating charges for:', instructions.value);
         loading.value = true;
         error.value = null;
 
         try {
             const response = await axios.post('/api/v1/calculate-charges', instructions.value);
-            console.log('[useChargeBreakdown] Response received:', response.data);
+            if (DEBUG) console.log('[useChargeBreakdown] Response received:', response.data);
             const data = response.data;
 
             // Use the breakdown directly from backend (already formatted)
@@ -101,7 +104,7 @@ export function useChargeBreakdown(
         watch(
             payload,
             debounce(() => {
-                console.log('[useChargeBreakdown] Watch triggered, payload:', payload.value);
+                if (DEBUG) console.log('[useChargeBreakdown] Watch triggered, payload:', payload.value);
                 calculateCharges();
             }, debounceMs),
             { deep: true, immediate: true }

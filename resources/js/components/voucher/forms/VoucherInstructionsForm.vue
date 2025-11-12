@@ -32,6 +32,9 @@ import RiderInstructionForm from './RiderInstructionForm.vue';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import type { VoucherInputFieldOption, CashInstruction, InputFields, FeedbackInstruction, RiderInstruction } from '@/types/voucher';
 
+// Debug flag - set to false to suppress console logs
+const DEBUG = false;
+
 interface Props {
     modelValue: {
         amount: number;
@@ -102,12 +105,12 @@ const inputFields = computed<InputFields>({
         fields: localValue.value.selectedInputFields as any[],
     }),
     set: (value) => {
-        console.log('[VoucherInstructionsForm] inputFields setter called with:', value);
+        if (DEBUG) console.log('[VoucherInstructionsForm] inputFields setter called with:', value);
         localValue.value = {
             ...localValue.value,
             selectedInputFields: value.fields,
         };
-        console.log('[VoucherInstructionsForm] localValue after inputFields update:', localValue.value);
+        if (DEBUG) console.log('[VoucherInstructionsForm] localValue after inputFields update:', localValue.value);
     },
 });
 
@@ -200,7 +203,7 @@ const jsonPreview = computed(() => {
 
 // Pricing calculation (only if not readonly)
 const instructionsForPricing = computed(() => {
-    console.log('[VoucherInstructionsForm] instructionsForPricing computed called');
+    if (DEBUG) console.log('[VoucherInstructionsForm] instructionsForPricing computed called');
     // Explicitly access each property to ensure reactivity tracking
     const amount = localValue.value.amount;
     const selectedInputFields = localValue.value.selectedInputFields;
@@ -214,7 +217,7 @@ const instructionsForPricing = computed(() => {
     const mask = localValue.value.mask;
     const ttlDays = localValue.value.ttlDays;
     
-    console.log('[VoucherInstructionsForm] Values:', { amount, selectedInputFields, feedbackEmail, feedbackMobile, feedbackWebhook, riderMessage, riderUrl });
+    if (DEBUG) console.log('[VoucherInstructionsForm] Values:', { amount, selectedInputFields, feedbackEmail, feedbackMobile, feedbackWebhook, riderMessage, riderUrl });
     
     const result = {
         cash: {
@@ -239,13 +242,13 @@ const instructionsForPricing = computed(() => {
         ttl: ttlDays ? `P${ttlDays}D` : null,
     };
     
-    console.log('[VoucherInstructionsForm] Returning:', result);
+    if (DEBUG) console.log('[VoucherInstructionsForm] Returning:', result);
     return result;
 });
 
 // Debug: watch localValue changes
 watch(localValue, (newVal) => {
-    console.log('[VoucherInstructionsForm] localValue changed:', newVal);
+    if (DEBUG) console.log('[VoucherInstructionsForm] localValue changed:', newVal);
 }, { deep: true });
 
 const { breakdown, loading: pricingLoading, error: pricingError } = props.readonly 

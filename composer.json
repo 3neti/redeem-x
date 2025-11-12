@@ -90,6 +90,7 @@
         "lbhurtado/payment-gateway": "@dev",
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
+        "pusher/pusher-php-server": "^7.2",
         "spatie/laravel-permission": "^6.23",
         "spatie/laravel-settings": "^3.5"
     },

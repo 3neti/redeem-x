@@ -15,14 +15,32 @@ import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vu
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
+import { useWalletBalance } from '@/composables/useWalletBalance';
 import axios from 'axios';
 
+// Debug flag - set to false to suppress console logs
+const DEBUG = false;
+
 interface Props {
-    wallet_balance: number;
     input_field_options: VoucherInputFieldOption[];
 }
 
 const props = defineProps<Props>();
+
+// Use reactive wallet balance with real-time updates
+const { balance: walletBalance, formattedBalance, realtimeNote, realtimeTime } = useWalletBalance();
+
+// Track balance updates for debugging
+watch([walletBalance, realtimeNote], ([newBalance, newNote]) => {
+    if (DEBUG) {
+        console.log('[Generate Vouchers] Wallet balance updated:', {
+            balance: newBalance,
+            formatted: formattedBalance.value,
+            note: newNote,
+            timestamp: realtimeTime.value
+        });
+    }
+});
 
 const { loading, error, generateVouchers } = useVoucherApi();
 const validationErrors = ref<Record<string, string>>({});
@@ -174,7 +192,7 @@ const costBreakdown = computed(() => {
 });
 
 const insufficientFunds = computed(
-    () => costBreakdown.value.total > props.wallet_balance,
+    () => walletBalance.value !== null && costBreakdown.value.total > walletBalance.value,
 );
 
 // Form submission data
@@ -675,8 +693,11 @@ const handleSubmit = async () => {
                                                 ? 'text-destructive'
                                                 : 'text-green-600 dark:text-green-400'
                                         "
-                                        >₱{{ wallet_balance.toLocaleString() }}</span
+                                        >{{ formattedBalance }}</span
                                     >
+                                </div>
+                                <div v-if="realtimeNote" class="text-xs text-muted-foreground italic">
+                                    {{ realtimeNote }}
                                 </div>
                                 <div class="flex justify-between font-medium">
                                     <span>After Generation</span>
@@ -687,10 +708,9 @@ const handleSubmit = async () => {
                                                 : ''
                                         "
                                         >₱{{
-                                            (
-                                                wallet_balance -
-                                                costBreakdown.total
-                                            ).toLocaleString()
+                                            walletBalance !== null
+                                                ? (walletBalance - costBreakdown.total).toLocaleString()
+                                                : '0.00'
                                         }}</span
                                     >
                                 </div>

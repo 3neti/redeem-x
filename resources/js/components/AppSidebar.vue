@@ -19,7 +19,7 @@ import { start as redeemStart } from '@/actions/App/Http/Controllers/Redeem/Rede
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign, Wallet } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { computed } from 'vue';
 
@@ -38,6 +38,11 @@ const mainNavItems: NavItem[] = [
         title: 'Generate Vouchers',
         href: voucherGenerate.url(),
         icon: Ticket,
+    },
+    {
+        title: 'Load Wallet',
+        href: '/wallet/load',
+        icon: Wallet,
     },
     {
         title: 'Pricing',

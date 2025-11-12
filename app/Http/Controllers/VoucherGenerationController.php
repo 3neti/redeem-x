@@ -19,7 +19,6 @@ class VoucherGenerationController extends Controller
     public function create(): Response
     {
         return Inertia::render('Vouchers/Generate/Create', [
-            'wallet_balance' => auth()->user()->balanceFloatNum,
             'input_field_options' => $this->getInputFieldOptions(),
         ]);
     }

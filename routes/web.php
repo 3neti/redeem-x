@@ -48,6 +48,16 @@ Route::middleware([
             ->name('show');
     });
     
+    // Wallet routes
+    Route::prefix('wallet')->name('wallet.')->group(function () {
+        Route::get('balance', \App\Http\Controllers\CheckWalletBalanceController::class)
+            ->name('balance');
+        Route::get('load', \App\Http\Controllers\Wallet\LoadController::class)
+            ->name('load');
+        Route::get('add-funds', \LBHurtado\PaymentGateway\Http\Controllers\GenerateController::class)
+            ->name('add-funds');
+    });
+    
     // User billing routes
     Route::prefix('billing')->name('billing.')->group(function () {
         Route::get('/', [\App\Http\Controllers\User\BillingController::class, 'index'])

@@ -7,6 +7,9 @@ import { FileText } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import type { InputFields, VoucherInputFieldOption } from '@/types/voucher';
 
+// Debug flag - set to false to suppress console logs
+const DEBUG = false;
+
 interface Props {
     modelValue: InputFields;
     inputFieldOptions: VoucherInputFieldOption[];
@@ -33,29 +36,29 @@ const isFieldSelected = (fieldValue: string) => {
 };
 
 const toggleField = (fieldValue: string) => {
-    console.log('[InputFieldsForm] toggleField called with:', fieldValue);
+    if (DEBUG) console.log('[InputFieldsForm] toggleField called with:', fieldValue);
     if (props.readonly) return;
 
     const currentFields = [...localValue.value.fields];
     const index = currentFields.indexOf(fieldValue as any);
 
-    console.log('[InputFieldsForm] currentFields before:', currentFields);
+    if (DEBUG) console.log('[InputFieldsForm] currentFields before:', currentFields);
     if (index > -1) {
         currentFields.splice(index, 1);
-        console.log('[InputFieldsForm] Removed field at index', index);
+        if (DEBUG) console.log('[InputFieldsForm] Removed field at index', index);
     } else {
         currentFields.push(fieldValue as any);
-        console.log('[InputFieldsForm] Added field');
+        if (DEBUG) console.log('[InputFieldsForm] Added field');
     }
 
-    console.log('[InputFieldsForm] currentFields after:', currentFields);
+    if (DEBUG) console.log('[InputFieldsForm] currentFields after:', currentFields);
     const newValue = {
         ...localValue.value,
         fields: currentFields,
     };
-    console.log('[InputFieldsForm] Setting localValue to:', newValue);
+    if (DEBUG) console.log('[InputFieldsForm] Setting localValue to:', newValue);
     localValue.value = newValue;
-    console.log('[InputFieldsForm] localValue after set:', localValue.value);
+    if (DEBUG) console.log('[InputFieldsForm] localValue after set:', localValue.value);
 };
 </script>
 
