@@ -24,7 +24,7 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function __construct(string $voucherCode)
     {
-        $model = Voucher::where('code', $voucherCode)->firstOrFail();
+        $model = Voucher::with('inputs')->where('code', $voucherCode)->firstOrFail();
         $this->voucher = VoucherData::fromModel($model);
     }
 

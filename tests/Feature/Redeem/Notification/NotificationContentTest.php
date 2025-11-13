@@ -130,7 +130,10 @@ test('notification content with different scenarios', function (
     
     // Test signature attachment if present
     if ($has_signature && $signature) {
-        // TODO: Fix - inputs not being loaded properly in VoucherData
-        // expect($mailData->attachments)->toHaveCount(1);
+        expect($mailData->rawAttachments)->toHaveCount(1)
+            ->and($mailData->rawAttachments[0])->toHaveKey('data')
+            ->and($mailData->rawAttachments[0])->toHaveKey('name')
+            ->and($mailData->rawAttachments[0]['name'])->toBe('signature.png')
+            ->and($mailData->rawAttachments[0]['options']['mime'])->toBe('image/png');
     }
 })->with('notification scenarios');
