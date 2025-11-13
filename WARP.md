@@ -49,14 +49,22 @@ php artisan test:notification --email=your@email.com
 
 # Send to email and SMS
 php artisan test:notification --email=your@email.com --sms=+639171234567
+
+# Test with rich inputs (location, signature, selfie)
+php artisan test:notification --email=your@email.com --with-location --with-signature --with-selfie
+
+# Test specific input combinations
+php artisan test:notification --fake --with-location  # Location only
+php artisan test:notification --fake --with-signature --with-selfie  # Images only
 ```
-Generates a test voucher (₱1, no inputs), redeems it, and sends/previews notifications.
+Generates a test voucher (₱1), redeems it, and sends/previews notifications.
 
 **How it works:**
 - Automatically disables disbursement during testing (config override)
 - Waits for cash entity creation before redemption (avoids race condition)
 - Tests complete notification flow: generation → redemption → email/SMS
 - Uses templates from `lang/en/notifications.php`
+- Test data loaded from `tests/Fixtures/` (location, signature, selfie)
 - Requires queue worker running for non-fake mode
 
 ### Testing SMS

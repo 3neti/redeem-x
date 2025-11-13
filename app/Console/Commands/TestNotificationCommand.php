@@ -21,6 +21,9 @@ class TestNotificationCommand extends Command
     protected $signature = 'test:notification 
                             {--email= : Email address to send notification to (default: ordinary user)}
                             {--sms= : SMS number to send notification to (default: none)}
+                            {--with-location : Include test location data}
+                            {--with-signature : Include test signature image}
+                            {--with-selfie : Include test selfie image}
                             {--fake : Use Notification::fake() to capture instead of sending}';
 
     /**
@@ -78,6 +81,18 @@ class TestNotificationCommand extends Command
             'mobile' => $sms,
         ]);
 
+        // Determine input fields based on options
+        $inputFields = [];
+        if ($this->option('with-location')) {
+            $inputFields[] = 'location';
+        }
+        if ($this->option('with-signature')) {
+            $inputFields[] = 'signature';
+        }
+        if ($this->option('with-selfie')) {
+            $inputFields[] = 'selfie';
+        }
+        
         $instructions = VoucherInstructionsData::from([
             'cash' => [
                 'amount' => 1, // Minimal amount for testing
@@ -85,7 +100,7 @@ class TestNotificationCommand extends Command
                 'validation' => [],
             ],
             'inputs' => [
-                'fields' => [], // No input fields
+                'fields' => $inputFields,
             ],
             'feedback' => $feedback,
             'rider' => [
@@ -98,7 +113,7 @@ class TestNotificationCommand extends Command
         ]);
 
         $this->line("   Amount: ₱1.00");
-        $this->line("   Input fields: None");
+        $this->line("   Input fields: " . (empty($inputFields) ? 'None' : implode(', ', $inputFields)));
         $this->line("   Feedback email: {$email}");
         if ($sms) {
             $this->line("   Feedback SMS: {$sms}");
@@ -161,6 +176,31 @@ class TestNotificationCommand extends Command
         $voucher->refresh();
         $this->line("   Status: {$voucher->status}");
         $this->line("   Redeemed at: {$voucher->redeemed_at}");
+        
+        // Step 4.5: Add test inputs if requested
+        if (!empty($inputFields)) {
+            $this->newLine();
+            $this->info('📎 Adding test inputs...');
+            
+            if ($this->option('with-location')) {
+                $location = file_get_contents(base_path('tests/Fixtures/test-location.json'));
+                $voucher->location = $location;
+                $voucher->save();
+                $this->line('   ✓ Location data added');
+            }
+            
+            if ($this->option('with-signature')) {
+                $signature = trim(file_get_contents(base_path('tests/Fixtures/test-signature.txt')));
+                $voucher->forceSetInput('signature', $signature);
+                $this->line('   ✓ Signature image added');
+            }
+            
+            if ($this->option('with-selfie')) {
+                $selfie = trim(file_get_contents(base_path('tests/Fixtures/test-selfie.txt')));
+                $voucher->forceSetInput('selfie', $selfie);
+                $this->line('   ✓ Selfie image added');
+            }
+        }
 
         // Step 5: Preview notification content
         $this->newLine();

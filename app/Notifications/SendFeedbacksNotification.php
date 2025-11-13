@@ -81,6 +81,27 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
                 ['mime' => $mime]
             );
         }
+        
+        // Attach selfie if present
+        $selfie = $this->voucher->inputs
+            ->first(fn(InputData $input) => $input->name === 'selfie')
+            ?->value;
+
+        if ($selfie && str_starts_with($selfie, 'data:image/')) {
+            // Extract the actual base64 data
+            [, $encodedImage] = explode(',', $selfie, 2);
+
+            // Determine mime and file extension
+            preg_match('/^data:image\/(\w+);base64/', $selfie, $matches);
+            $extension = $matches[1] ?? 'png'; // fallback to png
+            $mime = "image/{$extension}";
+
+            $mail_message->attachData(
+                base64_decode($encodedImage),
+                "selfie.{$extension}",
+                ['mime' => $mime]
+            );
+        }
 
         return $mail_message;
     }

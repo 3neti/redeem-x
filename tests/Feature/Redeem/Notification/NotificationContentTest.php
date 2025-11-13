@@ -29,11 +29,12 @@ beforeEach(function () {
 });
 
 dataset('notification scenarios', [
-    /******************************************************************** name       amount currency fields              email                mobile          webhook                      location                                                                         signature                                            has_location has_signature ****/
-    'basic email and sms' => [ 'Basic',    2000,   'USD',  'email,mobile',     'support@company.com', '09179876543',  null,                        null,                                                                            null,                                                false,       false ],
-    'all channels'        => [ 'Full',     5000,   'PHP',  'mobile,location',  'admin@test.com',      '09181234567',  'https://test.com/webhook',  null,                                                                            null,                                                false,       false ],
-    'with location'       => [ 'Location', 1000,   'USD',  'mobile,location',  'test@test.com',       '09171234567',  null,                        '{"address":{"formatted":"123 Main St, NY"},"coordinates":{"lat":40.7,"lng":-74}}', null,                                                true,        false ],
-    'with signature'      => [ 'Signature', 1500,  'USD',  'mobile,signature', 'test@test.com',       '09171234567',  null,                        null,                                                                            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', false,       true ],
+    /**************************************************************************** name       amount currency fields                     email                mobile          webhook                      location                                                                         signature                                                                                                  selfie                                                                                               has_location has_signature has_selfie ****/
+    'basic email and sms'     => [ 'Basic',    2000,   'USD',  'email,mobile',            'support@company.com', '09179876543',  null,                        null,                                                                            null,                                                                                                  null,                                                                                                false,       false,        false ],
+    'all channels'            => [ 'Full',     5000,   'PHP',  'mobile,location',         'admin@test.com',      '09181234567',  'https://test.com/webhook',  null,                                                                            null,                                                                                                  null,                                                                                                false,       false,        false ],
+    'with location'           => [ 'Location', 1000,   'USD',  'mobile,location',         'test@test.com',       '09171234567',  null,                        '{"address":{"formatted":"123 Main St, NY"},"coordinates":{"lat":40.7,"lng":-74}}', null,                                                                                                  null,                                                                                                true,        false,        false ],
+    'with signature'          => [ 'Signature',1500,   'USD',  'mobile,signature',        'test@test.com',       '09171234567',  null,                        null,                                                                            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', null,                                                                                                false,       true,         false ],
+    'with signature and selfie'=> [ 'Images', 1000,   'PHP',  'mobile,signature,selfie', 'test@test.com',       '09171234567',  null,                        null,                                                                            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', false,       true,         true  ],
 ]);
 
 test('notification content with different scenarios', function (
@@ -46,8 +47,10 @@ test('notification content with different scenarios', function (
     ?string $webhook,
     ?string $location,
     ?string $signature,
+    ?string $selfie,
     bool $has_location,
-    bool $has_signature
+    bool $has_signature,
+    bool $has_selfie
 ) {
     // Prepare instructions
     $inputFields = array_map(
@@ -101,6 +104,12 @@ test('notification content with different scenarios', function (
         $voucher->forceSetInput('signature', $signature);
     }
     
+    // Add selfie if specified
+    if ($has_selfie && $selfie) {
+        $voucher->refresh();
+        $voucher->forceSetInput('selfie', $selfie);
+    }
+    
     // Create notification instance
     $notification = new SendFeedbacksNotification($voucher->code);
     $feedbackObj = (object)$feedback;
@@ -128,12 +137,25 @@ test('notification content with different scenarios', function (
         expect($webhookData['payload']['redeemer']['address'])->toBe($formattedAddress);
     }
     
-    // Test signature attachment if present
-    if ($has_signature && $signature) {
-        expect($mailData->rawAttachments)->toHaveCount(1)
-            ->and($mailData->rawAttachments[0])->toHaveKey('data')
-            ->and($mailData->rawAttachments[0])->toHaveKey('name')
-            ->and($mailData->rawAttachments[0]['name'])->toBe('signature.png')
-            ->and($mailData->rawAttachments[0]['options']['mime'])->toBe('image/png');
+    // Test signature and selfie attachments if present
+    $expectedAttachments = ($has_signature ? 1 : 0) + ($has_selfie ? 1 : 0);
+    if ($expectedAttachments > 0) {
+        expect($mailData->rawAttachments)->toHaveCount($expectedAttachments);
+        
+        if ($has_signature) {
+            $signatureAttachment = collect($mailData->rawAttachments)
+                ->firstWhere('name', 'signature.png');
+            expect($signatureAttachment)->not->toBeNull()
+                ->and($signatureAttachment)->toHaveKey('data')
+                ->and($signatureAttachment['options']['mime'])->toBe('image/png');
+        }
+        
+        if ($has_selfie) {
+            $selfieAttachment = collect($mailData->rawAttachments)
+                ->firstWhere('name', 'selfie.png');
+            expect($selfieAttachment)->not->toBeNull()
+                ->and($selfieAttachment)->toHaveKey('data')
+                ->and($selfieAttachment['options']['mime'])->toBe('image/png');
+        }
     }
 })->with('notification scenarios');
