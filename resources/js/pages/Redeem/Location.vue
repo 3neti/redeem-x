@@ -27,6 +27,7 @@ const geoAlertRef = ref<InstanceType<typeof GeoPermissionAlert> | null>(null);
 const submitting = ref(false);
 const apiError = ref<string | null>(null);
 const coordinatesCopied = ref(false);
+const mapSnapshot = ref<string | null>(null);
 
 const parsedLocation = computed(() => {
     return location.value;
@@ -100,6 +101,30 @@ function copyCoordinates() {
     });
 }
 
+async function captureMapSnapshot(): Promise<string | null> {
+    if (!staticMapUrl.value) return null;
+    
+    try {
+        const response = await fetch(staticMapUrl.value);
+        const blob = await response.blob();
+        
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch (err) {
+        console.error('[Location] Failed to capture map snapshot:', err);
+        return null;
+    }
+}
+
+async function handleMapImageLoad() {
+    mapSnapshot.value = await captureMapSnapshot();
+    console.log('[Location] Map snapshot captured:', !!mapSnapshot.value);
+}
+
 const handleSubmit = async () => {
     if (!location.value) {
         apiError.value = 'Please capture your location first.';
@@ -108,6 +133,12 @@ const handleSubmit = async () => {
 
     apiError.value = null;
 
+    // Prepare location data with snapshot (if available)
+    const locationWithSnapshot = {
+        ...location.value,
+        ...(mapSnapshot.value && { snapshot: mapSnapshot.value }),
+    };
+
     // If selfie is required, navigate to selfie page
     if (requiresSelfie.value) {
         // Update stored data with location
@@ -115,7 +146,7 @@ const handleSubmit = async () => {
             ...storedData.value,
             inputs: {
                 ...storedData.value.inputs,
-                location: JSON.stringify(location.value),
+                location: JSON.stringify(locationWithSnapshot),
             },
         };
         
@@ -133,7 +164,7 @@ const handleSubmit = async () => {
             ...storedData.value,
             inputs: {
                 ...storedData.value.inputs,
-                location: JSON.stringify(location.value),
+                location: JSON.stringify(locationWithSnapshot),
             },
         };
         
@@ -153,7 +184,7 @@ const handleSubmit = async () => {
             ...storedData.value,
             inputs: {
                 ...storedData.value.inputs,
-                location: JSON.stringify(location.value),
+                location: JSON.stringify(locationWithSnapshot),
             },
         };
         
@@ -241,6 +272,7 @@ onMounted(() => {
                                         alt="Map showing your location"
                                         class="w-full h-64 object-cover"
                                         loading="lazy"
+                                        @load="handleMapImageLoad"
                                     />
                                 </div>
 

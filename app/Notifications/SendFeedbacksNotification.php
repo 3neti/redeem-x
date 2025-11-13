@@ -15,17 +15,33 @@ use LBHurtado\Voucher\Models\Voucher;
 use Illuminate\Support\{Arr, Number};
 use Illuminate\Bus\Queueable;
 use App\Notifications\Channels\WebhookChannel;
+use Illuminate\Support\Facades\Log;
 
 class SendFeedbacksNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    // Toggle debug logging: set to true to enable, false to disable
+    private const DEBUG_ENABLED = false;
+
     protected VoucherData $voucher;
+
+    /**
+     * Log debug message if debugging is enabled
+     */
+    private function debug(string $message, array $context = []): void
+    {
+        if (self::DEBUG_ENABLED) {
+            Log::debug("[SendFeedbacksNotification] {$message}", $context);
+        }
+    }
 
     public function __construct(string $voucherCode)
     {
+        $this->debug("Constructing notification for voucher: {$voucherCode}");
         $model = Voucher::with('inputs')->where('code', $voucherCode)->firstOrFail();
         $this->voucher = VoucherData::fromModel($model);
+        $this->debug("Voucher loaded with " . $this->voucher->inputs->count() . " inputs");
     }
 
     public function via(object $notifiable): array
@@ -37,6 +53,8 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $this->debug("Building email notification");
+        
         // Build template context from voucher data
         $context = VoucherTemplateContextBuilder::build($this->voucher);
         
@@ -66,6 +84,8 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
             ->first(fn(InputData $input) => $input->name === 'signature')
             ?->value;
 
+        $this->debug("Signature input", ['found' => $signature !== null, 'is_data_url' => $signature && str_starts_with($signature, 'data:image/')]);
+
         if ($signature && str_starts_with($signature, 'data:image/')) {
             // Extract the actual base64 data
             [, $encodedImage] = explode(',', $signature, 2);
@@ -80,12 +100,15 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
                 "signature.{$extension}",
                 ['mime' => $mime]
             );
+            $this->debug("Attached signature", ['extension' => $extension, 'mime' => $mime]);
         }
         
         // Attach selfie if present
         $selfie = $this->voucher->inputs
             ->first(fn(InputData $input) => $input->name === 'selfie')
             ?->value;
+
+        $this->debug("Selfie input", ['found' => $selfie !== null, 'is_data_url' => $selfie && str_starts_with($selfie, 'data:image/')]);
 
         if ($selfie && str_starts_with($selfie, 'data:image/')) {
             // Extract the actual base64 data
@@ -101,17 +124,27 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
                 "selfie.{$extension}",
                 ['mime' => $mime]
             );
+            $this->debug("Attached selfie", ['extension' => $extension, 'mime' => $mime]);
         }
         
         // Attach location snapshot if present
         $locationInput = $this->voucher->inputs
             ->first(fn(InputData $input) => $input->name === 'location')
             ?->value;
+        
+        $this->debug("Location input", ['found' => $locationInput !== null]);
             
         if ($locationInput) {
             try {
                 $locationData = json_decode($locationInput, true);
                 $snapshot = $locationData['snapshot'] ?? null;
+                
+                $this->debug("Location data parsed", [
+                    'has_snapshot' => $snapshot !== null,
+                    'snapshot_length' => $snapshot ? strlen($snapshot) : 0,
+                    'is_data_url' => $snapshot && str_starts_with($snapshot, 'data:image/'),
+                    'location_keys' => array_keys($locationData)
+                ]);
                 
                 if ($snapshot && str_starts_with($snapshot, 'data:image/')) {
                     // Extract the actual base64 data
@@ -127,17 +160,22 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
                         "location-map.{$extension}",
                         ['mime' => $mime]
                     );
+                    $this->debug("Attached location snapshot", ['extension' => $extension, 'mime' => $mime]);
                 }
             } catch (\Exception $e) {
-                // Skip snapshot attachment if location data is invalid
+                $this->debug("Failed to attach location snapshot", ['error' => $e->getMessage()]);
             }
         }
+        
+        $this->debug("Email notification built successfully");
 
         return $mail_message;
     }
 
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
+        $this->debug("Building SMS notification");
+        
         // Build template context from voucher data
         $context = VoucherTemplateContextBuilder::build($this->voucher);
         
@@ -148,6 +186,8 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
         
         $template = __($templateKey);
         $message = TemplateProcessor::process($template, $context);
+        
+        $this->debug("SMS notification built", ['template_key' => $templateKey, 'message_length' => strlen($message)]);
 
         return (new EngageSparkMessage())
             ->content($message);

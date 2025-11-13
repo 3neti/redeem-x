@@ -9,6 +9,7 @@ export interface LocationData {
     longitude: number;
     timestamp: string;
     address?: GeocodedAddressData | null;
+    snapshot?: string; // Optional base64 data URL of map image
 }
 
 /**
