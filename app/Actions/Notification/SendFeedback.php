@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Notification;
 
+use App\Services\TemplateProcessor;
+use App\Services\VoucherTemplateContextBuilder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Models\Contact;
+use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -89,9 +92,21 @@ class SendFeedback
         // - Create mailable class
         // - Queue for async sending
 
+        // Build template context and process email template
+        $voucherData = VoucherData::fromModel($voucher);
+        $context = VoucherTemplateContextBuilder::build($voucherData);
+        
+        $subject = __('notifications.voucher_redeemed.email.subject');
+        $body = __('notifications.voucher_redeemed.email.body');
+        
+        $processedSubject = TemplateProcessor::process($subject, $context);
+        $processedBody = TemplateProcessor::process($body, $context);
+
         Log::info('[SendFeedback] Email notification (stub)', [
             'voucher' => $voucher->code,
             'email' => $email,
+            'subject' => $processedSubject,
+            'body' => $processedBody,
         ]);
 
         return true;
@@ -111,9 +126,22 @@ class SendFeedback
         // - Use omnichannel package
         // - Queue for async sending
 
+        // Build template context and process SMS template
+        $voucherData = VoucherData::fromModel($voucher);
+        $context = VoucherTemplateContextBuilder::build($voucherData);
+        
+        // Choose template based on whether address is available
+        $templateKey = $context['formatted_address']
+            ? 'notifications.voucher_redeemed.sms.message_with_address'
+            : 'notifications.voucher_redeemed.sms.message';
+        
+        $template = __($templateKey);
+        $message = TemplateProcessor::process($template, $context);
+
         Log::info('[SendFeedback] SMS notification (stub)', [
             'voucher' => $voucher->code,
             'mobile' => $mobile,
+            'message' => $message,
         ]);
 
         return true;

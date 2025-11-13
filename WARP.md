@@ -39,6 +39,19 @@ php artisan test --filter test_name
 ```
 Uses Pest PHP testing framework.
 
+### Testing Notifications
+```bash
+# Test notification system end-to-end (with preview, no actual sending)
+php artisan test:notification --fake
+
+# Send real notification to custom email
+php artisan test:notification --email=your@email.com
+
+# Send to email and SMS
+php artisan test:notification --email=your@email.com --sms=+639171234567
+```
+Generates a test voucher (₱1, no inputs), redeems it, and sends/previews notifications.
+
 ### Code Quality
 ```bash
 # Format code (Prettier)
@@ -179,6 +192,15 @@ Uses **Laravel WorkOS** for authentication:
 - Strict TypeScript enabled
 - Path aliases configured: `@/` resolves to `resources/js/`
 - Types in `resources/js/types/`
+
+### Notification Templates
+**Admin-level customizable templates** for voucher redemption notifications:
+- Templates stored in `lang/en/notifications.php` using `{{ variable }}` syntax
+- Supports dynamic variables: `{{ code }}`, `{{ formatted_amount }}`, `{{ mobile }}`, `{{ formatted_address }}`, etc.
+- Powered by `TemplateProcessor` service with support for dot notation and recursive search
+- `VoucherTemplateContextBuilder` flattens voucher data for easy templating
+- Used in: Email notifications, SMS notifications (EngageSpark), webhook payloads
+- See `docs/NOTIFICATION_TEMPLATES.md` for full documentation and customization guide
 
 ## Important Notes
 

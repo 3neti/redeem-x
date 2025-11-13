@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Services\TemplateProcessor;
+use App\Services\VoucherTemplateContextBuilder;
 use Illuminate\Notifications\Messages\MailMessage;
 use LBHurtado\EngageSpark\EngageSparkMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,19 +37,31 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        // Get amount from instructions (always available) or cash object (if redeemed)
-        $amount = $this->voucher->cash?->amount ?? $this->voucher->instructions?->cash?->amount;
-        $formattedAmount = $amount ? $amount->formatTo(Number::defaultLocale()) : 'N/A';
-        $formattedAddress = $this->getFormattedAddress() ?? 'somewhere';
+        // Build template context from voucher data
+        $context = VoucherTemplateContextBuilder::build($this->voucher);
+        
+        // Get templates from translations
+        $subject = __('notifications.voucher_redeemed.email.subject');
+        $greeting = __('notifications.voucher_redeemed.email.greeting');
+        $body = __('notifications.voucher_redeemed.email.body');
+        $warning = __('notifications.voucher_redeemed.email.warning');
+        $salutation = __('notifications.voucher_redeemed.email.salutation');
+        
+        // Process templates with context
+        $processedSubject = TemplateProcessor::process($subject, $context);
+        $processedGreeting = TemplateProcessor::process($greeting, $context);
+        $processedBody = TemplateProcessor::process($body, $context);
+        $processedWarning = TemplateProcessor::process($warning, $context);
+        $processedSalutation = TemplateProcessor::process($salutation, $context);
         
         $mail_message = (new MailMessage)
-            ->subject('Voucher Code Redeemed')
-            ->greeting('Hello,')
-            ->line("The voucher code **{$this->voucher->code}** with the amount of **{$formattedAmount}** has been successfully redeemed.")
-            ->line("It was claimed by **{$this->voucher->contact?->mobile}** from {$formattedAddress}.")
-            ->line('If you did not authorize this transaction, please contact support immediately.')
-            ->salutation('Thank you for using our service!');
+            ->subject($processedSubject)
+            ->greeting($processedGreeting)
+            ->line($processedBody)
+            ->line($processedWarning)
+            ->salutation($processedSalutation);
 
+        // Attach signature if present
         $signature = $this->voucher->inputs
             ->first(fn(InputData $input) => $input->name === 'signature')
             ?->value;
@@ -73,14 +87,16 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
-        // Get amount from instructions or cash object
-        $amount = $this->voucher->cash?->amount ?? $this->voucher->instructions?->cash?->amount;
-        $amountText = $amount ? "{$amount->getCurrency()->getCurrencyCode()} {$amount->getAmount()}" : 'N/A';
+        // Build template context from voucher data
+        $context = VoucherTemplateContextBuilder::build($this->voucher);
         
-        $message = "Voucher {$this->voucher->code} with amount {$amountText} was redeemed by {$this->voucher->contact?->mobile}.";
-        if ($formattedAddress = $this->getFormattedAddress()) {
-            $message .= "\nAddress: {$formattedAddress}";
-        }
+        // Choose template based on whether address is available
+        $templateKey = $context['formatted_address']
+            ? 'notifications.voucher_redeemed.sms.message_with_address'
+            : 'notifications.voucher_redeemed.sms.message';
+        
+        $template = __($templateKey);
+        $message = TemplateProcessor::process($template, $context);
 
         return (new EngageSparkMessage())
             ->content($message);
@@ -88,31 +104,26 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function toWebhook(object $notifiable): array
     {
-        // Get amount from instructions or cash object
-        $amount = $this->voucher->cash?->amount ?? $this->voucher->instructions?->cash?->amount;
-        $formattedAddress = $this->getFormattedAddress();
+        // Build template context from voucher data
+        $context = VoucherTemplateContextBuilder::build($this->voucher);
 
         $payload = [
             'event' => 'voucher.redeemed',
             'voucher' => [
-                'code' => $this->voucher->code,
-                'amount' => $amount?->getAmount()->toFloat(),
-                'currency' => $amount?->getCurrency()->getCurrencyCode(),
-                'redeemed_at' => $this->voucher->redeemed_at?->toIso8601String(),
+                'code' => $context['code'],
+                'amount' => $context['amount'],
+                'currency' => $context['currency'],
+                'redeemed_at' => $context['redeemed_at'],
             ],
             'redeemer' => [
-                'mobile' => $this->voucher->contact?->mobile,
-                'address' => $formattedAddress,
+                'mobile' => $context['mobile'],
+                'address' => $context['formatted_address'],
             ],
         ];
 
         // Add signature if present
-        $signature = $this->voucher->inputs
-            ->first(fn(InputData $input) => $input->name === 'signature')
-            ?->value;
-
-        if ($signature) {
-            $payload['redeemer']['signature'] = $signature;
+        if (isset($context['signature'])) {
+            $payload['redeemer']['signature'] = $context['signature'];
         }
 
         // Get webhook URL from notifiable routes
@@ -130,26 +141,14 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        // Get amount from instructions or cash object
-        $amount = $this->voucher->cash?->amount ?? $this->voucher->instructions?->cash?->amount;
+        // Build template context from voucher data
+        $context = VoucherTemplateContextBuilder::build($this->voucher);
         
         return [
-            'code' => $this->voucher->code,
-            'mobile' => $this->voucher->contact?->mobile,
-            'amount' => $amount?->getAmount()->toFloat(),
-            'currency' => $amount?->getCurrency()->getCurrencyCode(),
+            'code' => $context['code'],
+            'mobile' => $context['mobile'],
+            'amount' => $context['amount'],
+            'currency' => $context['currency'],
         ];
-    }
-
-    protected function getFormattedAddress(): string|null
-    {
-        if ($location_json = $this->voucher->inputs->first(fn($input) => $input->name === 'location')?->value) {
-            $location_array = json_decode($location_json, true);
-            if ($formatted_address = Arr::get($location_array, 'address.formatted')) {
-                return $formatted_address;
-            }
-        }
-
-        return null;
     }
 }

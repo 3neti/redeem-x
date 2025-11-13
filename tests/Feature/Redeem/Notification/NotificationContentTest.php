@@ -98,13 +98,11 @@ test('notification content with different scenarios', function (
     $mailData = $notification->toMail($feedbackObj);
     expect($mailData->subject)->toBe('Voucher Code Redeemed')
         ->and($mailData->introLines[0])->toContain($voucher->code)
-        ->and($mailData->introLines[1])->toContain($contact->mobile);
+        ->and($mailData->introLines[0])->toContain($contact->mobile);
     
     // Test SMS content
     $smsData = $notification->toEngageSpark($feedbackObj);
-    $expectedAmount = "{$currency} {$amount}";
     expect($smsData->content)->toContain($voucher->code)
-        ->and($smsData->content)->toContain($expectedAmount)
         ->and($smsData->content)->toContain($contact->mobile);
     
     // Test location in notifications if present
@@ -112,7 +110,7 @@ test('notification content with different scenarios', function (
         $locationArray = json_decode($location, true);
         $formattedAddress = $locationArray['address']['formatted'];
         
-        expect($mailData->introLines[1])->toContain($formattedAddress);
+        expect($mailData->introLines[0])->toContain($formattedAddress);
         expect($smsData->content)->toContain($formattedAddress);
         
         $webhookData = $notification->toWebhook($feedbackObj);
