@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Voucher;
 
-use App\Actions\Payment\DisbursePayment;
-use App\Actions\Notification\SendFeedback;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Models\Contact;
@@ -15,13 +13,14 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Propaganistas\LaravelPhone\PhoneNumber;
 
 /**
- * Process voucher redemption with full transaction safety.
+ * Process voucher redemption.
  *
- * This action orchestrates the complete redemption flow:
- * 1. Mark voucher as redeemed (via RedeemVoucher from package)
- * 2. Attach inputs to voucher
- * 3. Disburse payment via payment gateway
- * 4. Send feedback notifications
+ * This action marks the voucher as redeemed, which triggers the
+ * post-redemption pipeline (configured in config/voucher-pipeline.php):
+ * 1. ValidateRedeemerAndCash
+ * 2. PersistInputs
+ * 3. DisburseCash (if DISBURSE_DISABLE=false)
+ * 4. SendFeedbacks
  *
  * All wrapped in a database transaction for safety.
  */
@@ -77,25 +76,11 @@ class ProcessRedemption
                 'contact_id' => $contact->id,
             ]);
 
-            // Step 4: Disburse payment (if amount > 0)
-            if ($voucher->instructions->cash->amount > 0) {
-                $payment = DisbursePayment::run($voucher, $contact, $bankAccount);
-
-                Log::info('[ProcessRedemption] Payment disbursed', [
-                    'voucher' => $voucher->code,
-                    'amount' => $voucher->instructions->cash->amount,
-                    'payment_success' => $payment,
-                ]);
-            }
-
-            // Step 5: Send feedback notifications (if configured)
-            if ($this->shouldSendFeedback($voucher)) {
-                SendFeedback::run($voucher, $contact);
-
-                Log::info('[ProcessRedemption] Feedback sent', [
-                    'voucher' => $voucher->code,
-                ]);
-            }
+            // Note: The post-redemption pipeline now handles:
+            // - PersistInputs: Saves inputs to voucher
+            // - DisburseCash: Disburses payment (if DISBURSE_DISABLE=false)
+            // - SendFeedbacks: Sends email/SMS/webhook notifications
+            // These are triggered automatically by the VoucherObserver after redemption.
 
             return true;
         });
@@ -121,20 +106,5 @@ class ProcessRedemption
         }
 
         return $meta;
-    }
-
-    /**
-     * Check if feedback should be sent for this voucher.
-     *
-     * @param  Voucher  $voucher
-     * @return bool
-     */
-    protected function shouldSendFeedback(Voucher $voucher): bool
-    {
-        $feedback = $voucher->instructions->feedback;
-
-        return ! empty($feedback->email)
-            || ! empty($feedback->mobile)
-            || ! empty($feedback->webhook);
     }
 }
