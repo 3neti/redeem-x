@@ -52,6 +52,26 @@ php artisan test:notification --email=your@email.com --sms=+639171234567
 ```
 Generates a test voucher (₱1, no inputs), redeems it, and sends/previews notifications.
 
+**How it works:**
+- Automatically disables disbursement during testing (config override)
+- Waits for cash entity creation before redemption (avoids race condition)
+- Tests complete notification flow: generation → redemption → email/SMS
+- Uses templates from `lang/en/notifications.php`
+- Requires queue worker running for non-fake mode
+
+### Testing SMS
+```bash
+# Test SMS sending directly (bypasses notifications)
+php artisan test:sms 09173011987
+
+# Send custom message
+php artisan test:sms 09173011987 "Custom test message"
+
+# Use custom sender ID
+php artisan test:sms 09173011987 --sender=TXTCMDR
+```
+Sends SMS directly via EngageSpark for testing SMS configuration.
+
 ### Code Quality
 ```bash
 # Format code (Prettier)

@@ -37,6 +37,14 @@ class TestNotificationCommand extends Command
     {
         $this->info('🧪 Testing Notification System');
         $this->newLine();
+        
+        // Temporarily disable disbursement for testing
+        config(['voucher-pipeline.post-redemption' => array_filter(
+            config('voucher-pipeline.post-redemption'),
+            fn($class) => !str_contains($class, 'DisburseCash')
+        )]);
+        $this->line('💼 Disbursement temporarily disabled for testing');
+        $this->newLine();
 
         // Check if ordinary user exists
         $ordinaryUser = User::where('email', 'lester@hurtado.ph')->first();
@@ -106,6 +114,30 @@ class TestNotificationCommand extends Command
         
         $this->line("   Code: {$voucher->code}");
         $this->line("   Owner: {$voucher->owner->name}");
+        
+        // Wait for cash entity to be created by queue (HandleGeneratedVouchers listener)
+        if (!$this->option('fake')) {
+            $this->newLine();
+            $this->info('⏳ Waiting for cash entity to be created by queue worker...');
+            
+            $attempts = 0;
+            $maxAttempts = 10; // 10 seconds max
+            while ($attempts < $maxAttempts) {
+                $voucher->refresh();
+                if ($voucher->cash !== null) {
+                    $this->info('✅ Cash entity created!');
+                    break;
+                }
+                sleep(1);
+                $attempts++;
+            }
+            
+            if ($voucher->cash === null) {
+                $this->error('❌ Timeout: Cash entity not created after 10 seconds');
+                $this->warn('Make sure queue worker is running: php artisan queue:work');
+                return self::FAILURE;
+            }
+        }
 
         // Step 3: Create contact and redeem
         $this->newLine();
@@ -160,12 +192,19 @@ class TestNotificationCommand extends Command
         $this->line('   You can customize templates in: lang/en/notifications.php');
         $this->line('   Documentation: docs/NOTIFICATION_TEMPLATES.md');
 
-        // Cleanup option
+        // Cleanup option (only in fake mode to avoid race condition with queue)
         $this->newLine();
-        if ($this->confirm('🗑️  Delete test voucher and contact?', true)) {
-            $contact->delete();
-            $voucher->delete();
-            $this->info('✅ Test data cleaned up');
+        if ($this->option('fake')) {
+            if ($this->confirm('🗑️  Delete test voucher and contact?', true)) {
+                $contact->delete();
+                $voucher->delete();
+                $this->info('✅ Test data cleaned up');
+            }
+        } else {
+            $this->warn('⚠️  Skipping cleanup - voucher needs to be processed by queue worker');
+            $this->line('   Voucher ID: ' . $voucher->id);
+            $this->line('   Contact ID: ' . $contact->id);
+            $this->line('   Run queue worker to complete cash minting: php artisan queue:work');
         }
 
         return self::SUCCESS;
