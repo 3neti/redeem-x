@@ -114,8 +114,6 @@ it('sends notifications with correct content when voucher is redeemed', function
 })->with('voucher_instructions_with_feedback');
 
 it('includes location in notification when redeemer provides location', function () {
-    // TODO: Fix Input model creation issues
-    $this->markTestSkipped('Skipping until Input model creation is fixed');
     // Redeem with location data
     $locationData = [
         'address' => [
@@ -144,24 +142,19 @@ it('includes location in notification when redeemer provides location', function
     $voucher = $vouchers->first();
     
     $contact = Contact::factory()->create(['mobile' => '09171234567']);
+    
+    // Store location in redemption metadata (simulating the plugin flow)
     $redeemAction = app(RedeemVoucher::class);
-    $redeemAction->handle($contact, $voucher->code);
+    $redeemAction->handle($contact, $voucher->code, ['inputs' => ['location' => json_encode($locationData)]]);
     
-    // Manually add location input to the contact (redeemer) for testing notification content
+    // Refresh and manually set location on voucher (since PersistInputs pipeline looks for plugin config)
     $voucher->refresh();
-    $redeemer = $voucher->redeemers->first();
-    
-    // Use the ModelInput package to add input directly
-    \LBHurtado\ModelInput\Models\Input::create([
-        'model_type' => get_class($redeemer),
-        'model_id' => $redeemer->id,
-        'name' => 'location',
-        'value' => json_encode($locationData),
-    ]);
+    $voucher->location = json_encode($locationData);
+    $voucher->save();
     
     // Create notification instance and verify location is included
     $notification = new SendFeedbacksNotification($voucher->code);
-    $feedback = ['email' => 'test@test.com', 'mobile' => '09171234567'];
+    $feedback = (object)['email' => 'test@test.com', 'mobile' => '09171234567'];
     
     // Check email includes location
     $mailData = $notification->toMail($feedback);
@@ -177,8 +170,8 @@ it('includes location in notification when redeemer provides location', function
 });
 
 it('includes signature attachment in email when signature is provided', function () {
-    // TODO: Fix Input model creation issues
-    $this->markTestSkipped('Skipping until Input model creation is fixed');
+    // TODO: Fix - inputs not being loaded properly in VoucherData
+    $this->markTestSkipped('Signature input loading needs investigation');
     // Create a small base64 encoded PNG image (1x1 transparent pixel)
     $signatureData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     
@@ -199,24 +192,21 @@ it('includes signature attachment in email when signature is provided', function
     $voucher = $vouchers->first();
     
     $contact = Contact::factory()->create(['mobile' => '09171234567']);
+    
+    // Store signature in redemption metadata
     $redeemAction = app(RedeemVoucher::class);
-    $redeemAction->handle($contact, $voucher->code);
+    $redeemAction->handle($contact, $voucher->code, ['inputs' => ['signature' => $signatureData]]);
     
-    // Manually add signature input to the redeemer for testing notification content
+    // Refresh and add signature input using the HasInputs trait
     $voucher->refresh();
-    $redeemer = $voucher->redeemers->first();
+    $voucher->forceSetInput('signature', $signatureData);
     
-    // Use the ModelInput package to add input directly
-    \LBHurtado\ModelInput\Models\Input::create([
-        'model_type' => get_class($redeemer),
-        'model_id' => $redeemer->id,
-        'name' => 'signature',
-        'value' => $signatureData,
-    ]);
+    // Fetch fresh voucher with inputs loaded for notification
+    $voucherWithInputs = \LBHurtado\Voucher\Models\Voucher::with('inputs')->where('code', $voucher->code)->first();
     
-    // Create notification instance and check signature attachment
-    $notification = new SendFeedbacksNotification($voucher->code);
-    $mailData = $notification->toMail(['email' => 'test@test.com']);
+    // Create notification instance
+    $notification = new SendFeedbacksNotification($voucherWithInputs->code);
+    $mailData = $notification->toMail((object)['email' => 'test@test.com']);
     
     // Check that there's an attachment
     expect($mailData->attachments)->toHaveCount(1);
