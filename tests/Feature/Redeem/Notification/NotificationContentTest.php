@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * Integration tests for notification content and template rendering.
+ * 
+ * These tests focus on:
+ * - Full redemption → notification flow
+ * - Template content accuracy with various data scenarios
+ * - Content validation across all channels (email, SMS, webhook)
+ * - Edge cases with different input combinations (location, signature, etc.)
+ * - NOT class structure/methods (see SendFeedbacksNotificationTest)
+ */
+
 use Tests\Concerns\SetsUpRedemptionEnvironment;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Actions\{GenerateVouchers, RedeemVoucher};
