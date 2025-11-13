@@ -102,6 +102,36 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
                 ['mime' => $mime]
             );
         }
+        
+        // Attach location snapshot if present
+        $locationInput = $this->voucher->inputs
+            ->first(fn(InputData $input) => $input->name === 'location')
+            ?->value;
+            
+        if ($locationInput) {
+            try {
+                $locationData = json_decode($locationInput, true);
+                $snapshot = $locationData['snapshot'] ?? null;
+                
+                if ($snapshot && str_starts_with($snapshot, 'data:image/')) {
+                    // Extract the actual base64 data
+                    [, $encodedImage] = explode(',', $snapshot, 2);
+
+                    // Determine mime and file extension
+                    preg_match('/^data:image\/(\w+);base64/', $snapshot, $matches);
+                    $extension = $matches[1] ?? 'png'; // fallback to png
+                    $mime = "image/{$extension}";
+
+                    $mail_message->attachData(
+                        base64_decode($encodedImage),
+                        "location-map.{$extension}",
+                        ['mime' => $mime]
+                    );
+                }
+            } catch (\Exception $e) {
+                // Skip snapshot attachment if location data is invalid
+            }
+        }
 
         return $mail_message;
     }

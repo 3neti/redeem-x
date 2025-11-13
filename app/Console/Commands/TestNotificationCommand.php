@@ -165,22 +165,11 @@ class TestNotificationCommand extends Command
         
         $this->line("   Mobile: {$contact->mobile}");
         $this->line("   Name: {$contact->name}");
-
-        // Step 4: Redeem voucher
-        $this->newLine();
-        $this->info('💰 Redeeming voucher...');
         
-        $redeemAction = app(RedeemVoucher::class);
-        $redeemAction->handle($contact, $voucher->code);
-        
-        $voucher->refresh();
-        $this->line("   Status: {$voucher->status}");
-        $this->line("   Redeemed at: {$voucher->redeemed_at}");
-        
-        // Step 4.5: Add test inputs if requested
+        // Step 3.5: Add test inputs BEFORE redemption (so they're included in notifications)
         if (!empty($inputFields)) {
             $this->newLine();
-            $this->info('📎 Adding test inputs...');
+            $this->info('📎 Adding test inputs to voucher...');
             
             if ($this->option('with-location')) {
                 $location = file_get_contents(base_path('tests/Fixtures/test-location.json'));
@@ -201,6 +190,17 @@ class TestNotificationCommand extends Command
                 $this->line('   ✓ Selfie image added');
             }
         }
+
+        // Step 4: Redeem voucher (this will trigger notifications with the inputs above)
+        $this->newLine();
+        $this->info('💰 Redeeming voucher...');
+        
+        $redeemAction = app(RedeemVoucher::class);
+        $redeemAction->handle($contact, $voucher->code);
+        
+        $voucher->refresh();
+        $this->line("   Status: {$voucher->status}");
+        $this->line("   Redeemed at: {$voucher->redeemed_at}");
 
         // Step 5: Preview notification content
         $this->newLine();

@@ -5,5 +5,8 @@
   "coordinates": {
     "lat": 14.5547,
     "lng": 121.0244
-  }
+  },
+  "latitude": 14.5547,
+  "longitude": 121.0244,
+  "snapshot": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYGD4DwABBAEAW9JJQQAAAABJRU5ErkJggg=="
 }

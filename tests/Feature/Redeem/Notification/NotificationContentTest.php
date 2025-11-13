@@ -94,7 +94,10 @@ test('notification content with different scenarios', function (
     // Add location if specified
     if ($has_location && $location) {
         $voucher->refresh();
-        $voucher->location = $location;
+        // Add snapshot to location data for testing
+        $locationData = json_decode($location, true);
+        $locationData['snapshot'] = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYGD4DwABBAEAW9JJQQAAAABJRU5ErkJggg==';
+        $voucher->location = json_encode($locationData);
         $voucher->save();
     }
     
@@ -137,8 +140,8 @@ test('notification content with different scenarios', function (
         expect($webhookData['payload']['redeemer']['address'])->toBe($formattedAddress);
     }
     
-    // Test signature and selfie attachments if present
-    $expectedAttachments = ($has_signature ? 1 : 0) + ($has_selfie ? 1 : 0);
+    // Test signature, selfie, and location snapshot attachments if present
+    $expectedAttachments = ($has_signature ? 1 : 0) + ($has_selfie ? 1 : 0) + ($has_location ? 1 : 0);
     if ($expectedAttachments > 0) {
         expect($mailData->rawAttachments)->toHaveCount($expectedAttachments);
         
@@ -156,6 +159,14 @@ test('notification content with different scenarios', function (
             expect($selfieAttachment)->not->toBeNull()
                 ->and($selfieAttachment)->toHaveKey('data')
                 ->and($selfieAttachment['options']['mime'])->toBe('image/png');
+        }
+        
+        if ($has_location) {
+            $locationAttachment = collect($mailData->rawAttachments)
+                ->firstWhere('name', 'location-map.png');
+            expect($locationAttachment)->not->toBeNull()
+                ->and($locationAttachment)->toHaveKey('data')
+                ->and($locationAttachment['options']['mime'])->toBe('image/png');
         }
     }
 })->with('notification scenarios');
