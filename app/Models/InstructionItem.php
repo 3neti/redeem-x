@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Bavix\Wallet\Interfaces\ProductInterface;
 use Illuminate\Database\Eloquent\Model;
+use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Traits\HasWallet;
 use Illuminate\Support\Str;
 
-class InstructionItem extends Model
+class InstructionItem extends Model implements ProductInterface
 {
     use HasFactory;
+    use HasWallet;
     protected $fillable = [
         'name',
         'index',
@@ -27,9 +31,19 @@ class InstructionItem extends Model
         return $this->hasMany(InstructionItemPriceHistory::class);
     }
 
-    public function getAmountProduct(User $customer): int
+    public function getAmountProduct(Customer $customer): int|string
     {
-        // Future: VIP discounts, volume pricing
+        if ($this->index == 'cash.amount') {
+            if ($customer instanceof User) {
+                // Check if customer is exempt from charges
+                $systemEmail = env('SYSTEM_USER_ID');
+                if ($customer->email === $systemEmail) {
+                    return 0;
+                }
+            }
+            return $this->price; // TODO: granular pricing for different users
+        }
+
         return $this->price;
     }
 
@@ -40,6 +54,11 @@ class InstructionItem extends Model
             'title' => $this->meta['title'] ?? ucfirst($this->type),
             'description' => $this->meta['description'] ?? "Charge for {$this->type} instruction",
         ];
+    }
+
+    public function getUniqueId(): string
+    {
+        return "{$this->type}:{$this->id}";
     }
 
     /**

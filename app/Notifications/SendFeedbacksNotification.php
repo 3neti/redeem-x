@@ -28,7 +28,9 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'engage_spark', WebhookChannel::class, 'database'];
+        return ['mail', 'engage_spark', 'database'];
+        // TODO: Re-enable webhook channel once properly tested
+        // return ['mail', 'engage_spark', WebhookChannel::class, 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
