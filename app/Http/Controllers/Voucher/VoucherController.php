@@ -14,18 +14,15 @@ use LBHurtado\Voucher\Models\Voucher;
 
 /**
  * Voucher Management Controller
- * 
+ *
  * Handles listing, viewing, and exporting vouchers for authenticated users.
  */
 class VoucherController extends Controller
 {
     /**
      * Display the vouchers page.
-     * 
-     * Data is loaded via API from the frontend.
      *
-     * @param  Request  $request
-     * @return Response
+     * Data is loaded via API from the frontend.
      */
     public function index(Request $request): Response
     {
@@ -34,30 +31,15 @@ class VoucherController extends Controller
 
     /**
      * Display the specified voucher.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function show(Voucher $voucher): Response
     {
-        $voucher->load(['owner', 'redeemers']);
-
-        // Extract redemption inputs if voucher is redeemed
-        $redemptionData = null;
-        if ($voucher->redeemed_at && $voucher->redeemers->count() > 0) {
-            $redeemer = $voucher->redeemers->first();
-            $metadata = $redeemer->metadata ?? [];
-            
-            if (isset($metadata['redemption']['inputs'])) {
-                $redemptionData = $metadata['redemption']['inputs'];
-            }
-        }
+        // Load relationships including inputs (single source of truth)
+        $voucher->load(['owner', 'inputs']);
 
         return Inertia::render('Vouchers/Show', [
             'voucher' => VoucherData::fromModel($voucher),
-            'redemption' => $redemptionData,
             'input_field_options' => VoucherInputField::options(),
         ]);
     }
-
 }

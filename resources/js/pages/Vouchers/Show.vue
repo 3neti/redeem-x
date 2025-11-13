@@ -45,6 +45,11 @@ interface VoucherInstructions {
     ttl?: string;
 }
 
+interface VoucherInput {
+    name: string;
+    value: string;
+}
+
 interface VoucherProp {
     code: string;
     status: string;
@@ -59,6 +64,7 @@ interface VoucherProp {
     can_redeem: boolean;
     owner?: VoucherOwner;
     instructions?: VoucherInstructions;
+    inputs: VoucherInput[];
 }
 
 interface RedemptionInputs {
@@ -73,7 +79,6 @@ interface RedemptionInputs {
 
 interface Props {
     voucher: VoucherProp;
-    redemption?: RedemptionInputs | null;
     input_field_options: VoucherInputFieldOption[];
 }
 
@@ -89,6 +94,21 @@ const breadcrumbs: BreadcrumbItem[] = [
 const goBack = () => {
     router.visit('/vouchers');
 };
+
+// Transform voucher inputs (single source of truth) into flat object for display
+const redemptionInputs = computed<RedemptionInputs | null>(() => {
+    if (!props.voucher.is_redeemed || !props.voucher.inputs || props.voucher.inputs.length === 0) {
+        return null;
+    }
+
+    // Convert inputs array [{name, value}] to flat object {name: value}
+    const inputsObject: RedemptionInputs = {};
+    props.voucher.inputs.forEach(input => {
+        inputsObject[input.name] = input.value;
+    });
+
+    return inputsObject;
+});
 
 // Transform instructions for VoucherInstructionsForm
 const instructionsFormData = computed(() => {
@@ -193,7 +213,7 @@ const instructionsFormData = computed(() => {
                 <div v-show="activeTab === 'details'">
                     <VoucherDetailsTabContent 
                         :voucher="voucher" 
-                        :redemption="redemption"
+                        :redemption="redemptionInputs"
                     />
                 </div>
 
