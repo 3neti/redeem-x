@@ -19,7 +19,9 @@ class InstructionItem extends Model implements ProductInterface
         'type',
         'price',
         'currency',
-        'meta'
+        'meta',
+        'revenue_destination_type',
+        'revenue_destination_id',
     ];
 
     protected $casts = [
@@ -29,6 +31,23 @@ class InstructionItem extends Model implements ProductInterface
     public function priceHistory()
     {
         return $this->hasMany(InstructionItemPriceHistory::class);
+    }
+
+    /**
+     * Polymorphic revenue destination.
+     * Specify where collected revenue should go (User, Organization, etc.).
+     */
+    public function revenueDestination()
+    {
+        return $this->morphTo('revenue_destination');
+    }
+
+    /**
+     * Revenue collections from this item.
+     */
+    public function revenueCollections()
+    {
+        return $this->hasMany(RevenueCollection::class);
     }
 
     public function getAmountProduct(Customer $customer): int|string
