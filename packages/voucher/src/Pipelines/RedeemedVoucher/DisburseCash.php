@@ -10,6 +10,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
 use LBHurtado\PaymentGateway\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
 use LBHurtado\Voucher\Events\DisburseInputPrepared;
+use LBHurtado\Wallet\Actions\WithdrawCash;
 use Illuminate\Support\Facades\Log;
 use Closure;
 
@@ -65,6 +66,14 @@ class DisburseCash
         $gatewayName = config('payment-gateway.default', 'netbank');
         $normalizedStatus = DisbursementStatus::fromGateway($gatewayName, $response->status)->value;
         
+        // Withdraw funds from cash wallet (money has left the system)
+        $cash = $voucher->cash;
+        $withdrawal = WithdrawCash::run(
+            $cash,
+            $response->transaction_id,
+            'Disbursed to external bank account'
+        );
+        
         $voucher->metadata = array_merge(
             $voucher->metadata ?? [],
             [
@@ -80,6 +89,7 @@ class DisburseCash
                     'transaction_uuid' => $response->uuid,
                     'recipient_name' => $bankName,
                     'payment_method' => 'bank_transfer',
+                    'cash_withdrawal_uuid' => $withdrawal->uuid,
                     'metadata' => [
                         'bank_code' => $input->bank,
                         'bank_name' => $bankName,
