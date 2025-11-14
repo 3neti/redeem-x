@@ -123,6 +123,11 @@ abstract class TestCase extends BaseTestCase
             'payment-gateway',
             require __DIR__ . '/../config/payment-gateway.php'
         );
+        
+        $this->app['config']->set(
+            'omnipay',
+            require __DIR__ . '/../config/omnipay.php'
+        );
     }
 
     /**

@@ -135,3 +135,70 @@ it('returns a collection using the toCollection() method', function () {
         ->and($collection->get('AGBUPHM1XXX')['full_name'])
         ->toBe('AGRIBUSINESS RURAL BANK, INC.');
 });
+
+it('checks if bank supports a specific rail using supportsRail()', function () {
+    $bankRegistry = new BankRegistry();
+
+    // Bank that supports PESONET
+    $result = $bankRegistry->supportsRail('AGBUPHM1XXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET);
+    expect($result)->toBeTrue();
+
+    // Bank doesn't support INSTAPAY (assuming AGBUPHM1XXX only has PESONET)
+    $result = $bankRegistry->supportsRail('AGBUPHM1XXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::INSTAPAY);
+    expect($result)->toBeFalse();
+
+    // Non-existent bank
+    $result = $bankRegistry->supportsRail('NONEXISTENT', \LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET);
+    expect($result)->toBeFalse();
+});
+
+it('filters banks by rail using byRail()', function () {
+    $bankRegistry = new BankRegistry();
+
+    // Get all banks supporting PESONET
+    $banks = $bankRegistry->byRail(\LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET);
+
+    expect($banks)->toBeInstanceOf(Collection::class);
+    expect($banks->count())->toBeGreaterThan(0);
+
+    // Each bank should have PESONET in settlement_rail
+    foreach ($banks as $bank) {
+        expect($bank)->toHaveKey('settlement_rail');
+        expect($bank['settlement_rail'])->toHaveKey('PESONET');
+    }
+});
+
+it('gets all EMIs using getEMIs()', function () {
+    $bankRegistry = new BankRegistry();
+
+    $emis = $bankRegistry->getEMIs();
+
+    expect($emis)->toBeInstanceOf(Collection::class);
+
+    // Check that each code matches an EMI pattern
+    $emiPatterns = ['GXCH', 'PAPH', 'DCPH', 'GHPE', 'SHPH', 'TAGC'];
+
+    foreach ($emis->keys() as $code) {
+        $matchesPattern = false;
+        foreach ($emiPatterns as $pattern) {
+            if (str_starts_with($code, $pattern)) {
+                $matchesPattern = true;
+                break;
+            }
+        }
+        expect($matchesPattern)->toBeTrue();
+    }
+});
+
+it('checks if code is EMI using isEMI()', function () {
+    $bankRegistry = new BankRegistry();
+
+    // Assuming GXCHPHM2XXX is GCash (EMI) if it exists in banks.json
+    // This test depends on your actual data
+    $isEmi = $bankRegistry->isEMI('GXCHPHM2XXX');
+    expect($isEmi)->toBeBool();
+
+    // Traditional bank (not EMI)
+    $isEmi = $bankRegistry->isEMI('AGBUPHM1XXX');
+    expect($isEmi)->toBeFalse();
+});

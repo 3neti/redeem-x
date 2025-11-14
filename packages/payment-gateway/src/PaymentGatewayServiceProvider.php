@@ -4,6 +4,11 @@ namespace LBHurtado\PaymentGateway;
 
 use LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Console\Commands\{
+    CheckBalanceCommand,
+    TestDisbursementCommand,
+    GenerateQrCommand
+};
 use LBHurtado\Wallet\Services\SystemUserResolverService;
 use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use Illuminate\Support\ServiceProvider;
@@ -31,6 +36,11 @@ class PaymentGatewayServiceProvider extends ServiceProvider
             'payment'
         );
 
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/omnipay.php',
+            'omnipay'
+        );
+
         $this->app->singleton(SystemUserResolverService::class, fn () => new SystemUserResolverService());
 
         $this->app->bind(PaymentGatewayInterface::class, function ($app) {
@@ -51,12 +61,22 @@ class PaymentGatewayServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->registerRoutes();
+        
+        // Register console commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                CheckBalanceCommand::class,
+                TestDisbursementCommand::class,
+                GenerateQrCommand::class,
+            ]);
+        }
 
         // Allow publishing the configuration files
         $this->publishes([
             __DIR__ . '/../config/disbursement.php' => config_path('disbursement.php'),
             __DIR__ . '/../config/payment-gateway.php' => config_path('payment-gateway.php'),
             __DIR__ . '/../config/payment.php' => config_path('payment.php'),
+            __DIR__ . '/../config/omnipay.php' => config_path('omnipay.php'),
         ], 'config');
 
         // Use PHP as the default currency globally

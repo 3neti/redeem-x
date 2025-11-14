@@ -3,7 +3,7 @@
 return [
     'rules' => [
         'email' => ['required', 'email'],
-        'mobile' => ['required', (new \Propaganistas\LaravelPhone\Rules\Phone)->country('PH')->type('mobile')],
+        'mobile' => ['required', 'phone:PH,mobile'], // String format instead of object for serialization
         'signature' => ['required', 'string', 'min:8'],
         'bank_account' => ['required', 'string', 'min:8'], //TODO: increase the min
         'name' => ['required', 'string', 'min:2', 'max:255'],

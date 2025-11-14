@@ -2,7 +2,10 @@
 
 return [
     'rules' => [
-        'mobile' => ['required', (new \Propaganistas\LaravelPhone\Rules\Phone)->country('PH')->type('mobile')],
+        'mobile' => [
+            'required',
+            'phone:PH,mobile', // String format instead of object for serialization
+        ],
         'webhook' => ['required', 'url'],
     ],
 ];
