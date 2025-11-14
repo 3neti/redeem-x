@@ -80,6 +80,26 @@ php artisan test:sms 09173011987 --sender=TXTCMDR
 ```
 Sends SMS directly via EngageSpark for testing SMS configuration.
 
+### Testing Payment Gateway (Omnipay)
+```bash
+# Test disbursement (send money)
+php artisan omnipay:disburse 100 09173011987 GXCHPHM2XXX INSTAPAY
+
+# Generate QR code for receiving payments
+php artisan omnipay:qr 09173011987 100 --save=qr_code.txt
+
+# Check account balance (requires API access)
+php artisan omnipay:balance --account=113-001-00001-9
+```
+Tests NetBank payment gateway integration via Omnipay framework.
+
+**Key features:**
+- Settlement rail validation (INSTAPAY/PESONET)
+- EMI detection (GCash, PayMaya)
+- KYC address workaround for testing
+- OAuth2 with token caching
+- Comprehensive logging
+
 ### Code Quality
 ```bash
 # Format code (Prettier)
@@ -220,6 +240,55 @@ Uses **Laravel WorkOS** for authentication:
 - Strict TypeScript enabled
 - Path aliases configured: `@/` resolves to `resources/js/`
 - Types in `resources/js/types/`
+
+### Payment Gateway Configuration
+
+**Dual Gateway Support:**
+The application supports two payment gateway implementations that can be switched via environment variable:
+- **Old implementation**: Direct API calls (x-change style) - `NetbankPaymentGateway`
+- **New implementation**: Omnipay framework (recommended) - `OmnipayPaymentGateway`
+
+**Environment Variables:**
+```bash
+USE_OMNIPAY=true|false        # Switch between implementations
+PAYMENT_GATEWAY=netbank       # Gateway selection (netbank, icash, etc.)
+DISBURSE_DISABLE=true|false   # Enable/disable disbursement in redemption flow
+```
+
+**Recommended for production:** `USE_OMNIPAY=true`
+
+**Benefits of Omnipay Implementation:**
+- Settlement rail validation (INSTAPAY vs PESONET)
+- EMI detection (GCash, PayMaya must use INSTAPAY)
+- KYC address workaround for testing
+- OAuth2 with token caching for better performance
+- Better error handling and structured logging
+- Comprehensive testing via Artisan commands
+- Amount limit validation per rail
+- Bank capability checking
+
+**Disbursement Flow:**
+1. User redeems voucher
+2. Post-redemption pipeline runs (config/voucher-pipeline.php)
+3. If `DISBURSE_DISABLE=false`, DisburseCash pipeline stage executes
+4. Gateway resolves based on `USE_OMNIPAY` flag
+5. Funds disbursed via selected implementation
+6. Transaction logged and events fired
+
+**Switching Implementations:**
+```bash
+# Enable Omnipay (recommended)
+USE_OMNIPAY=true
+php artisan config:clear
+php artisan config:cache
+
+# Rollback to direct API
+USE_OMNIPAY=false
+php artisan config:clear
+php artisan config:cache
+```
+
+See `docs/OMNIPAY_INTEGRATION_PLAN.md` for detailed architecture and migration guide.
 
 ### Notification Templates
 **Admin-level customizable templates** for voucher redemption notifications:

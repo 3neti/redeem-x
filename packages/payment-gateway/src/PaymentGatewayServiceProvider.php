@@ -44,7 +44,23 @@ class PaymentGatewayServiceProvider extends ServiceProvider
         $this->app->singleton(SystemUserResolverService::class, fn () => new SystemUserResolverService());
 
         $this->app->bind(PaymentGatewayInterface::class, function ($app) {
-            $concrete = config('payment-gateway.gateway', NetbankPaymentGateway::class);
+            // Check if we should use Omnipay implementation
+            $useOmnipay = filter_var(
+                env('USE_OMNIPAY', false),
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+            if ($useOmnipay) {
+                return $app->make(
+                    \LBHurtado\PaymentGateway\Gateways\Omnipay\OmnipayPaymentGateway::class
+                );
+            }
+
+            // Fall back to old direct API implementation
+            $concrete = config(
+                'payment-gateway.gateway',
+                NetbankPaymentGateway::class
+            );
             return $app->make($concrete);
         });
 
