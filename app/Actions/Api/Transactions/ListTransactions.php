@@ -27,6 +27,9 @@ class ListTransactions
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
         $search = $request->input('search');
+        $bank = $request->input('bank');
+        $rail = $request->input('rail');
+        $status = $request->input('status');
 
         $query = Voucher::query()
             ->with(['owner'])
@@ -44,6 +47,21 @@ class ListTransactions
         // Search by code
         if ($search) {
             $query->where('code', 'like', "%{$search}%");
+        }
+
+        // Filter by bank (from disbursement metadata)
+        if ($bank) {
+            $query->whereJsonContains('metadata->disbursement->bank', $bank);
+        }
+
+        // Filter by rail (from disbursement metadata)
+        if ($rail) {
+            $query->whereJsonContains('metadata->disbursement->rail', $rail);
+        }
+
+        // Filter by status (from disbursement metadata)
+        if ($status) {
+            $query->whereJsonContains('metadata->disbursement->status', $status);
         }
 
         $transactions = $query->paginate($perPage);
@@ -65,6 +83,9 @@ class ListTransactions
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
                 'search' => $search,
+                'bank' => $bank,
+                'rail' => $rail,
+                'status' => $status,
             ],
         ]);
     }
@@ -76,6 +97,9 @@ class ListTransactions
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'search' => ['nullable', 'string', 'max:255'],
+            'bank' => ['nullable', 'string', 'max:50'],
+            'rail' => ['nullable', 'string', 'in:INSTAPAY,PESONET'],
+            'status' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

@@ -38,6 +38,9 @@ const searchQuery = ref('');
 const debouncedSearchQuery = useDebounce(searchQuery, 500);
 const dateFrom = ref('');
 const dateTo = ref('');
+const filterBank = ref('');
+const filterRail = ref('');
+const filterStatus = ref('');
 
 const selectedTransaction = ref<TransactionData | null>(null);
 const isDetailModalOpen = ref(false);
@@ -53,6 +56,9 @@ const fetchTransactions = async (page: number = 1) => {
             search: debouncedSearchQuery.value || undefined,
             date_from: dateFrom.value || undefined,
             date_to: dateTo.value || undefined,
+            bank: filterBank.value || undefined,
+            rail: filterRail.value || undefined,
+            status: filterStatus.value || undefined,
             per_page: pagination.value.per_page,
             page,
         });
@@ -69,6 +75,9 @@ const fetchStats = async () => {
         const response = await getStats({
             date_from: dateFrom.value || undefined,
             date_to: dateTo.value || undefined,
+            bank: filterBank.value || undefined,
+            rail: filterRail.value || undefined,
+            status: filterStatus.value || undefined,
         });
         
         stats.value = response;
@@ -88,6 +97,9 @@ const clearFilters = async () => {
     searchQuery.value = '';
     dateFrom.value = '';
     dateTo.value = '';
+    filterBank.value = '';
+    filterRail.value = '';
+    filterStatus.value = '';
     await applyFilters();
 };
 
@@ -96,6 +108,9 @@ const exportTransactions = () => {
         search: debouncedSearchQuery.value || undefined,
         date_from: dateFrom.value || undefined,
         date_to: dateTo.value || undefined,
+        bank: filterBank.value || undefined,
+        rail: filterRail.value || undefined,
+        status: filterStatus.value || undefined,
     });
 };
 
@@ -191,8 +206,8 @@ watch(debouncedSearchQuery, () => {
     fetchTransactions(1);
 });
 
-// Auto-filter when date range changes
-watch([dateFrom, dateTo], () => {
+// Auto-filter when date range or filters change
+watch([dateFrom, dateTo, filterBank, filterRail, filterStatus], () => {
     applyFilters();
 });
 
@@ -270,25 +285,57 @@ onMounted(async () => {
                     </div>
                     
                     <!-- Filters -->
-                    <div class="grid gap-4 pt-4 sm:grid-cols-4">
-                        <div class="relative sm:col-span-2">
-                            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <div class="space-y-4 pt-4">
+                        <div class="grid gap-4 sm:grid-cols-4">
+                            <div class="relative sm:col-span-2">
+                                <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    v-model="searchQuery"
+                                    placeholder="Search by code... (auto-search enabled)"
+                                    class="pl-8"
+                                />
+                            </div>
                             <Input
-                                v-model="searchQuery"
-                                placeholder="Search by code... (auto-search enabled)"
-                                class="pl-8"
+                                v-model="dateFrom"
+                                type="date"
+                                placeholder="From date"
+                            />
+                            <Input
+                                v-model="dateTo"
+                                type="date"
+                                placeholder="To date"
                             />
                         </div>
-                        <Input
-                            v-model="dateFrom"
-                            type="date"
-                            placeholder="From date"
-                        />
-                        <Input
-                            v-model="dateTo"
-                            type="date"
-                            placeholder="To date"
-                        />
+                        <div class="grid gap-4 sm:grid-cols-3">
+                            <select
+                                v-model="filterBank"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                                <option value="">All Banks</option>
+                                <option value="GXCHPHM2XXX">GCash</option>
+                                <option value="PYMYPHM2XXX">PayMaya</option>
+                                <option value="MBTCPHM2XXX">Metrobank</option>
+                                <option value="BPIAPHM2XXX">BPI</option>
+                                <option value="BNORPHM2XXX">BDO</option>
+                            </select>
+                            <select
+                                v-model="filterRail"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                                <option value="">All Rails</option>
+                                <option value="INSTAPAY">INSTAPAY</option>
+                                <option value="PESONET">PESONET</option>
+                            </select>
+                            <select
+                                v-model="filterStatus"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                                <option value="">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Failed">Failed</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="flex gap-2 pt-2">
                         <Button @click="clearFilters" variant="outline" size="sm" :disabled="loading">
