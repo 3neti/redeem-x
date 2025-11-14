@@ -8,6 +8,7 @@ import Heading from '@/components/Heading.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2 } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 
@@ -104,6 +105,37 @@ const formatDate = (date: string) => {
         hour: '2-digit',
         minute: '2-digit',
     });
+};
+
+const getRailVariant = (rail?: string) => {
+    switch (rail) {
+        case 'INSTAPAY':
+            return 'default';
+        case 'PESONET':
+            return 'secondary';
+        default:
+            return 'outline';
+    }
+};
+
+const getStatusVariant = (status?: string) => {
+    switch (status?.toLowerCase()) {
+        case 'pending':
+            return 'secondary';
+        case 'completed':
+        case 'success':
+            return 'default';
+        case 'failed':
+        case 'error':
+            return 'destructive';
+        default:
+            return 'outline';
+    }
+};
+
+const getMaskedAccount = (account?: string) => {
+    if (!account || account.length <= 4) return account || 'N/A';
+    return '***' + account.slice(-4);
 };
 
 // Pagination helpers
@@ -263,8 +295,11 @@ onMounted(async () => {
                                 <tr>
                                     <th class="px-4 py-3 text-left">Voucher Code</th>
                                     <th class="px-4 py-3 text-right">Amount</th>
+                                    <th class="px-4 py-3 text-left">Bank / Account</th>
+                                    <th class="px-4 py-3 text-left">Rail</th>
+                                    <th class="px-4 py-3 text-left">Status</th>
+                                    <th class="px-4 py-3 text-left">Operation ID</th>
                                     <th class="px-4 py-3 text-left">Redeemed At</th>
-                                    <th class="px-4 py-3 text-left">Created At</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -277,7 +312,7 @@ onMounted(async () => {
                                     <tr
                                         v-for="transaction in transactions"
                                         :key="transaction.code"
-                                        class="border-b hover:bg-muted/50"
+                                        class="border-b hover:bg-muted/50 cursor-pointer"
                                     >
                                         <td class="px-4 py-3 font-mono font-semibold">
                                             {{ transaction.code }}
@@ -285,15 +320,43 @@ onMounted(async () => {
                                         <td class="px-4 py-3 text-right font-semibold text-green-600">
                                             {{ formatAmount(transaction.amount, transaction.currency) }}
                                         </td>
+                                        <td class="px-4 py-3">
+                                            <div v-if="transaction.disbursement" class="flex items-center gap-2">
+                                                <div>
+                                                    <div class="font-medium text-sm">
+                                                        {{ transaction.disbursement.bank_name || 'N/A' }}
+                                                    </div>
+                                                    <div class="text-xs text-muted-foreground font-mono">
+                                                        {{ getMaskedAccount(transaction.disbursement.account) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <Badge v-if="transaction.disbursement" :variant="getRailVariant(transaction.disbursement.rail)" class="text-xs">
+                                                {{ transaction.disbursement.rail }}
+                                            </Badge>
+                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <Badge v-if="transaction.disbursement" :variant="getStatusVariant(transaction.disbursement.status)" class="text-xs">
+                                                {{ transaction.disbursement.status }}
+                                            </Badge>
+                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span v-if="transaction.disbursement" class="font-mono text-xs text-muted-foreground">
+                                                {{ transaction.disbursement.operation_id }}
+                                            </span>
+                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                        </td>
                                         <td class="px-4 py-3 text-muted-foreground">
                                             {{ formatDate(transaction.redeemed_at) }}
                                         </td>
-                                        <td class="px-4 py-3 text-muted-foreground">
-                                            {{ formatDate(transaction.created_at) }}
-                                        </td>
                                     </tr>
                                     <tr v-if="transactions.length === 0">
-                                        <td colspan="4" class="px-4 py-8 text-center text-muted-foreground">
+                                        <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">
                                             No transactions found
                                         </td>
                                     </tr>
