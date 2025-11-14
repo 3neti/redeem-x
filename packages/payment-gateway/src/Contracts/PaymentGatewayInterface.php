@@ -37,4 +37,12 @@ interface PaymentGatewayInterface
      * @return bool
      */
     public function confirmDisbursement(string $operationId): bool;
+    
+    /**
+     * Check the status of a disbursement transaction.
+     *
+     * @param string $transactionId Gateway transaction ID
+     * @return array{status: string, raw: array} Normalized status + raw response
+     */
+    public function checkDisbursementStatus(string $transactionId): array;
 }

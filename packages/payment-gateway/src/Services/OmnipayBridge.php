@@ -250,6 +250,51 @@ class OmnipayBridge implements PaymentGatewayInterface
     }
     
     /**
+     * Check the status of a disbursement transaction
+     * 
+     * @param string $transactionId Gateway transaction ID
+     * @return array{status: string, raw: array} Normalized status + raw response
+     */
+    public function checkDisbursementStatus(string $transactionId): array
+    {
+        try {
+            $response = $this->gateway
+                ->checkDisbursementStatus([
+                    'transactionId' => $transactionId,
+                ])
+                ->send();
+            
+            if (!$response->isSuccessful()) {
+                Log::warning('[OmnipayBridge] Status check failed', [
+                    'transaction_id' => $transactionId,
+                    'message' => $response->getMessage(),
+                ]);
+                return ['status' => 'pending', 'raw' => []];
+            }
+            
+            $rawStatus = $response->getStatus();
+            $normalized = \LBHurtado\PaymentGateway\Enums\DisbursementStatus::fromGateway('netbank', $rawStatus);
+            
+            Log::info('[OmnipayBridge] Status checked', [
+                'transaction_id' => $transactionId,
+                'raw_status' => $rawStatus,
+                'normalized_status' => $normalized->value,
+            ]);
+            
+            return [
+                'status' => $normalized->value,
+                'raw' => $response->getRawData(),
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[OmnipayBridge] Status check error', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage()
+            ]);
+            return ['status' => 'pending', 'raw' => []];
+        }
+    }
+    
+    /**
      * Validate that bank supports the selected settlement rail
      * 
      * @param string $bankCode SWIFT BIC code

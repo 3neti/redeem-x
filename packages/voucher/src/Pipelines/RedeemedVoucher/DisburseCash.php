@@ -8,6 +8,7 @@ use LBHurtado\PaymentGateway\Data\Netbank\Disburse\{
     DisburseInputData
 };
 use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
 use LBHurtado\Voucher\Events\DisburseInputPrepared;
 use Illuminate\Support\Facades\Log;
 use Closure;
@@ -60,6 +61,9 @@ class DisburseCash
         $bankLogo = $bankRegistry->getBankLogo($input->bank);
         $isEmi = $bankRegistry->isEMI($input->bank);
         
+        // Normalize status using DisbursementStatus enum
+        $normalizedStatus = DisbursementStatus::fromGateway('netbank', $response->status)->value;
+        
         $voucher->metadata = array_merge(
             $voucher->metadata ?? [],
             [
@@ -67,7 +71,7 @@ class DisburseCash
                     // New generic format
                     'gateway' => 'netbank',
                     'transaction_id' => $response->transaction_id,
-                    'status' => $response->status,
+                    'status' => $normalizedStatus,
                     'amount' => $input->amount,
                     'currency' => 'PHP',
                     'recipient_identifier' => $input->account_number,

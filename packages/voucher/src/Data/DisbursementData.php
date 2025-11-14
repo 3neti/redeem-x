@@ -3,6 +3,7 @@
 namespace LBHurtado\Voucher\Data;
 
 use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
 use Spatie\LaravelData\Data;
 
 /**
@@ -113,4 +114,53 @@ class DisbursementData extends Data
         };
     }
     
+    /**
+     * Get status as DisbursementStatus enum
+     *
+     * @return DisbursementStatus
+     */
+    public function getStatusEnum(): DisbursementStatus
+    {
+        return DisbursementStatus::fromGateway($this->gateway, $this->status);
+    }
+    
+    /**
+     * Check if disbursement is in a final state (no more updates expected)
+     *
+     * @return bool
+     */
+    public function isFinal(): bool
+    {
+        return $this->getStatusEnum()->isFinal();
+    }
+    
+    /**
+     * Check if disbursement is pending or processing
+     *
+     * @return bool
+     */
+    public function isPending(): bool
+    {
+        return $this->getStatusEnum()->isPending();
+    }
+    
+    /**
+     * Get badge variant for UI display
+     *
+     * @return string
+     */
+    public function getStatusBadgeVariant(): string
+    {
+        return $this->getStatusEnum()->getBadgeVariant();
+    }
+    
+    /**
+     * Get status display label
+     *
+     * @return string
+     */
+    public function getStatusLabel(): string
+    {
+        return $this->getStatusEnum()->getLabel();
+    }
 }

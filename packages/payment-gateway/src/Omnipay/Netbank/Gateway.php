@@ -7,7 +7,8 @@ use LBHurtado\PaymentGateway\Omnipay\Netbank\Message\{
     GenerateQrRequest,
     DisburseRequest,
     ConfirmDisbursementRequest,
-    CheckBalanceRequest
+    CheckBalanceRequest,
+    CheckDisbursementStatusRequest
 };
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 
@@ -193,5 +194,13 @@ class Gateway extends AbstractGateway
     public function checkBalance(array $options = []): CheckBalanceRequest
     {
         return $this->createRequest(CheckBalanceRequest::class, $options);
+    }
+    
+    /**
+     * Check disbursement transaction status
+     */
+    public function checkDisbursementStatus(array $options = []): CheckDisbursementStatusRequest
+    {
+        return $this->createRequest(CheckDisbursementStatusRequest::class, $options);
     }
 }

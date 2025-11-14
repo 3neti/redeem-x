@@ -129,4 +129,52 @@ trait CanDisburse
             return false;
         }
     }
+    
+    /**
+     * Check the status of a disbursement transaction.
+     *
+     * @param string $transactionId Gateway transaction ID
+     * @return array{status: string, raw: array}
+     */
+    public function checkDisbursementStatus(string $transactionId): array
+    {
+        try {
+            $endpoint = config('disbursement.server.status-endpoint');
+            
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Content-Type' => 'application/json',
+            ])->get($endpoint . '/' . $transactionId);
+            
+            if (!$response->successful()) {
+                Log::warning('[Netbank] Status check failed', [
+                    'transaction_id' => $transactionId,
+                    'status_code' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                return ['status' => 'pending', 'raw' => []];
+            }
+            
+            $data = $response->json();
+            $rawStatus = $data['status'] ?? 'Pending';
+            $normalized = \LBHurtado\PaymentGateway\Enums\DisbursementStatus::fromGateway('netbank', $rawStatus);
+            
+            Log::info('[Netbank] Status checked', [
+                'transaction_id' => $transactionId,
+                'raw_status' => $rawStatus,
+                'normalized_status' => $normalized->value,
+            ]);
+            
+            return [
+                'status' => $normalized->value,
+                'raw' => $data,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[Netbank] Status check error', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage()
+            ]);
+            return ['status' => 'pending', 'raw' => []];
+        }
+    }
 }

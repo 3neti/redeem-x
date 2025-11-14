@@ -15,7 +15,7 @@ NETBANK_CLIENT_SECRET=6oL5wM07lCKzQo0HRl3NJRMS1YdOCPnzhbdBUq38u9rfrtOu
 NETBANK_TOKEN_ENDPOINT=https://auth.netbank.ph/oauth2/token
 NETBANK_DISBURSEMENT_ENDPOINT=https://api.netbank.ph/v1/transactions
 NETBANK_QR_ENDPOINT=https://api.netbank.ph/v1/qrph/generate
-NETBANK_STATUS_ENDPOINT=https://api.netbank.ph/v1/transactions/:operationId
+NETBANK_STATUS_ENDPOINT=https://api.netbank.ph/v1/transactions
 NETBANK_BALANCE_ENDPOINT=https://api.netbank.ph/v1/accounts/balance
 
 # Configuration
