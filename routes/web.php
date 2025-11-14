@@ -64,6 +64,10 @@ Route::middleware([
             ->name('index');
     });
     
+    // Balance monitoring routes (admin only, configurable via .env)
+    Route::get('balances', [\App\Http\Controllers\BalancePageController::class, 'index'])
+        ->name('balances.index');
+    
     // Admin routes (requires super-admin role)
     Route::prefix('admin')
         ->name('admin.')
