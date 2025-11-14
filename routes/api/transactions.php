@@ -34,4 +34,9 @@ Route::prefix('transactions')->name('api.transactions.')->group(function () {
     // GET /api/v1/transactions/{voucher}
     Route::get('/{voucher:code}', [\App\Actions\Api\Transactions\ShowTransaction::class, 'asController'])
         ->name('show');
+    
+    // Refresh disbursement status
+    // POST /api/v1/transactions/{code}/refresh-status
+    Route::post('/{code}/refresh-status', [\App\Actions\Api\Transactions\RefreshDisbursementStatus::class, 'asController'])
+        ->name('refresh-status');
 });
