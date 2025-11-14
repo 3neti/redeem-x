@@ -56,48 +56,38 @@ const copyOperationId = async () => {
     }
 };
 
-// Helper to get transaction ID (new format) or operation_id (legacy)
+// Helper to get transaction ID
 const getTransactionId = () => {
-    const d = props.transaction?.disbursement;
-    return d?.transaction_id || d?.operation_id;
+    return props.transaction?.disbursement?.transaction_id;
 };
 
-// Helper to get recipient identifier (new format) or account (legacy)
+// Helper to get recipient identifier
 const getRecipientIdentifier = () => {
-    const d = props.transaction?.disbursement;
-    return d?.recipient_identifier || d?.account || 'N/A';
+    return props.transaction?.disbursement?.recipient_identifier || 'N/A';
 };
 
-// Helper to get bank/recipient name (new format) or bank_name (legacy)
+// Helper to get bank/recipient name
 const getBankName = () => {
-    const d = props.transaction?.disbursement;
-    return d?.recipient_name || d?.bank_name || 'N/A';
+    return props.transaction?.disbursement?.recipient_name || 'N/A';
 };
 
-// Helper to get rail (new format: metadata.rail or legacy: rail)
+// Helper to get rail
 const getRail = () => {
-    const d = props.transaction?.disbursement;
-    return d?.metadata?.rail || d?.rail;
+    return props.transaction?.disbursement?.metadata?.rail;
 };
 
 // Helper to get payment method display
 const getPaymentMethod = () => {
-    const d = props.transaction?.disbursement;
-    // New format: use payment_method directly
-    if (d?.payment_method) {
-        return d.payment_method === 'bank_transfer' ? 'Bank Transfer' : 
-               d.payment_method === 'e_wallet' ? 'E-Wallet' : 
-               d.payment_method === 'card' ? 'Credit/Debit Card' : 
-               d.payment_method;
-    }
-    // Legacy format: check is_emi flag
-    return d?.is_emi ? 'E-Wallet' : 'Bank Transfer';
+    const pm = props.transaction?.disbursement?.payment_method;
+    return pm === 'bank_transfer' ? 'Bank Transfer' : 
+           pm === 'e_wallet' ? 'E-Wallet' : 
+           pm === 'card' ? 'Credit/Debit Card' : 
+           pm || 'Unknown';
 };
 
 // Helper to check if it's an e-wallet
 const isEWallet = () => {
-    const d = props.transaction?.disbursement;
-    return d?.payment_method === 'e_wallet' || d?.metadata?.is_emi || d?.is_emi;
+    return props.transaction?.disbursement?.payment_method === 'e_wallet';
 };
 
 // Helper to get gateway display name
@@ -111,8 +101,7 @@ const getGatewayName = () => {
 
 // Helper to get currency
 const getCurrency = () => {
-    const d = props.transaction?.disbursement;
-    return d?.currency || props.transaction?.currency || 'PHP';
+    return props.transaction?.disbursement?.currency || props.transaction?.currency || 'PHP';
 };
 
 const getRailVariant = (rail?: string) => {

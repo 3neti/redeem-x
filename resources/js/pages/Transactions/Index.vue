@@ -165,24 +165,24 @@ const getMaskedAccount = (account?: string) => {
     return '***' + account.slice(-4);
 };
 
-// Helper to get recipient identifier (new format) or account (legacy)
+// Helper to get recipient identifier
 const getRecipientIdentifier = (disbursement: any) => {
-    return disbursement.recipient_identifier || disbursement.account || 'N/A';
+    return disbursement.recipient_identifier || 'N/A';
 };
 
-// Helper to get bank/recipient name (new format) or bank_name (legacy)
+// Helper to get bank/recipient name
 const getBankName = (disbursement: any) => {
-    return disbursement.recipient_name || disbursement.bank_name || 'N/A';
+    return disbursement.recipient_name || 'N/A';
 };
 
-// Helper to get rail (new format: metadata.rail or legacy: rail)
+// Helper to get rail
 const getRail = (disbursement: any) => {
-    return disbursement.metadata?.rail || disbursement.rail;
+    return disbursement.metadata?.rail;
 };
 
-// Helper to get transaction ID (new format) or operation_id (legacy)
+// Helper to get transaction ID
 const getTransactionId = (disbursement: any) => {
-    return disbursement.transaction_id || disbursement.operation_id;
+    return disbursement.transaction_id;
 };
 
 // Pagination helpers

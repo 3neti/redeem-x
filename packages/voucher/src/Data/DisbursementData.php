@@ -9,8 +9,6 @@ use Spatie\LaravelData\Data;
  * Disbursement Data DTO
  * 
  * Generic DTO for disbursement transactions that supports multiple payment gateways.
- * Maintains backward compatibility with legacy NetBank format.
- * 
  * Core fields are gateway-agnostic, while gateway-specific data is stored in metadata.
  */
 class DisbursementData extends Data
@@ -28,28 +26,10 @@ class DisbursementData extends Data
         public ?string $recipient_name = null,   // Display name (e.g., "GCash", "john@example.com")
         public ?string $payment_method = null,   // 'bank_transfer', 'e_wallet', 'card', etc.
         public ?array $metadata = null,          // Gateway-specific extra data
-        
-        // Legacy fields (deprecated, kept for backward compatibility)
-        /** @deprecated Use transaction_id instead */
-        public ?string $operation_id = null,
-        /** @deprecated Use metadata.bank_code instead */
-        public ?string $bank = null,
-        /** @deprecated Use metadata.rail instead */
-        public ?string $rail = null,
-        /** @deprecated Use recipient_identifier instead */
-        public ?string $account = null,
-        /** @deprecated Use metadata.bank_name or recipient_name instead */
-        public ?string $bank_name = null,
-        /** @deprecated Use metadata.bank_logo instead */
-        public ?string $bank_logo = null,
-        /** @deprecated Use metadata.is_emi instead */
-        public bool $is_emi = false,
     ) {}
     
     /**
      * Create from voucher metadata
-     * 
-     * Supports both new generic format and legacy NetBank format.
      *
      * @param array|null $metadata Voucher metadata containing 'disbursement' key
      * @return static|null
@@ -58,107 +38,22 @@ class DisbursementData extends Data
     {
         $disbursement = $metadata['disbursement'] ?? null;
         
-        if (!$disbursement) {
+        if (!$disbursement || !isset($disbursement['gateway'])) {
             return null;
         }
         
-        // Try new generic format first
-        if (isset($disbursement['gateway'])) {
-            return static::fromGenericFormat($disbursement);
-        }
-        
-        // Fall back to legacy NetBank format
-        return static::fromLegacyNetbankFormat($disbursement);
-    }
-    
-    /**
-     * Create from new generic format
-     *
-     * @param array $data Disbursement data in generic format
-     * @return static
-     */
-    protected static function fromGenericFormat(array $data): static
-    {
-        // Extract legacy fields for backward compatibility
-        $legacyOperationId = $data['metadata']['operation_id'] ?? $data['transaction_id'];
-        $legacyBank = $data['metadata']['bank_code'] ?? null;
-        $legacyRail = $data['metadata']['rail'] ?? null;
-        $legacyAccount = $data['metadata']['account'] ?? $data['recipient_identifier'];
-        $legacyBankName = $data['metadata']['bank_name'] ?? $data['recipient_name'];
-        $legacyBankLogo = $data['metadata']['bank_logo'] ?? null;
-        $legacyIsEmi = $data['metadata']['is_emi'] ?? false;
-        
         return new static(
-            gateway: $data['gateway'],
-            transaction_id: $data['transaction_id'],
-            status: $data['status'] ?? 'Unknown',
-            amount: (float) ($data['amount'] ?? 0),
-            currency: $data['currency'] ?? 'PHP',
-            recipient_identifier: $data['recipient_identifier'],
-            disbursed_at: $data['disbursed_at'],
-            transaction_uuid: $data['transaction_uuid'] ?? null,
-            recipient_name: $data['recipient_name'] ?? null,
-            payment_method: $data['payment_method'] ?? null,
-            metadata: $data['metadata'] ?? null,
-            
-            // Populate legacy fields for backward compatibility
-            operation_id: $legacyOperationId,
-            bank: $legacyBank,
-            rail: $legacyRail,
-            account: $legacyAccount,
-            bank_name: $legacyBankName,
-            bank_logo: $legacyBankLogo,
-            is_emi: $legacyIsEmi,
-        );
-    }
-    
-    /**
-     * Create from legacy NetBank format
-     * 
-     * Maps old NetBank-specific fields to new generic structure.
-     *
-     * @param array $data Disbursement data in legacy NetBank format
-     * @return static
-     */
-    protected static function fromLegacyNetbankFormat(array $data): static
-    {
-        $bankRegistry = app(BankRegistry::class);
-        $bankCode = $data['bank'] ?? '';
-        $operationId = $data['operation_id'] ?? '';
-        $account = $data['account'] ?? '';
-        $rail = $data['rail'] ?? '';
-        $bankName = $bankRegistry->getBankName($bankCode);
-        $bankLogo = $bankRegistry->getBankLogo($bankCode);
-        $isEmi = $bankRegistry->isEMI($bankCode);
-        
-        return new static(
-            // Map to new generic format
-            gateway: 'netbank',
-            transaction_id: $operationId,
-            status: $data['status'] ?? 'Unknown',
-            amount: (float) ($data['amount'] ?? 0),
-            currency: 'PHP',
-            recipient_identifier: $account,
-            disbursed_at: $data['disbursed_at'] ?? '',
-            transaction_uuid: $data['transaction_uuid'] ?? null,
-            recipient_name: $bankName,
-            payment_method: 'bank_transfer',
-            metadata: [
-                'bank_code' => $bankCode,
-                'bank_name' => $bankName,
-                'bank_logo' => $bankLogo,
-                'rail' => $rail,
-                'is_emi' => $isEmi,
-            ],
-            
-            // Keep legacy fields populated
-            operation_id: $operationId,
-            bank: $bankCode,
-            rail: $rail,
-            account: $account,
-            bank_name: $bankName,
-            bank_logo: $bankLogo,
-            is_emi: $isEmi,
+            gateway: $disbursement['gateway'],
+            transaction_id: $disbursement['transaction_id'],
+            status: $disbursement['status'] ?? 'Unknown',
+            amount: (float) ($disbursement['amount'] ?? 0),
+            currency: $disbursement['currency'] ?? 'PHP',
+            recipient_identifier: $disbursement['recipient_identifier'],
+            disbursed_at: $disbursement['disbursed_at'],
+            transaction_uuid: $disbursement['transaction_uuid'] ?? null,
+            recipient_name: $disbursement['recipient_name'] ?? null,
+            payment_method: $disbursement['payment_method'] ?? null,
+            metadata: $disbursement['metadata'] ?? null,
         );
     }
     
@@ -170,14 +65,11 @@ class DisbursementData extends Data
      */
     public function getMaskedAccount(): string
     {
-        // Use new field, fall back to legacy
-        $identifier = $this->recipient_identifier ?? $this->account ?? '';
-        
-        if (strlen($identifier) <= 4) {
-            return $identifier;
+        if (strlen($this->recipient_identifier) <= 4) {
+            return $this->recipient_identifier;
         }
         
-        return '***' . substr($identifier, -4);
+        return '***' . substr($this->recipient_identifier, -4);
     }
     
     /**
@@ -221,55 +113,4 @@ class DisbursementData extends Data
         };
     }
     
-    // Gateway-specific helper methods
-    
-    /**
-     * Get bank code (NetBank/ICash specific)
-     *
-     * @return string|null
-     */
-    public function getBankCode(): ?string
-    {
-        return $this->metadata['bank_code'] ?? $this->bank;
-    }
-    
-    /**
-     * Get settlement rail (NetBank/ICash specific)
-     *
-     * @return string|null
-     */
-    public function getRail(): ?string
-    {
-        return $this->metadata['rail'] ?? $this->rail;
-    }
-    
-    /**
-     * Get bank name
-     *
-     * @return string|null
-     */
-    public function getBankName(): ?string
-    {
-        return $this->metadata['bank_name'] ?? $this->bank_name ?? $this->recipient_name;
-    }
-    
-    /**
-     * Get bank logo path
-     *
-     * @return string|null
-     */
-    public function getBankLogo(): ?string
-    {
-        return $this->metadata['bank_logo'] ?? $this->bank_logo;
-    }
-    
-    /**
-     * Check if recipient is an EMI (e-Money Issuer) like GCash or PayMaya
-     *
-     * @return bool
-     */
-    public function isEMI(): bool
-    {
-        return $this->metadata['is_emi'] ?? $this->is_emi;
-    }
 }
