@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import BalanceWidget from '@/components/BalanceWidget.vue'
+import ReconciliationStatusCard from '@/components/ReconciliationStatusCard.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,26 @@ interface BalanceAlert {
   last_triggered_at: string | null
 }
 
+interface ReconciliationStatus {
+  enabled: boolean
+  status: 'safe' | 'warning' | 'critical' | 'disabled'
+  message: string
+  bank_balance?: number
+  system_balance?: number
+  discrepancy?: number
+  usage_percent?: number
+  available?: number
+  buffer?: number
+  formatted?: {
+    bank_balance: string
+    system_balance: string
+    discrepancy: string
+    available: string
+    buffer: string
+  }
+  suppressed?: boolean
+}
+
 const props = defineProps<{
   balance: BalanceData | null
   trend: TrendEntry[]
@@ -46,6 +67,7 @@ const props = defineProps<{
   alerts: BalanceAlert[]
   accountNumber: string
   canManageAlerts: boolean
+  reconciliation: ReconciliationStatus
 }>()
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -82,6 +104,9 @@ const getAlertBadgeVariant = (enabled: boolean) => {
           Account: <span class="font-mono">{{ accountNumber }}</span>
         </p>
       </div>
+
+      <!-- Reconciliation Status Card -->
+      <ReconciliationStatusCard :status="reconciliation" />
 
       <!-- Balance Widget -->
       <div class="grid gap-6 md:grid-cols-3">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\BalanceService;
+use App\Services\ReconciliationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -17,7 +18,7 @@ class BalancePageController extends Controller
      * - Admin role required (configurable via BALANCE_VIEW_ROLE)
      * - Can be disabled via BALANCE_VIEW_ENABLED=false
      */
-    public function index(BalanceService $service): Response
+    public function index(BalanceService $service, ReconciliationService $reconciliation): Response
     {
         // Check if balance viewing is enabled
         if (!config('balance.view_enabled', true)) {
@@ -68,6 +69,9 @@ class BalancePageController extends Controller
             'recorded_at' => $entry->recorded_at->toIso8601String(),
         ]);
 
+        // Get reconciliation status
+        $reconciliationStatus = $reconciliation->getReconciliationStatus($accountNumber);
+
         return Inertia::render('Balances/Index', [
             'balance' => $balance,
             'trend' => $trendData,
@@ -75,6 +79,7 @@ class BalancePageController extends Controller
             'alerts' => $alerts,
             'accountNumber' => $accountNumber,
             'canManageAlerts' => auth()->user()->hasRole($requiredRole),
+            'reconciliation' => $reconciliationStatus,
         ]);
     }
 }

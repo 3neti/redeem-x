@@ -71,4 +71,58 @@ return [
         'cron' => env('BALANCE_SCHEDULE_CRON', '0 * * * *'),
     ],
 
+    /**
+     * Balance reconciliation configuration.
+     * Ensures system balance never exceeds bank balance.
+     */
+    'reconciliation' => [
+        /**
+         * Enable or disable reconciliation checks.
+         */
+        'enabled' => env('BALANCE_RECONCILIATION_ENABLED', true),
+
+        /**
+         * Safety buffer percentage (e.g., 10 = keep 10% reserve).
+         */
+        'buffer' => env('BALANCE_RECONCILIATION_BUFFER', 10),
+
+        /**
+         * Custom buffer amount in centavos (overrides percentage if set).
+         * Example: 5000000 = ₱50,000.00
+         */
+        'buffer_amount' => env('BALANCE_RECONCILIATION_BUFFER_AMOUNT'),
+
+        /**
+         * Warning threshold percentage (e.g., 90 = warn at 90% usage).
+         */
+        'warning_threshold' => env('BALANCE_RECONCILIATION_WARNING_THRESHOLD', 90),
+
+        /**
+         * Block voucher generation if would exceed bank balance.
+         */
+        'block_generation' => env('BALANCE_RECONCILIATION_BLOCK_GENERATION', true),
+
+        /**
+         * Email addresses to alert on critical discrepancies (comma-separated).
+         */
+        'alert_emails' => env('BALANCE_RECONCILIATION_ALERT_EMAILS', ''),
+
+        /**
+         * EMERGENCY OVERRIDE: Disable all reconciliation checks.
+         * ⚠️ USE WITH EXTREME CAUTION!
+         */
+        'override' => env('BALANCE_RECONCILIATION_OVERRIDE', false),
+
+        /**
+         * Allow voucher generation even if would exceed bank balance.
+         * ⚠️ NOT RECOMMENDED FOR PRODUCTION!
+         */
+        'allow_overgeneration' => env('BALANCE_RECONCILIATION_ALLOW_OVERGENERATION', false),
+
+        /**
+         * Suppress warning messages in UI (still logs).
+         */
+        'suppress_warnings' => env('BALANCE_RECONCILIATION_SUPPRESS_WARNINGS', false),
+    ],
+
 ];

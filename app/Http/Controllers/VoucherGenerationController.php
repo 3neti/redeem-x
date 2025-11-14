@@ -6,8 +6,10 @@ use LBHurtado\Voucher\Actions\GenerateVouchers;
 use App\Http\Requests\VoucherGenerationRequest;
 use App\Actions\CalculateChargeAction;
 use App\Models\VoucherGenerationCharge;
+use App\Services\ReconciliationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,10 +28,30 @@ class VoucherGenerationController extends Controller
     /**
      * Generate vouchers based on instructions.
      */
-    public function store(VoucherGenerationRequest $request, CalculateChargeAction $calculateCharge): RedirectResponse
-    {
+    public function store(
+        VoucherGenerationRequest $request,
+        CalculateChargeAction $calculateCharge,
+        ReconciliationService $reconciliation
+    ): RedirectResponse {
         $instructions = $request->toInstructions();
         $user = auth()->user();
+
+        // Check reconciliation before generation
+        $totalAmount = $instructions->cash->amount * $instructions->count;
+        
+        if ($reconciliation->shouldBlockGeneration($totalAmount)) {
+            Log::warning('[VoucherGeneration] Blocked due to insufficient bank balance', [
+                'user_id' => $user->id,
+                'requested_amount' => $totalAmount,
+                'available' => $reconciliation->getAvailableAmount(
+                    $reconciliation->getBankBalance()
+                ),
+            ]);
+
+            return back()->withErrors([
+                'amount' => $reconciliation->getGenerationLimitMessage(),
+            ]);
+        }
         
         return DB::transaction(function () use ($instructions, $user, $calculateCharge) {
             // Generate vouchers
