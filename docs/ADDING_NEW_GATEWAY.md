@@ -48,6 +48,7 @@ class Gateway extends AbstractGateway
     // - disburse()
     // - generateQr()
     // - checkDisbursementStatus() (optional but recommended)
+    // - checkBalance() (optional but recommended)
 }
 ```
 
@@ -56,6 +57,8 @@ class Gateway extends AbstractGateway
 - `src/Omnipay/Bdo/Message/DisburseResponse.php` - Disburse response
 - `src/Omnipay/Bdo/Message/CheckDisbursementStatusRequest.php` - Status check
 - `src/Omnipay/Bdo/Message/CheckDisbursementStatusResponse.php` - Status response
+- `src/Omnipay/Bdo/Message/CheckBalanceRequest.php` - Balance check (optional)
+- `src/Omnipay/Bdo/Message/CheckBalanceResponse.php` - Balance response (optional)
 
 See `packages/payment-gateway/src/Omnipay/Netbank/` for reference implementation.
 
@@ -194,6 +197,112 @@ public function __construct()
 ```
 
 **Note:** If you skip this step, the system will use `DefaultDataEnricher` which just logs that raw data is available.
+
+---
+
+## Step 4.5 (Optional): Implement Balance Check
+
+If your gateway supports balance checking, implement the `checkBalance()` method.
+
+**File:** `packages/payment-gateway/src/Omnipay/Bdo/Message/CheckBalanceRequest.php`
+
+```php
+<?php
+
+namespace LBHurtado\PaymentGateway\Omnipay\Bdo\Message;
+
+use Omnipay\Common\Message\AbstractRequest;
+
+class CheckBalanceRequest extends AbstractRequest
+{
+    public function getData()
+    {
+        $this->validate('accountNumber');
+        return [];
+    }
+    
+    public function sendData($data)
+    {
+        $token = $this->getAccessToken();
+        
+        $httpResponse = $this->httpClient->request(
+            'GET',
+            $this->getEndpoint(),
+            [
+                'Authorization' => "Bearer {$token}",
+                'Content-Type' => 'application/json',
+            ]
+        );
+        
+        $responseData = json_decode($httpResponse->getBody()->getContents(), true);
+        
+        return new CheckBalanceResponse($this, $responseData);
+    }
+    
+    public function getEndpoint(): string
+    {
+        $baseUrl = $this->getParameter('balanceEndpoint');
+        $accountNumber = $this->getParameter('accountNumber');
+        return rtrim($baseUrl, '/') . '/' . $accountNumber;
+    }
+}
+```
+
+**File:** `packages/payment-gateway/src/Omnipay/Bdo/Message/CheckBalanceResponse.php`
+
+```php
+<?php
+
+namespace LBHurtado\PaymentGateway\Omnipay\Bdo\Message;
+
+use Omnipay\Common\Message\AbstractResponse;
+
+class CheckBalanceResponse extends AbstractResponse
+{
+    public function isSuccessful(): bool
+    {
+        // Adapt to BDO's response structure
+        return isset($this->data['balance']);
+    }
+    
+    public function getBalance(): ?int
+    {
+        // Return balance in centavos (minor units)
+        return $this->data['balance'] ?? null;
+    }
+    
+    public function getAvailableBalance(): ?int
+    {
+        return $this->data['available_balance'] ?? $this->getBalance();
+    }
+    
+    public function getCurrency(): string
+    {
+        return $this->data['currency'] ?? 'PHP';
+    }
+    
+    public function getAccountNumber(): ?string
+    {
+        return $this->data['account_number'] ?? null;
+    }
+    
+    public function getAsOf(): ?string
+    {
+        return $this->data['as_of'] ?? null;
+    }
+}
+```
+
+**Add to Gateway:**
+
+```php
+public function checkBalance(array $options = []): CheckBalanceRequest
+{
+    return $this->createRequest(CheckBalanceRequest::class, $options);
+}
+```
+
+**Note:** The PaymentGatewayInterface will automatically use this via `checkAccountBalance()` method - no additional wiring needed!
 
 ---
 

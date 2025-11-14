@@ -45,4 +45,12 @@ interface PaymentGatewayInterface
      * @return array{status: string, raw: array} Normalized status + raw response
      */
     public function checkDisbursementStatus(string $transactionId): array;
+    
+    /**
+     * Check account balance.
+     *
+     * @param string $accountNumber Account number to check
+     * @return array{balance: int, available_balance: int, currency: string, as_of: ?string, raw: array}
+     */
+    public function checkAccountBalance(string $accountNumber): array;
 }

@@ -295,6 +295,67 @@ class OmnipayBridge implements PaymentGatewayInterface
     }
     
     /**
+     * Check account balance (PaymentGatewayInterface implementation).
+     * 
+     * @param string $accountNumber Account number to check
+     * @return array{balance: int, available_balance: int, currency: string, as_of: ?string, raw: array}
+     */
+    public function checkAccountBalance(string $accountNumber): array
+    {
+        try {
+            Log::debug('[OmnipayBridge] Checking balance', [
+                'account' => $accountNumber,
+            ]);
+            
+            $response = $this->gateway->checkBalance([
+                'accountNumber' => $accountNumber,
+            ])->send();
+            
+            if (!$response->isSuccessful()) {
+                Log::warning('[OmnipayBridge] Balance check failed', [
+                    'account' => $accountNumber,
+                    'error' => $response->getMessage(),
+                ]);
+                
+                return [
+                    'balance' => 0,
+                    'available_balance' => 0,
+                    'currency' => 'PHP',
+                    'as_of' => null,
+                    'raw' => [],
+                ];
+            }
+            
+            Log::info('[OmnipayBridge] Balance checked', [
+                'account' => $accountNumber,
+                'balance' => $response->getBalance(),
+            ]);
+            
+            return [
+                'balance' => $response->getBalance(),
+                'available_balance' => $response->getAvailableBalance(),
+                'currency' => $response->getCurrency(),
+                'as_of' => $response->getAsOf(),
+                'raw' => $response->getData(),
+            ];
+            
+        } catch (\Throwable $e) {
+            Log::error('[OmnipayBridge] Balance check error', [
+                'account' => $accountNumber,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'balance' => 0,
+                'available_balance' => 0,
+                'currency' => 'PHP',
+                'as_of' => null,
+                'raw' => [],
+            ];
+        }
+    }
+    
+    /**
      * Validate that bank supports the selected settlement rail
      * 
      * @param string $bankCode SWIFT BIC code
