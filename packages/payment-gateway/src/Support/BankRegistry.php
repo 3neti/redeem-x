@@ -89,6 +89,51 @@ class BankRegistry
         return $this->getEMIs()->has($swiftBic);
     }
 
+    /**
+     * Get human-readable bank name
+     */
+    public function getBankName(string $swiftBic): string
+    {
+        $bank = $this->find($swiftBic);
+        
+        if ($bank && isset($bank['name'])) {
+            return $bank['name'];
+        }
+        
+        // Fallback map for known banks
+        $knownBanks = [
+            'GXCHPHM2XXX' => 'GCash',
+            'PYMYPHM2XXX' => 'PayMaya',
+            'MBTCPHM2XXX' => 'Metrobank',
+            'BPIAPHM2XXX' => 'BPI',
+            'BNORPHM2XXX' => 'BDO',
+            'UBPHPHMM XXX' => 'UnionBank',
+            'SECBPHM2XXX' => 'Security Bank',
+            'RCBCPHM2XXX' => 'RCBC',
+            'PNBMPHM2XXX' => 'PNB',
+            'LBPAPHM2XXX' => 'Landbank',
+        ];
+        
+        return $knownBanks[$swiftBic] ?? $swiftBic;
+    }
+    
+    /**
+     * Get bank logo path
+     */
+    public function getBankLogo(string $swiftBic): ?string
+    {
+        // Map of bank codes to logo paths
+        $logos = [
+            'GXCHPHM2XXX' => '/images/banks/gcash.svg',
+            'PYMYPHM2XXX' => '/images/banks/paymaya.svg',
+            'MBTCPHM2XXX' => '/images/banks/metrobank.svg',
+            'BPIAPHM2XXX' => '/images/banks/bpi.svg',
+            'BNORPHM2XXX' => '/images/banks/bdo.svg',
+        ];
+        
+        return $logos[$swiftBic] ?? null;
+    }
+
     public function toCollection(): Collection
     {
         return collect($this->banks);

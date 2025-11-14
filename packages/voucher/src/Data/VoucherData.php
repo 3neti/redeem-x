@@ -40,6 +40,7 @@ class VoucherData extends Data
         public DataCollection               $inputs,
         public ?CashData                    $cash = null,
         public ?ContactData                 $contact = null,
+        public ?DisbursementData            $disbursement = null,
 //        public ?ModelData                   $redeemer,
         // Computed fields
         public ?string                      $status = null,
@@ -79,6 +80,7 @@ class VoucherData extends Data
             inputs: new DataCollection(InputData::class, $model->inputs),
             cash: $model->cash instanceof Cash ? CashData::fromModel($model->cash) : null,
             contact: $model->contact instanceof Contact ? ContactData::fromModel($model->contact) : null,
+            disbursement: DisbursementData::fromMetadata($model->metadata),
 //            redeemer: $model->redeemer
 //                ? ModelData::fromModel($model->redeemer)
 //                : null,
