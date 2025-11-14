@@ -42,6 +42,9 @@ const filterBank = ref('');
 const filterRail = ref('');
 const filterStatus = ref('');
 
+// Column visibility
+const showRailColumn = ref(true);
+
 const selectedTransaction = ref<TransactionData | null>(null);
 const isDetailModalOpen = ref(false);
 
@@ -160,6 +163,26 @@ const getStatusVariant = (status?: string) => {
 const getMaskedAccount = (account?: string) => {
     if (!account || account.length <= 4) return account || 'N/A';
     return '***' + account.slice(-4);
+};
+
+// Helper to get recipient identifier (new format) or account (legacy)
+const getRecipientIdentifier = (disbursement: any) => {
+    return disbursement.recipient_identifier || disbursement.account || 'N/A';
+};
+
+// Helper to get bank/recipient name (new format) or bank_name (legacy)
+const getBankName = (disbursement: any) => {
+    return disbursement.recipient_name || disbursement.bank_name || 'N/A';
+};
+
+// Helper to get rail (new format: metadata.rail or legacy: rail)
+const getRail = (disbursement: any) => {
+    return disbursement.metadata?.rail || disbursement.rail;
+};
+
+// Helper to get transaction ID (new format) or operation_id (legacy)
+const getTransactionId = (disbursement: any) => {
+    return disbursement.transaction_id || disbursement.operation_id;
 };
 
 // Pagination helpers
@@ -337,10 +360,20 @@ onMounted(async () => {
                             </select>
                         </div>
                     </div>
-                    <div class="flex gap-2 pt-2">
+                    <div class="flex items-center justify-between pt-2">
                         <Button @click="clearFilters" variant="outline" size="sm" :disabled="loading">
                             Clear
                         </Button>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-muted-foreground flex items-center gap-2 cursor-pointer">
+                                <input
+                                    v-model="showRailColumn"
+                                    type="checkbox"
+                                    class="rounded border-input"
+                                />
+                                Show Rail Column
+                            </label>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -351,10 +384,10 @@ onMounted(async () => {
                                 <tr>
                                     <th class="px-4 py-3 text-left">Voucher Code</th>
                                     <th class="px-4 py-3 text-right">Amount</th>
-                                    <th class="px-4 py-3 text-left">Bank / Account</th>
-                                    <th class="px-4 py-3 text-left">Rail</th>
+                                    <th class="px-4 py-3 text-left">Recipient / Account</th>
+                                    <th v-if="showRailColumn" class="px-4 py-3 text-left">Rail</th>
                                     <th class="px-4 py-3 text-left">Status</th>
-                                    <th class="px-4 py-3 text-left">Operation ID</th>
+                                    <th class="px-4 py-3 text-left">Transaction ID</th>
                                     <th class="px-4 py-3 text-left">Redeemed At</th>
                                 </tr>
                             </thead>
@@ -381,18 +414,18 @@ onMounted(async () => {
                                             <div v-if="transaction.disbursement" class="flex items-center gap-2">
                                                 <div>
                                                     <div class="font-medium text-sm">
-                                                        {{ transaction.disbursement.bank_name || 'N/A' }}
+                                                        {{ getBankName(transaction.disbursement) }}
                                                     </div>
                                                     <div class="text-xs text-muted-foreground font-mono">
-                                                        {{ getMaskedAccount(transaction.disbursement.account) }}
+                                                        {{ getMaskedAccount(getRecipientIdentifier(transaction.disbursement)) }}
                                                     </div>
                                                 </div>
                                             </div>
                                             <span v-else class="text-xs text-muted-foreground">N/A</span>
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <Badge v-if="transaction.disbursement" :variant="getRailVariant(transaction.disbursement.rail)" class="text-xs">
-                                                {{ transaction.disbursement.rail }}
+                                        <td v-if="showRailColumn" class="px-4 py-3">
+                                            <Badge v-if="transaction.disbursement && getRail(transaction.disbursement)" :variant="getRailVariant(getRail(transaction.disbursement))" class="text-xs">
+                                                {{ getRail(transaction.disbursement) }}
                                             </Badge>
                                             <span v-else class="text-xs text-muted-foreground">N/A</span>
                                         </td>
@@ -404,7 +437,7 @@ onMounted(async () => {
                                         </td>
                                         <td class="px-4 py-3">
                                             <span v-if="transaction.disbursement" class="font-mono text-xs text-muted-foreground">
-                                                {{ transaction.disbursement.operation_id }}
+                                                {{ getTransactionId(transaction.disbursement) }}
                                             </span>
                                             <span v-else class="text-xs text-muted-foreground">N/A</span>
                                         </td>

@@ -42,10 +42,11 @@ const formatDate = (date: string) => {
 };
 
 const copyOperationId = async () => {
-    if (!props.transaction?.disbursement?.operation_id) return;
+    const transactionId = getTransactionId();
+    if (!transactionId) return;
     
     try {
-        await navigator.clipboard.writeText(props.transaction.disbursement.operation_id);
+        await navigator.clipboard.writeText(transactionId);
         copied.value = true;
         setTimeout(() => {
             copied.value = false;
@@ -53,6 +54,65 @@ const copyOperationId = async () => {
     } catch (err) {
         console.error('Failed to copy:', err);
     }
+};
+
+// Helper to get transaction ID (new format) or operation_id (legacy)
+const getTransactionId = () => {
+    const d = props.transaction?.disbursement;
+    return d?.transaction_id || d?.operation_id;
+};
+
+// Helper to get recipient identifier (new format) or account (legacy)
+const getRecipientIdentifier = () => {
+    const d = props.transaction?.disbursement;
+    return d?.recipient_identifier || d?.account || 'N/A';
+};
+
+// Helper to get bank/recipient name (new format) or bank_name (legacy)
+const getBankName = () => {
+    const d = props.transaction?.disbursement;
+    return d?.recipient_name || d?.bank_name || 'N/A';
+};
+
+// Helper to get rail (new format: metadata.rail or legacy: rail)
+const getRail = () => {
+    const d = props.transaction?.disbursement;
+    return d?.metadata?.rail || d?.rail;
+};
+
+// Helper to get payment method display
+const getPaymentMethod = () => {
+    const d = props.transaction?.disbursement;
+    // New format: use payment_method directly
+    if (d?.payment_method) {
+        return d.payment_method === 'bank_transfer' ? 'Bank Transfer' : 
+               d.payment_method === 'e_wallet' ? 'E-Wallet' : 
+               d.payment_method === 'card' ? 'Credit/Debit Card' : 
+               d.payment_method;
+    }
+    // Legacy format: check is_emi flag
+    return d?.is_emi ? 'E-Wallet' : 'Bank Transfer';
+};
+
+// Helper to check if it's an e-wallet
+const isEWallet = () => {
+    const d = props.transaction?.disbursement;
+    return d?.payment_method === 'e_wallet' || d?.metadata?.is_emi || d?.is_emi;
+};
+
+// Helper to get gateway display name
+const getGatewayName = () => {
+    const d = props.transaction?.disbursement;
+    const gateway = d?.gateway;
+    if (!gateway) return null;
+    
+    return gateway.charAt(0).toUpperCase() + gateway.slice(1);
+};
+
+// Helper to get currency
+const getCurrency = () => {
+    const d = props.transaction?.disbursement;
+    return d?.currency || props.transaction?.currency || 'PHP';
 };
 
 const getRailVariant = (rail?: string) => {
@@ -126,37 +186,39 @@ const getStatusVariant = (status?: string) => {
                 <!-- Disbursement Details -->
                 <Card v-if="transaction.disbursement">
                     <CardHeader>
-                        <CardTitle>Bank Transfer Details</CardTitle>
+                        <CardTitle>
+                            <span v-if="getGatewayName()">{{ getGatewayName() }}</span> Transfer Details
+                        </CardTitle>
                         <CardDescription>Disbursement information for this transaction</CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div class="space-y-1">
-                                <p class="text-sm text-muted-foreground">Bank</p>
-                                <p class="font-medium">{{ transaction.disbursement.bank_name }}</p>
+                                <p class="text-sm text-muted-foreground">Recipient</p>
+                                <p class="font-medium">{{ getBankName() }}</p>
                             </div>
                             <div class="space-y-1">
-                                <p class="text-sm text-muted-foreground">Account Number</p>
-                                <p class="font-mono font-medium">{{ transaction.disbursement.account }}</p>
+                                <p class="text-sm text-muted-foreground">Account / Identifier</p>
+                                <p class="font-mono font-medium">{{ getRecipientIdentifier() }}</p>
                             </div>
-                            <div class="space-y-1">
+                            <div v-if="getRail()" class="space-y-1">
                                 <p class="text-sm text-muted-foreground">Settlement Rail</p>
-                                <Badge :variant="getRailVariant(transaction.disbursement.rail)">
-                                    {{ transaction.disbursement.rail }}
+                                <Badge :variant="getRailVariant(getRail())">
+                                    {{ getRail() }}
                                 </Badge>
                             </div>
                             <div class="space-y-1">
-                                <p class="text-sm text-muted-foreground">Transaction Type</p>
+                                <p class="text-sm text-muted-foreground">Payment Method</p>
                                 <Badge variant="outline">
-                                    {{ transaction.disbursement.is_emi ? 'E-Wallet' : 'Bank Transfer' }}
+                                    {{ getPaymentMethod() }}
                                 </Badge>
                             </div>
                         </div>
 
                         <div class="space-y-1">
-                            <p class="text-sm text-muted-foreground">Operation ID</p>
+                            <p class="text-sm text-muted-foreground">Transaction ID</p>
                             <div class="flex items-center gap-2">
-                                <p class="font-mono text-sm">{{ transaction.disbursement.operation_id }}</p>
+                                <p class="font-mono text-sm">{{ getTransactionId() }}</p>
                                 <Button 
                                     @click="copyOperationId" 
                                     size="sm" 
@@ -238,9 +300,9 @@ const getStatusVariant = (status?: string) => {
                                         {{ formatDate(transaction.disbursement.disbursed_at) }}
                                     </time>
                                     <p class="text-sm text-muted-foreground mt-1">
-                                        {{ formatAmount(transaction.disbursement.amount, transaction.currency) }} 
-                                        sent to {{ transaction.disbursement.bank_name }} 
-                                        via {{ transaction.disbursement.rail }}
+                                        {{ formatAmount(transaction.disbursement.amount, getCurrency()) }} 
+                                        sent to {{ getBankName() }}
+                                        <span v-if="getRail()"> via {{ getRail() }}</span>
                                     </p>
                                 </div>
                             </li>
