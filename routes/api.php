@@ -65,6 +65,14 @@ Route::prefix('v1')
         // Charge calculation API (for real-time pricing preview)
         Route::post('/calculate-charges', \App\Http\Controllers\Api\ChargeCalculationController::class)
             ->name('calculate-charges');
+
+        // Balance monitoring API
+        Route::prefix('balances')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\BalanceController::class, 'index']);
+            Route::get('/{accountNumber}', [\App\Http\Controllers\Api\BalanceController::class, 'show']);
+            Route::post('/{accountNumber}/refresh', [\App\Http\Controllers\Api\BalanceController::class, 'refresh']);
+            Route::get('/{accountNumber}/history', [\App\Http\Controllers\Api\BalanceController::class, 'history']);
+        });
     });
 
 /**
