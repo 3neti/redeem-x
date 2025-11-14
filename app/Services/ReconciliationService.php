@@ -20,9 +20,10 @@ class ReconciliationService
      */
     public function getTotalSystemBalance(): int
     {
-        // Sum all user wallet balances (assuming bavix/laravel-wallet or similar)
-        // Adjust this if your wallet implementation differs
-        $total = User::sum('balance') ?? 0;
+        // Sum all wallet balances from bavix/laravel-wallet package
+        // Uses wallets table, not users.balance column
+        $total = \Illuminate\Support\Facades\DB::table('wallets')
+            ->sum('balance') ?? 0;
 
         Log::debug('[ReconciliationService] Total system balance calculated', [
             'total' => $total,
