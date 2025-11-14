@@ -2,11 +2,11 @@
 
 namespace LBHurtado\PaymentGateway\Gateways\Netbank\Traits;
 
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\{
+use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData,
-    DisbursePayloadData,
     DisburseResponseData
 };
+use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisbursePayloadData;
 use LBHurtado\Wallet\Events\DisbursementConfirmed;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Interfaces\Wallet;

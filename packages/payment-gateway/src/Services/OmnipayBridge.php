@@ -4,7 +4,7 @@ namespace LBHurtado\PaymentGateway\Services;
 
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use LBHurtado\PaymentGateway\Contracts\MerchantInterface;
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\{
+use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData,
     DisburseResponseData
 };

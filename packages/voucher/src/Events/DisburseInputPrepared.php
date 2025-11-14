@@ -2,7 +2,7 @@
 
 namespace LBHurtado\Voucher\Events;
 
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;

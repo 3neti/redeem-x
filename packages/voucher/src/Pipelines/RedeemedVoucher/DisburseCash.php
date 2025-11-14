@@ -3,7 +3,7 @@
 namespace LBHurtado\Voucher\Pipelines\RedeemedVoucher;
 
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\{
+use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseResponseData,
     DisburseInputData
 };
@@ -62,14 +62,15 @@ class DisburseCash
         $isEmi = $bankRegistry->isEMI($input->bank);
         
         // Normalize status using DisbursementStatus enum
-        $normalizedStatus = DisbursementStatus::fromGateway('netbank', $response->status)->value;
+        $gatewayName = config('payment-gateway.default', 'netbank');
+        $normalizedStatus = DisbursementStatus::fromGateway($gatewayName, $response->status)->value;
         
         $voucher->metadata = array_merge(
             $voucher->metadata ?? [],
             [
                 'disbursement' => [
                     // New generic format
-                    'gateway' => 'netbank',
+                    'gateway' => $gatewayName,
                     'transaction_id' => $response->transaction_id,
                     'status' => $normalizedStatus,
                     'amount' => $input->amount,

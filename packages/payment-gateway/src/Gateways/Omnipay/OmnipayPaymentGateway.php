@@ -4,7 +4,7 @@ namespace LBHurtado\PaymentGateway\Gateways\Omnipay;
 
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use LBHurtado\PaymentGateway\Omnipay\Support\OmnipayFactory;
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\{
+use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData,
     DisburseResponseData
 };
