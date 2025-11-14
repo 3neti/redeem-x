@@ -9,6 +9,7 @@ use Illuminate\Http\Response;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Models\Voucher;
+use LBHurtado\PaymentGateway\Support\BankRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -25,6 +26,9 @@ class ExportTransactions
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
         $search = $request->input('search');
+        $bank = $request->input('bank');
+        $rail = $request->input('rail');
+        $status = $request->input('status');
 
         $query = Voucher::query()
             ->whereNotNull('redeemed_at')
@@ -40,11 +44,22 @@ class ExportTransactions
         if ($search) {
             $query->where('code', 'like', "%{$search}%");
         }
+        if ($bank) {
+            $query->whereJsonContains('metadata->disbursement->bank', $bank);
+        }
+        if ($rail) {
+            $query->whereJsonContains('metadata->disbursement->rail', $rail);
+        }
+        if ($status) {
+            $query->whereJsonContains('metadata->disbursement->status', $status);
+        }
 
         $transactions = $query->get();
         $filename = 'transactions-' . now()->format('Y-m-d-His') . '.csv';
 
-        return response()->streamDownload(function () use ($transactions) {
+        $bankRegistry = app(BankRegistry::class);
+
+        return response()->streamDownload(function () use ($transactions, $bankRegistry) {
             $handle = fopen('php://output', 'w');
 
             // CSV Headers
@@ -52,7 +67,14 @@ class ExportTransactions
                 'Voucher Code',
                 'Amount',
                 'Currency',
+                'Bank',
+                'Account',
+                'Rail',
+                'Status',
+                'Operation ID',
+                'Transaction UUID',
                 'Redeemed At',
+                'Disbursed At',
                 'Created At',
             ]);
 
@@ -60,12 +82,25 @@ class ExportTransactions
             foreach ($transactions as $transaction) {
                 $amount = $transaction->instructions->cash->amount ?? 0;
                 $currency = $transaction->instructions->cash->currency ?? 'PHP';
+                $disbursement = $transaction->metadata['disbursement'] ?? null;
+
+                // Get bank name from registry if disbursement exists
+                $bankName = $disbursement 
+                    ? $bankRegistry->getBankName($disbursement['bank'] ?? '')
+                    : 'N/A';
 
                 fputcsv($handle, [
                     $transaction->code,
                     $amount,
                     $currency,
+                    $bankName,
+                    $disbursement['account'] ?? 'N/A',
+                    $disbursement['rail'] ?? 'N/A',
+                    $disbursement['status'] ?? 'N/A',
+                    $disbursement['operation_id'] ?? 'N/A',
+                    $disbursement['transaction_uuid'] ?? 'N/A',
                     $transaction->redeemed_at?->toDateTimeString(),
+                    $disbursement['disbursed_at'] ?? 'N/A',
                     $transaction->created_at->toDateTimeString(),
                 ]);
             }
@@ -83,6 +118,9 @@ class ExportTransactions
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'search' => ['nullable', 'string', 'max:255'],
+            'bank' => ['nullable', 'string', 'max:50'],
+            'rail' => ['nullable', 'string', 'in:INSTAPAY,PESONET'],
+            'status' => ['nullable', 'string', 'max:50'],
         ];
     }
 }
