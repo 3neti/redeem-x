@@ -8,6 +8,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
 };
 use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisbursePayloadData;
 use LBHurtado\Wallet\Events\DisbursementConfirmed;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Interfaces\Wallet;
 use Illuminate\Support\Facades\{
@@ -41,12 +42,11 @@ trait CanDisburse
         DB::beginTransaction();
 
         try {
-            // Reserve funds (pending withdrawal)
-            $transaction = $wallet->withdraw(
-                $credits->getMinorAmount()->toInt(),
-                [],
-                false
-            );
+            // Transfer funds from system wallet to user wallet
+            $transfer = TopupWalletAction::run($wallet, $amount);
+            
+            // Get the deposit transaction (user receiving)
+            $transaction = $transfer->deposit;
 
             // Build and log request payload
             $payload = DisbursePayloadData::fromValidated($data)->toArray();

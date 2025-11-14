@@ -10,6 +10,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
 };
 use LBHurtado\PaymentGateway\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Omnipay\Common\GatewayInterface;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Models\Transaction;
@@ -79,16 +80,16 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         DB::beginTransaction();
         
         try {
-            // Reserve funds (not confirmed yet)
-            $transaction = $wallet->withdraw(
-                $credits->getMinorAmount()->toInt(),
-                [],
-                false // not confirmed
-            );
+            // Transfer funds from system wallet to user wallet
+            $transfer = TopupWalletAction::run($wallet, $amount);
             
-            Log::debug('[OmnipayPaymentGateway] Funds reserved', [
+            // Get the deposit transaction (user receiving)
+            $transaction = $transfer->deposit;
+            
+            Log::debug('[OmnipayPaymentGateway] Funds transferred from system', [
                 'transaction_uuid' => $transaction->uuid,
                 'amount_centavos' => $credits->getMinorAmount()->toInt(),
+                'transfer_uuid' => $transfer->uuid,
             ]);
             
             // Convert amount to minor units (centavos)

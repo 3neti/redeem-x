@@ -6,27 +6,39 @@ use App\Models\AccountBalance;
 use App\Models\User;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\Log;
+use LBHurtado\Wallet\Services\SystemUserResolverService;
 
 class ReconciliationService
 {
     public function __construct(
-        protected BalanceService $balanceService
+        protected BalanceService $balanceService,
+        protected SystemUserResolverService $systemUserResolver
     ) {}
 
     /**
-     * Get total system balance (all user wallets).
+     * Get total system balance (all user wallets, excluding system wallet).
+     * 
+     * The system wallet holds the master balance. User wallets are funded
+     * via transfers from the system wallet. This method returns the sum of
+     * all user wallets only, which should always be <= bank balance.
      * 
      * @return int Balance in centavos
      */
     public function getTotalSystemBalance(): int
     {
-        // Sum all wallet balances from bavix/laravel-wallet package
-        // Uses wallets table, not users.balance column
+        // Get system user's wallet ID to exclude it
+        $systemUser = $this->systemUserResolver->resolve();
+        $systemWalletId = $systemUser->wallet->getKey();
+
+        // Sum all wallet balances EXCEPT the system wallet
+        // Uses wallets table from bavix/laravel-wallet package
         $total = \Illuminate\Support\Facades\DB::table('wallets')
+            ->where('id', '!=', $systemWalletId)
             ->sum('balance') ?? 0;
 
-        Log::debug('[ReconciliationService] Total system balance calculated', [
+        Log::debug('[ReconciliationService] Total user balance calculated', [
             'total' => $total,
+            'system_wallet_id_excluded' => $systemWalletId,
             'formatted' => Money::ofMinor($total, 'PHP')->formatTo('en_PH'),
         ]);
 
