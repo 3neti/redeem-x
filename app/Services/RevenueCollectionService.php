@@ -93,7 +93,8 @@ class RevenueCollectionService
         DB::beginTransaction();
         try {
             // Transfer from InstructionItem wallet to destination wallet
-            $transfer = $item->transfer($destination, $balance);
+            // Use transferFloat since $balance is in PHP (major units), not centavos
+            $transfer = $item->transferFloat($destination, $balance);
             
             // Record collection
             $collection = RevenueCollection::create([
