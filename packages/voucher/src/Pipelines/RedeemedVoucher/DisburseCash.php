@@ -53,11 +53,33 @@ class DisburseCash
             return null;
         }
 
+        // Store disbursement details on voucher for easy access
+        $voucher->metadata = array_merge(
+            $voucher->metadata ?? [],
+            [
+                'disbursement' => [
+                    'operation_id' => $response->transaction_id,
+                    'transaction_uuid' => $response->uuid,
+                    'status' => $response->status,
+                    'amount' => $input->amount,
+                    'bank' => $input->bank,
+                    'rail' => $input->via,
+                    'account' => $input->account_number,
+                    'disbursed_at' => now()->toIso8601String(),
+                ],
+            ]
+        );
+        $voucher->save();
+
         Log::info('[DisburseCash] Success', [
             'voucher'       => $voucher->code,
             'transactionId' => $response->transaction_id,
             'uuid'          => $response->uuid,
             'status'        => $response->status,
+            'amount'        => $input->amount,
+            'bank'          => $input->bank,
+            'via'           => $input->via,
+            'account'       => $input->account_number,
         ]);
 
         return $next($voucher);

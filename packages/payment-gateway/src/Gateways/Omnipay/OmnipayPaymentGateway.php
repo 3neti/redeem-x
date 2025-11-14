@@ -118,7 +118,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             
             // Store operation ID and rail info in transaction meta
             $transaction->meta = [
-                'operationId' => $response->getTransactionId(),
+                'operationId' => $response->getOperationId(),
                 'user_id' => $wallet->getKey(),
                 'payload' => $data,
                 'settlement_rail' => $rail->value,
@@ -131,7 +131,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             
             Log::info('[OmnipayPaymentGateway] Disbursement initiated', [
                 'transaction_uuid' => $transaction->uuid,
-                'operation_id' => $response->getTransactionId(),
+                'operation_id' => $response->getOperationId(),
                 'rail' => $rail->value,
                 'bank' => $data['bank'],
                 'amount' => $amount,
@@ -141,8 +141,8 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             // Return response DTO
             return DisburseResponseData::from([
                 'uuid' => $transaction->uuid,
-                'transaction_id' => $response->getTransactionId(),
-                'status' => $response->getStatus(),
+                'transaction_id' => $response->getOperationId() ?? 'PENDING',
+                'status' => $response->getStatus() ?? 'Pending',
             ]);
             
         } catch (\Throwable $e) {
