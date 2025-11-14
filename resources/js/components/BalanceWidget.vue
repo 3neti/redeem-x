@@ -23,9 +23,11 @@ interface TrendEntry {
 const props = withDefaults(defineProps<{
   data?: BalanceData
   trend?: TrendEntry[]
+  account?: string
 }>(), {
   data: undefined,
-  trend: () => []
+  trend: () => [],
+  account: ''
 })
 
 const refreshing = ref(false)
@@ -106,6 +108,33 @@ const refresh = async () => {
     }, 1000)
   }
 }
+
+const checkBalanceNow = async () => {
+  const accountNumber = props.data?.account_number || props.account
+  if (!accountNumber) return
+  
+  refreshing.value = true
+  
+  try {
+    await fetch(`/api/v1/balances/${accountNumber}/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      }
+    })
+    
+    // Reload the entire page to get all updated data
+    router.reload()
+  } catch (error) {
+    console.error('Failed to check balance:', error)
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 1000)
+  }
+}
 </script>
 
 <template>
@@ -169,9 +198,25 @@ const refresh = async () => {
       </div>
       
       <!-- No Data State -->
-      <div v-else class="py-8 text-center text-muted-foreground">
-        <p>No balance data available.</p>
-        <p class="text-sm mt-2">Run <code class="px-2 py-1 bg-muted rounded">php artisan balances:check --account=ACCOUNT_NUMBER</code> to initialize.</p>
+      <div v-else class="py-8 text-center text-muted-foreground space-y-4">
+        <div>
+          <p class="text-lg font-medium">No balance data available</p>
+          <p class="text-sm mt-2">Balance has not been checked yet. Click below to load the latest balance from your bank account.</p>
+        </div>
+        
+        <Button 
+          @click="checkBalanceNow" 
+          :disabled="refreshing"
+          size="default"
+          class="mx-auto"
+        >
+          <RefreshCw :class="{ 'animate-spin': refreshing }" class="mr-2 h-4 w-4" />
+          {{ refreshing ? 'Checking Balance...' : 'Check Balance Now' }}
+        </Button>
+        
+        <p class="text-xs">
+          Or run: <code class="px-2 py-1 bg-muted rounded">php artisan balances:check --account={{ account }}</code>
+        </p>
       </div>
     </CardContent>
   </Card>

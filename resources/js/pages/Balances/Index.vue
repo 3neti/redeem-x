@@ -111,7 +111,7 @@ const getAlertBadgeVariant = (enabled: boolean) => {
       <!-- Balance Widget -->
       <div class="grid gap-6 md:grid-cols-3">
         <div class="md:col-span-1">
-          <BalanceWidget :data="balance" :trend="trend" />
+          <BalanceWidget :data="balance" :trend="trend" :account="accountNumber" />
         </div>
 
         <!-- Active Alerts Card -->
