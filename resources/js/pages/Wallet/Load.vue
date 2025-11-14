@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, usePage } from '@inertiajs/vue3';
-import type { BreadcrumbItem, User } from '@/types';
-import { useQrCode } from '@/composables/useQrCode';
+import Heading from '@/components/Heading.vue';
+import { Head } from '@inertiajs/vue3';
+import type { BreadcrumbItem } from '@/types';
+import { useQrGeneration } from '@/composables/useQrGeneration';
 import QrDisplay from '@/components/domain/QrDisplay.vue';
+import QrSharePanel from '@/components/QrSharePanel.vue';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 import {
     Card,
@@ -15,8 +17,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-vue-next';
-import { useToast } from '@/components/ui/toast/use-toast';
-import { watch } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Wallet', href: '/wallet/load' },
@@ -24,67 +24,69 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const { formattedBalance } = useWalletBalance();
-const page = usePage();
-const user = page.props.auth.user as User;
-const account = user.email; // Use email as account identifier
-const amount = 0; // 0 amount means "any amount" for QR
-const { qrCode, status, message, refresh } = useQrCode(account, amount);
 
-const { toast } = useToast();
-
-// Show toast notifications based on status
-watch(status, (newStatus) => {
-    if (newStatus === 'loading') {
-        toast({
-            title: 'Please wait',
-            description: message.value,
-            duration: 30_000, // keep visible longer
-        });
-    } else if (newStatus === 'success') {
-        toast({
-            title: 'Done',
-            description: message.value || 'Operation completed.',
-            variant: 'default',
-        });
-    } else if (newStatus === 'error') {
-        toast({
-            title: 'Error',
-            description: message.value || 'Something went wrong.',
-            variant: 'destructive',
-        });
-    }
-});
+// Use new QR generation composable
+const { qrData, loading, error, regenerate } = useQrGeneration(true, 0);
 </script>
 
 <template>
     <Head title="Load Wallet" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex justify-center p-6">
-            <Card class="w-[380px]">
-                <CardHeader>
-                    <CardTitle>Scan to Load</CardTitle>
-                    <CardDescription>
-                        Balance: {{ formattedBalance }}
-                    </CardDescription>
-                </CardHeader>
+        <div class="mx-auto max-w-7xl space-y-6 p-6">
+            <!-- Page Header -->
+            <div class="flex items-center justify-between">
+                <Heading
+                    title="Load Your Wallet"
+                    :description="`Current Balance: ${formattedBalance}`"
+                />
+            </div>
 
-                <CardContent class="grid place-items-center">
-                    <div
-                        class="w-72 h-72 flex items-center justify-center"
-                    >
-                        <QrDisplay :qr-code="qrCode" class="w-full h-full" />
-                    </div>
-                </CardContent>
+            <!-- Main Content: QR Display & Share Panel -->
+            <div class="grid gap-6 md:grid-cols-2">
+                <!-- Left Column: QR Display -->
+                <div class="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Your QR Code</CardTitle>
+                            <CardDescription>
+                                Scan this QR code to load funds
+                            </CardDescription>
+                        </CardHeader>
 
-                <!-- Action Button -->
-                <CardFooter>
-                    <Button class="w-full" @click="refresh">
-                        <RefreshCcw class="mr-2 h-4 w-4" />
-                        Regenerate
-                    </Button>
-                </CardFooter>
-            </Card>
+                        <CardContent class="flex justify-center">
+                            <div class="w-full max-w-sm">
+                                <QrDisplay
+                                    :qr-code="qrData?.qr_code ?? null"
+                                    :loading="loading"
+                                    :error="error"
+                                />
+                            </div>
+                        </CardContent>
+
+                        <!-- Regenerate Button -->
+                        <CardFooter>
+                            <Button
+                                class="w-full"
+                                variant="outline"
+                                :disabled="loading"
+                                @click="regenerate"
+                            >
+                                <RefreshCcw
+                                    class="mr-2 h-4 w-4"
+                                    :class="{ 'animate-spin': loading }"
+                                />
+                                {{ loading ? 'Generating...' : 'Regenerate QR Code' }}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+
+                <!-- Right Column: Share Panel -->
+                <div>
+                    <QrSharePanel :qr-data="qrData" />
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>

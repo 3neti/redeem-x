@@ -73,6 +73,10 @@ Route::prefix('v1')
             Route::post('/{accountNumber}/refresh', [\App\Http\Controllers\Api\BalanceController::class, 'refresh']);
             Route::get('/{accountNumber}/history', [\App\Http\Controllers\Api\BalanceController::class, 'history']);
         });
+        
+        // Wallet QR code generation API
+        Route::post('/wallet/generate-qr', \App\Actions\Api\Wallet\GenerateQrCode::class)
+            ->name('api.wallet.generate-qr');
     });
 
 /**

@@ -19,7 +19,7 @@ import { start as redeemStart } from '@/actions/App/Http/Controllers/Redeem/Rede
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign, Wallet } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign, Wallet, TicketX } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { computed } from 'vue';
 
@@ -58,15 +58,15 @@ const mainNavItems: NavItem[] = [
         title: 'Contacts',
         href: contactsIndex.url(),
         icon: Users,
-    },
-    {
-        title: 'Redeem Voucher',
-        href: redeemStart.url(),
-        icon: BadgeDollarSign,
-    },
+    }
 ];
 
 const footerNavItems: NavItem[] = [
+    {
+        title: 'Redeem',
+        href: redeemStart.url(),
+        icon: TicketX,
+    },
     {
         title: 'Github Repo',
         href: 'https://github.com/laravel/vue-starter-kit',
