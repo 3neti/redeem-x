@@ -21,6 +21,17 @@ return [
 
     'gateway' => LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway::class,
 
+    /*
+    |--------------------------------------------------------------------------
+    | QR Code Caching
+    |--------------------------------------------------------------------------
+    |
+    | Configure how long QR codes should be cached (in seconds).
+    | Set to 0 to disable caching. Default is 1 hour (3600 seconds).
+    | This reduces API calls to the payment gateway for QR generation.
+    |
+    */
+    'qr_cache_ttl' => env('PAYMENT_GATEWAY_QR_CACHE_TTL', 3600),
 
     'routes' => [
         'enabled' => env('PAYMENT_GATEWAY_ROUTES_ENABLED', true),

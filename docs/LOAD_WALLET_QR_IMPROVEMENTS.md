@@ -33,7 +33,8 @@ The improved version provides:
 **Request:**
 ```json
 {
-  "amount": 100.50  // Optional: null or 0 for dynamic amount QR
+  "amount": 100.50,  // Optional: null or 0 for dynamic amount QR
+  "force": false     // Optional: true to bypass cache and regenerate
 }
 ```
 
@@ -58,6 +59,9 @@ The improved version provides:
 - Uses `OmnipayPaymentGateway->generate()` method
 - Calls `$gateway->generateQr()` with account and amount
 - Returns complete QR data with both gateway URL and app URL
+- **Caches QR codes** to reduce bank API calls (default: 1 hour TTL)
+- Cache key: `qr_code:{user_id}:{amount|dynamic}`
+- Force parameter bypasses cache for regeneration
 - Handles errors gracefully
 
 #### 2. Omnipay Integration
@@ -399,6 +403,52 @@ Load.vue
 - Hide native share button if not available
 - Provide alternative share methods
 
+## Caching Strategy
+
+### Why Cache QR Codes?
+
+1. **Reduce Bank API Calls:** Each QR generation hits the NetBank API - caching saves costs
+2. **Faster Response:** Cached QRs return instantly without network latency
+3. **Better UX:** Users get immediate results on page load
+4. **Reliability:** Less dependent on bank API availability
+
+### Cache Implementation
+
+**Cache Key Format:**
+```
+qr_code:{user_id}:{amount|dynamic}
+```
+
+**Examples:**
+- `qr_code:123:dynamic` - Dynamic amount QR for user 123
+- `qr_code:123:100.50` - Fixed ₱100.50 QR for user 123
+
+**Cache TTL:**
+- Configurable via `PAYMENT_GATEWAY_QR_CACHE_TTL` (default: 3600 seconds / 1 hour)
+- Set to `0` to disable caching
+- QR codes are cached per user and amount combination
+
+**Cache Invalidation:**
+- Automatic: Cache expires after TTL
+- Manual: Clicking "Regenerate" sends `force=true` to bypass cache
+- Programmatic: `Cache::forget("qr_code:{user_id}:{amount}")`
+
+**Configuration:**
+
+In `.env`:
+```bash
+# Cache QR codes for 2 hours (7200 seconds)
+PAYMENT_GATEWAY_QR_CACHE_TTL=7200
+
+# Disable caching (always fetch from bank)
+PAYMENT_GATEWAY_QR_CACHE_TTL=0
+```
+
+In `config/payment-gateway.php`:
+```php
+'qr_cache_ttl' => env('PAYMENT_GATEWAY_QR_CACHE_TTL', 3600),
+```
+
 ## Security Considerations
 
 1. **Authentication Required:** All endpoints require authenticated user
@@ -407,6 +457,7 @@ Load.vue
 4. **Account Validation:** Only generate QR for authenticated user's account
 5. **HTTPS Only:** QR URLs must use HTTPS
 6. **Sharing Guidance:** Warn users to only share with trusted contacts
+7. **Cache Security:** QR codes in cache are user-specific (can't access others' QRs)
 
 ## Testing
 
@@ -482,6 +533,13 @@ describe('Load Wallet Page', () => {
 - [Clipboard API](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API)
 
 ## Changelog
+
+### 2025-11-14 - QR Code Caching
+- Added QR code caching to reduce bank API calls
+- Configurable cache TTL (default: 1 hour)
+- Force regenerate bypasses cache
+- Cache key per user and amount combination
+- Improved performance and reduced costs
 
 ### 2025-11-14 - Initial Implementation
 - Created comprehensive QR sharing system

@@ -7,6 +7,7 @@ namespace App\Actions\Api\Wallet;
 use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
@@ -32,15 +33,48 @@ class GenerateQrCode
     {
         $request->validate([
             'amount' => ['nullable', 'numeric', 'min:0'],
+            'force' => ['nullable', 'boolean'],
         ]);
         
         $user = $request->user();
         $account = $user->email; // Use email as account identifier
         $amountValue = (float) $request->input('amount', 0);
+        $force = (bool) $request->input('force', false);
         $currency = config('disbursement.currency', 'PHP');
         
+        // Create cache key based on user and amount
+        $cacheKey = "qr_code:{$user->id}:" . ($amountValue > 0 ? $amountValue : 'dynamic');
+        $cacheTtl = config('payment-gateway.qr_cache_ttl', 3600); // Default 1 hour
+        
         try {
-            Log::info('[GenerateQrCode] Generating QR code', [
+            // If force regenerate, clear cache first
+            if ($force) {
+                Cache::forget($cacheKey);
+                Log::info('[GenerateQrCode] Cache cleared due to force regenerate', [
+                    'cache_key' => $cacheKey,
+                ]);
+            }
+            
+            // Check cache first (unless forced)
+            $cachedData = !$force ? Cache::get($cacheKey) : null;
+            
+            if ($cachedData) {
+                Log::info('[GenerateQrCode] Returning cached QR code', [
+                    'user_id' => $user->id,
+                    'account' => $account,
+                    'amount' => $amountValue,
+                    'cache_key' => $cacheKey,
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => $cachedData,
+                    'message' => 'QR code generated successfully',
+                    'cached' => true,
+                ]);
+            }
+            
+            Log::info('[GenerateQrCode] Generating new QR code from gateway', [
                 'user_id' => $user->id,
                 'account' => $account,
                 'amount' => $amountValue,
@@ -58,20 +92,33 @@ class GenerateQrCode
             Log::info('[GenerateQrCode] QR code generated successfully', [
                 'user_id' => $user->id,
                 'account' => $account,
+                'cache_ttl' => $cacheTtl,
+            ]);
+            
+            // Prepare response data
+            $responseData = [
+                'qr_code' => $this->ensureDataUrl($qrCode),
+                'qr_url' => null, // NetBank gateway might not return URL
+                'qr_id' => 'QR-' . strtoupper(uniqid()),
+                'expires_at' => null, // Add if gateway provides expiration
+                'account' => $account,
+                'amount' => $amountValue > 0 ? $amountValue : null,
+                'shareable_url' => $shareableUrl,
+            ];
+            
+            // Cache the QR code data
+            Cache::put($cacheKey, $responseData, $cacheTtl);
+            
+            Log::debug('[GenerateQrCode] QR code cached', [
+                'cache_key' => $cacheKey,
+                'ttl_seconds' => $cacheTtl,
             ]);
             
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'qr_code' => $this->ensureDataUrl($qrCode),
-                    'qr_url' => null, // NetBank gateway might not return URL
-                    'qr_id' => 'QR-' . strtoupper(uniqid()),
-                    'expires_at' => null, // Add if gateway provides expiration
-                    'account' => $account,
-                    'amount' => $amountValue > 0 ? $amountValue : null,
-                    'shareable_url' => $shareableUrl,
-                ],
+                'data' => $responseData,
                 'message' => 'QR code generated successfully',
+                'cached' => false,
             ]);
             
         } catch (\Throwable $e) {

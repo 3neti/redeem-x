@@ -34,7 +34,7 @@ export function useQrGeneration(
     const error = ref<string | null>(null);
     const currentAmount = ref(initialAmount);
 
-    const generate = async (amount: number = 0) => {
+    const generate = async (amount: number = 0, force: boolean = false) => {
         loading.value = true;
         error.value = null;
         currentAmount.value = amount;
@@ -42,6 +42,7 @@ export function useQrGeneration(
         try {
             const { data } = await axios.post('/api/v1/wallet/generate-qr', {
                 amount: amount > 0 ? amount : 0,
+                force: force,
             });
 
             if (data.success) {
@@ -62,7 +63,8 @@ export function useQrGeneration(
     };
 
     const regenerate = async () => {
-        await generate(currentAmount.value);
+        // Force regenerate bypasses cache
+        await generate(currentAmount.value, true);
     };
 
     // Auto-generate on mount if enabled
