@@ -79,33 +79,48 @@ class CheckBalanceRequest extends AbstractRequest
      */
     public function sendData($data)
     {
-        $token = $this->getAccessToken();
-        
-        // Simple GET request - balance is for the authenticated account
-        $httpResponse = $this->httpClient->request(
-            'GET',
-            $this->getEndpoint(),
-            [
-                'Authorization' => "Bearer {$token}",
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ]
-        );
-        
-        $responseData = json_decode($httpResponse->getBody()->getContents(), true);
-        
-        return $this->response = new CheckBalanceResponse($this, $responseData);
+        try {
+            $endpoint = $this->getEndpoint();
+            $token = $this->getAccessToken();
+            
+            // Simple GET request - balance is for the authenticated account
+            $httpResponse = $this->httpClient->request(
+                'GET',
+                $endpoint,
+                [
+                    'Authorization' => "Bearer {$token}",
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ]
+            );
+            
+            $responseBody = $httpResponse->getBody()->getContents();
+            $responseData = json_decode($responseBody, true);
+            
+            return $this->response = new CheckBalanceResponse($this, $responseData);
+            
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('[CheckBalanceRequest] Request failed', [
+                'endpoint' => $this->getEndpoint(),
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->response = new CheckBalanceResponse($this, [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
     
     /**
      * Get the API endpoint for balance check
-     * Uses Account Details API: GET /accounts/{account_number}/details
+     * Uses Account Details API: GET /accounts/{account_number}
      */
     public function getEndpoint(): string
     {
         $baseUrl = $this->getBalanceEndpoint();
         $accountNumber = $this->getAccountNumber();
-        return rtrim($baseUrl, '/') . '/' . $accountNumber . '/details';
+        return rtrim($baseUrl, '/') . '/' . $accountNumber;
     }
     
     /**

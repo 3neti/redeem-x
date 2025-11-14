@@ -31,34 +31,43 @@ class CheckBalanceResponse extends AbstractResponse
      */
     public function isSuccessful(): bool
     {
-        return isset($this->data['status']) 
-            && $this->data['status'] === 'success'
-            && isset($this->data['data']['balance']);
+        // NetBank returns account data directly (not wrapped in status/data)
+        return isset($this->data['account_number']) 
+            && isset($this->data['balance']);
     }
     
     /**
      * Get the balance in minor units (centavos)
+     * NetBank returns balance as {"cur": "PHP", "num": "135000"}
      */
     public function getBalance(): ?int
     {
-        return $this->data['data']['balance'] ?? null;
+        if (isset($this->data['balance']['num'])) {
+            return (int) $this->data['balance']['num'];
+        }
+        return null;
     }
     
     /**
      * Get the available balance in minor units (centavos)
      * Available balance excludes pending transactions
+     * NetBank returns available_balance as {"cur": "PHP", "num": "135000"}
      */
     public function getAvailableBalance(): ?int
     {
-        return $this->data['data']['available_balance'] ?? $this->getBalance();
+        if (isset($this->data['available_balance']['num'])) {
+            return (int) $this->data['available_balance']['num'];
+        }
+        return $this->getBalance();
     }
     
     /**
      * Get the currency code
+     * NetBank returns currency in balance object: {"cur": "PHP", "num": "135000"}
      */
     public function getCurrency(): string
     {
-        return $this->data['data']['currency'] ?? 'PHP';
+        return $this->data['balance']['cur'] ?? 'PHP';
     }
     
     /**
@@ -66,15 +75,16 @@ class CheckBalanceResponse extends AbstractResponse
      */
     public function getAccountNumber(): ?string
     {
-        return $this->data['data']['account_number'] ?? null;
+        return $this->data['account_number'] ?? null;
     }
     
     /**
      * Get the timestamp when balance was calculated
+     * NetBank doesn't provide this, use created_date or null
      */
     public function getAsOf(): ?string
     {
-        return $this->data['data']['as_of'] ?? null;
+        return $this->data['created_date'] ?? null;
     }
     
     /**
