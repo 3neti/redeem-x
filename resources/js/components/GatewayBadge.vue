@@ -102,6 +102,6 @@ const iconSizeClasses = computed(() => {
             :is="config.icon" 
             :class="[config.color, iconSizeClasses]" 
         />
-        <span v-if="showLabel">{{ config.label }}</span>
+        <span v-if="showLabel" class="text-gray-900 dark:text-gray-100">{{ config.label }}</span>
     </Badge>
 </template>
