@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2 } from 'lucide-vue-next';
 import TransactionDetailModal from '@/components/TransactionDetailModal.vue';
+import GatewayBadge from '@/components/GatewayBadge.vue';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -383,6 +384,7 @@ onMounted(async () => {
                             <thead class="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
                                 <tr>
                                     <th class="px-4 py-3 text-left">Voucher Code</th>
+                                    <th class="px-4 py-3 text-left">Gateway</th>
                                     <th class="px-4 py-3 text-right">Amount</th>
                                     <th class="px-4 py-3 text-left">Recipient / Account</th>
                                     <th v-if="showRailColumn" class="px-4 py-3 text-left">Rail</th>
@@ -406,6 +408,14 @@ onMounted(async () => {
                                     >
                                         <td class="px-4 py-3 font-mono font-semibold">
                                             {{ transaction.code }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <GatewayBadge
+                                                v-if="transaction.disbursement"
+                                                :gateway="transaction.disbursement.gateway"
+                                                size="sm"
+                                            />
+                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
                                         </td>
                                         <td class="px-4 py-3 text-right font-semibold text-green-600">
                                             {{ formatAmount(transaction.amount, transaction.currency) }}

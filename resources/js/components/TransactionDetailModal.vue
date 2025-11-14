@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, ArrowRight } from 'lucide-vue-next';
+import GatewayBadge from '@/components/GatewayBadge.vue';
 import type { TransactionData } from '@/composables/useTransactionApi';
 
 interface Props {
@@ -175,8 +176,12 @@ const getStatusVariant = (status?: string) => {
                 <!-- Disbursement Details -->
                 <Card v-if="transaction.disbursement">
                     <CardHeader>
-                        <CardTitle>
-                            <span v-if="getGatewayName()">{{ getGatewayName() }}</span> Transfer Details
+                        <CardTitle class="flex items-center gap-2">
+                            <GatewayBadge 
+                                :gateway="transaction.disbursement.gateway"
+                                size="md"
+                            />
+                            Transfer Details
                         </CardTitle>
                         <CardDescription>Disbursement information for this transaction</CardDescription>
                     </CardHeader>
