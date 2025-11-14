@@ -22,7 +22,13 @@ return [
      * Required role to view balance information.
      * 
      * Users must have this role to access the balance page.
+     * Set to empty string or null to allow all authenticated users.
      * Change via BALANCE_VIEW_ROLE in .env
+     * 
+     * Examples:
+     * - 'admin' - Only admins can view (default)
+     * - 'manager' - Only managers can view
+     * - null or '' - Any authenticated user can view
      */
     'view_role' => env('BALANCE_VIEW_ROLE', 'admin'),
 

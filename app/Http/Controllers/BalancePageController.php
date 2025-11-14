@@ -24,10 +24,11 @@ class BalancePageController extends Controller
             abort(403, 'Balance viewing is currently disabled.');
         }
 
-        // Check role-based access
+        // Check role-based access (if configured)
         $requiredRole = config('balance.view_role', 'admin');
         
-        if (!auth()->user()->hasRole($requiredRole)) {
+        // If role is empty or null, allow all authenticated users
+        if ($requiredRole && !auth()->user()->hasRole($requiredRole)) {
             abort(403, 'You do not have permission to view balance information.');
         }
 
