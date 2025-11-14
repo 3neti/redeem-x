@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,6 +50,9 @@ class WalletController extends Controller
 
     /**
      * Add funds to the user's wallet.
+     * 
+     * Transfers funds from system wallet to user wallet.
+     * This maintains the invariant: system_balance + sum(user_balances) = constant
      */
     public function store(Request $request): RedirectResponse
     {
@@ -61,8 +65,10 @@ class WalletController extends Controller
             'name' => 'Default Wallet',
         ]);
 
-        // Deposit funds
-        $wallet->depositFloat($request->amount);
+        // Transfer funds from system wallet to user wallet
+        // This decreases system balance and increases user balance
+        // Note: transferFloat() auto-confirms the transfer by default
+        TopupWalletAction::run($wallet, (float) $request->amount);
 
         return to_route('wallet.edit')->with('status', 'Funds added successfully!');
     }
