@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2 } from 'lucide-vue-next';
+import TransactionDetailModal from '@/components/TransactionDetailModal.vue';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -37,6 +38,14 @@ const searchQuery = ref('');
 const debouncedSearchQuery = useDebounce(searchQuery, 500);
 const dateFrom = ref('');
 const dateTo = ref('');
+
+const selectedTransaction = ref<TransactionData | null>(null);
+const isDetailModalOpen = ref(false);
+
+const openTransactionDetail = (transaction: TransactionData) => {
+    selectedTransaction.value = transaction;
+    isDetailModalOpen.value = true;
+};
 
 const fetchTransactions = async (page: number = 1) => {
     try {
@@ -312,7 +321,8 @@ onMounted(async () => {
                                     <tr
                                         v-for="transaction in transactions"
                                         :key="transaction.code"
-                                        class="border-b hover:bg-muted/50 cursor-pointer"
+                                        class="border-b hover:bg-muted/50 cursor-pointer transition-colors"
+                                        @click="openTransactionDetail(transaction)"
                                     >
                                         <td class="px-4 py-3 font-mono font-semibold">
                                             {{ transaction.code }}
@@ -386,6 +396,13 @@ onMounted(async () => {
                     </div>
                 </CardContent>
             </Card>
+
+            <!-- Transaction Detail Modal -->
+            <TransactionDetailModal
+                :transaction="selectedTransaction"
+                :open="isDetailModalOpen"
+                @update:open="isDetailModalOpen = $event"
+            />
         </div>
     </AppLayout>
 </template>
