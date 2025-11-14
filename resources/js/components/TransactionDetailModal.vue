@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, ArrowRight } from 'lucide-vue-next';
+import { Copy, Check, ArrowRight, RefreshCw } from 'lucide-vue-next';
 import GatewayBadge from '@/components/GatewayBadge.vue';
 import type { TransactionData } from '@/composables/useTransactionApi';
 
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const copied = ref(false);
+const refreshing = ref(false);
 
 const closeDialog = () => {
     emit('update:open', false);
@@ -130,6 +132,32 @@ const getStatusVariant = (status?: string) => {
             return 'outline';
     }
 };
+
+const refreshStatus = async () => {
+    if (!props.transaction?.code) return;
+    
+    refreshing.value = true;
+    
+    try {
+        await fetch(`/api/v1/transactions/${props.transaction.code}/refresh-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+        
+        // Reload the entire page to get updated transaction data
+        router.reload();
+    } catch (error) {
+        console.error('Failed to refresh status:', error);
+    } finally {
+        setTimeout(() => {
+            refreshing.value = false;
+        }, 1000);
+    }
+};
 </script>
 
 <template>
@@ -235,6 +263,20 @@ const getStatusVariant = (status?: string) => {
                         <div class="space-y-1">
                             <p class="text-sm text-muted-foreground">Disbursed At</p>
                             <p class="text-sm">{{ formatDate(transaction.disbursement.disbursed_at) }}</p>
+                        </div>
+
+                        <!-- Refresh Status Button -->
+                        <div class="pt-4 border-t">
+                            <Button 
+                                @click="refreshStatus" 
+                                :disabled="refreshing" 
+                                size="sm" 
+                                variant="outline" 
+                                class="w-full"
+                            >
+                                <RefreshCw :class="{ 'animate-spin': refreshing }" class="mr-2 h-4 w-4" />
+                                {{ refreshing ? 'Refreshing Status...' : 'Refresh Status' }}
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
