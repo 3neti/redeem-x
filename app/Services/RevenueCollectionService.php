@@ -101,7 +101,7 @@ class RevenueCollectionService
                 'collected_by_user_id' => auth()->id() ?? $destination->getKey(),
                 'destination_type' => get_class($destination),
                 'destination_id' => $destination->getKey(),
-                'amount' => $transfer->withdraw->amount, // centavos
+                'amount' => abs($transfer->deposit->amount), // Use deposit (positive amount)
                 'transfer_uuid' => $transfer->uuid,
                 'notes' => $notes,
             ]);

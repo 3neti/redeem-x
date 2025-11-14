@@ -7,12 +7,14 @@ use Bavix\Wallet\Interfaces\ProductInterface;
 use Illuminate\Database\Eloquent\Model;
 use Bavix\Wallet\Interfaces\Customer;
 use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Traits\HasWalletFloat;
 use Illuminate\Support\Str;
 
 class InstructionItem extends Model implements ProductInterface
 {
     use HasFactory;
     use HasWallet;
+    use HasWalletFloat;
     protected $fillable = [
         'name',
         'index',
