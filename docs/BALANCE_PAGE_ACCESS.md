@@ -59,6 +59,19 @@ BALANCE_VIEW_ROLE=manager
 BALANCE_VIEW_ROLE=super-admin
 ```
 
+**Allow ALL authenticated users (⚠️ Use carefully!):**
+```bash
+BALANCE_VIEW_ROLE=
+```
+
+Or simply omit `BALANCE_VIEW_ROLE` from `.env` entirely and set it to empty in config:
+```php
+// config/balance.php
+'view_role' => env('BALANCE_VIEW_ROLE'),  // Returns null if not set
+```
+
+**Note:** When `BALANCE_VIEW_ROLE` is empty or null, ANY authenticated user can view the balance page. This is useful for development but should be used cautiously in production.
+
 ### 2. Disable Balance Page Completely
 
 ```bash
@@ -261,7 +274,16 @@ BALANCE_ALERT_THRESHOLD=5000000  # ₱50,000
 BALANCE_ALERT_RECIPIENTS=ceo@company.com
 ```
 
-### Development (Relaxed)
+### Development (Relaxed - All Users)
+```bash
+BALANCE_VIEW_ENABLED=true
+BALANCE_VIEW_ROLE=                  # Empty = all authenticated users
+BALANCE_DEFAULT_ACCOUNT=113-001-00001-9
+BALANCE_ALERT_THRESHOLD=100000  # ₱1,000
+BALANCE_ALERT_RECIPIENTS=dev@company.com
+```
+
+### Development (Admin Only)
 ```bash
 BALANCE_VIEW_ENABLED=true
 BALANCE_VIEW_ROLE=admin

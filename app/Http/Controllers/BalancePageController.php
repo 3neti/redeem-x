@@ -48,10 +48,30 @@ class BalancePageController extends Controller
         // Get alerts for this account
         $alerts = $balance ? $balance->alerts : collect();
 
+        // Map history to include formatted attributes
+        $historyData = $history->map(fn($entry) => [
+            'balance' => $entry->balance,
+            'available_balance' => $entry->available_balance,
+            'currency' => $entry->currency,
+            'formatted_balance' => $entry->formatted_balance,
+            'formatted_available_balance' => $entry->formatted_available_balance,
+            'recorded_at' => $entry->recorded_at->toIso8601String(),
+        ]);
+
+        // Map trend to include formatted attributes
+        $trendData = $trend->map(fn($entry) => [
+            'balance' => $entry->balance,
+            'available_balance' => $entry->available_balance,
+            'currency' => $entry->currency,
+            'formatted_balance' => $entry->formatted_balance,
+            'formatted_available_balance' => $entry->formatted_available_balance,
+            'recorded_at' => $entry->recorded_at->toIso8601String(),
+        ]);
+
         return Inertia::render('Balances/Index', [
             'balance' => $balance,
-            'trend' => $trend,
-            'history' => $history,
+            'trend' => $trendData,
+            'history' => $historyData,
             'alerts' => $alerts,
             'accountNumber' => $accountNumber,
             'canManageAlerts' => auth()->user()->hasRole($requiredRole),
