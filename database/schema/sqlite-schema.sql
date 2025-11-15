@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS "users"(
   "remember_token" varchar,
   "avatar" text not null,
   "created_at" datetime,
-  "updated_at" datetime
+  "updated_at" datetime,
+  "meta" text
 );
 CREATE UNIQUE INDEX "users_email_unique" on "users"("email");
 CREATE UNIQUE INDEX "users_workos_id_unique" on "users"("workos_id");
@@ -136,12 +137,19 @@ CREATE TABLE IF NOT EXISTS "merchants"(
   "id" integer primary key autoincrement not null,
   "code" varchar not null,
   "name" varchar not null,
-  "city" varchar not null,
+  "city" varchar,
+  "description" text,
+  "merchant_category_code" varchar not null default '0000',
+  "logo_url" varchar,
+  "allow_tip" tinyint(1) not null default '0',
+  "default_amount" numeric,
+  "min_amount" numeric,
+  "max_amount" numeric,
+  "is_active" tinyint(1) not null default '1',
   "created_at" datetime,
   "updated_at" datetime
 );
 CREATE UNIQUE INDEX "merchants_code_unique" on "merchants"("code");
-CREATE UNIQUE INDEX "merchants_name_unique" on "merchants"("name");
 CREATE TABLE IF NOT EXISTS "transfers"(
   "id" integer primary key autoincrement not null,
   "from_id" integer not null,
@@ -323,6 +331,303 @@ CREATE UNIQUE INDEX "personal_access_tokens_token_unique" on "personal_access_to
 CREATE INDEX "personal_access_tokens_expires_at_index" on "personal_access_tokens"(
   "expires_at"
 );
+CREATE TABLE IF NOT EXISTS "settings"(
+  "id" integer primary key autoincrement not null,
+  "group" varchar not null,
+  "name" varchar not null,
+  "locked" tinyint(1) not null default '0',
+  "payload" text not null,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE UNIQUE INDEX "settings_group_name_unique" on "settings"(
+  "group",
+  "name"
+);
+CREATE TABLE IF NOT EXISTS "statuses"(
+  "id" integer primary key autoincrement not null,
+  "name" varchar not null,
+  "reason" text,
+  "model_type" varchar not null,
+  "model_id" integer not null,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE INDEX "statuses_model_type_model_id_index" on "statuses"(
+  "model_type",
+  "model_id"
+);
+CREATE TABLE IF NOT EXISTS "tags"(
+  "id" integer primary key autoincrement not null,
+  "name" text not null,
+  "slug" text not null,
+  "type" varchar,
+  "order_column" integer,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE TABLE IF NOT EXISTS "taggables"(
+  "tag_id" integer not null,
+  "taggable_type" varchar not null,
+  "taggable_id" integer not null,
+  foreign key("tag_id") references "tags"("id") on delete cascade
+);
+CREATE INDEX "taggables_taggable_type_taggable_id_index" on "taggables"(
+  "taggable_type",
+  "taggable_id"
+);
+CREATE UNIQUE INDEX "taggables_tag_id_taggable_id_taggable_type_unique" on "taggables"(
+  "tag_id",
+  "taggable_id",
+  "taggable_type"
+);
+CREATE TABLE IF NOT EXISTS "campaigns"(
+  "id" integer primary key autoincrement not null,
+  "user_id" integer not null,
+  "name" varchar not null,
+  "slug" varchar not null,
+  "description" text,
+  "status" varchar not null default 'draft',
+  "instructions" text not null,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("user_id") references "users"("id") on delete cascade
+);
+CREATE UNIQUE INDEX "campaigns_slug_unique" on "campaigns"("slug");
+CREATE TABLE IF NOT EXISTS "campaign_voucher"(
+  "id" integer primary key autoincrement not null,
+  "campaign_id" integer not null,
+  "voucher_id" integer not null,
+  "instructions_snapshot" text not null,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("campaign_id") references "campaigns"("id") on delete cascade,
+  foreign key("voucher_id") references "vouchers"("id") on delete cascade
+);
+CREATE UNIQUE INDEX "campaign_voucher_campaign_id_voucher_id_unique" on "campaign_voucher"(
+  "campaign_id",
+  "voucher_id"
+);
+CREATE TABLE IF NOT EXISTS "permissions"(
+  "id" integer primary key autoincrement not null,
+  "name" varchar not null,
+  "guard_name" varchar not null,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE UNIQUE INDEX "permissions_name_guard_name_unique" on "permissions"(
+  "name",
+  "guard_name"
+);
+CREATE TABLE IF NOT EXISTS "roles"(
+  "id" integer primary key autoincrement not null,
+  "name" varchar not null,
+  "guard_name" varchar not null,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE UNIQUE INDEX "roles_name_guard_name_unique" on "roles"(
+  "name",
+  "guard_name"
+);
+CREATE TABLE IF NOT EXISTS "model_has_permissions"(
+  "permission_id" integer not null,
+  "model_type" varchar not null,
+  "model_id" integer not null,
+  foreign key("permission_id") references "permissions"("id") on delete cascade,
+  primary key("permission_id", "model_id", "model_type")
+);
+CREATE INDEX "model_has_permissions_model_id_model_type_index" on "model_has_permissions"(
+  "model_id",
+  "model_type"
+);
+CREATE TABLE IF NOT EXISTS "model_has_roles"(
+  "role_id" integer not null,
+  "model_type" varchar not null,
+  "model_id" integer not null,
+  foreign key("role_id") references "roles"("id") on delete cascade,
+  primary key("role_id", "model_id", "model_type")
+);
+CREATE INDEX "model_has_roles_model_id_model_type_index" on "model_has_roles"(
+  "model_id",
+  "model_type"
+);
+CREATE TABLE IF NOT EXISTS "role_has_permissions"(
+  "permission_id" integer not null,
+  "role_id" integer not null,
+  foreign key("permission_id") references "permissions"("id") on delete cascade,
+  foreign key("role_id") references "roles"("id") on delete cascade,
+  primary key("permission_id", "role_id")
+);
+CREATE TABLE IF NOT EXISTS "user_voucher"(
+  "id" integer primary key autoincrement not null,
+  "user_id" integer not null,
+  "voucher_code" varchar not null,
+  "generated_at" datetime not null,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("user_id") references "users"("id") on delete cascade,
+  foreign key("voucher_code") references "vouchers"("code") on delete cascade
+);
+CREATE UNIQUE INDEX "user_voucher_user_id_voucher_code_unique" on "user_voucher"(
+  "user_id",
+  "voucher_code"
+);
+CREATE INDEX "user_voucher_voucher_code_index" on "user_voucher"(
+  "voucher_code"
+);
+CREATE TABLE IF NOT EXISTS "instruction_items"(
+  "id" integer primary key autoincrement not null,
+  "name" varchar not null,
+  "index" varchar not null,
+  "type" varchar not null,
+  "price" integer not null default '0',
+  "currency" varchar not null default 'PHP',
+  "meta" text,
+  "created_at" datetime,
+  "updated_at" datetime,
+  "revenue_destination_type" varchar,
+  "revenue_destination_id" integer
+);
+CREATE INDEX "instruction_items_type_index" on "instruction_items"("type");
+CREATE UNIQUE INDEX "instruction_items_index_unique" on "instruction_items"(
+  "index"
+);
+CREATE TABLE IF NOT EXISTS "instruction_item_price_history"(
+  "id" integer primary key autoincrement not null,
+  "instruction_item_id" integer not null,
+  "old_price" integer not null,
+  "new_price" integer not null,
+  "currency" varchar not null default 'PHP',
+  "changed_by" integer,
+  "reason" text,
+  "effective_at" datetime not null default CURRENT_TIMESTAMP,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("instruction_item_id") references "instruction_items"("id") on delete cascade,
+  foreign key("changed_by") references "users"("id") on delete set null
+);
+CREATE TABLE IF NOT EXISTS "voucher_generation_charges"(
+  "id" integer primary key autoincrement not null,
+  "user_id" integer not null,
+  "campaign_id" integer,
+  "voucher_codes" text not null,
+  "voucher_count" integer not null,
+  "instructions_snapshot" text not null,
+  "charge_breakdown" text not null,
+  "total_charge" numeric not null,
+  "charge_per_voucher" numeric not null,
+  "generated_at" datetime not null,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("user_id") references "users"("id") on delete cascade,
+  foreign key("campaign_id") references "campaigns"("id") on delete set null
+);
+CREATE INDEX "voucher_generation_charges_user_id_generated_at_index" on "voucher_generation_charges"(
+  "user_id",
+  "generated_at"
+);
+CREATE INDEX "voucher_generation_charges_campaign_id_index" on "voucher_generation_charges"(
+  "campaign_id"
+);
+CREATE TABLE IF NOT EXISTS "notifications"(
+  "id" varchar not null,
+  "type" varchar not null,
+  "notifiable_type" varchar not null,
+  "notifiable_id" integer not null,
+  "data" text not null,
+  "read_at" datetime,
+  "created_at" datetime,
+  "updated_at" datetime,
+  primary key("id")
+);
+CREATE INDEX "notifications_notifiable_type_notifiable_id_index" on "notifications"(
+  "notifiable_type",
+  "notifiable_id"
+);
+CREATE TABLE IF NOT EXISTS "account_balances"(
+  "id" integer primary key autoincrement not null,
+  "account_number" varchar not null,
+  "gateway" varchar not null default 'netbank',
+  "balance" integer not null default '0',
+  "available_balance" integer not null default '0',
+  "currency" varchar not null default 'PHP',
+  "checked_at" datetime not null,
+  "metadata" text,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE UNIQUE INDEX "account_balances_account_number_gateway_unique" on "account_balances"(
+  "account_number",
+  "gateway"
+);
+CREATE INDEX "account_balances_account_number_index" on "account_balances"(
+  "account_number"
+);
+CREATE INDEX "account_balances_checked_at_index" on "account_balances"(
+  "checked_at"
+);
+CREATE TABLE IF NOT EXISTS "balance_history"(
+  "id" integer primary key autoincrement not null,
+  "account_number" varchar not null,
+  "gateway" varchar not null,
+  "balance" integer not null,
+  "available_balance" integer not null,
+  "currency" varchar not null default 'PHP',
+  "recorded_at" datetime not null,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE INDEX "balance_history_account_number_index" on "balance_history"(
+  "account_number"
+);
+CREATE INDEX "balance_history_recorded_at_index" on "balance_history"(
+  "recorded_at"
+);
+CREATE TABLE IF NOT EXISTS "balance_alerts"(
+  "id" integer primary key autoincrement not null,
+  "account_number" varchar not null,
+  "gateway" varchar not null default 'netbank',
+  "threshold" integer not null,
+  "alert_type" varchar not null,
+  "recipients" text not null,
+  "enabled" tinyint(1) not null default '1',
+  "last_triggered_at" datetime,
+  "created_at" datetime,
+  "updated_at" datetime
+);
+CREATE INDEX "balance_alerts_account_number_index" on "balance_alerts"(
+  "account_number"
+);
+CREATE INDEX "instruction_items_revenue_destination_index" on "instruction_items"(
+  "revenue_destination_type",
+  "revenue_destination_id"
+);
+CREATE TABLE IF NOT EXISTS "revenue_collections"(
+  "id" integer primary key autoincrement not null,
+  "instruction_item_id" integer not null,
+  "collected_by_user_id" integer not null,
+  "destination_type" varchar not null,
+  "destination_id" integer not null,
+  "amount" integer not null,
+  "transfer_uuid" varchar not null,
+  "notes" text,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("instruction_item_id") references "instruction_items"("id") on delete cascade,
+  foreign key("collected_by_user_id") references "users"("id"),
+  foreign key("transfer_uuid") references "transfers"("uuid")
+);
+CREATE INDEX "revenue_collections_destination_type_destination_id_index" on "revenue_collections"(
+  "destination_type",
+  "destination_id"
+);
+CREATE INDEX "revenue_collections_collected_by_user_id_index" on "revenue_collections"(
+  "collected_by_user_id"
+);
+CREATE INDEX "revenue_collections_transfer_uuid_index" on "revenue_collections"(
+  "transfer_uuid"
+);
 
 INSERT INTO migrations VALUES(1,'0001_01_01_000000_create_users_table',1);
 INSERT INTO migrations VALUES(2,'0001_01_01_000001_create_cache_table',1);
@@ -346,3 +651,20 @@ INSERT INTO migrations VALUES(19,'2024_08_02_202500_create_cash_table',1);
 INSERT INTO migrations VALUES(20,'2024_08_26_202500_add_processed_on_to_vouchers_table',1);
 INSERT INTO migrations VALUES(21,'2025_08_01_123520_add_meta_to_contacts_table',1);
 INSERT INTO migrations VALUES(22,'2025_11_08_014153_create_personal_access_tokens_table',1);
+INSERT INTO migrations VALUES(23,'2025_11_08_115914_add_meta_to_users_table',1);
+INSERT INTO migrations VALUES(24,'2025_11_08_124447_create_settings_table',1);
+INSERT INTO migrations VALUES(25,'2025_11_09_003637_create_statuses_table',1);
+INSERT INTO migrations VALUES(26,'2025_11_09_004141_create_tag_tables',1);
+INSERT INTO migrations VALUES(27,'2025_11_09_120248_create_campaigns_table',1);
+INSERT INTO migrations VALUES(28,'2025_11_09_121515_create_campaign_voucher_table',1);
+INSERT INTO migrations VALUES(29,'2025_11_10_151638_create_permission_tables',1);
+INSERT INTO migrations VALUES(30,'2025_11_10_151645_create_user_voucher_table',1);
+INSERT INTO migrations VALUES(31,'2025_11_10_151652_create_instruction_items_table',1);
+INSERT INTO migrations VALUES(32,'2025_11_10_151659_create_instruction_item_price_history_table',1);
+INSERT INTO migrations VALUES(33,'2025_11_10_151706_create_voucher_generation_charges_table',1);
+INSERT INTO migrations VALUES(34,'2025_11_13_173143_create_notifications_table',1);
+INSERT INTO migrations VALUES(35,'2025_11_14_200952_create_account_balances_table',1);
+INSERT INTO migrations VALUES(36,'2025_11_14_201017_create_balance_history_table',1);
+INSERT INTO migrations VALUES(37,'2025_11_14_201030_create_balance_alerts_table',1);
+INSERT INTO migrations VALUES(38,'2025_11_14_225644_add_revenue_destination_to_instruction_items_table',1);
+INSERT INTO migrations VALUES(39,'2025_11_14_225733_create_revenue_collections_table',1);
