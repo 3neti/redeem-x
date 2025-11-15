@@ -77,6 +77,12 @@ Route::prefix('v1')
         // Wallet QR code generation API
         Route::post('/wallet/generate-qr', \App\Actions\Api\Wallet\GenerateQrCode::class)
             ->name('api.wallet.generate-qr');
+        
+        // Merchant profile API
+        Route::get('/merchant/profile', [\App\Http\Controllers\Api\MerchantProfileController::class, 'show'])
+            ->name('api.merchant.profile.show');
+        Route::put('/merchant/profile', [\App\Http\Controllers\Api\MerchantProfileController::class, 'update'])
+            ->name('api.merchant.profile.update');
     });
 
 /**
