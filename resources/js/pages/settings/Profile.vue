@@ -12,8 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
 import { Loader2 } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -296,17 +301,19 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div class="flex items-center space-x-2 rounded-lg border p-4">
+                            <input
+                                type="checkbox"
+                                id="merchant_allow_tip"
+                                v-model="merchantForm.allow_tip"
+                                class="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary"
+                            />
                             <div class="space-y-0.5">
-                                <Label for="merchant_allow_tip">Allow Tips</Label>
+                                <Label for="merchant_allow_tip" class="cursor-pointer">Allow Tips</Label>
                                 <p class="text-sm text-muted-foreground">
                                     Let customers add a tip amount
                                 </p>
                             </div>
-                            <Switch
-                                id="merchant_allow_tip"
-                                v-model:checked="merchantForm.allow_tip"
-                            />
                         </div>
                     </div>
 
