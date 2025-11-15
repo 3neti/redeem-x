@@ -170,6 +170,41 @@ onMounted(() => {
                         <InputError class="mt-2" :message="errors.email" />
                     </div>
 
+                    <div class="grid gap-2">
+                        <Label for="mobile">Mobile Number *</Label>
+                        <Input
+                            id="mobile"
+                            type="tel"
+                            class="mt-1 block w-full"
+                            name="mobile"
+                            :default-value="user.mobile"
+                            required
+                            autocomplete="tel"
+                            placeholder="09171234567"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Philippine mobile number (required for QR code generation)
+                        </p>
+                        <InputError class="mt-2" :message="errors.mobile" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="webhook">Webhook URL</Label>
+                        <Input
+                            id="webhook"
+                            type="url"
+                            class="mt-1 block w-full"
+                            name="webhook"
+                            :default-value="user.webhook"
+                            autocomplete="url"
+                            placeholder="https://example.com/webhook"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Optional: Receive notifications when your QR code is scanned
+                        </p>
+                        <InputError class="mt-2" :message="errors.webhook" />
+                    </div>
+
                     <div class="flex items-center gap-4">
                         <Button
                             :disabled="processing"

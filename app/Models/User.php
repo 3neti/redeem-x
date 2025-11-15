@@ -133,4 +133,33 @@ class User extends Authenticatable implements Wallet, Customer
                 $date->copy()->endOfMonth()
             ]);
     }
+    
+    /**
+     * Get the mobile number in national format for QR code generation.
+     * 
+     * The Omnipay gateway will add the alias prefix automatically,
+     * so we only return the national mobile format here.
+     * 
+     * Format: National mobile (09173011987)
+     * Gateway adds: 91500 + 09173011987 = 9150009173011987
+     * 
+     * @return string|null
+     */
+    public function getAccountNumberAttribute(): ?string
+    {
+        $mobile = $this->mobile;
+        
+        if (!$mobile) {
+            return null;
+        }
+        
+        // Mobile is stored in E.164 format without + (e.g., 639173011987)
+        // Convert to national format (09173011987)
+        if (str_starts_with($mobile, '63') && strlen($mobile) === 12) {
+            return '0' . substr($mobile, 2);
+        }
+        
+        // If already in national format or other format, return as-is
+        return $mobile;
+    }
 }

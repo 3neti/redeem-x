@@ -27,11 +27,26 @@ class ProfileController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'mobile' => ['required', 'phone:PH,mobile'],
+            'webhook' => ['nullable', 'url'],
         ]);
 
-        $request->user()->update(['name' => $request->name]);
+        $user = $request->user();
+        
+        // Update basic profile
+        $user->update(['name' => $validated['name']]);
+        
+        // Update channels (mobile and webhook)
+        $user->mobile = $validated['mobile'];
+        
+        if (!empty($validated['webhook'])) {
+            $user->webhook = $validated['webhook'];
+        } else {
+            // Delete webhook if empty
+            $user->setChannel('webhook', null);
+        }
 
         return to_route('profile.edit');
     }

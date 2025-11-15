@@ -37,7 +37,17 @@ class GenerateQrCode
         ]);
         
         $user = $request->user();
-        $account = $user->email; // Use email as account identifier
+        
+        // Get account number (alias + national mobile)
+        $account = $user->accountNumber;
+        
+        if (!$account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mobile number is required to generate QR code. Please update your profile settings.',
+            ], 422);
+        }
+        
         $amountValue = (float) $request->input('amount', 0);
         $force = (bool) $request->input('force', false);
         $currency = config('disbursement.currency', 'PHP');
