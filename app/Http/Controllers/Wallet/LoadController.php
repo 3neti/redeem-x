@@ -14,6 +14,8 @@ class LoadController extends Controller
      */
     public function __invoke(Request $request): Response
     {
-        return Inertia::render('Wallet/Load');
+        return Inertia::render('Wallet/Load', [
+            'loadWalletConfig' => config('load-wallet'),
+        ]);
     }
 }

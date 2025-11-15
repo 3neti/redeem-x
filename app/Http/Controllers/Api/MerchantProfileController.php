@@ -51,6 +51,7 @@ class MerchantProfileController extends Controller
             'default_amount' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'min_amount' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'max_amount' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'merchant_name_template' => ['nullable', 'string', 'max:255'],
             'allow_tip' => ['nullable', 'boolean'],
         ]);
 

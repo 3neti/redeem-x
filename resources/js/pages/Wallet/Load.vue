@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
 import { useQrGeneration } from '@/composables/useQrGeneration';
 import QrDisplay from '@/components/domain/QrDisplay.vue';
@@ -20,9 +20,14 @@ import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-vue-next';
 import axios from '@/lib/axios';
 import MerchantAmountSettings from '@/components/MerchantAmountSettings.vue';
+import MerchantNameTemplateComposer from '@/components/MerchantNameTemplateComposer.vue';
 import { useToast } from '@/components/ui/toast/use-toast';
 
 const { toast } = useToast();
+const page = usePage();
+
+// Load configuration
+const config = page.props.loadWalletConfig || {};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Wallet', href: '/wallet/load' },
@@ -41,7 +46,13 @@ const amountForm = ref({
     default_amount: null as number | null,
     min_amount: null as number | null,
     max_amount: null as number | null,
+    merchant_name_template: '{name} - {city}',
     allow_tip: false,
+});
+
+const merchantInfo = ref({
+    name: '',
+    city: '',
 });
 
 const loadMerchant = async () => {
@@ -53,7 +64,10 @@ const loadMerchant = async () => {
             amountForm.value.default_amount = m.default_amount ? parseFloat(m.default_amount) : null;
             amountForm.value.min_amount = m.min_amount ? parseFloat(m.min_amount) : null;
             amountForm.value.max_amount = m.max_amount ? parseFloat(m.max_amount) : null;
+            amountForm.value.merchant_name_template = m.merchant_name_template || '{name} - {city}';
             amountForm.value.allow_tip = !!m.allow_tip;
+            merchantInfo.value.name = m.name || '';
+            merchantInfo.value.city = m.city || '';
         }
     } catch (e) {
         // ignore
@@ -86,23 +100,20 @@ onMounted(() => {
             <!-- Page Header -->
             <div class="flex items-center justify-between">
                 <Heading
-                    title="Load Your Wallet"
-                    :description="`Current Balance: ${formattedBalance}`"
+                    :title="config.header?.title || 'Load Your Wallet'"
+                    :description="config.header?.show_balance ? `${config.header?.balance_prefix || 'Current Balance:'} ${formattedBalance}` : ''"
                 />
             </div>
 
             <!-- Main Content: QR Display & Share Panel -->
             <div class="grid gap-6 md:grid-cols-2">
                 <!-- Left Column: QR Display -->
-                <div class="space-y-4">
+                <div v-if="config.qr_card?.show !== false" class="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Your QR Code</CardTitle>
-                            <CardDescription v-if="qrData?.merchant">
-                                Displayed as: <strong>{{ qrData.merchant.name }}{{ qrData.merchant.city ? ' • ' + qrData.merchant.city : '' }}</strong>
-                            </CardDescription>
-                            <CardDescription v-else>
-                                Scan this QR code to load funds
+                            <CardTitle>{{ config.qr_card?.title || 'QR Code' }}</CardTitle>
+                            <CardDescription>
+                                {{ config.qr_card?.description || 'Scan to load.' }}
                             </CardDescription>
                         </CardHeader>
 
@@ -117,7 +128,7 @@ onMounted(() => {
                         </CardContent>
 
                         <!-- Regenerate Button -->
-                        <CardFooter>
+                        <CardFooter v-if="config.qr_card?.show_regenerate_button !== false">
                             <Button
                                 class="w-full"
                                 variant="outline"
@@ -128,18 +139,34 @@ onMounted(() => {
                                     class="mr-2 h-4 w-4"
                                     :class="{ 'animate-spin': loading }"
                                 />
-                                {{ loading ? 'Generating...' : 'Regenerate QR Code' }}
+                                {{ loading ? (config.qr_card?.regenerate_button_loading_text || 'Generating...') : (config.qr_card?.regenerate_button_text || 'Regenerate QR Code') }}
                             </Button>
                         </CardFooter>
                     </Card>
                 </div>
 
-                <!-- Right Column: Amount Settings + Share Panel -->
+                <!-- Right Column: Template + Amount Settings + Share Panel -->
                 <div class="space-y-4">
-                    <Card>
+                    <Card v-if="config.display_settings_card?.show !== false">
                         <CardHeader>
-                            <CardTitle>Amount Settings</CardTitle>
-                            <CardDescription>These settings control your wallet-load QR behavior</CardDescription>
+                            <CardTitle>{{ config.display_settings_card?.title || 'Display Settings' }}</CardTitle>
+                            <CardDescription>{{ config.display_settings_card?.description || 'Customize how your name appears on QR codes' }}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <MerchantNameTemplateComposer
+                                v-model="amountForm.merchant_name_template"
+                                :merchant-name="merchantInfo.name || 'Sample Merchant'"
+                                :merchant-city="merchantInfo.city || 'Manila'"
+                                :app-name="page.props.appName || 'redeem-x'"
+                                @preview="saveAmountSettings"
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="config.amount_settings_card?.show !== false">
+                        <CardHeader>
+                            <CardTitle>{{ config.amount_settings_card?.title || 'Amount Settings' }}</CardTitle>
+                            <CardDescription>{{ config.amount_settings_card?.description || 'These settings control your wallet-load QR behavior' }}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <MerchantAmountSettings
@@ -155,14 +182,14 @@ onMounted(() => {
                                 @update:allowTip="(v) => (amountForm.allow_tip = v)"
                             />
                         </CardContent>
-                        <CardFooter>
+                        <CardFooter v-if="config.amount_settings_card?.show_save_button !== false">
                             <Button :disabled="saving" class="w-full" @click="saveAmountSettings">
-                                {{ saving ? 'Saving...' : 'Save Amount Settings' }}
+                                {{ saving ? (config.amount_settings_card?.save_button_loading_text || 'Saving...') : (config.amount_settings_card?.save_button_text || 'Save Amount Settings') }}
                             </Button>
                         </CardFooter>
                     </Card>
 
-                    <QrSharePanel :qr-data="qrData" />
+                    <QrSharePanel v-if="config.share_panel?.show !== false" :qr-data="qrData" />
                 </div>
             </div>
         </div>

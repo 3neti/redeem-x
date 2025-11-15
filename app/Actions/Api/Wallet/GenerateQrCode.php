@@ -91,10 +91,10 @@ class GenerateQrCode
             // Create Brick\Money\Money object
             $money = Money::of($amountValue, $currency);
             
-            // Prepare merchant data for QR
+            // Prepare merchant data for QR (pass full objects for template rendering)
             $merchantData = [
-                'name' => $merchant->name,
-                'city' => $merchant->city,
+                'merchant' => $merchant,
+                'user' => $user,
             ];
             
             // Generate QR code via gateway with merchant info
@@ -103,10 +103,17 @@ class GenerateQrCode
             // Build shareable URL (you can customize this)
             $shareableUrl = route('wallet.load'); // For now, just link to the load page
             
+            // Render display name using merchant's template (fallback to config or default)
+            $templateService = app(\App\Services\MerchantNameTemplateService::class);
+            $template = $merchant->merchant_name_template 
+                ?? config('payment-gateway.qr_merchant_name.template', '{name} - {city}');
+            $displayName = $templateService->render($template, $merchant, $user);
+            
             Log::info('[GenerateQrCode] QR code generated successfully', [
                 'user_id' => $user->id,
                 'account' => $account,
                 'cache_ttl' => $cacheTtl,
+                'display_name' => $displayName,
             ]);
             
             // Prepare response data
@@ -123,6 +130,7 @@ class GenerateQrCode
                     'city' => $merchant->city,
                     'description' => $merchant->description,
                     'category' => $merchant->category_name,
+                    'display_name' => $displayName, // Rendered display name for UI
                 ],
             ];
             

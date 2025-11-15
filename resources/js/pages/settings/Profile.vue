@@ -9,6 +9,7 @@ import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
 import MerchantAmountSettings from '@/components/MerchantAmountSettings.vue';
+import MerchantNameTemplateComposer from '@/components/MerchantNameTemplateComposer.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,6 +60,7 @@ const merchantForm = ref({
     default_amount: null as number | null,
     min_amount: null as number | null,
     max_amount: null as number | null,
+    merchant_name_template: '{name} - {city}',
     allow_tip: false,
 });
 
@@ -81,6 +83,7 @@ const loadMerchantProfile = async () => {
                 default_amount: merchant.value.default_amount ? parseFloat(merchant.value.default_amount) : null,
                 min_amount: merchant.value.min_amount ? parseFloat(merchant.value.min_amount) : null,
                 max_amount: merchant.value.max_amount ? parseFloat(merchant.value.max_amount) : null,
+                merchant_name_template: merchant.value.merchant_name_template || '{name} - {city}',
                 allow_tip: merchant.value.allow_tip || false,
             };
         }
@@ -260,6 +263,17 @@ onMounted(() => {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <!-- Template Composer -->
+                    <div class="border-t pt-4">
+                        <MerchantNameTemplateComposer
+                            v-model="merchantForm.merchant_name_template"
+                            :merchant-name="merchantForm.name || 'Sample Merchant'"
+                            :merchant-city="merchantForm.city || 'Manila'"
+                            :app-name="$page.props.appName || 'redeem-x'"
+                            @preview="saveMerchantProfile"
+                        />
                     </div>
 
                     <!-- Amount Settings -->

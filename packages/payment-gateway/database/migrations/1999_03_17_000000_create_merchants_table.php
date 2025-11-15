@@ -21,6 +21,7 @@ return new class extends Migration
             $table->decimal('default_amount', 10, 2)->nullable();
             $table->decimal('min_amount', 10, 2)->nullable();
             $table->decimal('max_amount', 10, 2)->nullable();
+            $table->string('merchant_name_template')->default('{name} - {city}'); // Template for QR merchant name
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

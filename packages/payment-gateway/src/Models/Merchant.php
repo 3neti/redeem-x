@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property float|null  $default_amount
  * @property float|null  $min_amount
  * @property float|null  $max_amount
+ * @property string      $merchant_name_template
  * @property bool        $is_active
  *
  * @method int getKey()
@@ -41,6 +42,7 @@ class Merchant extends Model
         'default_amount',
         'min_amount',
         'max_amount',
+        'merchant_name_template',
         'is_active',
     ];
 

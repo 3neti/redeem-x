@@ -163,7 +163,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
      * 
      * @param string $account Account number
      * @param Money $amount Amount to collect
-     * @param array $merchantData Optional merchant information
+     * @param array $merchantData Optional merchant information (merchant, user objects)
      * @return string QR code data (base64 PNG)
      */
     public function generate(string $account, Money $amount, array $merchantData = []): string
@@ -171,7 +171,6 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         Log::debug('[OmnipayPaymentGateway] Generating QR code', [
             'account' => $account,
             'amount' => $amount->getAmount()->toFloat(),
-            'merchant_name' => $merchantData['name'] ?? null,
         ]);
         
         // Convert to minor units
@@ -183,13 +182,31 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             'currency' => $amount->getCurrency()->getCurrencyCode(),
         ];
         
-        // Add merchant data if provided
-        if (!empty($merchantData['name'])) {
-            $params['merchantName'] = $merchantData['name'];
-        }
-        
-        if (!empty($merchantData['city'])) {
-            $params['merchantCity'] = $merchantData['city'];
+        // Render merchant name using template service if merchant and user provided
+        if (isset($merchantData['merchant']) && isset($merchantData['user'])) {
+            $merchant = $merchantData['merchant'];
+            $templateService = app(\App\Services\MerchantNameTemplateService::class);
+            // Use merchant's template (fallback to config or default)
+            $template = $merchant->merchant_name_template 
+                ?? config('payment-gateway.qr_merchant_name.template', '{name} - {city}');
+            
+            $merchantName = $templateService->render(
+                $template,
+                $merchant,
+                $merchantData['user']
+            );
+            
+            $params['merchantName'] = $merchantName;
+            
+            // NetBank API requires merchant_city as separate field (even though it may not display)
+            // We send city to satisfy API requirements
+            $params['merchantCity'] = $merchant->city ?? 'Manila';
+            
+            Log::debug('[OmnipayPaymentGateway] Rendered merchant name', [
+                'template' => $template,
+                'rendered' => $merchantName,
+                'city' => $params['merchantCity'],
+            ]);
         }
         
         $response = $this->gateway->generateQr($params)->send();

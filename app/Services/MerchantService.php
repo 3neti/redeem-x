@@ -42,6 +42,7 @@ class MerchantService
             'default_amount' => array_key_exists('default_amount', $data) ? $data['default_amount'] : $merchant->default_amount,
             'min_amount' => array_key_exists('min_amount', $data) ? $data['min_amount'] : $merchant->min_amount,
             'max_amount' => array_key_exists('max_amount', $data) ? $data['max_amount'] : $merchant->max_amount,
+            'merchant_name_template' => $data['merchant_name_template'] ?? $merchant->merchant_name_template,
             'allow_tip' => array_key_exists('allow_tip', $data) ? $data['allow_tip'] : $merchant->allow_tip,
         ];
         
@@ -115,6 +116,10 @@ class MerchantService
 
         if (isset($data['max_amount'])) {
             $validated['max_amount'] = $data['max_amount'] ? (float) $data['max_amount'] : null;
+        }
+
+        if (isset($data['merchant_name_template'])) {
+            $validated['merchant_name_template'] = trim($data['merchant_name_template']);
         }
 
         if (isset($data['allow_tip'])) {

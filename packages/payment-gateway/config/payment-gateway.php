@@ -33,6 +33,27 @@ return [
     */
     'qr_cache_ttl' => env('PAYMENT_GATEWAY_QR_CACHE_TTL', 3600),
 
+    /*
+    |--------------------------------------------------------------------------
+    | QR Merchant Name Template
+    |--------------------------------------------------------------------------
+    |
+    | Configure how the merchant name appears in QR codes.
+    | Available variables: {name}, {city}, {app_name}
+    |
+    | Examples:
+    |   "{name} • {city}"     => "3neti R&D OPC • Manila"
+    |   "{name}"              => "3neti R&D OPC"
+    |   "{app_name}"          => "Redeem-X"
+    |   "{city} - {name}"     => "Manila - 3neti R&D OPC"
+    |
+    */
+    'qr_merchant_name' => [
+        'template' => env('QR_MERCHANT_NAME_TEMPLATE', '{name} - {city}'),
+        'uppercase' => env('QR_MERCHANT_NAME_UPPERCASE', false),
+        'fallback' => env('QR_MERCHANT_NAME_FALLBACK', config('app.name')),
+    ],
+
     'routes' => [
         'enabled' => env('PAYMENT_GATEWAY_ROUTES_ENABLED', true),
 
