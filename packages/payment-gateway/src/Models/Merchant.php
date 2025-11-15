@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string      $merchant_category_code
  * @property string|null $logo_url
  * @property bool        $allow_tip
+ * @property bool        $is_dynamic
  * @property float|null  $default_amount
  * @property float|null  $min_amount
  * @property float|null  $max_amount
@@ -36,6 +37,7 @@ class Merchant extends Model
         'merchant_category_code',
         'logo_url',
         'allow_tip',
+        'is_dynamic',
         'default_amount',
         'min_amount',
         'max_amount',
@@ -44,10 +46,11 @@ class Merchant extends Model
 
     protected $casts = [
         'allow_tip' => 'boolean',
+        'is_dynamic' => 'boolean',
         'is_active' => 'boolean',
-        'default_amount' => 'decimal:2',
-        'min_amount' => 'decimal:2',
-        'max_amount' => 'decimal:2',
+        'default_amount' => 'float',
+        'min_amount' => 'float',
+        'max_amount' => 'float',
     ];
 
     public static function newFactory(): MerchantFactory

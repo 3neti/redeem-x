@@ -54,6 +54,7 @@ const merchantForm = ref({
     city: '',
     description: '',
     merchant_category_code: '0000',
+    is_dynamic: false,
     default_amount: null as number | null,
     min_amount: null as number | null,
     max_amount: null as number | null,
@@ -75,6 +76,7 @@ const loadMerchantProfile = async () => {
                 city: merchant.value.city || '',
                 description: merchant.value.description || '',
                 merchant_category_code: merchant.value.merchant_category_code || '0000',
+                is_dynamic: merchant.value.is_dynamic || false,
                 default_amount: merchant.value.default_amount ? parseFloat(merchant.value.default_amount) : null,
                 min_amount: merchant.value.min_amount ? parseFloat(merchant.value.min_amount) : null,
                 max_amount: merchant.value.max_amount ? parseFloat(merchant.value.max_amount) : null,
@@ -261,42 +263,61 @@ onMounted(() => {
 
                     <!-- Amount Settings -->
                     <div class="space-y-4 border-t pt-4">
-                        <h3 class="text-sm font-medium">Amount Settings (Optional)</h3>
+                        <h3 class="text-sm font-medium">Amount Settings</h3>
+                        
+                        <!-- Dynamic Amount Toggle -->
+                        <div class="flex items-center space-x-2 rounded-lg border p-4 bg-muted/30">
+                            <input
+                                type="checkbox"
+                                id="merchant_dynamic_amount"
+                                v-model="merchantForm.is_dynamic"
+                                class="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary"
+                            />
+                            <div class="space-y-0.5">
+                                <Label for="merchant_dynamic_amount" class="cursor-pointer font-medium">Dynamic Amount</Label>
+                                <p class="text-sm text-muted-foreground">
+                                    Generate QR codes without a fixed amount (payer chooses amount)
+                                </p>
+                            </div>
+                        </div>
                         
                         <div class="grid gap-2">
-                            <Label for="merchant_default_amount">Default Amount (₱)</Label>
+                            <Label for="merchant_default_amount" :class="{ 'text-muted-foreground': merchantForm.is_dynamic }">Default Amount (₱)</Label>
                             <Input
                                 id="merchant_default_amount"
-                                v-model.number="merchantForm.default_amount"
+                                v-model="merchantForm.default_amount"
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 placeholder="0.00"
+                                :disabled="merchantForm.is_dynamic"
                             />
                         </div>
 
                         <div class="grid gap-4 md:grid-cols-2">
                             <div class="grid gap-2">
-                                <Label for="merchant_min_amount">Min Amount (₱)</Label>
+                                <Label for="merchant_min_amount" :class="{ 'text-muted-foreground': merchantForm.is_dynamic }">Min Amount (₱)</Label>
                                 <Input
                                     id="merchant_min_amount"
-                                    v-model.number="merchantForm.min_amount"
+                                    v-model="merchantForm.min_amount"
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    placeholder="0.00"
+                                    placeholder="Optional"
+                                    :disabled="merchantForm.is_dynamic"
                                 />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label for="merchant_max_amount">Max Amount (₱)</Label>
+                                <Label for="merchant_max_amount" :class="{ 'text-muted-foreground': merchantForm.is_dynamic }">Max Amount (₱)</Label>
                                 <Input
                                     id="merchant_max_amount"
-                                    v-model.number="merchantForm.max_amount"
+                                    v-model="merchantForm.max_amount"
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    placeholder="0.00"
+                                    placeholder="Optional"
+                                    :disabled="merchantForm.is_dynamic"
                                 />
                             </div>
                         </div>

@@ -27,17 +27,29 @@ class MerchantService
     public function updateMerchantProfile(User $user, array $data): Merchant
     {
         $merchant = $user->getOrCreateMerchant();
+        
+        \Illuminate\Support\Facades\Log::debug('[MerchantService] Updating merchant profile', [
+            'merchant_id' => $merchant->id,
+            'data' => $data,
+        ]);
 
-        $merchant->update([
+        $updateData = [
             'name' => $data['name'] ?? $merchant->name,
             'city' => $data['city'] ?? $merchant->city,
             'description' => $data['description'] ?? $merchant->description,
             'merchant_category_code' => $data['merchant_category_code'] ?? $merchant->merchant_category_code,
-            'default_amount' => $data['default_amount'] ?? $merchant->default_amount,
-            'min_amount' => $data['min_amount'] ?? $merchant->min_amount,
-            'max_amount' => $data['max_amount'] ?? $merchant->max_amount,
-            'allow_tip' => $data['allow_tip'] ?? $merchant->allow_tip,
+            'is_dynamic' => array_key_exists('is_dynamic', $data) ? $data['is_dynamic'] : $merchant->is_dynamic,
+            'default_amount' => array_key_exists('default_amount', $data) ? $data['default_amount'] : $merchant->default_amount,
+            'min_amount' => array_key_exists('min_amount', $data) ? $data['min_amount'] : $merchant->min_amount,
+            'max_amount' => array_key_exists('max_amount', $data) ? $data['max_amount'] : $merchant->max_amount,
+            'allow_tip' => array_key_exists('allow_tip', $data) ? $data['allow_tip'] : $merchant->allow_tip,
+        ];
+        
+        \Illuminate\Support\Facades\Log::debug('[MerchantService] Update data prepared', [
+            'update_data' => $updateData,
         ]);
+        
+        $merchant->update($updateData);
 
         // Clear QR cache for this user since merchant data changed
         $this->clearUserQrCache($user);
@@ -87,6 +99,10 @@ class MerchantService
 
         if (isset($data['merchant_category_code'])) {
             $validated['merchant_category_code'] = $data['merchant_category_code'];
+        }
+
+        if (isset($data['is_dynamic'])) {
+            $validated['is_dynamic'] = (bool) $data['is_dynamic'];
         }
 
         if (isset($data['default_amount'])) {

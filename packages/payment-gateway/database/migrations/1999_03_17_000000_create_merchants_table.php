@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('merchant_category_code', 4)->default('0000'); // MCC for QR Ph
             $table->string('logo_url')->nullable();
             $table->boolean('allow_tip')->default(false);
+            $table->boolean('is_dynamic')->default(false); // Dynamic QR (no fixed amount)
             $table->decimal('default_amount', 10, 2)->nullable();
             $table->decimal('min_amount', 10, 2)->nullable();
             $table->decimal('max_amount', 10, 2)->nullable();

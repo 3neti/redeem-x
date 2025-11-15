@@ -45,8 +45,8 @@ class GenerateQrCode
         // Get or create merchant profile for user
         $merchant = $user->getOrCreateMerchant();
         
-        // Use merchant default amount if no amount specified
-        if ($amountValue === 0.0 && $merchant->default_amount) {
+        // Use merchant default amount if no amount specified AND merchant is not dynamic
+        if ($amountValue === 0.0 && !$merchant->is_dynamic && $merchant->default_amount) {
             $amountValue = (float) $merchant->default_amount;
         }
         

@@ -47,6 +47,7 @@ class MerchantProfileController extends Controller
             'city' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
             'merchant_category_code' => ['sometimes', 'string', 'size:4'],
+            'is_dynamic' => ['nullable', 'boolean'],
             'default_amount' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'min_amount' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'max_amount' => ['nullable', 'numeric', 'min:0', 'max:999999'],
