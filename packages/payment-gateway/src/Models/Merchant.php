@@ -3,6 +3,7 @@
 namespace LBHurtado\PaymentGateway\Models;
 
 use LBHurtado\PaymentGateway\Database\Factories\MerchantFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  * Class Merchant.
  *
  * @property int         $id
+ * @property string      $uuid
  * @property string      $code
  * @property string      $name
  * @property string|null $city
@@ -28,9 +30,20 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Merchant extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    /**
+     * Get the columns that should receive a unique identifier.
+     *
+     * @return array<int, string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
 
     protected $fillable = [
+        'uuid',
         'code',
         'name',
         'city',

@@ -6,6 +6,10 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 
 Route::get('/', fn () => Inertia::render('Welcome'));
 
+// Public QR load page (no authentication required)
+Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
+    ->name('load.public');
+
 Route::middleware([
     'auth',
     ValidateSessionWithWorkOS::class,

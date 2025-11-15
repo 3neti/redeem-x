@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('merchants', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uuid')->unique()->index();
             $table->string('code')->unique();
             $table->string('name');
             $table->string('city')->nullable();

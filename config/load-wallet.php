@@ -51,4 +51,33 @@ return [
         'show' => env('LOAD_WALLET_SHOW_SHARE_PANEL', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public QR Page Configuration (/load/{uuid})
+    |--------------------------------------------------------------------------
+    |
+    | Configure the public-facing QR code display page.
+    | This page is accessible without authentication.
+    |
+    */
+
+    'public' => [
+        'show_logo' => env('LOAD_WALLET_PUBLIC_SHOW_LOGO', true),
+        
+        // Page title (uses merchant name dynamically)
+        'title_prefix' => env('LOAD_WALLET_PUBLIC_TITLE_PREFIX', 'Pay'),
+        
+        // Merchant info display
+        'show_merchant_name' => env('LOAD_WALLET_PUBLIC_SHOW_MERCHANT_NAME', true),
+        'show_merchant_city' => env('LOAD_WALLET_PUBLIC_SHOW_MERCHANT_CITY', true),
+        
+        // Instructions section
+        'instruction_title' => env('LOAD_WALLET_PUBLIC_INSTRUCTION_TITLE', 'Scan to Pay'),
+        'instruction_description' => env('LOAD_WALLET_PUBLIC_INSTRUCTION_DESCRIPTION', 'Use your GCash, PayMaya, or any QR Ph compatible app'),
+        
+        // Footer
+        'show_footer' => env('LOAD_WALLET_PUBLIC_SHOW_FOOTER', true),
+        'footer_text' => env('LOAD_WALLET_PUBLIC_FOOTER_TEXT', null), // null = "Powered by {app_name}"
+    ],
+
 ];

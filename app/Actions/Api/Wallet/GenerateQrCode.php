@@ -100,8 +100,8 @@ class GenerateQrCode
             // Generate QR code via gateway with merchant info
             $qrCode = $this->gateway->generate($account, $money, $merchantData);
             
-            // Build shareable URL (you can customize this)
-            $shareableUrl = route('wallet.load'); // For now, just link to the load page
+            // Build shareable URL with merchant UUID for public access
+            $shareableUrl = route('load.public', ['uuid' => $merchant->uuid]);
             
             // Render display name using merchant's template (fallback to config or default)
             $templateService = app(\App\Services\MerchantNameTemplateService::class);
