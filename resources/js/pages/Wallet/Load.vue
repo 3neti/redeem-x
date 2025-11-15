@@ -49,7 +49,11 @@ const { qrData, loading, error, regenerate } = useQrGeneration(true, 0);
                     <Card>
                         <CardHeader>
                             <CardTitle>Your QR Code</CardTitle>
-                            <CardDescription>
+                            <CardDescription v-if="qrData?.merchant">
+                                Displayed as: <strong>{{ qrData.merchant.name }}</strong>
+                                <span v-if="qrData.merchant.city"> • {{ qrData.merchant.city }}</span>
+                            </CardDescription>
+                            <CardDescription v-else>
                                 Scan this QR code to load funds
                             </CardDescription>
                         </CardHeader>

@@ -1,6 +1,13 @@
 import { ref, Ref } from 'vue';
 import axios from '@/lib/axios';
 
+export interface MerchantData {
+    name: string;
+    city: string | null;
+    description: string | null;
+    category: string;
+}
+
 export interface QrCodeData {
     qr_code: string;
     qr_url: string | null;
@@ -9,6 +16,7 @@ export interface QrCodeData {
     account: string;
     amount: number | null;
     shareable_url: string;
+    merchant: MerchantData;
 }
 
 export interface UseQrGenerationReturn {
