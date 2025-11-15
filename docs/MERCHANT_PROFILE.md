@@ -139,29 +139,62 @@ if ($amountValue === 0.0 && !$merchant->is_dynamic && $merchant->default_amount)
 
 ### Components
 
+**MerchantAmountSettings.vue** - Reusable component for amount settings
+
+A standalone component that encapsulates all amount-related settings:
+
+**Props:**
+- `isDynamic: boolean` - Controls dynamic mode
+- `defaultAmount: number | null` - Default amount for QR
+- `minAmount: number | null` - Minimum allowed amount
+- `maxAmount: number | null` - Maximum allowed amount
+- `allowTip: boolean` - Whether tips are allowed
+- `disabled?: boolean` - Optional disable all inputs
+
+**Events:**
+- `update:isDynamic` - Emitted when dynamic checkbox changes
+- `update:defaultAmount` - Emitted when default amount changes
+- `update:minAmount` - Emitted when min amount changes
+- `update:maxAmount` - Emitted when max amount changes
+- `update:allowTip` - Emitted when allow tip changes
+
+**Usage:**
+```vue
+<MerchantAmountSettings
+  :is-dynamic="form.is_dynamic"
+  :default-amount="form.default_amount"
+  :min-amount="form.min_amount"
+  :max-amount="form.max_amount"
+  :allow-tip="form.allow_tip"
+  @update:isDynamic="(v) => (form.is_dynamic = v)"
+  @update:defaultAmount="(v) => (form.default_amount = v)"
+  @update:minAmount="(v) => (form.min_amount = v)"
+  @update:maxAmount="(v) => (form.max_amount = v)"
+  @update:allowTip="(v) => (form.allow_tip = v)"
+/>
+```
+
+**Used In:**
+- `resources/js/pages/settings/Profile.vue` - Merchant profile settings
+- `resources/js/pages/Wallet/Load.vue` - Quick settings on Load Wallet page
+
 **Profile Settings** (`resources/js/pages/settings/Profile.vue`)
 
 The merchant profile form includes:
-- Dynamic Amount checkbox that enables/disables amount fields
-- All merchant fields bound to `merchantForm.value`
+- Merchant identity fields (name, city, description, category)
+- `MerchantAmountSettings` component for amount configuration
 - Auto-loads merchant data on mount
-- Real-time field disabling when dynamic mode is toggled
+- Saves all merchant fields together
 
-```vue
-<template>
-  <!-- Dynamic Amount Toggle -->
-  <input 
-    type="checkbox" 
-    v-model="merchantForm.is_dynamic"
-  />
-  
-  <!-- Amount fields disabled when is_dynamic is true -->
-  <Input 
-    v-model="merchantForm.default_amount"
-    :disabled="merchantForm.is_dynamic"
-  />
-</template>
-```
+**Load Wallet Page** (`resources/js/pages/Wallet/Load.vue`)
+
+Enhanced with inline amount settings:
+- Left column: QR code display and regenerate button
+- Right column: 
+  - **Amount Settings card** with `MerchantAmountSettings` component
+  - Save button that updates merchant profile and auto-regenerates QR
+  - Share Panel below
+- Allows users to quickly toggle dynamic/fixed without leaving the page
 
 ### Composables
 
