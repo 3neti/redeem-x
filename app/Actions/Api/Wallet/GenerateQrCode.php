@@ -42,6 +42,14 @@ class GenerateQrCode
         $force = (bool) $request->input('force', false);
         $currency = config('disbursement.currency', 'PHP');
         
+        // Get or create merchant profile for user
+        $merchant = $user->getOrCreateMerchant();
+        
+        // Use merchant default amount if no amount specified
+        if ($amountValue === 0.0 && $merchant->default_amount) {
+            $amountValue = (float) $merchant->default_amount;
+        }
+        
         // Create cache key based on user and amount
         $cacheKey = "qr_code:{$user->id}:" . ($amountValue > 0 ? $amountValue : 'dynamic');
         $cacheTtl = config('payment-gateway.qr_cache_ttl', 3600); // Default 1 hour
@@ -83,8 +91,14 @@ class GenerateQrCode
             // Create Brick\Money\Money object
             $money = Money::of($amountValue, $currency);
             
-            // Generate QR code via gateway
-            $qrCode = $this->gateway->generate($account, $money);
+            // Prepare merchant data for QR
+            $merchantData = [
+                'name' => $merchant->name,
+                'city' => $merchant->city,
+            ];
+            
+            // Generate QR code via gateway with merchant info
+            $qrCode = $this->gateway->generate($account, $money, $merchantData);
             
             // Build shareable URL (you can customize this)
             $shareableUrl = route('wallet.load'); // For now, just link to the load page
@@ -104,6 +118,12 @@ class GenerateQrCode
                 'account' => $account,
                 'amount' => $amountValue > 0 ? $amountValue : null,
                 'shareable_url' => $shareableUrl,
+                'merchant' => [
+                    'name' => $merchant->name,
+                    'city' => $merchant->city,
+                    'description' => $merchant->description,
+                    'category' => $merchant->category_name,
+                ],
             ];
             
             // Cache the QR code data

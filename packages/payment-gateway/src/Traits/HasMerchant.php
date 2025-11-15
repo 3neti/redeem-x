@@ -44,4 +44,35 @@ trait HasMerchant
     {
         return $this->merchant()->first();
     }
+
+    /**
+     * Get the user's merchant or create a default one.
+     */
+    public function getOrCreateMerchant(): Merchant
+    {
+        $merchant = $this->getMerchantAttribute();
+
+        if (!$merchant) {
+            $merchant = Merchant::create([
+                'code' => 'USR-' . $this->getKey(),
+                'name' => $this->name ?? 'User ' . $this->getKey(),
+                'city' => 'Manila',
+                'merchant_category_code' => '0000', // General/Personal
+                'description' => 'Personal wallet',
+                'is_active' => true,
+            ]);
+
+            $this->setMerchant($merchant);
+        }
+
+        return $merchant;
+    }
+
+    /**
+     * Check if user has a merchant profile.
+     */
+    public function hasMerchant(): bool
+    {
+        return $this->merchant()->exists();
+    }
 }

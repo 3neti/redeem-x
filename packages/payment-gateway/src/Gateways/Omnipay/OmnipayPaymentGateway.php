@@ -163,23 +163,36 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
      * 
      * @param string $account Account number
      * @param Money $amount Amount to collect
+     * @param array $merchantData Optional merchant information
      * @return string QR code data (base64 PNG)
      */
-    public function generate(string $account, Money $amount): string
+    public function generate(string $account, Money $amount, array $merchantData = []): string
     {
         Log::debug('[OmnipayPaymentGateway] Generating QR code', [
             'account' => $account,
             'amount' => $amount->getAmount()->toFloat(),
+            'merchant_name' => $merchantData['name'] ?? null,
         ]);
         
         // Convert to minor units
         $amountInCentavos = $amount->getMinorAmount()->toInt();
         
-        $response = $this->gateway->generateQr([
+        $params = [
             'accountNumber' => $account,
             'amount' => $amountInCentavos,
             'currency' => $amount->getCurrency()->getCurrencyCode(),
-        ])->send();
+        ];
+        
+        // Add merchant data if provided
+        if (!empty($merchantData['name'])) {
+            $params['merchantName'] = $merchantData['name'];
+        }
+        
+        if (!empty($merchantData['city'])) {
+            $params['merchantCity'] = $merchantData['city'];
+        }
+        
+        $response = $this->gateway->generateQr($params)->send();
         
         if (!$response->isSuccessful()) {
             Log::error('[OmnipayPaymentGateway] QR generation failed', [
