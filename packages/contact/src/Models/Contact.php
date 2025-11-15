@@ -5,6 +5,7 @@ namespace LBHurtado\Contact\Models;
 use LBHurtado\Contact\Traits\{HasAdditionalAttributes, HasMeta};
 use LBHurtado\Contact\Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use LBHurtado\Contact\Traits\HasBankAccount;
 use LBHurtado\Contact\Contracts\Bankable;
 use LBHurtado\Contact\Traits\HasMobile;
@@ -71,5 +72,100 @@ class Contact extends Model implements Bankable
     public function getAccountNumberAttribute(): string
     {
         return $this->getAccountNumber();
+    }
+    
+    /**
+     * Users who received payments from this contact (as sender)
+     */
+    public function recipients(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            config('payment-gateway.models.user'),
+            'contact_user'
+        )->withPivot([
+            'relationship_type',
+            'total_sent',
+            'transaction_count',
+            'first_transaction_at',
+            'last_transaction_at',
+            'metadata'
+        ])->withTimestamps();
+    }
+    
+    /**
+     * Get all institutions this contact has used to send to a specific user
+     */
+    public function institutionsUsed($user): array
+    {
+        $pivot = $this->recipients()
+            ->where('user_id', $user->id)
+            ->first()
+            ?->pivot;
+        
+        if (!$pivot || !$pivot->metadata) {
+            return [];
+        }
+        
+        return collect($pivot->metadata)
+            ->pluck('institution')
+            ->unique()
+            ->filter()
+            ->values()
+            ->toArray();
+    }
+    
+    /**
+     * Get the most recent institution used by this contact for a specific user
+     */
+    public function latestInstitution($user): ?string
+    {
+        $pivot = $this->recipients()
+            ->where('user_id', $user->id)
+            ->first()
+            ?->pivot;
+        
+        if (!$pivot || !$pivot->metadata) {
+            return null;
+        }
+        
+        return collect($pivot->metadata)->last()['institution'] ?? null;
+    }
+    
+    /**
+     * Get institution display name from code
+     */
+    public static function institutionName(string $code): string
+    {
+        return match($code) {
+            'GXCHPHM2XXX' => 'GCash',
+            'PMYAPHM2XXX' => 'Maya',
+            'BOPIPHM2XXX' => 'BPI',
+            'BDONPHM2XXX' => 'BDO',
+            'MBTCPHM2XXX' => 'Metrobank',
+            'UBPHPHM2XXX' => 'UnionBank',
+            default => $code,
+        };
+    }
+    
+    /**
+     * Find or create contact from webhook sender data
+     * 
+     * Note: Institution code is NOT stored here - it's stored per-transaction
+     * in the pivot table metadata to preserve full payment method history.
+     */
+    public static function fromWebhookSender(array $senderData): self
+    {
+        // Normalize mobile to E.164 format
+        $mobile = $senderData['accountNumber'];
+        if (str_starts_with($mobile, '0')) {
+            $mobile = '63' . substr($mobile, 1);
+        }
+        
+        return static::updateOrCreate(
+            ['mobile' => $mobile],
+            [
+                // Institution code stored in pivot metadata, not here
+            ]
+        );
     }
 }

@@ -7,8 +7,9 @@ use Bavix\Wallet\Interfaces\{Customer, Wallet};
 use Bavix\Wallet\Traits\{CanPay, HasWalletFloat};
 use FrittenKeeZ\Vouchers\Concerns\HasVouchers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\{HasMany, BelongsToMany};
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use LBHurtado\Contact\Models\Contact;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use LBHurtado\Voucher\Models\Voucher;
@@ -161,5 +162,56 @@ class User extends Authenticatable implements Wallet, Customer
         
         // If already in national format or other format, return as-is
         return $mobile;
+    }
+    
+    /**
+     * Contacts who sent money to this user
+     */
+    public function senders(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Contact::class,
+            'contact_user'
+        )->wherePivot('relationship_type', 'sender')
+         ->withPivot([
+             'total_sent',
+             'transaction_count',
+             'first_transaction_at',
+             'last_transaction_at',
+             'metadata'
+         ])->withTimestamps();
+    }
+    
+    /**
+     * Record a deposit from a sender
+     */
+    public function recordDepositFrom(Contact $sender, float $amount, array $metadata = []): void
+    {
+        $existing = $this->senders()
+            ->where('contact_id', $sender->id)
+            ->first();
+        
+        if ($existing) {
+            // Update existing sender relationship
+            $this->senders()->updateExistingPivot($sender->id, [
+                'total_sent' => $existing->pivot->total_sent + $amount,
+                'transaction_count' => $existing->pivot->transaction_count + 1,
+                'last_transaction_at' => now(),
+                'metadata' => array_merge(
+                    $existing->pivot->metadata ?? [],
+                    [$metadata] // Append new metadata
+                ),
+            ]);
+        } else {
+            // Create new sender relationship
+            $this->senders()->attach($sender->id, [
+                'relationship_type' => 'sender',
+                'total_sent' => $amount,
+                'transaction_count' => 1,
+                'first_transaction_at' => now(),
+                'last_transaction_at' => now(),
+                'metadata' => [$metadata],
+            ]);
+        }
     }
 }

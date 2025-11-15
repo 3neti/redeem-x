@@ -9,6 +9,7 @@ use LBHurtado\PaymentGateway\Services\ResolvePayable;
 use LBHurtado\PaymentGateway\Tests\Models\User;
 use LBHurtado\Wallet\Actions\TopupWalletAction;
 use LBHurtado\Wallet\Events\DepositConfirmed;
+use LBHurtado\Contact\Models\Contact;
 use Bavix\Wallet\Interfaces\Wallet;
 use Illuminate\Support\Facades\Log;
 
@@ -41,8 +42,64 @@ trait CanConfirmDeposit
             ]);
             return false;
         }
+        
+        // Create/update sender contact
+        $sender = null;
+        if ($wallet instanceof \App\Models\User) {
+            try {
+                $sender = Contact::fromWebhookSender([
+                    'accountNumber' => $response->sender->accountNumber,
+                    'name' => $response->sender->name,
+                    'institutionCode' => $response->sender->institutionCode,
+                ]);
+                
+                Log::info('Sender contact processed', [
+                    'contact_id' => $sender->id,
+                    'mobile' => $sender->mobile,
+                    'name' => $sender->name,
+                ]);
+                
+            } catch (\Throwable $e) {
+                Log::error('Failed to create sender contact', [
+                    'error' => $e->getMessage(),
+                    'sender_data' => [
+                        'account' => $response->sender->accountNumber,
+                        'name' => $response->sender->name,
+                        'institution' => $response->sender->institutionCode,
+                    ],
+                ]);
+                // Continue processing - don't fail deposit on contact creation error
+            }
+        }
 
         $this->transferToWallet($wallet, $response);
+        
+        // Record sender relationship
+        if ($sender && $wallet instanceof \App\Models\User) {
+            try {
+                $wallet->recordDepositFrom($sender, $response->amount / 100, [
+                    'operation_id' => $response->operationId,
+                    'channel' => $response->channel,
+                    'reference_number' => $response->referenceNumber,
+                    'institution' => $response->sender->institutionCode,
+                    'transfer_type' => $response->transferType,
+                    'timestamp' => $response->registrationTime,
+                ]);
+                
+                Log::info('Sender relationship recorded', [
+                    'user_id' => $wallet->id,
+                    'contact_id' => $sender->id,
+                    'amount' => $response->amount / 100,
+                ]);
+                
+            } catch (\Throwable $e) {
+                Log::error('Failed to record sender relationship', [
+                    'error' => $e->getMessage(),
+                    'user_id' => $wallet->id ?? null,
+                    'contact_id' => $sender->id ?? null,
+                ]);
+            }
+        }
 
         return true;
     }
