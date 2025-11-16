@@ -22,6 +22,23 @@ trait CanCollect
     public function initiateCollection(CollectionRequestData $request): ?CollectionResponseData
     {
         try {
+            // Check if in fake/mock mode
+            $useFake = config('payment-gateway.netbank.direct_checkout.use_fake', false);
+            
+            if ($useFake) {
+                Log::info('[Netbank DirectCheckout FAKE] Initiating collection (mock mode)', [
+                    'reference_no' => $request->reference_no,
+                    'amount' => $request->amount,
+                    'institution' => $request->institution_code,
+                ]);
+
+                // Return fake response
+                return CollectionResponseData::from([
+                    'redirect_url' => url('/topup/callback?reference_no=' . $request->reference_no . '&mock=1'),
+                    'reference_no' => $request->reference_no,
+                ]);
+            }
+
             $endpoint = config('payment-gateway.netbank.direct_checkout.endpoint');
             $payload = $request->toPayload();
 

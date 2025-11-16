@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -39,6 +40,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const status = ref(props.topUp.status);
 const pollInterval = ref<number | null>(null);
+const page = usePage();
+const isMock = computed(() => new URLSearchParams(window.location.search).get('mock') === '1');
+const simulatingPayment = ref(false);
 
 const formatAmount = (amt: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -129,6 +133,30 @@ const goBackToTopUp = () => {
     router.visit('/topup');
 };
 
+const simulatePayment = async () => {
+    simulatingPayment.value = true;
+    try {
+        await axios.post('/webhooks/netbank/payment', {
+            reference_no: props.topUp.reference_no,
+            payment_id: 'MOCK-' + Date.now(),
+            payment_status: 'PAID',
+            amount: {
+                value: props.topUp.amount,
+                currency: 'PHP'
+            }
+        });
+        
+        // Wait a bit then check status
+        setTimeout(() => {
+            checkStatus();
+        }, 1000);
+    } catch (e) {
+        console.error('Failed to simulate payment:', e);
+    } finally {
+        simulatingPayment.value = false;
+    }
+};
+
 onMounted(() => {
     // Start polling if status is pending
     if (status.value.toUpperCase() === 'PENDING') {
@@ -201,6 +229,22 @@ const config = getStatusConfig(status.value);
                         </div>
                     </CardContent>
                 </Card>
+
+                <!-- Mock Payment Button (only in mock mode) -->
+                <Alert v-if="isMock && status.toUpperCase() === 'PENDING'" class="bg-yellow-50 border-yellow-200">
+                    <AlertTitle class="text-yellow-800">Mock Mode</AlertTitle>
+                    <AlertDescription class="text-yellow-700">
+                        This is a test payment. Click below to simulate successful payment.
+                    </AlertDescription>
+                    <Button 
+                        class="mt-3 w-full" 
+                        variant="default"
+                        :disabled="simulatingPayment"
+                        @click="simulatePayment"
+                    >
+                        {{ simulatingPayment ? 'Simulating Payment...' : '✓ Simulate Successful Payment' }}
+                    </Button>
+                </Alert>
 
                 <!-- Actions -->
                 <div class="flex gap-4">

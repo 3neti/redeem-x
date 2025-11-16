@@ -30,6 +30,7 @@ return [
     */
     'netbank' => [
         'direct_checkout' => [
+            'use_fake' => env('NETBANK_DIRECT_CHECKOUT_USE_FAKE', false),
             'access_key' => env('NETBANK_DIRECT_CHECKOUT_ACCESS_KEY'),
             'secret_key' => env('NETBANK_DIRECT_CHECKOUT_SECRET_KEY'),
             'endpoint' => env('NETBANK_DIRECT_CHECKOUT_ENDPOINT', 'https://api.netbank.ph/v1/collect/checkout'),
