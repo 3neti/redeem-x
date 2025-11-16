@@ -144,7 +144,10 @@ trait HasTopUps
         }
 
         if (method_exists($this, 'deposit')) {
-            $this->deposit($topUp->getAmount(), [
+            // Bavix Wallet stores amounts in cents, so multiply by 100
+            $amountInCents = (int)($topUp->getAmount() * 100);
+            
+            $this->deposit($amountInCents, [
                 'type' => 'top_up',
                 'reference_no' => $topUp->getReferenceNo(),
                 'gateway' => $topUp->getGateway(),
