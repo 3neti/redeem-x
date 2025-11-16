@@ -423,7 +423,7 @@ onMounted(async () => {
             <div v-if="loading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <div v-else class="grid gap-4 md:grid-cols-4">
+            <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Total Transactions</CardTitle>
@@ -670,7 +670,7 @@ onMounted(async () => {
             <div v-if="depositsLoading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <div v-else class="grid gap-4 md:grid-cols-5">
+            <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Total Deposits</CardTitle>
