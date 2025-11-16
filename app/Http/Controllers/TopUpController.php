@@ -17,10 +17,28 @@ class TopUpController extends Controller
     {
         $user = auth()->user();
         
+        $recentTopUps = $user->getTopUps()->take(5)->map(fn($topUp) => [
+            'reference_no' => $topUp->reference_no,
+            'amount' => $topUp->amount,
+            'status' => $topUp->payment_status,
+            'gateway' => $topUp->gateway,
+            'institution_code' => $topUp->institution_code,
+            'created_at' => $topUp->created_at->toIso8601String(),
+        ]);
+        
+        $pendingTopUps = $user->getPendingTopUps()->map(fn($topUp) => [
+            'reference_no' => $topUp->reference_no,
+            'amount' => $topUp->amount,
+            'status' => $topUp->payment_status,
+            'gateway' => $topUp->gateway,
+            'institution_code' => $topUp->institution_code,
+            'created_at' => $topUp->created_at->toIso8601String(),
+        ]);
+        
         return Inertia::render('Wallet/TopUp', [
             'balance' => $user->balanceFloat,
-            'recentTopUps' => $user->getTopUps()->take(5),
-            'pendingTopUps' => $user->getPendingTopUps(),
+            'recentTopUps' => $recentTopUps,
+            'pendingTopUps' => $pendingTopUps,
         ]);
     }
 

@@ -78,7 +78,8 @@ const formatDate = (date: string) => {
     });
 };
 
-const getStatusIcon = (status: string) => {
+const getStatusIcon = (status: string | undefined) => {
+    if (!status) return Clock;
     switch (status.toUpperCase()) {
         case 'PAID':
             return CheckCircle2;
@@ -92,7 +93,8 @@ const getStatusIcon = (status: string) => {
     }
 };
 
-const getStatusVariant = (status: string) => {
+const getStatusVariant = (status: string | undefined) => {
+    if (!status) return 'outline';
     switch (status.toUpperCase()) {
         case 'PAID':
             return 'default';
