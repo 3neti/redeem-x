@@ -105,6 +105,11 @@ class User extends Authenticatable implements Wallet, Customer
         return $this->hasMany(Campaign::class);
     }
 
+    public function topUps(): HasMany
+    {
+        return $this->hasMany(TopUp::class);
+    }
+
     public function generatedVouchers()
     {
         return $this->belongsToMany(
