@@ -22,6 +22,7 @@ class VoucherGenerationController extends Controller
     {
         return Inertia::render('Vouchers/Generate/Create', [
             'input_field_options' => $this->getInputFieldOptions(),
+            'config' => config('generate'),
         ]);
     }
 
