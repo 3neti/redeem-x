@@ -193,14 +193,18 @@ class User extends Authenticatable implements Wallet, Customer
         
         if ($existing) {
             // Update existing sender relationship
+            $existingMetadata = is_string($existing->pivot->metadata) 
+                ? json_decode($existing->pivot->metadata, true) 
+                : ($existing->pivot->metadata ?? []);
+            
             $this->senders()->updateExistingPivot($sender->id, [
                 'total_sent' => $existing->pivot->total_sent + $amount,
                 'transaction_count' => $existing->pivot->transaction_count + 1,
                 'last_transaction_at' => now(),
-                'metadata' => array_merge(
-                    $existing->pivot->metadata ?? [],
+                'metadata' => json_encode(array_merge(
+                    $existingMetadata,
                     [$metadata] // Append new metadata
-                ),
+                )),
             ]);
         } else {
             // Create new sender relationship
@@ -210,7 +214,7 @@ class User extends Authenticatable implements Wallet, Customer
                 'transaction_count' => 1,
                 'first_transaction_at' => now(),
                 'last_transaction_at' => now(),
-                'metadata' => [$metadata],
+                'metadata' => json_encode([$metadata]),
             ]);
         }
     }

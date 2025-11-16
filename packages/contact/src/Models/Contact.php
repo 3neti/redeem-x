@@ -106,7 +106,12 @@ class Contact extends Model implements Bankable
             return [];
         }
         
-        return collect($pivot->metadata)
+        // Decode if it's a JSON string
+        $metadata = is_string($pivot->metadata) 
+            ? json_decode($pivot->metadata, true) 
+            : $pivot->metadata;
+        
+        return collect($metadata)
             ->pluck('institution')
             ->unique()
             ->filter()
@@ -128,7 +133,12 @@ class Contact extends Model implements Bankable
             return null;
         }
         
-        return collect($pivot->metadata)->last()['institution'] ?? null;
+        // Decode if it's a JSON string
+        $metadata = is_string($pivot->metadata) 
+            ? json_decode($pivot->metadata, true) 
+            : $pivot->metadata;
+        
+        return collect($metadata)->last()['institution'] ?? null;
     }
     
     /**

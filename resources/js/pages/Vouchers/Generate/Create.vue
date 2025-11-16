@@ -98,7 +98,7 @@ watch(selectedCampaignId, async (campaignId) => {
         
         if (inst.rider) {
             riderMessage.value = inst.rider.message || '';
-            riderUrl.value = inst.rider.url || window.location.origin;
+            riderUrl.value = inst.rider.url || null;
         }
         
         count.value = inst.count || 1;
@@ -137,7 +137,7 @@ const feedbackMobile = ref('');
 const feedbackWebhook = ref('');
 
 const riderMessage = ref('');
-const riderUrl = ref(window.location.origin);
+const riderUrl = ref(null);
 
 // Build instructions payload for pricing API
 const instructionsForPricing = computed(() => {

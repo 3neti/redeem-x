@@ -647,11 +647,31 @@ it('handles multiple senders for one recipient', function () {
 - [ ] Add statistics and query methods
 
 ### Phase 5: Testing ✅
-- [ ] Write feature tests for contact creation
-- [ ] Write tests for deposit recording
-- [ ] Test repeat deposits update correctly
-- [ ] Test with webhook simulation command
-- [ ] Test edge cases (invalid data, missing fields)
+- [x] Write feature tests for contact creation
+- [x] Write tests for deposit recording
+- [x] Test repeat deposits update correctly
+- [x] Test with webhook simulation command
+- [x] Test edge cases (invalid data, missing fields)
+
+**Test Commands Available:**
+
+```bash
+# Comprehensive sender tracking test (recommended)
+php artisan test:sender-tracking
+
+# Test with custom parameters
+php artisan test:sender-tracking \
+  --user-mobile=09173011987 \
+  --sender-mobile=09175180722 \
+  --sender-name="LESTER HURTADO" \
+  --amount=55.00 \
+  --institution=GXCHPHM2XXX
+
+# Test webhook integration
+php artisan test:deposit-confirmation \
+  --mobile=09173011987 \
+  --amount=5500
+```
 
 ---
 
@@ -791,9 +811,96 @@ if ($hasSent) {
 
 ---
 
+## Testing
+
+### Comprehensive Test Command
+
+Use `php artisan test:sender-tracking` to verify the complete sender tracking flow:
+
+```bash
+php artisan test:sender-tracking
+```
+
+**What it tests:**
+1. Contact creation from webhook sender data
+2. Recording deposits with transaction metadata
+3. Tracking cumulative statistics (total_sent, transaction_count)
+4. Multiple institutions per sender (GCash → Maya → BPI)
+5. Transaction history with timestamps and institutions
+6. Institution helper methods (institutionsUsed, latestInstitution)
+
+**Expected Output:**
+```
+🧪 Testing Sender Contact Tracking
+
+Step 1: Finding/Creating Recipient User
+  ✓ User: Test User (ID: 3)
+  ✓ Mobile: 639173011987
+
+Step 2: Creating Sender Contact
+  ✓ Contact: LESTER HURTADO (ID: 1)
+  ✓ Mobile: 639175180722
+  ✓ Institution: GXCHPHM2XXX (GCash)
+
+Step 3: Recording Deposit Transaction
+  ✓ Recorded: ₱55
+
+Step 4: Verification
+  ✓ Total Senders: 1
+  
+  Sender: LESTER HURTADO
+    Mobile: 639175180722
+    Total Sent: ₱55
+    Transactions: 1
+    Payment Methods: GCash
+    Latest Method: GCash
+    Transaction History:
+      #1: 2025-11-16T07:59:22+08:00 via GCash (INSTAPAY)
+
+Step 5: Testing Multiple Institutions
+  Sending another deposit via Maya...
+  ✓ Second deposit recorded
+  
+  Updated Stats:
+    Total Sent: ₱155
+    Transactions: 2
+    Payment Methods: GCash, Maya
+
+✅ Sender contact tracking is working correctly!
+
+📊 Database Summary:
++------------------------+-------+
+| Table                  | Count |
++------------------------+-------+
+| Contacts               | 1     |
+| Contact-User Relations | 1     |
+| Users with Senders     | 1     |
++------------------------+-------+
+```
+
+### Important Notes
+
+**JSON Metadata Handling:**
+- Metadata is stored as JSON string in database
+- Must be decoded before use: `json_decode($pivot->metadata, true)`
+- Helper methods in Contact model handle decoding automatically
+
+**Pivot Data Access:**
+```php
+$sender = $user->senders()->find($contactId);
+
+// Metadata is JSON string - decode it
+$metadata = json_decode($sender->pivot->metadata, true);
+
+// Or use helper methods (they decode automatically)
+$institutions = $sender->institutionsUsed($user);
+$latest = $sender->latestInstitution($user);
+```
+
 ## Related Documentation
 
 - [Mobile QR Generation](./MOBILE_QR_GENERATION.md)
 - [Webhook Handling](./OMNIPAY_INTEGRATION_PLAN.md)
 - [Model Channel Package](../packages/model-channel/README.md)
 - [Contact Package](../packages/contact/README.md)
+- [Test Commands](../app/Console/Commands/TestSenderContactTracking.php)
