@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -119,20 +120,11 @@ const handleSubmit = async () => {
     error.value = null;
 
     try {
-        const response = await fetch('/topup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-            body: JSON.stringify({
-                amount: amount.value,
-                gateway: gateway.value,
-                institution_code: institutionCode.value || null,
-            }),
+        const { data } = await axios.post('/topup', {
+            amount: amount.value,
+            gateway: gateway.value,
+            institution_code: institutionCode.value || null,
         });
-
-        const data = await response.json();
 
         if (data.success && data.redirect_url) {
             // Redirect to payment gateway
@@ -146,7 +138,7 @@ const handleSubmit = async () => {
             });
         }
     } catch (e: any) {
-        error.value = e.message || 'An error occurred';
+        error.value = e.response?.data?.message || e.message || 'An error occurred';
         toast({
             title: 'Error',
             description: error.value,
