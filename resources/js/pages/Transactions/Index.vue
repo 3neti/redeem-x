@@ -49,9 +49,6 @@ const filterBank = ref('');
 const filterRail = ref('');
 const filterStatus = ref('');
 
-// Column visibility
-const showRailColumn = ref(true);
-
 const selectedTransaction = ref<TransactionData | null>(null);
 const isDetailModalOpen = ref(false);
 
@@ -533,16 +530,7 @@ onMounted(async () => {
                         <Button @click="clearFilters" variant="outline" size="sm" :disabled="loading">
                             Clear
                         </Button>
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm text-muted-foreground flex items-center gap-2 cursor-pointer">
-                                <input
-                                    v-model="showRailColumn"
-                                    type="checkbox"
-                                    class="rounded border-input"
-                                />
-                                Show Rail Column
-                            </label>
-                        </div>
+                        <div></div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -555,7 +543,7 @@ onMounted(async () => {
                                     <th class="px-4 py-3 text-left">Gateway</th>
                                     <th class="px-4 py-3 text-right">Amount</th>
                                     <th class="px-4 py-3 text-left">Recipient / Account</th>
-                                    <th v-if="showRailColumn" class="px-4 py-3 text-left">Rail</th>
+                                    <th class="px-4 py-3 text-left">Rail</th>
                                     <th class="px-4 py-3 text-left">Status</th>
                                     <th class="px-4 py-3 text-left">Transaction ID</th>
                                     <th class="px-4 py-3 text-left">Redeemed At</th>
@@ -601,7 +589,7 @@ onMounted(async () => {
                                             </div>
                                             <span v-else class="text-xs text-muted-foreground">N/A</span>
                                         </td>
-                                        <td v-if="showRailColumn" class="px-4 py-3">
+                                        <td class="px-4 py-3">
                                             <Badge v-if="transaction.disbursement && getRail(transaction.disbursement)" :variant="getRailVariant(getRail(transaction.disbursement))" class="text-xs">
                                                 {{ getRail(transaction.disbursement) }}
                                             </Badge>
@@ -762,12 +750,15 @@ onMounted(async () => {
                                 <option value="BOPIPHM2XXX">BPI</option>
                                 <option value="BDONPHM2XXX">BDO</option>
                             </select>
+                            <div></div>
+                            <div></div>
                         </div>
                     </div>
                     <div class="flex items-center justify-between pt-2">
                         <Button @click="clearDepositFilters" variant="outline" size="sm" :disabled="depositsLoading">
                             Clear
                         </Button>
+                        <div></div>
                     </div>
                 </CardHeader>
                 <CardContent>
