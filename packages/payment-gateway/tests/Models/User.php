@@ -15,7 +15,7 @@ use LBHurtado\ModelChannel\Traits\HasChannels;
 use LBHurtado\PaymentGateway\Contracts\MerchantInterface;
 use LBHurtado\PaymentGateway\Database\Factories\UserFactory;
 use LBHurtado\PaymentGateway\Models\Merchant;
-use LBHurtado\PaymentGateway\Traits\HasMerchant;
+use LBHurtado\PaymentGateway\Traits\{HasMerchant, HasTopUps};
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\Wallet\Services\WalletProvisioningService;
 
@@ -35,6 +35,7 @@ class User extends Authenticatable implements MerchantInterface, Wallet, Confirm
     use HasWalletFloat;
     use HasChannels;
     use HasMerchant;
+    use HasTopUps;
     use HasFactory;
     use Notifiable;
     use CanConfirm;
@@ -72,5 +73,10 @@ class User extends Authenticatable implements MerchantInterface, Wallet, Confirm
             $walletService = app(WalletProvisioningService::class);
             $walletService->createDefaultWalletsForUser($user);
         });
+    }
+
+    public function topUps()
+    {
+        return $this->hasMany(TopUp::class);
     }
 }

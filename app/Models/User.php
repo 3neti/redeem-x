@@ -15,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\ModelChannel\Traits\HasChannels;
-use LBHurtado\PaymentGateway\Traits\HasMerchant;
+use LBHurtado\PaymentGateway\Traits\{HasMerchant, HasTopUps};
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements Wallet, Customer
@@ -28,6 +28,7 @@ class User extends Authenticatable implements Wallet, Customer
     use HasVouchers;
     use HasChannels;
     use HasMerchant;
+    use HasTopUps;
     use HasRoles;
 
     /**
@@ -103,6 +104,11 @@ class User extends Authenticatable implements Wallet, Customer
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
+    }
+
+    public function topUps(): HasMany
+    {
+        return $this->hasMany(TopUp::class);
     }
 
     public function generatedVouchers()
