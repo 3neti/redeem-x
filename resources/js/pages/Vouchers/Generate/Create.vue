@@ -23,6 +23,7 @@ const DEBUG = false;
 
 interface Props {
     input_field_options: VoucherInputFieldOption[];
+    config: any;
 }
 
 const props = defineProps<Props>();
@@ -78,7 +79,7 @@ watch(selectedCampaignId, async (campaignId) => {
         const inst = campaign.instructions;
         
         if (inst.cash) {
-            amount.value = inst.cash.amount || 50;
+            amount.value = inst.cash.amount || props.config.basic_settings.amount.default;
         }
         
         if (inst.inputs?.fields) {
@@ -98,17 +99,17 @@ watch(selectedCampaignId, async (campaignId) => {
         
         if (inst.rider) {
             riderMessage.value = inst.rider.message || '';
-            riderUrl.value = inst.rider.url || null;
+            riderUrl.value = inst.rider.url || props.config.rider.url.default;
         }
         
-        count.value = inst.count || 1;
+        count.value = inst.count || props.config.basic_settings.quantity.default;
         prefix.value = inst.prefix || '';
         mask.value = inst.mask || '';
         
         // Parse TTL if present (format: P30D)
         if (inst.ttl) {
             const match = inst.ttl.match(/P(\d+)D/);
-            ttlDays.value = match ? parseInt(match[1]) : 30;
+            ttlDays.value = match ? parseInt(match[1]) : props.config.basic_settings.ttl.default;
         }
     } catch (err) {
         console.error('Failed to load campaign:', err);
@@ -120,12 +121,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Generate', href: '#' },
 ];
 
-// Form state
-const amount = ref(50);
-const count = ref(1);
+// Form state - initialized from config defaults
+const amount = ref(props.config.basic_settings.amount.default);
+const count = ref(props.config.basic_settings.quantity.default);
 const prefix = ref('');
 const mask = ref('');
-const ttlDays = ref<number | null>(30);
+const ttlDays = ref<number | null>(props.config.basic_settings.ttl.default);
 
 const selectedInputFields = ref<string[]>([]);
 
@@ -137,7 +138,7 @@ const feedbackMobile = ref('');
 const feedbackWebhook = ref('');
 
 const riderMessage = ref('');
-const riderUrl = ref(null);
+const riderUrl = ref(props.config.rider.url.default);
 
 // Build instructions payload for pricing API
 const instructionsForPricing = computed(() => {
@@ -315,13 +316,13 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <Head title="Generate Vouchers" />
+    <Head :title="config.page.title" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto max-w-7xl space-y-6 p-6">
             <Heading
-                title="Generate Vouchers"
-                description="Create vouchers with custom instructions and validation rules"
+                :title="config.page.title"
+                :description="config.page.description"
             />
 
             <form
@@ -331,7 +332,7 @@ const handleSubmit = async () => {
                 <!-- Main Form -->
                 <div class="space-y-6 lg:col-span-2">
                     <!-- Basic Settings -->
-                    <Card>
+                    <Card v-if="config.basic_settings.show_card">
                         <CardHeader>
                             <div class="flex items-center gap-2">
                                 <Settings class="h-5 w-5" />
@@ -343,8 +344,8 @@ const handleSubmit = async () => {
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <!-- Campaign Template Selector -->
-                            <div class="space-y-2 pb-4 border-b">
-                                <Label for="campaign">Campaign Template (Optional)</Label>
+                            <div v-if="config.basic_settings.show_campaign_selector" class="space-y-2 pb-4 border-b">
+                                <Label for="campaign">{{ config.basic_settings.campaign_selector.label }}</Label>
                                 <select
                                     id="campaign"
                                     v-model="selectedCampaignId"
@@ -360,33 +361,33 @@ const handleSubmit = async () => {
                                     </option>
                                 </select>
                                 <p class="text-xs text-muted-foreground">
-                                    Select a campaign to auto-fill the form with saved settings. You can still modify any field after selection.
+                                    {{ config.basic_settings.campaign_selector.help_text }}
                                 </p>
                             </div>
 
                             <div class="grid gap-4 sm:grid-cols-2">
-                                <div class="space-y-2">
-                                    <Label for="amount">Amount (PHP)</Label>
+                                <div v-if="config.basic_settings.show_amount" class="space-y-2">
+                                    <Label for="amount">{{ config.basic_settings.amount.label }}</Label>
                                     <Input
                                         id="amount"
                                         type="number"
                                         name="amount"
                                         v-model.number="amount"
-                                        :min="0"
-                                        step="0.01"
+                                        :min="config.basic_settings.amount.min"
+                                        :step="config.basic_settings.amount.step"
                                         required
                                     />
                                     <InputError :message="validationErrors.amount" />
                                 </div>
 
-                                <div class="space-y-2">
-                                    <Label for="count">Quantity</Label>
+                                <div v-if="config.basic_settings.show_quantity" class="space-y-2">
+                                    <Label for="count">{{ config.basic_settings.quantity.label }}</Label>
                                     <Input
                                         id="count"
                                         type="number"
                                         name="count"
                                         v-model.number="count"
-                                        :min="1"
+                                        :min="config.basic_settings.quantity.min"
                                         required
                                     />
                                     <InputError :message="validationErrors.count" />
@@ -394,60 +395,59 @@ const handleSubmit = async () => {
                             </div>
 
                             <div class="grid gap-4 sm:grid-cols-2">
-                                <div class="space-y-2">
-                                    <Label for="prefix">Code Prefix (Optional)</Label>
+                                <div v-if="config.basic_settings.show_prefix" class="space-y-2">
+                                    <Label for="prefix">{{ config.basic_settings.prefix.label }}</Label>
                                     <Input
                                         id="prefix"
                                         name="prefix"
                                         v-model="prefix"
-                                        placeholder="e.g., PROMO"
+                                        :placeholder="config.basic_settings.prefix.placeholder"
                                     />
                                     <InputError :message="validationErrors.prefix" />
                                 </div>
 
-                                <div class="space-y-2">
-                                    <Label for="mask">Code Mask (Optional)</Label>
+                                <div v-if="config.basic_settings.show_mask" class="space-y-2">
+                                    <Label for="mask">{{ config.basic_settings.mask.label }}</Label>
                                     <Input
                                         id="mask"
                                         name="mask"
                                         v-model="mask"
-                                        placeholder="e.g., ****-****"
+                                        :placeholder="config.basic_settings.mask.placeholder"
                                     />
                                     <InputError :message="validationErrors.mask" />
                                     <p class="text-xs text-muted-foreground">
-                                        Use * for random chars, - for separators (4-6
-                                        asterisks)
+                                        {{ config.basic_settings.mask.help_text }}
                                     </p>
                                 </div>
                             </div>
 
-                            <div class="space-y-2">
-                                <Label for="ttl_days">Expiry (Days)</Label>
+                            <div v-if="config.basic_settings.show_ttl" class="space-y-2">
+                                <Label for="ttl_days">{{ config.basic_settings.ttl.label }}</Label>
                                 <Input
                                     id="ttl_days"
                                     type="number"
                                     name="ttl_days"
                                     v-model.number="ttlDays"
-                                    :min="1"
-                                    placeholder="30"
+                                    :min="config.basic_settings.ttl.min"
+                                    :placeholder="config.basic_settings.ttl.placeholder"
                                 />
                                 <InputError :message="validationErrors.ttl_days" />
                                 <p class="text-xs text-muted-foreground">
-                                    Leave empty for non-expiring vouchers
+                                    {{ config.basic_settings.ttl.help_text }}
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     <!-- Input Fields -->
-                    <Card>
-                        <CardHeader>
+                    <Card v-if="config.input_fields.show_card">
+                        <CardHeader v-if="config.input_fields.show_header">
                             <div class="flex items-center gap-2">
                                 <FileText class="h-5 w-5" />
-                                <CardTitle>Required Input Fields</CardTitle>
+                                <CardTitle v-if="config.input_fields.show_title">{{ config.input_fields.title }}</CardTitle>
                             </div>
-                            <CardDescription>
-                                Select fields users must provide during redemption
+                            <CardDescription v-if="config.input_fields.show_description">
+                                {{ config.input_fields.description }}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -484,37 +484,37 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Validation Rules -->
-                    <Card>
-                        <CardHeader>
+                    <Card v-if="config.validation_rules.show_card">
+                        <CardHeader v-if="config.validation_rules.show_header">
                             <div class="flex items-center gap-2">
                                 <AlertCircle class="h-5 w-5" />
-                                <CardTitle>Validation Rules (Optional)</CardTitle>
+                                <CardTitle v-if="config.validation_rules.show_title">{{ config.validation_rules.title }}</CardTitle>
                             </div>
-                            <CardDescription>
-                                Add secret codes or location-based restrictions
+                            <CardDescription v-if="config.validation_rules.show_description">
+                                {{ config.validation_rules.description }}
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
-                            <div class="space-y-2">
-                                <Label for="validation_secret">Secret Code</Label>
+                            <div v-if="config.validation_rules.show_secret" class="space-y-2">
+                                <Label for="validation_secret">{{ config.validation_rules.secret.label }}</Label>
                                 <Input
                                     id="validation_secret"
                                     name="validation_secret"
                                     v-model="validationSecret"
-                                    placeholder="e.g., SECRET2025"
+                                    :placeholder="config.validation_rules.secret.placeholder"
                                 />
                                 <InputError :message="validationErrors.validation_secret" />
                             </div>
 
-                            <div class="space-y-2">
+                            <div v-if="config.validation_rules.show_mobile" class="space-y-2">
                                 <Label for="validation_mobile"
-                                    >Restrict to Mobile Number</Label
+                                    >{{ config.validation_rules.mobile.label }}</Label
                                 >
                                 <Input
                                     id="validation_mobile"
                                     name="validation_mobile"
                                     v-model="validationMobile"
-                                    placeholder="e.g., +639171234567"
+                                    :placeholder="config.validation_rules.mobile.placeholder"
                                 />
                                 <InputError :message="validationErrors.validation_mobile" />
                             </div>
@@ -522,48 +522,48 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Feedback Channels -->
-                    <Card>
-                        <CardHeader>
+                    <Card v-if="config.feedback_channels.show_card">
+                        <CardHeader v-if="config.feedback_channels.show_header">
                             <div class="flex items-center gap-2">
                                 <Send class="h-5 w-5" />
-                                <CardTitle>Feedback Channels (Optional)</CardTitle>
+                                <CardTitle v-if="config.feedback_channels.show_title">{{ config.feedback_channels.title }}</CardTitle>
                             </div>
-                            <CardDescription>
-                                Receive notifications when vouchers are redeemed
+                            <CardDescription v-if="config.feedback_channels.show_description">
+                                {{ config.feedback_channels.description }}
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
-                            <div class="space-y-2">
-                                <Label for="feedback_email">Email</Label>
+                            <div v-if="config.feedback_channels.show_email" class="space-y-2">
+                                <Label for="feedback_email">{{ config.feedback_channels.email.label }}</Label>
                                 <Input
                                     id="feedback_email"
                                     name="feedback_email"
                                     type="email"
                                     v-model="feedbackEmail"
-                                    placeholder="notifications@example.com"
+                                    :placeholder="config.feedback_channels.email.placeholder"
                                 />
                                 <InputError :message="validationErrors.feedback_email" />
                             </div>
 
-                            <div class="space-y-2">
-                                <Label for="feedback_mobile">Mobile</Label>
+                            <div v-if="config.feedback_channels.show_mobile" class="space-y-2">
+                                <Label for="feedback_mobile">{{ config.feedback_channels.mobile.label }}</Label>
                                 <Input
                                     id="feedback_mobile"
                                     name="feedback_mobile"
                                     v-model="feedbackMobile"
-                                    placeholder="+639171234567"
+                                    :placeholder="config.feedback_channels.mobile.placeholder"
                                 />
                                 <InputError :message="validationErrors.feedback_mobile" />
                             </div>
 
-                            <div class="space-y-2">
-                                <Label for="feedback_webhook">Webhook URL</Label>
+                            <div v-if="config.feedback_channels.show_webhook" class="space-y-2">
+                                <Label for="feedback_webhook">{{ config.feedback_channels.webhook.label }}</Label>
                                 <Input
                                     id="feedback_webhook"
                                     name="feedback_webhook"
                                     type="url"
                                     v-model="feedbackWebhook"
-                                    placeholder="https://example.com/webhook"
+                                    :placeholder="config.feedback_channels.webhook.placeholder"
                                 />
                                 <InputError :message="validationErrors.feedback_webhook" />
                             </div>
@@ -571,36 +571,36 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Rider -->
-                    <Card>
-                        <CardHeader>
+                    <Card v-if="config.rider.show_card">
+                        <CardHeader v-if="config.rider.show_header">
                             <div class="flex items-center gap-2">
                                 <FileText class="h-5 w-5" />
-                                <CardTitle>Rider (Optional)</CardTitle>
+                                <CardTitle v-if="config.rider.show_title">{{ config.rider.title }}</CardTitle>
                             </div>
-                            <CardDescription>
-                                Add custom message or redirect URL after redemption
+                            <CardDescription v-if="config.rider.show_description">
+                                {{ config.rider.description }}
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
-                            <div class="space-y-2">
-                                <Label for="rider_message">Message</Label>
+                            <div v-if="config.rider.show_message" class="space-y-2">
+                                <Label for="rider_message">{{ config.rider.message.label }}</Label>
                                 <Input
                                     id="rider_message"
                                     name="rider_message"
                                     v-model="riderMessage"
-                                    placeholder="Thank you for redeeming!"
+                                    :placeholder="config.rider.message.placeholder"
                                 />
                                 <InputError :message="validationErrors.rider_message" />
                             </div>
 
-                            <div class="space-y-2">
-                                <Label for="rider_url">Redirect URL</Label>
+                            <div v-if="config.rider.show_url" class="space-y-2">
+                                <Label for="rider_url">{{ config.rider.url.label }}</Label>
                                 <Input
                                     id="rider_url"
                                     name="rider_url"
                                     type="url"
                                     v-model="riderUrl"
-                                    placeholder="https://example.com/thank-you"
+                                    :placeholder="config.rider.url.placeholder"
                                 />
                                 <InputError :message="validationErrors.rider_url" />
                             </div>
@@ -608,21 +608,21 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- JSON Preview -->
-                    <Collapsible v-model:open="showJsonPreview">
+                    <Collapsible v-if="config.json_preview.show_card" v-model:open="showJsonPreview">
                         <Card>
                             <CollapsibleTrigger class="w-full">
                                 <CardHeader class="cursor-pointer hover:bg-muted/50">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <Code class="h-5 w-5" />
-                                            <CardTitle>Live JSON Preview</CardTitle>
+                                            <CardTitle v-if="config.json_preview.show_title">{{ config.json_preview.title }}</CardTitle>
                                         </div>
                                         <span class="text-sm text-muted-foreground">
                                             {{ showJsonPreview ? '▼' : '▶' }}
                                         </span>
                                     </div>
-                                    <CardDescription>
-                                        Real-time voucher instructions JSON
+                                    <CardDescription v-if="config.json_preview.show_description">
+                                        {{ config.json_preview.description }}
                                     </CardDescription>
                                 </CardHeader>
                             </CollapsibleTrigger>
@@ -636,23 +636,23 @@ const handleSubmit = async () => {
                 </div>
 
                 <!-- Cost Preview Sidebar -->
-                <div class="lg:col-span-1">
+                <div v-if="config.cost_breakdown.show_sidebar" class="lg:col-span-1">
                     <Card class="sticky top-6">
-                        <CardHeader>
+                        <CardHeader v-if="config.cost_breakdown.show_header">
                             <div class="flex items-center gap-2">
                                 <Banknote class="h-5 w-5" />
-                                <CardTitle>Cost Breakdown</CardTitle>
+                                <CardTitle v-if="config.cost_breakdown.show_title">{{ config.cost_breakdown.title }}</CardTitle>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <!-- Loading state -->
                             <div v-if="pricingLoading" class="text-sm text-muted-foreground text-center py-4">
-                                Calculating charges...
+                                {{ config.cost_breakdown.calculating_message }}
                             </div>
                             
                             <!-- Error state -->
                             <div v-else-if="pricingError" class="text-sm text-destructive text-center py-4">
-                                Error calculating charges. Using fallback pricing.
+                                {{ config.cost_breakdown.error_message }}
                             </div>
                             
                             <!-- Breakdown from API -->
@@ -685,7 +685,7 @@ const handleSubmit = async () => {
                             <div class="space-y-2 text-sm">
                                 <div class="flex justify-between">
                                     <span class="text-muted-foreground"
-                                        >Wallet Balance</span
+                                        >{{ config.cost_breakdown.wallet_balance_label }}</span
                                     >
                                     <span
                                         :class="
@@ -700,7 +700,7 @@ const handleSubmit = async () => {
                                     {{ realtimeNote }}
                                 </div>
                                 <div class="flex justify-between font-medium">
-                                    <span>After Generation</span>
+                                    <span>{{ config.cost_breakdown.after_generation_label }}</span>
                                     <span
                                         :class="
                                             insufficientFunds
@@ -723,10 +723,10 @@ const handleSubmit = async () => {
                             >
                                 {{
                                     insufficientFunds
-                                        ? 'Insufficient Funds'
+                                        ? config.cost_breakdown.submit_button.insufficient_funds_text
                                         : loading
-                                          ? 'Generating...'
-                                          : 'Generate Vouchers'
+                                          ? config.cost_breakdown.submit_button.processing_text
+                                          : config.cost_breakdown.submit_button.text
                                 }}
                             </Button>
 
@@ -734,7 +734,7 @@ const handleSubmit = async () => {
                                 v-if="insufficientFunds"
                                 class="text-center text-xs text-destructive"
                             >
-                                Please fund your wallet before generating vouchers
+                                {{ config.cost_breakdown.insufficient_funds_message }}
                             </p>
                         </CardContent>
                     </Card>
