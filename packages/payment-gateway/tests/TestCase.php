@@ -72,6 +72,8 @@ abstract class TestCase extends BaseTestCase
         $voucherMigration->up();
         $cashMigration = include __DIR__ . '/../database/migrations/test/2024_08_02_202500_create_cash_table.php';
         $cashMigration->up();
+        $topUpMigration = include __DIR__ . '/../database/migrations/test/2025_11_16_000000_create_top_ups_table.php';
+        $topUpMigration->up();
 
         // Dynamically include and run all migrations from vendor/bavix/laravel-wallet/database
 //        $migrationPath = base_path('vendor/bavix/laravel-wallet/database/migrations');

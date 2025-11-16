@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Models;
+declare(strict_types=1);
+
+namespace LBHurtado\PaymentGateway\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LBHurtado\PaymentGateway\Contracts\TopUpInterface;
 
 class TopUp extends Model implements TopUpInterface
 {
-    use HasFactory;
     protected $fillable = [
         'user_id',
         'gateway',
@@ -91,15 +91,5 @@ class TopUp extends Model implements TopUpInterface
     public function getOwner()
     {
         return $this->user;
-    }
-
-    public function scopePending($query)
-    {
-        return $query->where('payment_status', 'PENDING');
-    }
-
-    public function scopePaid($query)
-    {
-        return $query->where('payment_status', 'PAID');
     }
 }
