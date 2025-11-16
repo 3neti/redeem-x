@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useTransactionApi } from '@/composables/useTransactionApi';
+import { useDepositApi } from '@/composables/useDepositApi';
 import { useDebounce } from '@/composables/useDebounce';
 import type { TransactionData, TransactionStats, TransactionListResponse } from '@/composables/useTransactionApi';
+import type { DepositTransactionData, DepositStats, DepositListResponse } from '@/composables/useDepositApi';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2 } from 'lucide-vue-next';
+import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2, ArrowDownLeft, ArrowUpRight, Users } from 'lucide-vue-next';
 import TransactionDetailModal from '@/components/TransactionDetailModal.vue';
 import GatewayBadge from '@/components/GatewayBadge.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -18,8 +20,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Transactions', href: '#' },
 ];
 
-const { loading, listTransactions, getStats, exportTransactions: exportAPI } = useTransactionApi();
+// Tab state
+const activeTab = ref<'disbursements' | 'deposits'>('disbursements');
 
+// Disbursements (existing)
+const { loading, listTransactions, getStats, exportTransactions: exportAPI } = useTransactionApi();
 const transactions = ref<TransactionListResponse['data']>([]);
 const pagination = ref({
     current_page: 1,
@@ -235,6 +240,133 @@ watch([dateFrom, dateTo, filterBank, filterRail, filterStatus], () => {
     applyFilters();
 });
 
+// Deposits (new)
+const { loading: depositsLoading, listDeposits, getDepositStats } = useDepositApi();
+const deposits = ref<DepositListResponse['data']>([]);
+const depositsPagination = ref({
+    current_page: 1,
+    per_page: 20,
+    total: 0,
+    last_page: 1,
+});
+const depositStats = ref<DepositStats>({
+    total: 0,
+    total_amount: 0,
+    today: 0,
+    this_month: 0,
+    unique_senders: 0,
+    currency: 'PHP',
+});
+
+const depositSearchQuery = ref('');
+const debouncedDepositSearchQuery = useDebounce(depositSearchQuery, 500);
+const depositDateFrom = ref('');
+const depositDateTo = ref('');
+const depositInstitution = ref('');
+
+const fetchDeposits = async (page: number = 1) => {
+    try {
+        const response = await listDeposits({
+            search: debouncedDepositSearchQuery.value || undefined,
+            date_from: depositDateFrom.value || undefined,
+            date_to: depositDateTo.value || undefined,
+            institution: depositInstitution.value || undefined,
+            per_page: depositsPagination.value.per_page,
+            page,
+        });
+        
+        deposits.value = response.data;
+        depositsPagination.value = response.pagination;
+    } catch (error) {
+        console.error('Failed to fetch deposits:', error);
+    }
+};
+
+const fetchDepositStats = async () => {
+    try {
+        const response = await getDepositStats({
+            date_from: depositDateFrom.value || undefined,
+            date_to: depositDateTo.value || undefined,
+            institution: depositInstitution.value || undefined,
+        });
+        
+        depositStats.value = response;
+    } catch (error) {
+        console.error('Failed to fetch deposit stats:', error);
+    }
+};
+
+const applyDepositFilters = async () => {
+    await Promise.all([
+        fetchDeposits(1),
+        fetchDepositStats(),
+    ]);
+};
+
+const clearDepositFilters = async () => {
+    depositSearchQuery.value = '';
+    depositDateFrom.value = '';
+    depositDateTo.value = '';
+    depositInstitution.value = '';
+    await applyDepositFilters();
+};
+
+// Deposits pagination
+const depositsPaginationLinks = computed(() => {
+    const links = [];
+    
+    links.push({
+        label: '&laquo; Previous',
+        page: depositsPagination.value.current_page - 1,
+        active: false,
+        disabled: depositsPagination.value.current_page === 1,
+    });
+    
+    for (let i = 1; i <= depositsPagination.value.last_page; i++) {
+        links.push({
+            label: i.toString(),
+            page: i,
+            active: i === depositsPagination.value.current_page,
+            disabled: false,
+        });
+    }
+    
+    links.push({
+        label: 'Next &raquo;',
+        page: depositsPagination.value.current_page + 1,
+        active: false,
+        disabled: depositsPagination.value.current_page === depositsPagination.value.last_page,
+    });
+    
+    return links;
+});
+
+const goToDepositPage = async (page: number) => {
+    if (page >= 1 && page <= depositsPagination.value.last_page) {
+        await fetchDeposits(page);
+    }
+};
+
+// Auto-search when debounced deposit query changes
+watch(debouncedDepositSearchQuery, () => {
+    fetchDeposits(1);
+});
+
+// Auto-filter when deposit filters change
+watch([depositDateFrom, depositDateTo, depositInstitution], () => {
+    applyDepositFilters();
+});
+
+// Tab switching
+watch(activeTab, async (newTab) => {
+    if (newTab === 'deposits' && deposits.value.length === 0) {
+        await Promise.all([
+            fetchDeposits(),
+            fetchDepositStats(),
+        ]);
+    }
+});
+
 onMounted(async () => {
     await Promise.all([
         fetchTransactions(),
@@ -248,9 +380,39 @@ onMounted(async () => {
         <div class="mx-auto max-w-7xl space-y-6 p-6">
             <Heading
                 title="Transaction History"
-                description="View and export all voucher redemptions"
+                description="View disbursements and incoming deposits"
             />
 
+            <!-- Tabs -->
+            <div class="flex gap-2 border-b">
+                <button
+                    @click="activeTab = 'disbursements'"
+                    :class="[
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                        activeTab === 'disbursements'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ]"
+                >
+                    <ArrowUpRight class="h-4 w-4" />
+                    Disbursements
+                </button>
+                <button
+                    @click="activeTab = 'deposits'"
+                    :class="[
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                        activeTab === 'deposits'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ]"
+                >
+                    <ArrowDownLeft class="h-4 w-4" />
+                    Deposits
+                </button>
+            </div>
+
+            <!-- Disbursements View -->
+            <div v-if="activeTab === 'disbursements'">
             <!-- Stats Cards -->
             <div v-if="loading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
@@ -493,6 +655,194 @@ onMounted(async () => {
                 :open="isDetailModalOpen"
                 @update:open="isDetailModalOpen = $event"
             />
+            </div>
+            <!-- End Disbursements View -->
+
+            <!-- Deposits View -->
+            <div v-if="activeTab === 'deposits'">
+            <!-- Deposit Stats Cards -->
+            <div v-if="depositsLoading" class="flex justify-center py-8">
+                <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <div v-else class="grid gap-4 md:grid-cols-5">
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Total Deposits</CardTitle>
+                        <Receipt class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ depositStats.total }}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Total Received</CardTitle>
+                        <DollarSign class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ formatAmount(depositStats.total_amount, depositStats.currency) }}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Unique Senders</CardTitle>
+                        <Users class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ depositStats.unique_senders }}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Today</CardTitle>
+                        <Calendar class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ depositStats.today }}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">This Month</CardTitle>
+                        <TrendingUp class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ depositStats.this_month }}</div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <!-- Deposits Table Card -->
+            <Card>
+                <CardHeader>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Deposit History</CardTitle>
+                            <CardDescription>{{ depositsPagination.total }} deposits found</CardDescription>
+                        </div>
+                    </div>
+                    
+                    <!-- Deposit Filters -->
+                    <div class="space-y-4 pt-4">
+                        <div class="grid gap-4 sm:grid-cols-4">
+                            <div class="relative sm:col-span-2">
+                                <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    v-model="depositSearchQuery"
+                                    placeholder="Search by sender... (auto-search enabled)"
+                                    class="pl-8"
+                                />
+                            </div>
+                            <Input
+                                v-model="depositDateFrom"
+                                type="date"
+                                placeholder="From date"
+                            />
+                            <Input
+                                v-model="depositDateTo"
+                                type="date"
+                                placeholder="To date"
+                            />
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-3">
+                            <select
+                                v-model="depositInstitution"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                                <option value="">All Institutions</option>
+                                <option value="GXCHPHM2XXX">GCash</option>
+                                <option value="PMYAPHM2XXX">Maya</option>
+                                <option value="MBTCPHM2XXX">Metrobank</option>
+                                <option value="BOPIPHM2XXX">BPI</option>
+                                <option value="BDONPHM2XXX">BDO</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-2">
+                        <Button @click="clearDepositFilters" variant="outline" size="sm" :disabled="depositsLoading">
+                            Clear
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <!-- Deposits Table -->
+                    <div class="relative overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Sender</th>
+                                    <th class="px-4 py-3 text-right">Amount</th>
+                                    <th class="px-4 py-3 text-left">Payment Method</th>
+                                    <th class="px-4 py-3 text-left">Operation ID</th>
+                                    <th class="px-4 py-3 text-left">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="depositsLoading">
+                                    <td colspan="5" class="px-4 py-8 text-center">
+                                        <Loader2 class="inline h-6 w-6 animate-spin text-muted-foreground" />
+                                    </td>
+                                </tr>
+                                <template v-else>
+                                    <tr
+                                        v-for="deposit in deposits"
+                                        :key="deposit.operation_id"
+                                        class="border-b hover:bg-muted/50 transition-colors"
+                                    >
+                                        <td class="px-4 py-3">
+                                            <div>
+                                                <div class="font-medium text-sm">{{ deposit.sender_name }}</div>
+                                                <div class="text-xs text-muted-foreground font-mono">{{ deposit.sender_mobile }}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-semibold text-green-600">
+                                            {{ formatAmount(deposit.amount, deposit.currency) }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <Badge variant="outline" class="text-xs">
+                                                {{ deposit.institution_name }}
+                                            </Badge>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="font-mono text-xs text-muted-foreground">{{ deposit.operation_id || 'N/A' }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-muted-foreground">
+                                            {{ deposit.timestamp ? formatDate(deposit.timestamp) : 'N/A' }}
+                                        </td>
+                                    </tr>
+                                    <tr v-if="deposits.length === 0">
+                                        <td colspan="5" class="px-4 py-8 text-center text-muted-foreground">
+                                            No deposits found
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Deposits Pagination -->
+                    <div v-if="depositsPagination.last_page > 1" class="mt-4 flex items-center justify-between">
+                        <div class="text-sm text-muted-foreground">
+                            Showing {{ (depositsPagination.current_page - 1) * depositsPagination.per_page + 1 }} to
+                            {{ Math.min(depositsPagination.current_page * depositsPagination.per_page, depositsPagination.total) }}
+                            of {{ depositsPagination.total }} results
+                        </div>
+                        <div class="flex gap-2">
+                            <Button
+                                v-for="link in depositsPaginationLinks"
+                                :key="link.label"
+                                :variant="link.active ? 'default' : 'outline'"
+                                size="sm"
+                                :disabled="link.disabled || depositsLoading"
+                                @click="goToDepositPage(link.page)"
+                                v-html="link.label"
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            </div>
+            <!-- End Deposits View -->
         </div>
     </AppLayout>
 </template>
