@@ -15,6 +15,8 @@ The sidebar balance feature displays the user's wallet balance in the applicatio
 - ✅ **Error Handling**: Displays error messages when balance fetch fails
 - ✅ **Optional Refresh**: Configurable manual refresh button
 - ✅ **Timestamp Display**: Optional last updated timestamp
+- ✅ **Clickable Navigation**: Click balance to navigate to Balance Monitoring page (role-based)
+- ✅ **Permission-Based Access**: Only users with required role can navigate to `/balances`
 
 ## Configuration
 
@@ -48,6 +50,11 @@ SIDEBAR_BALANCE_SHOW_UPDATED=false
 
 # Position: above-footer or in-content (default: above-footer)
 SIDEBAR_BALANCE_POSITION=above-footer
+
+# Role/permission configuration for clicking to navigate to /balances
+# These are shared from balance config (see config/balance.php)
+BALANCE_VIEW_ENABLED=true
+BALANCE_VIEW_ROLE=admin
 ```
 
 ## Display Styles
@@ -84,6 +91,39 @@ Best for: Emphasis on wallet balance, when it's a primary feature
 1. **`app/Http/Middleware/HandleInertiaRequests.php`** - Shares config with frontend
 2. **`resources/js/components/AppSidebar.vue`** - Integrates NavBalance component
 3. **`.env.example`** - Adds configuration examples
+
+## Clickable Navigation
+
+The balance widget is **clickable** and navigates to the Balance Monitoring page (`/balances`) when clicked, but **only if the user has the required role**.
+
+### Permission Check
+
+The component checks:
+1. **`BALANCE_VIEW_ENABLED`** - Is balance viewing enabled globally?
+2. **`BALANCE_VIEW_ROLE`** - What role is required? (default: `admin`)
+3. **User's roles** - Does the user have the required role?
+
+If all checks pass, clicking the balance:
+- Shows hover effect (background highlight)
+- Cursor changes to pointer
+- Navigates to `/balances` page
+
+If checks fail:
+- No hover effect
+- Cursor remains default
+- Click does nothing
+
+### Visual Indicators
+
+**Clickable (has permission):**
+- Hover background color change
+- Pointer cursor
+- Smooth transition animation
+
+**Non-clickable (no permission):**
+- No hover effects
+- Default cursor
+- Static display only
 
 ## Technical Details
 
@@ -139,6 +179,24 @@ SIDEBAR_BALANCE_LABEL="Available Funds"
 SIDEBAR_BALANCE_SHOW_ICON=true
 SIDEBAR_BALANCE_SHOW_REFRESH=false
 SIDEBAR_BALANCE_SHOW_UPDATED=false
+```
+
+### Allow All Users to Navigate to Balance Page
+```bash
+BALANCE_VIEW_ENABLED=true
+BALANCE_VIEW_ROLE=  # Empty = all authenticated users can click
+```
+
+### Disable Navigation (Static Display Only)
+```bash
+BALANCE_VIEW_ENABLED=false
+# Balance shows but is not clickable for anyone
+```
+
+### Restrict to Super Admin Only
+```bash
+BALANCE_VIEW_ENABLED=true
+BALANCE_VIEW_ROLE=super-admin
 ```
 
 ## Integration with Existing Systems

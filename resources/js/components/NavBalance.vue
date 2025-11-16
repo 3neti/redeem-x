@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useWalletBalance } from '@/composables/useWalletBalance';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Wallet, RefreshCw, Clock } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 const page = usePage();
 const config = computed(() => page.props.sidebar?.balance || {});
 const { state } = useSidebar();
+
+// Check if user can view balance monitoring page
+const userRoles = computed(() => page.props.auth?.roles || []);
+const balanceViewEnabled = computed(() => page.props.balance?.view_enabled ?? true);
+const balanceViewRole = computed(() => page.props.balance?.view_role);
+
+const canViewBalancePage = computed(() => {
+    if (!balanceViewEnabled.value) return false;
+    // If no role required (empty string or null), allow all users
+    if (!balanceViewRole.value) return true;
+    return userRoles.value.includes(balanceViewRole.value);
+});
 
 const {
     formattedBalance,
@@ -46,13 +58,27 @@ const lastCheckedFormatted = computed(() => {
     return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
 });
 
-const handleRefresh = async () => {
+const handleRefresh = async (event: Event) => {
+    event.stopPropagation(); // Prevent navigation when clicking refresh
     await fetchBalance();
+};
+
+const handleClick = () => {
+    if (canViewBalancePage.value) {
+        router.visit('/balances');
+    }
 };
 </script>
 
 <template>
-    <div class="px-3 py-2">
+    <div
+        class="px-3 py-2"
+        :class="{
+            'cursor-pointer transition-colors hover:bg-accent/50': canViewBalancePage,
+            'cursor-default': !canViewBalancePage,
+        }"
+        @click="handleClick"
+    >
         <!-- Collapsed State -->
         <div v-if="isCollapsed" class="flex items-center justify-center">
             <Wallet v-if="showIcon" class="h-5 w-5 text-muted-foreground" />
@@ -74,7 +100,7 @@ const handleRefresh = async () => {
                         variant="ghost"
                         size="icon"
                         class="h-6 w-6"
-                        @click="handleRefresh"
+                        @click.stop="handleRefresh"
                         :disabled="isLoading"
                     >
                         <RefreshCw
@@ -121,7 +147,7 @@ const handleRefresh = async () => {
                             variant="ghost"
                             size="icon"
                             class="h-6 w-6"
-                            @click="handleRefresh"
+                            @click.stop="handleRefresh"
                             :disabled="isLoading"
                         >
                             <RefreshCw
