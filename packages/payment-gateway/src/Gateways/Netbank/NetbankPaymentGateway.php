@@ -2,13 +2,14 @@
 
 namespace LBHurtado\PaymentGateway\Gateways\Netbank;
 
-use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\{CanCheckBalance, CanConfirmDeposit, CanDisburse, CanGenerate};
+use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\{CanCheckBalance, CanCollect, CanConfirmDeposit, CanDisburse, CanGenerate};
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use Illuminate\Support\Facades\Http;
 
 class NetbankPaymentGateway implements PaymentGatewayInterface
 {
     use CanCheckBalance;
+    use CanCollect;
     use CanConfirmDeposit;
     use CanDisburse;
     use CanGenerate;

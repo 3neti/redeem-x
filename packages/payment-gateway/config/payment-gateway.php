@@ -19,6 +19,25 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | NetBank Direct Checkout Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure Direct Checkout (Collection) endpoints and credentials.
+    | This allows users to pay via redirect to their bank/e-wallet apps.
+    |
+    */
+    'netbank' => [
+        'direct_checkout' => [
+            'access_key' => env('NETBANK_DIRECT_CHECKOUT_ACCESS_KEY'),
+            'secret_key' => env('NETBANK_DIRECT_CHECKOUT_SECRET_KEY'),
+            'endpoint' => env('NETBANK_DIRECT_CHECKOUT_ENDPOINT', 'https://api.netbank.ph/v1/collect/checkout'),
+            'transaction_endpoint' => env('NETBANK_DIRECT_CHECKOUT_TRANSACTION_ENDPOINT', 'https://api.netbank.ph/v1/collect/transactions'),
+            'institutions_endpoint' => env('NETBANK_DIRECT_CHECKOUT_INSTITUTIONS_ENDPOINT', 'https://api.netbank.ph/v1/collect/financial_institutions'),
+        ],
+    ],
+
     'gateway' => LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway::class,
 
     /*
