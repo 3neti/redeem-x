@@ -2,6 +2,7 @@
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
+import NavBalance from '@/components/NavBalance.vue';
 import {
     Sidebar,
     SidebarContent,
@@ -19,9 +20,12 @@ import { start as redeemStart } from '@/actions/App/Http/Controllers/Redeem/Rede
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign, Wallet, TicketX } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
-import { computed } from 'vue';
+
+const page = usePage();
+const showBalance = computed(() => page.props.sidebar?.balance?.show ?? true);
 
 const mainNavItems: NavItem[] = [
     {
@@ -97,6 +101,8 @@ const footerNavItems: NavItem[] = [
         <SidebarContent>
             <NavMain :items="mainNavItems" />
         </SidebarContent>
+
+        <NavBalance v-if="showBalance" />
 
         <SidebarFooter>
             <NavFooter :items="footerNavItems" />

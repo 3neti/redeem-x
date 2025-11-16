@@ -43,6 +43,9 @@ Route::prefix('v1')
         // Transaction history API
         require base_path('routes/api/transactions.php');
 
+        // Deposits & Senders API
+        require base_path('routes/api/deposits.php');
+
         // Settings API
         require base_path('routes/api/settings.php');
 
