@@ -46,6 +46,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user()?->load(['roles:name', 'wallet']),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebar' => [
+                'balance' => config('sidebar.balance'),
+            ],
             'redeem' => [
                 'widget' => config('redeem.widget'),
             ],

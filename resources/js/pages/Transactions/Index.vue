@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Download, Receipt, DollarSign, Calendar, TrendingUp, Loader2, ArrowDownLeft, ArrowUpRight, Users } from 'lucide-vue-next';
 import TransactionDetailModal from '@/components/TransactionDetailModal.vue';
+import SenderDetailModal from '@/components/SenderDetailModal.vue';
 import GatewayBadge from '@/components/GatewayBadge.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -57,6 +58,15 @@ const isDetailModalOpen = ref(false);
 const openTransactionDetail = (transaction: TransactionData) => {
     selectedTransaction.value = transaction;
     isDetailModalOpen.value = true;
+};
+
+// Sender detail modal
+const selectedSenderId = ref<number | null>(null);
+const isSenderModalOpen = ref(false);
+
+const openSenderDetail = (senderId: number) => {
+    selectedSenderId.value = senderId;
+    isSenderModalOpen.value = true;
 };
 
 const fetchTransactions = async (page: number = 1) => {
@@ -787,7 +797,8 @@ onMounted(async () => {
                                     <tr
                                         v-for="deposit in deposits"
                                         :key="deposit.operation_id"
-                                        class="border-b hover:bg-muted/50 transition-colors"
+                                        class="border-b hover:bg-muted/50 cursor-pointer transition-colors"
+                                        @click="openSenderDetail(deposit.sender_id)"
                                     >
                                         <td class="px-4 py-3">
                                             <div>
@@ -843,6 +854,13 @@ onMounted(async () => {
             </Card>
             </div>
             <!-- End Deposits View -->
+
+            <!-- Sender Detail Modal -->
+            <SenderDetailModal
+                :sender-id="selectedSenderId"
+                :open="isSenderModalOpen"
+                @update:open="isSenderModalOpen = $event"
+            />
         </div>
     </AppLayout>
 </template>
