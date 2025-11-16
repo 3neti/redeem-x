@@ -49,24 +49,12 @@ const filterBank = ref('');
 const filterRail = ref('');
 const filterStatus = ref('');
 
-// Column visibility
-const showRailColumn = ref(true);
-
 const selectedTransaction = ref<TransactionData | null>(null);
 const isDetailModalOpen = ref(false);
 
 const openTransactionDetail = (transaction: TransactionData) => {
     selectedTransaction.value = transaction;
     isDetailModalOpen.value = true;
-};
-
-// Sender detail modal
-const selectedSenderId = ref<number | null>(null);
-const isSenderModalOpen = ref(false);
-
-const openSenderDetail = (senderId: number) => {
-    selectedSenderId.value = senderId;
-    isSenderModalOpen.value = true;
 };
 
 const fetchTransactions = async (page: number = 1) => {
@@ -250,7 +238,7 @@ watch([dateFrom, dateTo, filterBank, filterRail, filterStatus], () => {
     applyFilters();
 });
 
-// Deposits (new)
+// ===== DEPOSITS FUNCTIONALITY =====
 const { loading: depositsLoading, listDeposits, getDepositStats } = useDepositApi();
 const deposits = ref<DepositListResponse['data']>([]);
 const depositsPagination = ref({
@@ -273,6 +261,15 @@ const debouncedDepositSearchQuery = useDebounce(depositSearchQuery, 500);
 const depositDateFrom = ref('');
 const depositDateTo = ref('');
 const depositInstitution = ref('');
+
+// Sender modal state
+const selectedSenderId = ref<number | null>(null);
+const isSenderModalOpen = ref(false);
+
+const openSenderDetail = (senderId: number) => {
+    selectedSenderId.value = senderId;
+    isSenderModalOpen.value = true;
+};
 
 const fetchDeposits = async (page: number = 1) => {
     try {
@@ -321,7 +318,6 @@ const clearDepositFilters = async () => {
     await applyDepositFilters();
 };
 
-// Deposits pagination
 const depositsPaginationLinks = computed(() => {
     const links = [];
     
@@ -357,17 +353,14 @@ const goToDepositPage = async (page: number) => {
     }
 };
 
-// Auto-search when debounced deposit query changes
 watch(debouncedDepositSearchQuery, () => {
     fetchDeposits(1);
 });
 
-// Auto-filter when deposit filters change
 watch([depositDateFrom, depositDateTo, depositInstitution], () => {
     applyDepositFilters();
 });
 
-// Tab switching
 watch(activeTab, async (newTab) => {
     if (newTab === 'deposits' && deposits.value.length === 0) {
         await Promise.all([
@@ -398,7 +391,7 @@ onMounted(async () => {
                 <button
                     @click="activeTab = 'disbursements'"
                     :class="[
-                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
                         activeTab === 'disbursements'
                             ? 'border-primary text-primary'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -410,7 +403,7 @@ onMounted(async () => {
                 <button
                     @click="activeTab = 'deposits'"
                     :class="[
-                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
                         activeTab === 'deposits'
                             ? 'border-primary text-primary'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -422,12 +415,12 @@ onMounted(async () => {
             </div>
 
             <!-- Disbursements View -->
-            <div v-if="activeTab === 'disbursements'">
+            <div v-if="activeTab === 'disbursements'" class="space-y-6">
             <!-- Stats Cards -->
             <div v-if="loading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <div v-else class="grid gap-4 md:grid-cols-4">
+            <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Total Transactions</CardTitle>
@@ -537,16 +530,7 @@ onMounted(async () => {
                         <Button @click="clearFilters" variant="outline" size="sm" :disabled="loading">
                             Clear
                         </Button>
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm text-muted-foreground flex items-center gap-2 cursor-pointer">
-                                <input
-                                    v-model="showRailColumn"
-                                    type="checkbox"
-                                    class="rounded border-input"
-                                />
-                                Show Rail Column
-                            </label>
-                        </div>
+                        <div></div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -559,7 +543,7 @@ onMounted(async () => {
                                     <th class="px-4 py-3 text-left">Gateway</th>
                                     <th class="px-4 py-3 text-right">Amount</th>
                                     <th class="px-4 py-3 text-left">Recipient / Account</th>
-                                    <th v-if="showRailColumn" class="px-4 py-3 text-left">Rail</th>
+                                    <th class="px-4 py-3 text-left">Rail</th>
                                     <th class="px-4 py-3 text-left">Status</th>
                                     <th class="px-4 py-3 text-left">Transaction ID</th>
                                     <th class="px-4 py-3 text-left">Redeemed At</th>
@@ -605,7 +589,7 @@ onMounted(async () => {
                                             </div>
                                             <span v-else class="text-xs text-muted-foreground">N/A</span>
                                         </td>
-                                        <td v-if="showRailColumn" class="px-4 py-3">
+                                        <td class="px-4 py-3">
                                             <Badge v-if="transaction.disbursement && getRail(transaction.disbursement)" :variant="getRailVariant(getRail(transaction.disbursement))" class="text-xs">
                                                 {{ getRail(transaction.disbursement) }}
                                             </Badge>
@@ -669,12 +653,12 @@ onMounted(async () => {
             <!-- End Disbursements View -->
 
             <!-- Deposits View -->
-            <div v-if="activeTab === 'deposits'">
+            <div v-if="activeTab === 'deposits'" class="space-y-6">
             <!-- Deposit Stats Cards -->
             <div v-if="depositsLoading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <div v-else class="grid gap-4 md:grid-cols-5">
+            <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Total Deposits</CardTitle>
@@ -766,12 +750,15 @@ onMounted(async () => {
                                 <option value="BOPIPHM2XXX">BPI</option>
                                 <option value="BDONPHM2XXX">BDO</option>
                             </select>
+                            <div></div>
+                            <div></div>
                         </div>
                     </div>
                     <div class="flex items-center justify-between pt-2">
                         <Button @click="clearDepositFilters" variant="outline" size="sm" :disabled="depositsLoading">
                             Clear
                         </Button>
+                        <div></div>
                     </div>
                 </CardHeader>
                 <CardContent>
