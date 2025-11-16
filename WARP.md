@@ -100,6 +100,46 @@ Tests NetBank payment gateway integration via Omnipay framework.
 - OAuth2 with token caching
 - Comprehensive logging
 
+### Testing Top-Up (Direct Checkout)
+```bash
+# Test top-up flow with default amount (₱500)
+php artisan test:topup
+
+# Test with custom amount
+php artisan test:topup 1000
+
+# Test with specific user
+php artisan test:topup 500 --user=user@example.com
+
+# Test with preferred institution
+php artisan test:topup 500 --institution=GCASH
+
+# Auto-simulate payment (skip manual simulation)
+php artisan test:topup 500 --simulate
+```
+Tests the complete top-up flow: initiate → database check → payment simulation → wallet credit.
+
+**How it works:**
+- Uses first user or creates one if none exists
+- Initiates top-up via NetBank Direct Checkout
+- In fake mode (USE_FAKE=true), automatically redirects to callback
+- Simulates payment webhook
+- Credits user wallet via Bavix Wallet
+- Validates amount matches expectation
+- Shows before/after balance comparison
+
+**Configuration:**
+```bash
+# Enable mock mode for testing without NetBank credentials
+NETBANK_DIRECT_CHECKOUT_USE_FAKE=true
+
+# Or use real NetBank sandbox
+NETBANK_DIRECT_CHECKOUT_USE_FAKE=false
+NETBANK_DIRECT_CHECKOUT_ACCESS_KEY=your_access_key
+NETBANK_DIRECT_CHECKOUT_SECRET_KEY=your_secret_key
+NETBANK_DIRECT_CHECKOUT_ENDPOINT=https://api-sandbox.netbank.ph/v1/collect/checkout
+```
+
 ### Code Quality
 ```bash
 # Format code (Prettier)
@@ -289,6 +329,58 @@ php artisan config:cache
 ```
 
 See `docs/OMNIPAY_INTEGRATION_PLAN.md` for detailed architecture and migration guide.
+
+### Top-Up / Direct Checkout System
+**Hybrid Architecture** allows users to add funds to their wallet via NetBank Direct Checkout:
+
+**Package Layer** (`lbhurtado/payment-gateway`):
+- `TopUpInterface` - Contract defining required methods for top-up models
+- `TopUpResultData` - DTO for gateway responses
+- `HasTopUps` trait - Reusable logic for any model that needs top-up functionality
+- `CanCollect` trait - NetBank Direct Checkout API integration
+- Gateway-agnostic design (supports netbank, future: stripe, paypal, etc.)
+
+**Application Layer** (`app/`):
+- `TopUp` model - Implements `TopUpInterface`, tracks payment status
+- `User` model - Uses `HasTopUps` trait for wallet top-up functionality
+- `TopUpController` - Handles initiation, callback, status polling
+- `NetBankWebhookController` - Processes payment confirmations
+
+**Top-Up Flow:**
+1. User visits `/topup` → Enters amount → Selects payment method (optional)
+2. Backend calls `$user->initiateTopUp(500, 'netbank', 'GCASH')`
+3. Creates `TopUp` record with status `PENDING`
+4. Redirects user to NetBank payment page (or mock callback in fake mode)
+5. User completes payment in GCash/Maya/Bank app
+6. NetBank webhook calls `/webhooks/netbank/payment`
+7. Webhook marks TopUp as `PAID` and credits wallet
+8. User returns to callback page, sees success status
+
+**Key Features:**
+- **Mock Mode**: Test without real API credentials (`USE_FAKE=true`)
+- **Real-time Polling**: Status updates every 3 seconds on callback page
+- **Wallet Integration**: Automatic credit via Bavix Wallet
+- **Multi-Gateway Ready**: Interface-based design for future gateways
+- **Payment History**: Tracks all top-up attempts with status
+- **Institution Preference**: Users can specify GCash, Maya, BDO, BPI, etc.
+
+**Available Methods** (via `HasTopUps` trait):
+```php
+$user->initiateTopUp(500, 'netbank', 'GCASH'); // Start top-up
+$user->getTopUps(); // All top-ups
+$user->getPendingTopUps(); // Pending payments
+$user->getPaidTopUps(); // Successful top-ups
+$user->getTopUpByReference('TOPUP-ABC123'); // Find by reference
+$user->getTotalTopUps(); // Sum of paid top-ups
+$user->creditWalletFromTopUp($topUp); // Credit wallet
+```
+
+**Routes:**
+- `GET /topup` - Top-up page
+- `POST /topup` - Initiate payment
+- `GET /topup/callback` - Return after payment
+- `GET /topup/status/{ref}` - Poll payment status
+- `POST /webhooks/netbank/payment` - Payment webhook (no auth)
 
 ### Notification Templates
 **Admin-level customizable templates** for voucher redemption notifications:
