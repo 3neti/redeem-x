@@ -1,0 +1,125 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\TopUp;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
+use LBHurtado\PaymentGateway\Exceptions\TopUpException;
+
+class TopUpController extends Controller
+{
+    /**
+     * Display top-up page.
+     */
+    public function index()
+    {
+        $user = auth()->user();
+        
+        return Inertia::render('Wallet/TopUp', [
+            'balance' => $user->balanceFloat,
+            'recentTopUps' => $user->getTopUps()->take(5),
+            'pendingTopUps' => $user->getPendingTopUps(),
+        ]);
+    }
+
+    /**
+     * Initiate a new top-up.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:1', 'max:50000'],
+            'gateway' => ['required', 'string', 'in:netbank'],
+            'institution_code' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $user = auth()->user();
+            
+            $result = $user->initiateTopUp(
+                amount: (float) $validated['amount'],
+                gateway: $validated['gateway'],
+                institutionCode: $validated['institution_code'] ?? null
+            );
+
+            Log::info('[TopUp] Initiated successfully', [
+                'user_id' => $user->id,
+                'reference_no' => $result->reference_no,
+                'amount' => $result->amount,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => $result->redirect_url,
+                'reference_no' => $result->reference_no,
+            ]);
+        } catch (TopUpException $e) {
+            Log::error('[TopUp] Initiation failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Handle callback after payment.
+     */
+    public function callback(Request $request)
+    {
+        $referenceNo = $request->query('reference_no');
+        
+        if (!$referenceNo) {
+            return redirect()->route('topup.index')
+                ->with('error', 'Invalid callback');
+        }
+
+        try {
+            $topUp = TopUp::where('reference_no', $referenceNo)->firstOrFail();
+            
+            return Inertia::render('Wallet/TopUpCallback', [
+                'topUp' => [
+                    'reference_no' => $topUp->reference_no,
+                    'amount' => $topUp->amount,
+                    'status' => $topUp->payment_status,
+                    'gateway' => $topUp->gateway,
+                    'institution_code' => $topUp->institution_code,
+                    'created_at' => $topUp->created_at->toIso8601String(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[TopUp] Callback error', [
+                'reference_no' => $referenceNo,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('topup.index')
+                ->with('error', 'Top-up not found');
+        }
+    }
+
+    /**
+     * Check top-up status (polling endpoint).
+     */
+    public function status(string $referenceNo)
+    {
+        try {
+            $topUp = TopUp::where('reference_no', $referenceNo)->firstOrFail();
+            
+            return response()->json([
+                'status' => $topUp->payment_status,
+                'paid_at' => $topUp->paid_at?->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Top-up not found',
+            ], 404);
+        }
+    }
+}

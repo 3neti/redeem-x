@@ -10,6 +10,12 @@ Route::get('/', fn () => Inertia::render('Welcome'));
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');
 
+// Webhook routes (no authentication required)
+Route::prefix('webhooks')->name('webhooks.')->group(function () {
+    Route::post('netbank/payment', [\App\Http\Controllers\Webhooks\NetBankWebhookController::class, 'handlePayment'])
+        ->name('netbank.payment');
+});
+
 Route::middleware([
     'auth',
     ValidateSessionWithWorkOS::class,
@@ -60,6 +66,18 @@ Route::middleware([
             ->name('load');
         Route::get('add-funds', \LBHurtado\PaymentGateway\Http\Controllers\GenerateController::class)
             ->name('add-funds');
+    });
+    
+    // Top-Up routes
+    Route::prefix('topup')->name('topup.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\TopUpController::class, 'index'])
+            ->name('index');
+        Route::post('/', [\App\Http\Controllers\TopUpController::class, 'store'])
+            ->name('store');
+        Route::get('callback', [\App\Http\Controllers\TopUpController::class, 'callback'])
+            ->name('callback');
+        Route::get('status/{referenceNo}', [\App\Http\Controllers\TopUpController::class, 'status'])
+            ->name('status');
     });
     
     // User billing routes
