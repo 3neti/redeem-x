@@ -4,8 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LBHurtado\PaymentGateway\Contracts\TopUpInterface;
 
-class TopUp extends Model
+class TopUp extends Model implements TopUpInterface
 {
     protected $fillable = [
         'user_id',
@@ -30,6 +31,37 @@ class TopUp extends Model
         return $this->belongsTo(User::class);
     }
 
+    // TopUpInterface implementation
+    public function getGateway(): string
+    {
+        return $this->gateway;
+    }
+
+    public function getReferenceNo(): string
+    {
+        return $this->reference_no;
+    }
+
+    public function getAmount(): float
+    {
+        return (float) $this->amount;
+    }
+
+    public function getCurrency(): string
+    {
+        return $this->currency;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->payment_status;
+    }
+
+    public function getRedirectUrl(): ?string
+    {
+        return $this->redirect_url;
+    }
+
     public function isPaid(): bool
     {
         return $this->payment_status === 'PAID';
@@ -52,6 +84,11 @@ class TopUp extends Model
             'payment_id' => $paymentId,
             'paid_at' => now(),
         ]);
+    }
+
+    public function getOwner()
+    {
+        return $this->user;
     }
 
     public function scopePending($query)
