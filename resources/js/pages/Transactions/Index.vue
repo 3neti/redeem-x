@@ -394,7 +394,7 @@ onMounted(async () => {
                 <button
                     @click="activeTab = 'disbursements'"
                     :class="[
-                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
                         activeTab === 'disbursements'
                             ? 'border-primary text-primary'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -406,7 +406,7 @@ onMounted(async () => {
                 <button
                     @click="activeTab = 'deposits'"
                     :class="[
-                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
                         activeTab === 'deposits'
                             ? 'border-primary text-primary'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -418,7 +418,7 @@ onMounted(async () => {
             </div>
 
             <!-- Disbursements View -->
-            <div v-if="activeTab === 'disbursements'">
+            <div v-if="activeTab === 'disbursements'" class="space-y-6">
             <!-- Stats Cards -->
             <div v-if="loading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
@@ -665,7 +665,7 @@ onMounted(async () => {
             <!-- End Disbursements View -->
 
             <!-- Deposits View -->
-            <div v-if="activeTab === 'deposits'">
+            <div v-if="activeTab === 'deposits'" class="space-y-6">
             <!-- Deposit Stats Cards -->
             <div v-if="depositsLoading" class="flex justify-center py-8">
                 <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
