@@ -2,9 +2,9 @@
 import WalletController from '@/actions/App/Http/Controllers/Settings/WalletController';
 import { edit } from '@/routes/wallet';
 import { Form, Head, usePage } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
-import { useEcho } from '@laravel/echo-vue';
+import { ref, watch } from 'vue';
 import { useToast } from '@/components/ui/toast';
+import { useWalletBalance } from '@/composables/useWalletBalance';
 import type { User } from '@/types';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -37,15 +37,12 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Use real-time wallet balance, but use prop as initial value
+// Set up wallet balance composable with Echo listener
+const { balance: balanceFloat, currency: currencyCode, realtimeNote, formattedBalance } = useWalletBalance();
 const balance = ref<number>(props.wallet.balance);
 const currency = ref<string>(props.wallet.currency);
-const realtimeNote = ref<string>('');
 
-// Set up Echo listener for real-time updates
 const page = usePage();
-const user = page.props.auth.user as User;
-const userWalletId = user.wallet?.id;
 const { toast } = useToast();
 
 const formatAmount = (value: number, currency: string) => {
@@ -55,51 +52,29 @@ const formatAmount = (value: number, currency: string) => {
     }).format(value);
 };
 
-// Echo listener must be called at top level, not inside onMounted
-const { listen } = useEcho<{
-    walletId: number;
-    balanceFloat: number;
-    updatedAt: string;
-    message: string;
-}>(
-    `App.Models.User.${user.id}`,
-    '.balance.updated',
-    (event) => {
-        console.log('[Wallet Settings] Echo event received:', event);
-        
-        if (event.walletId !== userWalletId) {
-            console.log('[Wallet Settings] Wallet ID mismatch:', {
-                received: event.walletId,
-                expected: userWalletId,
-            });
-            return;
-        }
-
-        const oldBalance = balance.value;
-        balance.value = event.balanceFloat;
-        realtimeNote.value = event.message;
-
-        console.log('[Wallet Settings] Balance updated via Echo:', {
-            oldBalance,
-            newBalance: event.balanceFloat,
-            message: event.message,
-        });
-
-        // Show toast notification
-        const diff = event.balanceFloat - oldBalance;
-        const diffFormatted = formatAmount(Math.abs(diff), currency.value);
-        
-        toast({
-            title: diff > 0 ? '💰 Deposit Received' : '💸 Payment Sent',
-            description: `${diff > 0 ? '+' : ''}${diffFormatted} • New balance: ${formatAmount(event.balanceFloat, currency.value)}`,
-            duration: 5000,
-        });
-    }
-);
-
-onMounted(() => {
-    console.log('[Wallet Settings] Starting Echo listener for user:', user.id);
-    listen();
+// Watch balance changes from useWalletBalance and show toast
+let previousBalance = balance.value;
+watch(balanceFloat, (newBalance, oldBalance) => {
+    if (oldBalance === null || oldBalance === undefined) return;
+    
+    const diff = newBalance - oldBalance;
+    if (diff === 0) return; // Skip if no change
+    
+    const diffFormatted = formatAmount(Math.abs(diff), currency.value);
+    
+    console.log('[Wallet Settings] Balance changed:', {
+        oldBalance,
+        newBalance,
+        diff,
+        diffFormatted,
+        isDeposit: diff > 0,
+    });
+    
+    toast({
+        title: diff > 0 ? '💰 Deposit Received' : '💸 Payment Sent',
+        description: `${diff > 0 ? '+' : ''}${diffFormatted} • New balance: ${formatAmount(newBalance, currency.value)}`,
+        duration: 5000,
+    });
 });
 
 const breadcrumbItems: BreadcrumbItem[] = [
@@ -147,7 +122,7 @@ const getTransactionColor = (type: string) => {
                     </CardHeader>
                     <CardContent>
                         <div class="text-3xl font-bold">
-                            {{ formatAmount(balance, currency) }}
+                            {{ formattedBalance }}
                         </div>
                         <p v-if="realtimeNote" class="text-sm text-muted-foreground mt-2">
                             {{ realtimeNote }}
