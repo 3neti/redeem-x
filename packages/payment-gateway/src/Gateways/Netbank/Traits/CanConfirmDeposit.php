@@ -9,7 +9,7 @@ use LBHurtado\PaymentGateway\Services\ResolvePayable;
 use LBHurtado\PaymentGateway\Tests\Models\User;
 use LBHurtado\Wallet\Actions\TopupWalletAction;
 use LBHurtado\Wallet\Events\DepositConfirmed;
-use LBHurtado\Wallet\Events\BalanceUpdated;
+use LBHurtado\Wallet\Jobs\BroadcastBalanceUpdated;
 use LBHurtado\Contact\Models\Contact;
 use Bavix\Wallet\Interfaces\Wallet;
 use Illuminate\Support\Facades\Log;
@@ -149,16 +149,10 @@ trait CanConfirmDeposit
 
         DepositConfirmed::dispatch($transaction);
         
-        // Manually fire BalanceUpdated event for real-time UI updates
-        // Bavix Wallet doesn't always auto-dispatch in queue context
+        // Queue job to broadcast balance update
         $wallet = $user instanceof \LBHurtado\Cash\Models\Cash ? $user : $user->wallet;
         if ($wallet) {
-            BalanceUpdated::dispatch($wallet, new \DateTimeImmutable());
-            Log::info('BalanceUpdated event dispatched', [
-                'wallet_id' => $wallet->getKey(),
-                'balance' => $wallet->balanceFloat,
-                'holder_id' => $wallet->holder->id,
-            ]);
+            BroadcastBalanceUpdated::dispatch($wallet->getKey());
         }
     }
 }

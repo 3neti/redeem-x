@@ -4,6 +4,7 @@ namespace LBHurtado\Wallet;
 
 use LBHurtado\Wallet\Exceptions\SystemUserNotFoundException;
 use LBHurtado\Wallet\Services\SystemUserResolverService;
+use LBHurtado\Wallet\Providers\EventServiceProvider;
 use Illuminate\Support\ServiceProvider;
 
 class WalletServiceProvider extends ServiceProvider
@@ -18,6 +19,9 @@ class WalletServiceProvider extends ServiceProvider
             __DIR__ . '/../config/account.php',
             'account'
         );
+        
+        // Register event service provider
+        $this->app->register(EventServiceProvider::class);
     }
 
     public function boot(): void
