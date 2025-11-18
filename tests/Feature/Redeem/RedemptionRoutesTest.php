@@ -21,7 +21,7 @@ test('redemption start page route exists', function () {
     $response = $this->get('/redeem');
     
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Redeem/Start'));
+        ->assertInertia(fn ($page) => $page->component('redeem/Start'));
 });
 
 test('wallet page route exists and requires voucher code', function () {
@@ -31,7 +31,7 @@ test('wallet page route exists and requires voucher code', function () {
     
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Wallet')
+            ->component('redeem/Wallet')
             ->has('voucher_code')
         );
 });
@@ -57,7 +57,7 @@ test('success page route exists and requires voucher code', function () {
     
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Success')
+            ->component('redeem/Success')
             ->has('voucher')
         );
 });
@@ -75,7 +75,7 @@ test('success page returns error for unredeemed voucher', function () {
     
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Error')
+            ->component('redeem/Error')
             ->has('message')
         );
 });
@@ -87,7 +87,7 @@ test('finalize page route exists', function () {
     
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Finalize')
+            ->component('redeem/Finalize')
         );
 });
 

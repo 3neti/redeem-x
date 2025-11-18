@@ -36,7 +36,7 @@ test('redemption start page route exists', function () {
     $response = $this->get('/redeem');
     
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Redeem/Start'));
+        ->assertInertia(fn ($page) => $page->component('redeem/Start'));
 });
 
 test('wallet page route exists and requires voucher code', function () {
@@ -47,7 +47,7 @@ test('wallet page route exists and requires voucher code', function () {
     
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Wallet')
+            ->component('redeem/Wallet')
             ->has('voucher_code')
         );
 });
@@ -73,7 +73,7 @@ test('success page route exists and requires voucher code', function () {
     $response = $this->get("/redeem/{$voucher->code}/success");
     
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Redeem/Success'));
+        ->assertInertia(fn ($page) => $page->component('redeem/Success'));
 });
 
 test('success page without voucher code returns 404', function () {
@@ -111,7 +111,7 @@ test('vouchers index route exists and requires auth', function () {
     $this->actingAs($this->user);
     $response = $this->get('/vouchers');
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Vouchers/Index'));
+        ->assertInertia(fn ($page) => $page->component('vouchers/Index'));
 });
 
 test('generate vouchers route exists and requires auth', function () {
@@ -123,7 +123,7 @@ test('generate vouchers route exists and requires auth', function () {
     $this->actingAs($this->user);
     $response = $this->get('/vouchers/generate');
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Vouchers/Generate/Create'));
+        ->assertInertia(fn ($page) => $page->component('vouchers/generate/Create'));
 });
 
 test('generate vouchers success route exists', function () {
@@ -134,7 +134,7 @@ test('generate vouchers success route exists', function () {
     
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Vouchers/Generate/Success')
+            ->component('vouchers/generate/Success')
             ->has('count')
         );
 })->skip('Route exists but test hits catch-all voucher show route first');
@@ -152,7 +152,7 @@ test('transactions index route exists and requires auth', function () {
     $this->actingAs($this->user);
     $response = $this->get('/transactions');
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Transactions/Index'));
+        ->assertInertia(fn ($page) => $page->component('transactions/Index'));
 });
 
 // =========================
@@ -168,7 +168,7 @@ test('contacts index route exists and requires auth', function () {
     $this->actingAs($this->user);
     $response = $this->get('/contacts');
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Contacts/Index'));
+        ->assertInertia(fn ($page) => $page->component('contacts/Index'));
 });
 
 test('contact show route exists and requires auth', function () {

@@ -80,7 +80,7 @@ test('complete redemption flow with all plugins', function () {
 
     // Step 5: Finalize and confirm
     get("/redeem/{$voucher->code}/finalize")
-        ->assertInertia(fn ($page) => $page->component('Redeem/Finalize'));
+        ->assertInertia(fn ($page) => $page->component('redeem/Finalize'));
 
     post("/redeem/{$voucher->code}/confirm")
         ->assertRedirect("/redeem/{$voucher->code}/success");
@@ -443,7 +443,7 @@ test('success page displays custom rider message', function () {
     // Check success page has custom message
     get("/redeem/{$voucher->code}/success")
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Success')
+            ->component('redeem/Success')
             ->has('voucher')
             ->where('voucher.instructions.rider.message', $customMessage)
         );
@@ -483,7 +483,7 @@ test('success page redirects to custom rider URL when configured', function () {
     // Success page should pass redirect URL to frontend
     get("/redeem/{$voucher->code}/success")
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Success')
+            ->component('redeem/Success')
             ->where('voucher.instructions.rider.url', $customUrl)
         );
 });
@@ -509,7 +509,7 @@ test('success page uses default configuration when no rider specified', function
     get("/redeem/{$voucher->code}/success")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Redeem/Success')
+            ->component('redeem/Success')
             ->has('voucher')
         );
 });
