@@ -128,7 +128,7 @@ class User extends Authenticatable implements Wallet, Customer
         return $this->hasMany(VoucherGenerationCharge::class);
     }
     
-    public function monthlyCharges(int $year = null, int $month = null)
+    public function monthlyCharges(?int $year = null, ?int $month = null)
     {
         $year = $year ?? now()->year;
         $month = $month ?? now()->month;
