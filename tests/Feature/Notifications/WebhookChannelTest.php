@@ -5,6 +5,8 @@ use App\Notifications\SendFeedbacksNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use LBHurtado\Contact\Models\Contact;
+use Tests\Helpers\VoucherTestHelper;
+use LBHurtado\Voucher\Actions\RedeemVoucher;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -14,17 +16,23 @@ test('webhook channel sends POST request', function () {
     ]);
     
     $user = User::factory()->create();
+    $user->deposit(10000);
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
     
-    $voucher = $user->generateVouchers([
-        'cash' => ['amount' => 100, 'currency' => 'PHP'],
-        'feedback' => [
-            'webhook' => 'https://webhook.site/test',
-        ],
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($user, 1, '', [
+        'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => ['secret' => null, 'mobile' => null, 'country' => 'PH', 'location' => null, 'radius' => null]],
+        'inputs' => ['fields' => []],
+        'feedback' => ['email' => null, 'mobile' => null, 'webhook' => 'https://webhook.site/test'],
+        'rider' => ['message' => null, 'url' => null],
         'count' => 1,
-    ])->first();
+        'prefix' => '',
+        'mask' => '****',
+        'ttl' => null,
+    ]);
     
-    $voucher->redeem($contact);
+    $voucher = $vouchers->first();
+    
+    RedeemVoucher::run($contact, $voucher->code);
     
     $notification = new SendFeedbacksNotification($voucher->code);
     $notifiable = ['webhook' => 'https://webhook.site/test'];
@@ -44,14 +52,23 @@ test('webhook channel handles missing URL gracefully', function () {
     Http::fake();
     
     $user = User::factory()->create();
+    $user->deposit(10000);
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
     
-    $voucher = $user->generateVouchers([
-        'cash' => ['amount' => 100, 'currency' => 'PHP'],
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($user, 1, '', [
+        'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => ['secret' => null, 'mobile' => null, 'country' => 'PH', 'location' => null, 'radius' => null]],
+        'inputs' => ['fields' => []],
+        'feedback' => ['email' => null, 'mobile' => null, 'webhook' => null],
+        'rider' => ['message' => null, 'url' => null],
         'count' => 1,
-    ])->first();
+        'prefix' => '',
+        'mask' => '****',
+        'ttl' => null,
+    ]);
     
-    $voucher->redeem($contact);
+    $voucher = $vouchers->first();
+    
+    RedeemVoucher::run($contact, $voucher->code);
     
     $notification = new SendFeedbacksNotification($voucher->code);
     $notifiable = []; // No webhook URL
@@ -68,17 +85,23 @@ test('webhook channel handles failed requests', function () {
     ]);
     
     $user = User::factory()->create();
+    $user->deposit(10000);
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
     
-    $voucher = $user->generateVouchers([
-        'cash' => ['amount' => 100, 'currency' => 'PHP'],
-        'feedback' => [
-            'webhook' => 'https://webhook.site/test',
-        ],
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($user, 1, '', [
+        'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => ['secret' => null, 'mobile' => null, 'country' => 'PH', 'location' => null, 'radius' => null]],
+        'inputs' => ['fields' => []],
+        'feedback' => ['email' => null, 'mobile' => null, 'webhook' => 'https://webhook.site/test'],
+        'rider' => ['message' => null, 'url' => null],
         'count' => 1,
-    ])->first();
+        'prefix' => '',
+        'mask' => '****',
+        'ttl' => null,
+    ]);
     
-    $voucher->redeem($contact);
+    $voucher = $vouchers->first();
+    
+    RedeemVoucher::run($contact, $voucher->code);
     
     $notification = new SendFeedbacksNotification($voucher->code);
     $notifiable = ['webhook' => 'https://webhook.site/test'];
@@ -99,18 +122,23 @@ test('webhook payload contains correct voucher data', function () {
     ]);
     
     $user = User::factory()->create();
+    $user->deposit(10000);
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
     
-    $voucher = $user->generateVouchers([
-        'cash' => ['amount' => 100, 'currency' => 'PHP'],
-        'feedback' => [
-            'webhook' => 'https://webhook.site/test',
-        ],
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($user, 1, 'TEST', [
+        'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => ['secret' => null, 'mobile' => null, 'country' => 'PH', 'location' => null, 'radius' => null]],
+        'inputs' => ['fields' => []],
+        'feedback' => ['email' => null, 'mobile' => null, 'webhook' => 'https://webhook.site/test'],
+        'rider' => ['message' => null, 'url' => null],
         'count' => 1,
         'prefix' => 'TEST',
-    ])->first();
+        'mask' => '****',
+        'ttl' => null,
+    ]);
     
-    $voucher->redeem($contact);
+    $voucher = $vouchers->first();
+    
+    RedeemVoucher::run($contact, $voucher->code);
     
     $notification = new SendFeedbacksNotification($voucher->code);
     $notifiable = ['webhook' => 'https://webhook.site/test'];
