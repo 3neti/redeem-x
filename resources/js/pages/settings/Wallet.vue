@@ -48,41 +48,57 @@ const user = page.props.auth.user as User;
 const userWalletId = user.wallet?.id;
 const { toast } = useToast();
 
-onMounted(() => {
-    const { listen } = useEcho<{
-        walletId: number;
-        balanceFloat: number;
-        updatedAt: string;
-        message: string;
-    }>(
-        `user.${user.id}`,
-        '.balance.updated',
-        (event) => {
-            if (event.walletId !== userWalletId) {
-                return;
-            }
+const formatAmount = (value: number, currency: string) => {
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: currency || 'PHP',
+    }).format(value);
+};
 
-            const oldBalance = balance.value;
-            balance.value = event.balanceFloat;
-            realtimeNote.value = event.message;
-
-            console.log('[Wallet Settings] Balance updated via Echo:', {
-                balance: event.balanceFloat,
-                message: event.message,
+// Echo listener must be called at top level, not inside onMounted
+const { listen } = useEcho<{
+    walletId: number;
+    balanceFloat: number;
+    updatedAt: string;
+    message: string;
+}>(
+    `user.${user.id}`,
+    '.balance.updated',
+    (event) => {
+        console.log('[Wallet Settings] Echo event received:', event);
+        
+        if (event.walletId !== userWalletId) {
+            console.log('[Wallet Settings] Wallet ID mismatch:', {
+                received: event.walletId,
+                expected: userWalletId,
             });
-
-            // Show toast notification
-            const diff = event.balanceFloat - oldBalance;
-            const diffFormatted = formatAmount(Math.abs(diff), currency.value);
-            
-            toast({
-                title: diff > 0 ? '💰 Deposit Received' : '💸 Payment Sent',
-                description: `${diff > 0 ? '+' : ''}${diffFormatted} • New balance: ${formatAmount(event.balanceFloat, currency.value)}`,
-                duration: 5000,
-            });
+            return;
         }
-    );
 
+        const oldBalance = balance.value;
+        balance.value = event.balanceFloat;
+        realtimeNote.value = event.message;
+
+        console.log('[Wallet Settings] Balance updated via Echo:', {
+            oldBalance,
+            newBalance: event.balanceFloat,
+            message: event.message,
+        });
+
+        // Show toast notification
+        const diff = event.balanceFloat - oldBalance;
+        const diffFormatted = formatAmount(Math.abs(diff), currency.value);
+        
+        toast({
+            title: diff > 0 ? '💰 Deposit Received' : '💸 Payment Sent',
+            description: `${diff > 0 ? '+' : ''}${diffFormatted} • New balance: ${formatAmount(event.balanceFloat, currency.value)}`,
+            duration: 5000,
+        });
+    }
+);
+
+onMounted(() => {
+    console.log('[Wallet Settings] Starting Echo listener for user:', user.id);
     listen();
 });
 
@@ -94,13 +110,6 @@ const breadcrumbItems: BreadcrumbItem[] = [
 ];
 
 const amount = ref(100);
-
-const formatAmount = (value: number, currency: string) => {
-    return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: currency || 'PHP',
-    }).format(value);
-};
 
 const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-PH', {
