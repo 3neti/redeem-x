@@ -99,6 +99,14 @@ const handleConfirm = async () => {
             inputs: finalizationData.value.inputs,
         };
 
+        console.log('[Finalize] handleConfirm - Starting confirmation');
+        console.log('[Finalize] handleConfirm - Request data:', JSON.stringify(data, null, 2));
+        console.log('[Finalize] handleConfirm - Voucher code:', props.voucher_code);
+        console.log('[Finalize] handleConfirm - Mobile:', finalizationData.value.mobile);
+        console.log('[Finalize] handleConfirm - Bank code:', finalizationData.value.bank_code);
+        console.log('[Finalize] handleConfirm - Account number:', finalizationData.value.account_number);
+        console.log('[Finalize] handleConfirm - Inputs:', finalizationData.value.inputs);
+
         // POST to confirm endpoint
         const response = await fetch('/api/v1/redeem/confirm', {
             method: 'POST',
@@ -109,12 +117,27 @@ const handleConfirm = async () => {
             body: JSON.stringify(data),
         });
 
+        console.log('[Finalize] handleConfirm - Response status:', response.status);
+        console.log('[Finalize] handleConfirm - Response ok:', response.ok);
+        console.log('[Finalize] handleConfirm - Response headers:', Object.fromEntries(response.headers.entries()));
+
         if (!response.ok) {
-            const errorData = await response.json();
+            console.error('[Finalize] handleConfirm - Response not ok');
+            let errorData;
+            try {
+                errorData = await response.json();
+                console.error('[Finalize] handleConfirm - Error data:', errorData);
+            } catch (parseError) {
+                console.error('[Finalize] handleConfirm - Failed to parse error response:', parseError);
+                const responseText = await response.text();
+                console.error('[Finalize] handleConfirm - Raw error response:', responseText);
+                throw new Error(`Server returned ${response.status}: ${responseText}`);
+            }
             throw new Error(errorData.message || 'Failed to confirm redemption');
         }
 
         const result = await response.json();
+        console.log('[Finalize] handleConfirm - Success result:', result);
 
         // Clear session data
         sessionStorage.removeItem(`redeem_${props.voucher_code}`);
