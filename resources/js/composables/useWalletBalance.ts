@@ -6,7 +6,7 @@ import type { User } from '@/types';
 import CheckWalletBalanceController from '@/actions/App/Http/Controllers/CheckWalletBalanceController';
 
 // Debug flag - set to false to suppress console logs
-const DEBUG = false;
+const DEBUG = true; // Temporarily enabled to debug real-time updates
 
 export function useWalletBalance(type?: string) {
     const balance = ref<number | null>(null);

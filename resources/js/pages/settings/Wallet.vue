@@ -4,6 +4,7 @@ import { edit } from '@/routes/wallet';
 import { Form, Head, usePage } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import { useEcho } from '@laravel/echo-vue';
+import { useToast } from '@/components/ui/toast';
 import type { User } from '@/types';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -45,6 +46,7 @@ const realtimeNote = ref<string>('');
 const page = usePage();
 const user = page.props.auth.user as User;
 const userWalletId = user.wallet?.id;
+const { toast } = useToast();
 
 onMounted(() => {
     const { listen } = useEcho<{
@@ -60,12 +62,23 @@ onMounted(() => {
                 return;
             }
 
+            const oldBalance = balance.value;
             balance.value = event.balanceFloat;
             realtimeNote.value = event.message;
 
             console.log('[Wallet Settings] Balance updated via Echo:', {
                 balance: event.balanceFloat,
                 message: event.message,
+            });
+
+            // Show toast notification
+            const diff = event.balanceFloat - oldBalance;
+            const diffFormatted = formatAmount(Math.abs(diff), currency.value);
+            
+            toast({
+                title: diff > 0 ? '💰 Deposit Received' : '💸 Payment Sent',
+                description: `${diff > 0 ? '+' : ''}${diffFormatted} • New balance: ${formatAmount(event.balanceFloat, currency.value)}`,
+                duration: 5000,
             });
         }
     );
