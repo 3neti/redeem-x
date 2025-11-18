@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Settings;
 
 use App\Models\Campaign;
 use App\Models\User;

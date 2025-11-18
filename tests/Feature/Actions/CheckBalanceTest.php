@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\CheckBalance;
+use App\Actions\Wallet\CheckBalance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Wallet\Enums\WalletType;

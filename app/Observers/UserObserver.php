@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Actions\CreateDefaultCampaigns;
+use App\Actions\Settings\CreateDefaultCampaigns;
 use App\Models\User;
 
 class UserObserver

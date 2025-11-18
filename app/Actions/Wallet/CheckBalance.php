@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Wallet;
 
 use App\Models\User;
 use Brick\Money\Money;

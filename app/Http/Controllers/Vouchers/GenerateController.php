@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\ExternalMetadataData;
 use App\Http\Requests\VoucherGenerationRequest;
-use App\Actions\CalculateChargeAction;
+use App\Actions\Billing\CalculateCharge;
 use App\Models\VoucherGenerationCharge;
 use App\Services\ReconciliationService;
 use Illuminate\Http\RedirectResponse;
@@ -33,7 +33,7 @@ class GenerateController extends Controller
      */
     public function store(
         VoucherGenerationRequest $request,
-        CalculateChargeAction $calculateCharge,
+        CalculateCharge $calculateCharge,
         ReconciliationService $reconciliation
     ): RedirectResponse {
         $instructions = $request->toInstructions();

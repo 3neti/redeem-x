@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Billing;
 
 use App\Data\ChargeBreakdownData;
 use App\Models\User;
@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-class CalculateChargeAction
+class CalculateCharge
 {
     use AsAction;
 
