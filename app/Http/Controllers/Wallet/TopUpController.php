@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Wallet;
 
+use App\Http\Controllers\Controller;
 use App\Models\TopUp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;

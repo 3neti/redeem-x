@@ -3,7 +3,7 @@ import axios from '@/lib/axios';
 import { usePage } from '@inertiajs/vue3';
 import { useEcho } from '@laravel/echo-vue';
 import type { User } from '@/types';
-import CheckWalletBalanceController from '@/actions/App/Http/Controllers/CheckWalletBalanceController';
+import CheckBalanceController from '@/actions/App/Http/Controllers/Wallet/CheckBalanceController';
 
 // Debug flag - set to false to suppress console logs
 const DEBUG = true; // Temporarily enabled to debug real-time updates
@@ -35,7 +35,7 @@ export function useWalletBalance(type?: string) {
         if (DEBUG) console.log('[useWalletBalance] Fetching balance...', { type });
         
         try {
-            const url = CheckWalletBalanceController.url();
+            const url = CheckBalanceController.url();
             const { data } = await axios.get(url, {
                 params: type ? { type } : {},
             });

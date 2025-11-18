@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Balances;
 
+use App\Http\Controllers\Controller;
 use App\Services\BalanceService;
 use App\Services\ReconciliationService;
 use Illuminate\Http\Request;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class BalancePageController extends Controller
+class BalanceController extends Controller
 {
     /**
      * Display the balance monitoring page.

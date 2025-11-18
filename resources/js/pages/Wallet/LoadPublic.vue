@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { useQrGeneration } from '@/composables/useQrGeneration';
-import QrDisplay from '@/components/domain/QrDisplay.vue';
+import QrDisplay from '@/components/shared/QrDisplay.vue';
 import AppLogo from '@/components/AppLogo.vue';
 
 interface Props {

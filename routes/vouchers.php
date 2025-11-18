@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Voucher\VoucherController;
+use App\Http\Controllers\Vouchers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 /*

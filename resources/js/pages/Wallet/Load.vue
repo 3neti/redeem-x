@@ -5,7 +5,7 @@ import Heading from '@/components/Heading.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
 import { useQrGeneration } from '@/composables/useQrGeneration';
-import QrDisplay from '@/components/domain/QrDisplay.vue';
+import QrDisplay from '@/components/shared/QrDisplay.vue';
 import QrSharePanel from '@/components/QrSharePanel.vue';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 import {

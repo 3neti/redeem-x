@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Wallet;
 
+use App\Http\Controllers\Controller;
 use App\Actions\CheckBalance;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use LBHurtado\Wallet\Enums\WalletType;
 
-class CheckWalletBalanceController extends Controller
+class CheckBalanceController extends Controller
 {
     public function __invoke(Request $request)
     {

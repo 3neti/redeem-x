@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Vouchers;
 
+use App\Http\Controllers\Controller;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\ExternalMetadataData;
 use App\Http\Requests\VoucherGenerationRequest;
@@ -14,14 +15,14 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class VoucherGenerationController extends Controller
+class GenerateController extends Controller
 {
     /**
      * Show the voucher generation form.
      */
     public function create(): Response
     {
-        return Inertia::render('vouchers/Generate/Create', [
+        return Inertia::render('vouchers/generate/Create', [
             'input_field_options' => $this->getInputFieldOptions(),
             'config' => config('generate'),
         ]);
@@ -118,7 +119,7 @@ class VoucherGenerationController extends Controller
             abort(404, 'No vouchers found');
         }
 
-        return Inertia::render('vouchers/Generate/Success', [
+        return Inertia::render('vouchers/generate/Success', [
             'vouchers' => $vouchers->map(function($voucher) {
                 return [
                     'id' => $voucher->id,

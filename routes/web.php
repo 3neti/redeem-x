@@ -26,41 +26,41 @@ Route::middleware([
 
     // Transaction history routes
     Route::prefix('transactions')->name('transactions.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\TransactionController::class, 'index'])
+        Route::get('/', [\App\Http\Controllers\Transactions\TransactionController::class, 'index'])
             ->name('index');
-        Route::get('export', [\App\Http\Controllers\TransactionController::class, 'export'])
+        Route::get('export', [\App\Http\Controllers\Transactions\TransactionController::class, 'export'])
             ->name('export');
     });
     
     // Contact management routes
     Route::prefix('contacts')->name('contacts.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\ContactController::class, 'index'])
+        Route::get('/', [\App\Http\Controllers\Contacts\ContactController::class, 'index'])
             ->name('index');
-        Route::get('{contact}', [\App\Http\Controllers\ContactController::class, 'show'])
+        Route::get('{contact}', [\App\Http\Controllers\Contacts\ContactController::class, 'show'])
             ->name('show');
     });
     
     // Voucher management routes
     Route::prefix('vouchers')->name('vouchers.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Voucher\VoucherController::class, 'index'])
+        Route::get('/', [App\Http\Controllers\Vouchers\VoucherController::class, 'index'])
             ->name('index');
         
         // Voucher generation routes (must be before {voucher} catch-all)
-        Route::get('generate', [\App\Http\Controllers\VoucherGenerationController::class, 'create'])
+        Route::get('generate', [\App\Http\Controllers\Vouchers\GenerateController::class, 'create'])
             ->name('generate.create');
-        Route::post('generate', [\App\Http\Controllers\VoucherGenerationController::class, 'store'])
+        Route::post('generate', [\App\Http\Controllers\Vouchers\GenerateController::class, 'store'])
             ->name('generate.store');
-        Route::get('generate/success/{count}', [\App\Http\Controllers\VoucherGenerationController::class, 'success'])
+        Route::get('generate/success/{count}', [\App\Http\Controllers\Vouchers\GenerateController::class, 'success'])
             ->name('generate.success');
         
         // Show specific voucher (must be last - catches everything)
-        Route::get('{voucher}', [App\Http\Controllers\Voucher\VoucherController::class, 'show'])
+        Route::get('{voucher}', [App\Http\Controllers\Vouchers\VoucherController::class, 'show'])
             ->name('show');
     });
     
     // Wallet routes
     Route::prefix('wallet')->name('wallet.')->group(function () {
-        Route::get('balance', \App\Http\Controllers\CheckWalletBalanceController::class)
+        Route::get('balance', \App\Http\Controllers\Wallet\CheckBalanceController::class)
             ->name('balance');
         Route::get('load', \App\Http\Controllers\Wallet\LoadController::class)
             ->name('load');
@@ -70,24 +70,24 @@ Route::middleware([
     
     // Top-Up routes
     Route::prefix('topup')->name('topup.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\TopUpController::class, 'index'])
+        Route::get('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'index'])
             ->name('index');
-        Route::post('/', [\App\Http\Controllers\TopUpController::class, 'store'])
+        Route::post('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'store'])
             ->name('store');
-        Route::get('callback', [\App\Http\Controllers\TopUpController::class, 'callback'])
+        Route::get('callback', [\App\Http\Controllers\Wallet\TopUpController::class, 'callback'])
             ->name('callback');
-        Route::get('status/{referenceNo}', [\App\Http\Controllers\TopUpController::class, 'status'])
+        Route::get('status/{referenceNo}', [\App\Http\Controllers\Wallet\TopUpController::class, 'status'])
             ->name('status');
     });
     
     // User billing routes
     Route::prefix('billing')->name('billing.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\User\BillingController::class, 'index'])
+        Route::get('/', [\App\Http\Controllers\Billing\BillingController::class, 'index'])
             ->name('index');
     });
     
     // Balance monitoring routes (admin only, configurable via .env)
-    Route::get('balances', [\App\Http\Controllers\BalancePageController::class, 'index'])
+    Route::get('balances', [\App\Http\Controllers\Balances\BalanceController::class, 'index'])
         ->name('balances.index');
     
     // Admin routes (requires super-admin role)

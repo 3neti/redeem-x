@@ -12,10 +12,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { create as voucherGenerate } from '@/actions/App/Http/Controllers/VoucherGenerationController';
-import { index as vouchersIndex } from '@/actions/App/Http/Controllers/Voucher/VoucherController';
-import { index as contactsIndex } from '@/actions/App/Http/Controllers/ContactController';
-import { index as transactionsIndex } from '@/actions/App/Http/Controllers/TransactionController';
+import { create as voucherGenerate } from '@/actions/App/Http/Controllers/Vouchers/GenerateController';
+import { index as vouchersIndex } from '@/actions/App/Http/Controllers/Vouchers/VoucherController';
+import { index as contactsIndex } from '@/actions/App/Http/Controllers/Contacts/ContactController';
+import { index as transactionsIndex } from '@/actions/App/Http/Controllers/Transactions/TransactionController';
 import { start as redeemStart } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
