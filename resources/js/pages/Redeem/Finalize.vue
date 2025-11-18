@@ -14,6 +14,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const isDev = import.meta.env.DEV;
 
 const finalizationData = ref<any>(null);
 const loading = ref(true);
@@ -99,13 +100,15 @@ const handleConfirm = async () => {
             inputs: finalizationData.value.inputs,
         };
 
-        console.log('[Finalize] handleConfirm - Starting confirmation');
-        console.log('[Finalize] handleConfirm - Request data:', JSON.stringify(data, null, 2));
-        console.log('[Finalize] handleConfirm - Voucher code:', props.voucher_code);
-        console.log('[Finalize] handleConfirm - Mobile:', finalizationData.value.mobile);
-        console.log('[Finalize] handleConfirm - Bank code:', finalizationData.value.bank_code);
-        console.log('[Finalize] handleConfirm - Account number:', finalizationData.value.account_number);
-        console.log('[Finalize] handleConfirm - Inputs:', finalizationData.value.inputs);
+        if (isDev) {
+            console.log('[Finalize] handleConfirm - Starting confirmation');
+            console.log('[Finalize] handleConfirm - Request data:', JSON.stringify(data, null, 2));
+            console.log('[Finalize] handleConfirm - Voucher code:', props.voucher_code);
+            console.log('[Finalize] handleConfirm - Mobile:', finalizationData.value.mobile);
+            console.log('[Finalize] handleConfirm - Bank code:', finalizationData.value.bank_code);
+            console.log('[Finalize] handleConfirm - Account number:', finalizationData.value.account_number);
+            console.log('[Finalize] handleConfirm - Inputs:', finalizationData.value.inputs);
+        }
 
         // POST to confirm endpoint
         const response = await fetch('/api/v1/redeem/confirm', {
@@ -117,27 +120,31 @@ const handleConfirm = async () => {
             body: JSON.stringify(data),
         });
 
-        console.log('[Finalize] handleConfirm - Response status:', response.status);
-        console.log('[Finalize] handleConfirm - Response ok:', response.ok);
-        console.log('[Finalize] handleConfirm - Response headers:', Object.fromEntries(response.headers.entries()));
+        if (isDev) {
+            console.log('[Finalize] handleConfirm - Response status:', response.status);
+            console.log('[Finalize] handleConfirm - Response ok:', response.ok);
+            console.log('[Finalize] handleConfirm - Response headers:', Object.fromEntries(response.headers.entries()));
+        }
 
         if (!response.ok) {
-            console.error('[Finalize] handleConfirm - Response not ok');
+            if (isDev) console.error('[Finalize] handleConfirm - Response not ok');
             let errorData;
             try {
                 errorData = await response.json();
-                console.error('[Finalize] handleConfirm - Error data:', errorData);
+                if (isDev) console.error('[Finalize] handleConfirm - Error data:', errorData);
             } catch (parseError) {
-                console.error('[Finalize] handleConfirm - Failed to parse error response:', parseError);
+                if (isDev) {
+                    console.error('[Finalize] handleConfirm - Failed to parse error response:', parseError);
+                }
                 const responseText = await response.text();
-                console.error('[Finalize] handleConfirm - Raw error response:', responseText);
+                if (isDev) console.error('[Finalize] handleConfirm - Raw error response:', responseText);
                 throw new Error(`Server returned ${response.status}: ${responseText}`);
             }
             throw new Error(errorData.message || 'Failed to confirm redemption');
         }
 
         const result = await response.json();
-        console.log('[Finalize] handleConfirm - Success result:', result);
+        if (isDev) console.log('[Finalize] handleConfirm - Success result:', result);
 
         // Clear session data
         sessionStorage.removeItem(`redeem_${props.voucher_code}`);
@@ -156,7 +163,12 @@ const handleConfirm = async () => {
     } catch (err: any) {
         submitting.value = false;
         error.value = err.message || 'Failed to confirm redemption. Please try again.';
-        console.error('Confirmation failed:', err);
+        if (isDev) {
+            console.error('[Finalize] handleConfirm - Confirmation failed');
+            console.error('[Finalize] handleConfirm - Error object:', err);
+            console.error('[Finalize] handleConfirm - Error message:', err.message);
+            console.error('[Finalize] handleConfirm - Error stack:', err.stack);
+        }
     }
 };
 
@@ -165,15 +177,25 @@ const fetchFinalizationData = async () => {
         loading.value = true;
         error.value = null;
 
+        if (isDev) {
+            console.log('[Finalize] fetchFinalizationData - Starting');
+            console.log('[Finalize] fetchFinalizationData - Voucher code:', props.voucher_code);
+        }
+
         // Get data from sessionStorage (populated by wallet, inputs, location, selfie, signature pages)
         const storedData = sessionStorage.getItem(`redeem_${props.voucher_code}`);
+        if (isDev) console.log('[Finalize] fetchFinalizationData - storedData:', storedData);
+        
         if (!storedData) {
+            if (isDev) console.error('[Finalize] fetchFinalizationData - No stored data found');
             throw new Error('No redemption data found. Please start the process again.');
         }
 
         const sessionData = JSON.parse(storedData);
+        if (isDev) console.log('[Finalize] fetchFinalizationData - Parsed sessionData:', sessionData);
 
         // Verify voucher exists and is valid via API
+        if (isDev) console.log('[Finalize] fetchFinalizationData - Calling finalize API');
         const response = await fetch(`/api/v1/redeem/finalize?voucher_code=${props.voucher_code}`, {
             method: 'GET',
             headers: {
@@ -182,14 +204,22 @@ const fetchFinalizationData = async () => {
             },
         });
 
+        if (isDev) {
+            console.log('[Finalize] fetchFinalizationData - API response status:', response.status);
+            console.log('[Finalize] fetchFinalizationData - API response ok:', response.ok);
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
+            if (isDev) console.error('[Finalize] fetchFinalizationData - API error:', errorData);
             throw new Error(errorData.message || 'Failed to load finalization data');
         }
 
         const result = await response.json();
+        if (isDev) console.log('[Finalize] fetchFinalizationData - API result:', result);
         
         if (!result.success) {
+            if (isDev) console.error('[Finalize] fetchFinalizationData - API returned success=false');
             throw new Error(result.message || 'Failed to load finalization data');
         }
 
@@ -206,12 +236,14 @@ const fetchFinalizationData = async () => {
         };
         
         // Debug logging
-        console.log('[Finalize] Complete finalizationData:', finalizationData.value);
-        console.log('[Finalize] sessionData from storage:', sessionData);
-        console.log('[Finalize] API result:', result.data);
+        if (isDev) {
+            console.log('[Finalize] Complete finalizationData:', finalizationData.value);
+            console.log('[Finalize] sessionData from storage:', sessionData);
+            console.log('[Finalize] API result:', result.data);
+        }
     } catch (err: any) {
         error.value = err.message || 'Failed to load finalization data. Please try again.';
-        console.error('Finalization fetch failed:', err);
+        if (isDev) console.error('Finalization fetch failed:', err);
     } finally {
         loading.value = false;
     }

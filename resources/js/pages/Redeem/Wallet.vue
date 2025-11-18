@@ -39,6 +39,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const isDev = import.meta.env.DEV;
 
 const { loading, error, validateVoucher, redeemVoucher } = useRedemptionApi();
 const { trackRedemptionStart } = useVoucherTiming();
@@ -167,6 +168,13 @@ const requiresSignature = computed(() => {
 const handleSubmit = async () => {
     validationErrors.value = {};
     
+    if (isDev) {
+        console.log('[Wallet] handleSubmit - Starting');
+        console.log('[Wallet] handleSubmit - Voucher code:', props.voucher_code);
+        console.log('[Wallet] handleSubmit - Form data:', form.value);
+        console.log('[Wallet] handleSubmit - voucherInfo:', voucherInfo.value);
+    }
+    
     // Prepare stored data for multi-step flow
     const storedData = {
         mobile: form.value.mobile,
@@ -178,12 +186,22 @@ const handleSubmit = async () => {
         required_inputs: voucherInfo.value?.required_inputs || [],
     };
     
+    if (isDev) console.log('[Wallet] handleSubmit - Stored data to save:', storedData);
+    
     // Check if there are text-based inputs (not location, selfie, signature)
     const textBasedInputs = (voucherInfo.value?.required_inputs || [])
         .filter((input: string) => !['location', 'selfie', 'signature'].includes(input));
     
+    if (isDev) {
+        console.log('[Wallet] handleSubmit - Text-based inputs:', textBasedInputs);
+        console.log('[Wallet] handleSubmit - requiresLocation:', requiresLocation.value);
+        console.log('[Wallet] handleSubmit - requiresSelfie:', requiresSelfie.value);
+        console.log('[Wallet] handleSubmit - requiresSignature:', requiresSignature.value);
+    }
+    
     // If there are text-based inputs, go to Inputs page
     if (textBasedInputs.length > 0) {
+        if (isDev) console.log('[Wallet] handleSubmit - Navigating to inputs page');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/inputs`);
         return;
@@ -191,6 +209,7 @@ const handleSubmit = async () => {
     
     // If location is required, save data and navigate to location page
     if (requiresLocation.value) {
+        if (isDev) console.log('[Wallet] handleSubmit - Navigating to location page');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/location`);
         return;
@@ -198,6 +217,7 @@ const handleSubmit = async () => {
     
     // If selfie is required (but not location), save data and navigate to selfie page
     if (requiresSelfie.value) {
+        if (isDev) console.log('[Wallet] handleSubmit - Navigating to selfie page');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/selfie`);
         return;
@@ -205,6 +225,7 @@ const handleSubmit = async () => {
     
     // If signature is required (but not location/selfie), save data and navigate to signature page
     if (requiresSignature.value) {
+        if (isDev) console.log('[Wallet] handleSubmit - Navigating to signature page');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/signature`);
         return;
@@ -212,10 +233,11 @@ const handleSubmit = async () => {
     
     // No additional fields needed, proceed to finalize for confirmation
     try {
+        if (isDev) console.log('[Wallet] handleSubmit - Navigating to finalize page');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/finalize`);
     } catch (err: any) {
-        console.error('Navigation failed:', err);
+        if (isDev) console.error('[Wallet] handleSubmit - Navigation failed:', err);
     }
 };
 
