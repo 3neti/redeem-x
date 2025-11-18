@@ -411,6 +411,20 @@ return [
             'description' => 'Radius validation',
             'category' => 'validation',
         ],
+        
+        // New validation features
+        'validation.location' => [
+            'price' => 300, // ₱3.00
+            'label' => 'Location Validation',
+            'description' => 'Geo-fencing with coordinates and radius',
+            'category' => 'validation',
+        ],
+        'validation.time' => [
+            'price' => 250, // ₱2.50
+            'label' => 'Time Validation',
+            'description' => 'Time window and duration limit validation',
+            'category' => 'validation',
+        ],
         'inputs.fields.email' => [
             'price' => 220, // ₱2.20
             'description' => 'Email input field',

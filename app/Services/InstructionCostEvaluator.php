@@ -94,10 +94,45 @@ class InstructionCostEvaluator
                 $value = data_get($source, $item->index);
             }
             
-            $isTruthyString = is_string($value) && trim($value) !== '';
-            $isTruthyBoolean = is_bool($value) && $value === true;
-            $isTruthyFloat = is_float($value) && $value > 0.0;
-            $shouldCharge = ($isTruthyString || $isTruthyBoolean || $isTruthyFloat) && $item->price > 0;
+            // Special handling for validation items
+            if (str_starts_with($item->index, 'validation.')) {
+                // Value might be a Data object or array
+                if (is_object($value) && method_exists($value, 'toArray')) {
+                    $valueArray = $value->toArray();
+                } elseif (is_array($value)) {
+                    $valueArray = $value;
+                } else {
+                    $valueArray = [];
+                }
+                
+                // Different validation types have different "enabled" criteria:
+                // - Location: has 'required' field
+                // - Time: enabled if window or limit_minutes is set
+                if (isset($valueArray['required'])) {
+                    // LocationValidationData
+                    $isEnabled = $valueArray['required'] === true;
+                } elseif (isset($valueArray['window']) || isset($valueArray['limit_minutes'])) {
+                    // TimeValidationData - enabled if window or limit is configured
+                    $isEnabled = !empty($valueArray['window']) || !empty($valueArray['limit_minutes']);
+                } else {
+                    $isEnabled = false;
+                }
+                
+                $shouldCharge = $isEnabled && $item->price > 0;
+                
+                Log::debug("[InstructionCostEvaluator] Validation item: {$item->index}", [
+                    'value' => $value,
+                    'valueArray' => $valueArray,
+                    'isEnabled' => $isEnabled,
+                    'shouldCharge' => $shouldCharge,
+                ]);
+            } else {
+                $isTruthyString = is_string($value) && trim($value) !== '';
+                $isTruthyBoolean = is_bool($value) && $value === true;
+                $isTruthyFloat = is_float($value) && $value > 0.0;
+                $isTruthyObject = (is_array($value) || is_object($value)) && !empty((array) $value);
+                $shouldCharge = ($isTruthyString || $isTruthyBoolean || $isTruthyFloat || $isTruthyObject) && $item->price > 0;
+            }
 
             $price = $item->getAmountProduct($customer);
 

@@ -53,13 +53,19 @@ class ProcessRedemption
         ]);
 
         return DB::transaction(function () use ($voucher, $phoneNumber, $inputs, $bankAccount) {
-            // Step 1: Get or create contact
+            // Step 1: Validate location if required
+            $this->validateLocation($voucher, $inputs);
+
+            // Step 2: Validate time if required
+            $this->validateTime($voucher);
+
+            // Step 3: Get or create contact
             $contact = Contact::fromPhoneNumber($phoneNumber);
 
-            // Step 2: Prepare metadata for redemption
+            // Step 4: Prepare metadata for redemption
             $meta = $this->prepareMetadata($inputs, $bankAccount);
 
-            // Step 3: Mark voucher as redeemed (uses package action)
+            // Step 5: Mark voucher as redeemed (uses package action)
             $redeemed = RedeemVoucher::run($contact, $voucher->code, $meta);
 
             if (! $redeemed) {
@@ -84,6 +90,192 @@ class ProcessRedemption
 
             return true;
         });
+    }
+
+    /**
+     * Validate time if time validation is configured.
+     *
+     * @param  Voucher  $voucher
+     * @return void
+     *
+     * @throws \RuntimeException  If validation fails
+     */
+    protected function validateTime(Voucher $voucher): void
+    {
+        // Check if time validation is configured
+        $timeValidation = $voucher->instructions->validation?->time;
+        
+        if (!$timeValidation) {
+            Log::debug('[ProcessRedemption] No time validation configured', [
+                'voucher' => $voucher->code,
+            ]);
+            return;
+        }
+
+        $withinWindow = true;
+        $withinDuration = true;
+        $durationSeconds = 0;
+        $windowError = null;
+        $durationError = null;
+
+        // Validate time window if configured
+        if ($timeValidation->hasWindowValidation()) {
+            $withinWindow = $timeValidation->isWithinWindow();
+            
+            if (!$withinWindow) {
+                $window = $timeValidation->window;
+                $windowError = sprintf(
+                    'Redemption is only allowed between %s and %s (%s).',
+                    $window->start_time,
+                    $window->end_time,
+                    $window->timezone
+                );
+                
+                Log::warning('[ProcessRedemption] Time window validation failed', [
+                    'voucher' => $voucher->code,
+                    'start_time' => $window->start_time,
+                    'end_time' => $window->end_time,
+                    'timezone' => $window->timezone,
+                ]);
+            }
+        }
+
+        // Validate duration limit if configured
+        if ($timeValidation->hasDurationLimit()) {
+            $duration = $voucher->getRedemptionDuration();
+            
+            if ($duration !== null) {
+                $durationSeconds = $duration;
+                $exceedsLimit = $timeValidation->exceedsDurationLimit($duration);
+                
+                if ($exceedsLimit) {
+                    $withinDuration = false;
+                    $limitMinutes = $timeValidation->limit_minutes;
+                    $actualMinutes = round($duration / 60, 1);
+                    
+                    $durationError = sprintf(
+                        'Redemption took too long. Maximum allowed: %d minutes. Actual: %.1f minutes.',
+                        $limitMinutes,
+                        $actualMinutes
+                    );
+                    
+                    Log::warning('[ProcessRedemption] Duration limit exceeded', [
+                        'voucher' => $voucher->code,
+                        'duration_seconds' => $duration,
+                        'limit_minutes' => $limitMinutes,
+                    ]);
+                }
+            }
+        }
+
+        // Determine if should block
+        $shouldBlock = !$withinWindow || !$withinDuration;
+
+        // Store time validation results
+        if ($timeValidation->hasWindowValidation() || $timeValidation->hasDurationLimit()) {
+            $timeResult = \LBHurtado\Voucher\Data\TimeValidationResultData::from([
+                'within_window' => $withinWindow,
+                'within_duration' => $withinDuration,
+                'duration_seconds' => $durationSeconds,
+                'should_block' => $shouldBlock,
+            ]);
+            
+            $voucher->storeValidationResults(time: $timeResult);
+            $voucher->save();
+
+            Log::info('[ProcessRedemption] Time validation result', [
+                'voucher' => $voucher->code,
+                'within_window' => $withinWindow,
+                'within_duration' => $withinDuration,
+                'should_block' => $shouldBlock,
+            ]);
+        }
+
+        // Block redemption if any validation failed
+        if (!$withinWindow) {
+            throw new \RuntimeException($windowError);
+        }
+        
+        if (!$withinDuration) {
+            throw new \RuntimeException($durationError);
+        }
+    }
+
+    /**
+     * Validate location if location validation is configured.
+     *
+     * @param  Voucher  $voucher
+     * @param  array  $inputs
+     * @return void
+     *
+     * @throws \RuntimeException  If validation fails and should block
+     */
+    protected function validateLocation(Voucher $voucher, array $inputs): void
+    {
+        // Check if location validation is configured
+        $locationValidation = $voucher->instructions->validation?->location;
+        
+        if (!$locationValidation) {
+            Log::debug('[ProcessRedemption] No location validation configured', [
+                'voucher' => $voucher->code,
+            ]);
+            return;
+        }
+
+        // Check if location data was provided
+        if (!isset($inputs['location']) || !is_array($inputs['location'])) {
+            Log::warning('[ProcessRedemption] Location validation required but no location data provided', [
+                'voucher' => $voucher->code,
+            ]);
+            throw new \RuntimeException('Location data is required for this voucher.');
+        }
+
+        $location = $inputs['location'];
+        
+        if (!isset($location['latitude']) || !isset($location['longitude'])) {
+            Log::warning('[ProcessRedemption] Invalid location data format', [
+                'voucher' => $voucher->code,
+                'location' => $location,
+            ]);
+            throw new \RuntimeException('Invalid location data format.');
+        }
+
+        // Validate location
+        $locationResult = $locationValidation->validateLocation(
+            (float) $location['latitude'],
+            (float) $location['longitude']
+        );
+
+        Log::info('[ProcessRedemption] Location validation result', [
+            'voucher' => $voucher->code,
+            'validated' => $locationResult->validated,
+            'distance_meters' => $locationResult->distance_meters,
+            'should_block' => $locationResult->should_block,
+        ]);
+
+        // Store validation results on voucher
+        $voucher->storeValidationResults(location: $locationResult);
+        $voucher->save();
+
+        // Block redemption if validation failed and should block
+        if ($locationResult->should_block) {
+            $distanceKm = $locationResult->distance_meters / 1000;
+            $radiusKm = $locationValidation->radius_meters / 1000;
+            
+            Log::warning('[ProcessRedemption] Location validation failed - blocking redemption', [
+                'voucher' => $voucher->code,
+                'distance_meters' => $locationResult->distance_meters,
+                'radius_meters' => $locationValidation->radius_meters,
+            ]);
+            
+            throw new \RuntimeException(
+                sprintf(
+                    'You must be within %.1f km of the designated location. You are %.1f km away.',
+                    $radiusKm,
+                    $distanceKm
+                )
+            );
+        }
     }
 
     /**

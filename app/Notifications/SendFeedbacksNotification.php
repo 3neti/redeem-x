@@ -193,10 +193,13 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
             ->content($message);
     }
 
-    public function toWebhook(object $notifiable): array
+    public function toWebhook(mixed $notifiable): array
     {
         // Build template context from voucher data
         $context = VoucherTemplateContextBuilder::build($this->voucher);
+
+        // Load full voucher model for trait methods
+        $voucherModel = Voucher::where('code', $this->voucher->code)->firstOrFail();
 
         $payload = [
             'event' => 'voucher.redeemed',
@@ -204,18 +207,111 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
                 'code' => $context['code'],
                 'amount' => $context['amount'],
                 'currency' => $context['currency'],
+                'formatted_amount' => $context['formatted_amount'],
                 'redeemed_at' => $context['redeemed_at'],
+                'status' => $context['status'],
             ],
             'redeemer' => [
                 'mobile' => $context['mobile'],
+                'name' => $context['contact_name'],
                 'address' => $context['formatted_address'],
             ],
         ];
 
-        // Add signature if present
-        if (isset($context['signature'])) {
-            $payload['redeemer']['signature'] = $context['signature'];
+        // Add external metadata (for QuestPay integration)
+        if ($voucherModel->external_metadata) {
+            $external = $voucherModel->external_metadata;
+            $payload['external'] = [
+                'id' => $external->external_id,
+                'type' => $external->external_type,
+                'reference_id' => $external->reference_id,
+                'user_id' => $external->user_id,
+                'custom' => $external->custom,
+            ];
         }
+
+        // Add timing data
+        if ($voucherModel->timing) {
+            $timing = $voucherModel->timing;
+            $payload['timing'] = [
+                'clicked_at' => $timing->clicked_at,
+                'started_at' => $timing->started_at,
+                'submitted_at' => $timing->submitted_at,
+                'duration_seconds' => $timing->duration_seconds,
+            ];
+        }
+
+        // Add validation results
+        $results = $voucherModel->getValidationResults();
+        if ($results) {
+            $payload['validation'] = [
+                'passed' => $results->passed,
+                'blocked' => $results->blocked,
+            ];
+
+            // Add location validation details
+            if ($results->hasLocationResults()) {
+                $payload['validation']['location'] = [
+                    'validated' => $results->location->validated,
+                    'distance_meters' => $results->location->distance_meters,
+                    'should_block' => $results->location->should_block,
+                ];
+            }
+
+            // Add time validation details
+            if ($results->hasTimeResults()) {
+                $payload['validation']['time'] = [
+                    'within_window' => $results->time->within_window,
+                    'within_duration' => $results->time->within_duration,
+                    'duration_seconds' => $results->time->duration_seconds,
+                    'should_block' => $results->time->should_block,
+                ];
+            }
+        }
+
+        // Add input fields with special handling for photos/location
+        $payload['inputs'] = [];
+        foreach ($this->voucher->inputs as $input) {
+            $name = $input->name;
+            $value = $input->value;
+
+            // Handle location field
+            if ($name === 'location') {
+                try {
+                    $locationData = json_decode($value, true);
+                    $payload['inputs']['location'] = [
+                        'latitude' => $locationData['latitude'] ?? null,
+                        'longitude' => $locationData['longitude'] ?? null,
+                        'accuracy' => $locationData['accuracy'] ?? null,
+                        'altitude' => $locationData['altitude'] ?? null,
+                        'formatted_address' => $locationData['address']['formatted'] ?? null,
+                        'has_snapshot' => isset($locationData['snapshot']),
+                    ];
+                } catch (\Exception $e) {
+                    $payload['inputs']['location'] = $value;
+                }
+            }
+            // Handle signature/selfie - indicate presence but don't send full data URL
+            elseif (in_array($name, ['signature', 'selfie'])) {
+                $payload['inputs'][$name] = [
+                    'present' => !empty($value),
+                    'size_bytes' => strlen($value),
+                ];
+            }
+            // Regular fields
+            else {
+                $payload['inputs'][$name] = $value;
+            }
+        }
+
+        // Add metadata section for additional voucher info
+        $payload['metadata'] = [
+            'created_at' => $context['created_at'],
+            'owner' => [
+                'name' => $context['owner_name'],
+                'email' => $context['owner_email'],
+            ],
+        ];
 
         // Get webhook URL from notifiable routes
         $webhookUrl = is_array($notifiable) ? ($notifiable['webhook'] ?? null) : null;
@@ -226,6 +322,7 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
             'headers' => [
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'Redeem-X/1.0',
+                'X-Webhook-Event' => 'voucher.redeemed',
             ],
         ];
     }

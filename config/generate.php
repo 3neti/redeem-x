@@ -133,6 +133,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Location Validation Card
+    |--------------------------------------------------------------------------
+    |
+    | Configure the Location Validation section for geo-fencing.
+    |
+    */
+
+    'location_validation' => [
+        'show_card' => env('GENERATE_VOUCHER_SHOW_LOCATION_CARD', true),
+        'default_enabled' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_ENABLED', false), // Auto-enable main checkbox
+        'default_radius_km' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_RADIUS', 1), // Default 1km
+        'default_on_failure' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_FAILURE', 'block'), // 'block' or 'warn'
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Time Validation Card
+    |--------------------------------------------------------------------------
+    |
+    | Configure the Time Validation section for time windows and duration limits.
+    |
+    */
+
+    'time_validation' => [
+        'show_card' => env('GENERATE_VOUCHER_SHOW_TIME_CARD', true),
+        'default_enabled' => env('GENERATE_VOUCHER_TIME_DEFAULT_ENABLED', false), // Auto-enable main checkbox
+        'default_window_enabled' => env('GENERATE_VOUCHER_TIME_DEFAULT_WINDOW_ENABLED', false),
+        'default_timezone' => env('GENERATE_VOUCHER_TIME_DEFAULT_TIMEZONE', 'Asia/Manila'),
+        'default_start_time' => env('GENERATE_VOUCHER_TIME_DEFAULT_START', '09:00'),
+        'default_end_time' => env('GENERATE_VOUCHER_TIME_DEFAULT_END', '17:00'),
+        'default_duration_enabled' => env('GENERATE_VOUCHER_TIME_DEFAULT_DURATION_ENABLED', true),
+        'default_limit_minutes' => env('GENERATE_VOUCHER_TIME_DEFAULT_LIMIT', 1440), // 24 hours
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Feedback Channels Card
     |--------------------------------------------------------------------------
     |
