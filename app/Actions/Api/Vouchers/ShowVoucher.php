@@ -40,6 +40,9 @@ class ShowVoucher
         $response = [
             'voucher' => $voucherData,
             'redemption_count' => $voucher->redeemers()->count(),
+            'external_metadata' => $voucher->external_metadata,
+            'timing' => $voucher->timing,
+            'validation_results' => $voucher->getValidationResults(),
         ];
 
         // If voucher is redeemed, include redeemer details
