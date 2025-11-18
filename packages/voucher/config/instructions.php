@@ -35,4 +35,15 @@ return [
     'prefix' => env('DEFAULT_INSTRUCTION_PREFIX', ''),
     'mask'   => env('DEFAULT_INSTRUCTION_MASK', ''),
     'ttl'    => env('DEFAULT_INSTRUCTION_TTL', 12),
+    'validation' => [
+        'location' => [
+            'required' => env('DEFAULT_VALIDATION_LOCATION_REQUIRED', true),
+            'default_radius_meters' => env('DEFAULT_VALIDATION_LOCATION_RADIUS_METERS', 50),
+            'on_failure' => env('DEFAULT_VALIDATION_LOCATION_ON_FAILURE', 'block'),
+        ],
+        'time' => [
+            'default_limit_minutes' => env('DEFAULT_VALIDATION_TIME_LIMIT_MINUTES', null),
+            'track_duration' => env('DEFAULT_VALIDATION_TIME_TRACK_DURATION', true),
+        ],
+    ],
 ];

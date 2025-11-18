@@ -18,16 +18,17 @@ class VoucherInstructionsData extends Data
     use HasSafeDefaults;
 
     public function __construct(
-        public CashInstructionData     $cash,
-        public InputFieldsData         $inputs,
-        public FeedbackInstructionData $feedback,
-        public RiderInstructionData    $rider,
-        public ?int                    $count,            // Number of vouchers to generate
-        public ?string                 $prefix,           // Prefix for voucher codes
-        public ?string                 $mask,             // Mask for voucher codes
+        public CashInstructionData           $cash,
+        public InputFieldsData               $inputs,
+        public FeedbackInstructionData       $feedback,
+        public RiderInstructionData          $rider,
+        public ?int                          $count,            // Number of vouchers to generate
+        public ?string                       $prefix,           // Prefix for voucher codes
+        public ?string                       $mask,             // Mask for voucher codes
         #[WithTransformer(TtlToStringTransformer::class)]
         #[WithCast(CarbonIntervalCast::class)]
-        public CarbonInterval|null     $ttl,              // Expiry time (TTL)
+        public CarbonInterval|null           $ttl,              // Expiry time (TTL)
+        public ?ValidationInstructionData    $validation = null, // Validation instructions
     ){
         $this->applyRulesAndDefaults();
 //        $this->ttl = $ttl ?: CarbonInterval::hours(config('instructions.ttl'));
@@ -79,6 +80,23 @@ class VoucherInstructionsData extends Data
             'ttl' => ['nullable', new ValidISODuration()],
             'starts_at'  => 'nullable|date',
             'expires_at' => 'nullable|date|after_or_equal:starts_at',
+
+            // Validation instructions
+            'validation' => 'nullable|array',
+            'validation.location' => 'nullable|array',
+            'validation.location.required' => 'required_with:validation.location|boolean',
+            'validation.location.target_lat' => 'required_with:validation.location|numeric|between:-90,90',
+            'validation.location.target_lng' => 'required_with:validation.location|numeric|between:-180,180',
+            'validation.location.radius_meters' => 'required_with:validation.location|integer|min:1|max:10000',
+            'validation.location.on_failure' => 'required_with:validation.location|in:block,warn',
+
+            'validation.time' => 'nullable|array',
+            'validation.time.window' => 'nullable|array',
+            'validation.time.window.start_time' => 'required_with:validation.time.window|date_format:H:i',
+            'validation.time.window.end_time' => 'required_with:validation.time.window|date_format:H:i',
+            'validation.time.window.timezone' => 'required_with:validation.time.window|string|timezone',
+            'validation.time.limit_minutes' => 'nullable|integer|min:1|max:1440',
+            'validation.time.track_duration' => 'nullable|boolean',
         ];
     }
 
@@ -109,6 +127,24 @@ class VoucherInstructionsData extends Data
                 'message' => $validated['rider']['message'] ?? '',
                 'url'     => $validated['rider']['url'] ?? '',
             ],
+            'validation' => isset($validated['validation']) ? [
+                'location' => isset($validated['validation']['location']) ? [
+                    'required' => $validated['validation']['location']['required'],
+                    'target_lat' => $validated['validation']['location']['target_lat'],
+                    'target_lng' => $validated['validation']['location']['target_lng'],
+                    'radius_meters' => $validated['validation']['location']['radius_meters'],
+                    'on_failure' => $validated['validation']['location']['on_failure'],
+                ] : null,
+                'time' => isset($validated['validation']['time']) ? [
+                    'window' => isset($validated['validation']['time']['window']) ? [
+                        'start_time' => $validated['validation']['time']['window']['start_time'],
+                        'end_time' => $validated['validation']['time']['window']['end_time'],
+                        'timezone' => $validated['validation']['time']['window']['timezone'],
+                    ] : null,
+                    'limit_minutes' => $validated['validation']['time']['limit_minutes'] ?? null,
+                    'track_duration' => $validated['validation']['time']['track_duration'] ?? true,
+                ] : null,
+            ] : null,
             'count'      => $validated['count'],
             'prefix'     => $validated['prefix'] ?? '',
             'mask'       => $validated['mask'] ?? '',
