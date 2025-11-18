@@ -26,7 +26,7 @@ class VoucherController extends Controller
      */
     public function index(Request $request): Response
     {
-        return Inertia::render('Vouchers/Index');
+        return Inertia::render('vouchers/Index');
     }
 
     /**
@@ -37,7 +37,7 @@ class VoucherController extends Controller
         // Load relationships including inputs (single source of truth)
         $voucher->load(['owner', 'inputs']);
 
-        return Inertia::render('Vouchers/Show', [
+        return Inertia::render('vouchers/Show', [
             'voucher' => VoucherData::fromModel($voucher),
             'input_field_options' => VoucherInputField::options(),
         ]);

@@ -35,7 +35,7 @@ class TopUpController extends Controller
             'created_at' => $topUp->created_at->toIso8601String(),
         ]);
         
-        return Inertia::render('Wallet/TopUp', [
+        return Inertia::render('wallet/TopUp', [
             'balance' => $user->balanceFloat,
             'recentTopUps' => $recentTopUps,
             'pendingTopUps' => $pendingTopUps,
@@ -101,7 +101,7 @@ class TopUpController extends Controller
         try {
             $topUp = TopUp::where('reference_no', $referenceNo)->firstOrFail();
             
-            return Inertia::render('Wallet/TopUpCallback', [
+            return Inertia::render('wallet/TopUpCallback', [
                 'topUp' => [
                     'reference_no' => $topUp->reference_no,
                     'amount' => $topUp->amount,

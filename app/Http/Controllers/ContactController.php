@@ -23,7 +23,7 @@ class ContactController extends Controller
      */
     public function index(): Response
     {
-        return Inertia::render('Contacts/Index');
+        return Inertia::render('contacts/Index');
     }
 
     /**
@@ -34,7 +34,7 @@ class ContactController extends Controller
      */
     public function show(Contact $contact): Response
     {
-        return Inertia::render('Contacts/Show', [
+        return Inertia::render('contacts/Show', [
             'contact' => $contact,
         ]);
     }

@@ -38,7 +38,7 @@ class RedeemWizardController extends Controller
             'voucher' => $voucher->code,
         ]);
 
-        return Inertia::render('Redeem/Wallet', [
+        return Inertia::render('redeem/Wallet', [
             'voucher_code' => $voucher->code,
             'voucher' => VoucherData::fromModel($voucher),
             'country' => config('x-change.redeem.default_country', 'PH'),
@@ -224,7 +224,7 @@ class RedeemWizardController extends Controller
             );
         }
 
-        return Inertia::render('Redeem/Finalize', [
+        return Inertia::render('redeem/Finalize', [
             'voucher' => VoucherData::fromModel($voucher),
             'mobile' => $mobile,
             'bank_account' => $bankAccount,

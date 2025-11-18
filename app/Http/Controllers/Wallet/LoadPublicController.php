@@ -21,7 +21,7 @@ class LoadPublicController extends Controller
         // Find merchant by UUID
         $merchant = Merchant::where('uuid', $uuid)->firstOrFail();
         
-        return Inertia::render('Wallet/LoadPublic', [
+        return Inertia::render('wallet/LoadPublic', [
             'merchantUuid' => $uuid,
             'merchantName' => $merchant->name,
             'merchantCity' => $merchant->city,

@@ -28,7 +28,7 @@ class CampaignController extends Controller
             ->latest()
             ->get();
 
-        return Inertia::render('settings/Campaigns/Index', [
+        return Inertia::render('settings/campaigns/Index', [
             'campaigns' => $campaigns,
             'filters' => [
                 'search' => $request->search,
@@ -44,7 +44,7 @@ class CampaignController extends Controller
     {
         $this->authorize('create', Campaign::class);
 
-        return Inertia::render('settings/Campaigns/Create', [
+        return Inertia::render('settings/campaigns/Create', [
             'input_field_options' => VoucherInputField::options(),
         ]);
     }
@@ -78,7 +78,7 @@ class CampaignController extends Controller
             ->whereHas('voucher', fn($q) => $q->whereNotNull('redeemed_at'))
             ->count();
 
-        return Inertia::render('settings/Campaigns/Show', [
+        return Inertia::render('settings/campaigns/Show', [
             'campaign' => $campaign,
             'stats' => [
                 'total_vouchers' => $totalVouchers,
@@ -95,7 +95,7 @@ class CampaignController extends Controller
     {
         $this->authorize('update', $campaign);
 
-        return Inertia::render('settings/Campaigns/Edit', [
+        return Inertia::render('settings/campaigns/Edit', [
             'campaign' => $campaign,
             'input_field_options' => VoucherInputField::options(),
         ]);

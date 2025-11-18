@@ -22,6 +22,6 @@ class TransactionController extends Controller
      */
     public function index(): Response
     {
-        return Inertia::render('Transactions/Index');
+        return Inertia::render('transactions/Index');
     }
 }

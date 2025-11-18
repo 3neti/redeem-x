@@ -21,7 +21,7 @@ class VoucherGenerationController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Vouchers/Generate/Create', [
+        return Inertia::render('vouchers/Generate/Create', [
             'input_field_options' => $this->getInputFieldOptions(),
             'config' => config('generate'),
         ]);
@@ -118,7 +118,7 @@ class VoucherGenerationController extends Controller
             abort(404, 'No vouchers found');
         }
 
-        return Inertia::render('Vouchers/Generate/Success', [
+        return Inertia::render('vouchers/Generate/Success', [
             'vouchers' => $vouchers->map(function($voucher) {
                 return [
                     'id' => $voucher->id,

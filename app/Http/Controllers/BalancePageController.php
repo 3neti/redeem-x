@@ -72,7 +72,7 @@ class BalancePageController extends Controller
         // Get reconciliation status
         $reconciliationStatus = $reconciliation->getReconciliationStatus($accountNumber);
 
-        return Inertia::render('Balances/Index', [
+        return Inertia::render('balances/Index', [
             'balance' => $balance,
             'trend' => $trendData,
             'history' => $historyData,

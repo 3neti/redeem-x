@@ -30,7 +30,7 @@ class CheckWalletBalanceController extends Controller
             ]);
         }
 
-        return Inertia::render('Wallet/Balance', [
+        return Inertia::render('wallet/Balance', [
             'balance' => [
                 'amount' => $balance->getAmount()->toFloat(),
                 'currency' => $balance->getCurrency()->getCurrencyCode(),

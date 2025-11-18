@@ -56,7 +56,7 @@ class RedeemController extends Controller
             ->values()
             ->toArray();
 
-        return Inertia::render('Redeem/Wallet', [
+        return Inertia::render('redeem/Wallet', [
             'voucher_code' => $voucher->code,
             'voucher' => [
                 'code' => $voucher->code,
@@ -89,7 +89,7 @@ class RedeemController extends Controller
      */
     public function location(Voucher $voucher): Response
     {
-        return Inertia::render('Redeem/Location', [
+        return Inertia::render('redeem/Location', [
             'voucher_code' => $voucher->code,
         ]);
     }
@@ -102,7 +102,7 @@ class RedeemController extends Controller
      */
     public function selfie(Voucher $voucher): Response
     {
-        return Inertia::render('Redeem/Selfie', [
+        return Inertia::render('redeem/Selfie', [
             'voucher_code' => $voucher->code,
             'image_config' => config('model-input.image_quality.selfie'),
         ]);
@@ -116,7 +116,7 @@ class RedeemController extends Controller
      */
     public function signature(Voucher $voucher): Response
     {
-        return Inertia::render('Redeem/Signature', [
+        return Inertia::render('redeem/Signature', [
             'voucher_code' => $voucher->code,
             'image_config' => config('model-input.image_quality.signature'),
         ]);
@@ -131,7 +131,7 @@ class RedeemController extends Controller
      */
     public function inputs(Voucher $voucher): Response
     {
-        return Inertia::render('Redeem/Inputs', [
+        return Inertia::render('redeem/Inputs', [
             'voucher_code' => $voucher->code,
         ]);
     }
@@ -145,7 +145,7 @@ class RedeemController extends Controller
      */
     public function finalize(Voucher $voucher): Response
     {
-        return Inertia::render('Redeem/Finalize', [
+        return Inertia::render('redeem/Finalize', [
             'voucher_code' => $voucher->code,
             'config' => config('redeem.finalize'),
         ]);
@@ -206,7 +206,7 @@ class RedeemController extends Controller
             }
         }
         
-        return Inertia::render('Redeem/Start', [
+        return Inertia::render('redeem/Start', [
             'initial_code' => old('code', $code),
         ]);
     }
@@ -308,7 +308,7 @@ class RedeemController extends Controller
                 'voucher' => $voucher->code,
             ]);
 
-            return Inertia::render('Redeem/Error', [
+            return Inertia::render('redeem/Error', [
                 'message' => 'This voucher has not been redeemed yet.',
             ]);
         }
@@ -317,7 +317,7 @@ class RedeemController extends Controller
             'voucher' => $voucher->code,
         ]);
 
-        return Inertia::render('Redeem/Success', [
+        return Inertia::render('redeem/Success', [
             'voucher' => VoucherData::fromModel($voucher),
             'mobile' => $voucher->contact?->mobile ?? null,
             'rider' => [
