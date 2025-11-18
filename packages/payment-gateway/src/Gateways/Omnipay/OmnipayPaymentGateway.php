@@ -17,6 +17,7 @@ use Bavix\Wallet\Models\Transaction;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\{DB, Log};
 use LBHurtado\Wallet\Events\DisbursementConfirmed;
+use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\CanConfirmDeposit;
 
 /**
  * Omnipay-based payment gateway adapter.
@@ -26,6 +27,8 @@ use LBHurtado\Wallet\Events\DisbursementConfirmed;
  */
 class OmnipayPaymentGateway implements PaymentGatewayInterface
 {
+    use CanConfirmDeposit;
+    
     protected GatewayInterface $gateway;
     protected BankRegistry $bankRegistry;
     
@@ -223,27 +226,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         return $response->getQrCode();
     }
     
-    /**
-     * Confirm a deposit transaction.
-     * 
-     * @param array $payload Webhook payload
-     * @return bool Success status
-     */
-    public function confirmDeposit(array $payload): bool
-    {
-        Log::info('[OmnipayPaymentGateway] Deposit confirmation received', [
-            'payload' => $payload,
-        ]);
-        
-        // TODO: Implement deposit confirmation logic based on webhook payload
-        // This would typically:
-        // 1. Validate webhook signature
-        // 2. Find associated transaction
-        // 3. Confirm the transaction
-        // 4. Fire events
-        
-        return true;
-    }
+    // confirmDeposit() method is implemented via CanConfirmDeposit trait
     
     /**
      * Confirm a disbursement operation.
