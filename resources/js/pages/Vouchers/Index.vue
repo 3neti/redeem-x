@@ -54,7 +54,7 @@ const loadVouchers = async () => {
     if (result) {
         vouchers.value = result.data;
         pagination.value = result.pagination;
-        
+
         // Calculate stats from voucher data
         stats.value.total = result.pagination.total;
         stats.value.active = result.data.filter((v) => !v.is_expired && !v.is_redeemed).length;
@@ -144,7 +144,7 @@ const viewVoucher = (code: string) => {
             <div class="grid gap-4 md:grid-cols-4">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Total Vouchers</CardTitle>
+                        <CardTitle class="text-sm font-medium">Total</CardTitle>
                         <ListFilter class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -201,7 +201,7 @@ const viewVoucher = (code: string) => {
                             <CardDescription>{{ pagination.total }} vouchers total</CardDescription>
                         </div>
                     </div>
-                    
+
                     <!-- Filters -->
                     <div class="flex flex-col gap-4 pt-4 sm:flex-row">
                         <div class="relative flex-1">
