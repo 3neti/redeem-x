@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use LBHurtado\Voucher\Actions\GenerateVouchers;
+use LBHurtado\Voucher\Data\ExternalMetadataData;
 use App\Http\Requests\VoucherGenerationRequest;
 use App\Actions\CalculateChargeAction;
 use App\Models\VoucherGenerationCharge;
@@ -54,7 +55,7 @@ class VoucherGenerationController extends Controller
             ]);
         }
         
-        return DB::transaction(function () use ($instructions, $user, $calculateCharge) {
+        return DB::transaction(function () use ($instructions, $user, $calculateCharge, $request) {
             // Generate vouchers
             $vouchers = GenerateVouchers::run($instructions);
             $count = $vouchers->count();
@@ -75,11 +76,20 @@ class VoucherGenerationController extends Controller
                 'generated_at' => now(),
             ]);
             
-            // Link vouchers to user
+            // Set external metadata if provided
+            $externalMetadata = $this->getExternalMetadata($request);
+            
+            // Link vouchers to user and set metadata
             foreach ($vouchers as $voucher) {
                 $user->generatedVouchers()->attach($voucher->code, [
                     'generated_at' => now(),
                 ]);
+                
+                // Set external metadata on voucher
+                if ($externalMetadata) {
+                    $voucher->external_metadata = $externalMetadata;
+                    $voucher->save();
+                }
             }
             
             return redirect()
@@ -134,5 +144,19 @@ class VoucherGenerationController extends Controller
     protected function getInputFieldOptions(): array
     {
         return \LBHurtado\Voucher\Enums\VoucherInputField::options();
+    }
+    
+    /**
+     * Get external metadata from request if provided.
+     */
+    protected function getExternalMetadata(VoucherGenerationRequest $request): ?ExternalMetadataData
+    {
+        $metadata = $request->validated('external_metadata');
+        
+        if (empty($metadata)) {
+            return null;
+        }
+        
+        return ExternalMetadataData::from($metadata);
     }
 }

@@ -61,6 +61,14 @@ class VoucherGenerationRequest extends FormRequest
             
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
+            
+            // External metadata for external system integration
+            'external_metadata' => 'nullable|array|max:5',
+            'external_metadata.external_id' => 'nullable|string|max:255',
+            'external_metadata.external_type' => 'nullable|string|max:100',
+            'external_metadata.reference_id' => 'nullable|string|max:255',
+            'external_metadata.user_id' => 'nullable|string|max:255',
+            'external_metadata.custom' => 'nullable|array',
         ];
     }
 
