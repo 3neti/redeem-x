@@ -129,17 +129,20 @@ trait CanConfirmDeposit
 
     protected function transferToWallet(Wallet $user, DepositResponseData $deposit): void
     {
+        // Convert centavos to pesos (NetBank sends 100 = ₱1.00)
+        $amountInPesos = $deposit->amount / 100;
+        
         [ $logMessage, $transaction ] = match (true) {
             $user instanceof \LBHurtado\Cash\Models\Cash => [
                 'Treating deposit as loan repayment back into cash wallet',
-                $user->depositFloat($deposit->amount),
+                $user->depositFloat($amountInPesos),
             ],
             default => [
                 'Treating deposit as user top-up',
-                TopupWalletAction::run($user, $deposit->amount)->deposit,
+                TopupWalletAction::run($user, $amountInPesos)->deposit,
             ]
         };
-        Log::info($logMessage);
+        Log::info($logMessage, ['amount_pesos' => $amountInPesos, 'amount_centavos' => $deposit->amount]);
 
         $transaction->meta = $deposit->toArray();
         $transaction->save();
