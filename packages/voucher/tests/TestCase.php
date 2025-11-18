@@ -125,6 +125,11 @@ abstract class TestCase extends BaseTestCase
             'payment-gateway',
             require __DIR__ . '/../config/payment-gateway.php'
         );
+
+        $this->app['config']->set(
+            'instructions',
+            require __DIR__ . '/../config/instructions.php'
+        );
     }
 
     protected function loadEnvironment()
