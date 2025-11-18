@@ -16,6 +16,9 @@ use Spatie\LaravelData\WithData;
 use Illuminate\Support\Carbon;
 use LBHurtado\ModelInput\Contracts\InputInterface;
 use LBHurtado\ModelInput\Traits\HasInputs;
+use LBHurtado\Voucher\Traits\HasExternalMetadata;
+use LBHurtado\Voucher\Traits\HasVoucherTiming;
+use LBHurtado\Voucher\Traits\HasValidationResults;
 
 /**
  * Class Voucher.
@@ -35,6 +38,9 @@ use LBHurtado\ModelInput\Traits\HasInputs;
  * @property \Illuminate\Database\Eloquent\Collection   $redeemers
  * @property Cash                                       $cash
  * @property Contact                                    $contact
+ * @property \LBHurtado\Voucher\Data\ExternalMetadataData $external_metadata
+ * @property \LBHurtado\Voucher\Data\VoucherTimingData    $timing
+ * @property \LBHurtado\Voucher\Data\ValidationResultsData $validation_results
  *
  * @method int getKey()
  */
@@ -43,6 +49,9 @@ class Voucher extends BaseVoucher implements InputInterface
 {
     use WithData;
     use HasInputs;
+    use HasExternalMetadata;
+    use HasVoucherTiming;
+    use HasValidationResults;
 
     protected string $dataClass = VoucherData::class;
 
