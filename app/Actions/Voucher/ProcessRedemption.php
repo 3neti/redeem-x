@@ -53,6 +53,8 @@ class ProcessRedemption
         ]);
 
         return DB::transaction(function () use ($voucher, $phoneNumber, $inputs, $bankAccount) {
+            // Track redemption submission timing
+            $voucher->trackRedemptionSubmit();
             // Step 1: Validate location if required
             $this->validateLocation($voucher, $inputs);
 

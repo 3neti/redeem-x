@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { useRedemptionApi } from '@/composables/useRedemptionApi';
+import { useVoucherTiming } from '@/composables/useVoucherTiming';
 import type { ValidateVoucherResponse } from '@/composables/useRedemptionApi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const { loading, error, validateVoucher, redeemVoucher } = useRedemptionApi();
+const { trackRedemptionStart } = useVoucherTiming();
 
 const voucherInfo = ref<ValidateVoucherResponse | null>(null);
 const validationErrors = ref<Record<string, string>>({});
@@ -218,6 +220,9 @@ const handleSubmit = async () => {
 };
 
 onMounted(async () => {
+    // Track redemption start
+    trackRedemptionStart(props.voucher_code);
+    
     try {
         const result = await validateVoucher(props.voucher_code);
         voucherInfo.value = result;

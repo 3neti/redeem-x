@@ -45,13 +45,7 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     Route::post('/{voucher:code}/external', [\App\Actions\Api\Vouchers\SetExternalMetadata::class, 'asController'])
         ->name('external.set');
 
-    // Track timing events
-    // POST /api/v1/vouchers/{voucher}/timing/click
-    Route::post('/{voucher:code}/timing/click', [\App\Actions\Api\Vouchers\TrackClick::class, 'asController'])
-        ->name('timing.click');
-    // POST /api/v1/vouchers/{voucher}/timing/start
-    Route::post('/{voucher:code}/timing/start', [\App\Actions\Api\Vouchers\TrackRedemptionStart::class, 'asController'])
-        ->name('timing.start');
+    // Track timing submit (auth required - happens during redemption process)
     // POST /api/v1/vouchers/{voucher}/timing/submit
     Route::post('/{voucher:code}/timing/submit', [\App\Actions\Api\Vouchers\TrackRedemptionSubmit::class, 'asController'])
         ->name('timing.submit');

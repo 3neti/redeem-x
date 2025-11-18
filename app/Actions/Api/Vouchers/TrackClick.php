@@ -21,21 +21,17 @@ class TrackClick
 
     /**
      * Handle API request.
+     * 
+     * Public endpoint - no authentication required since vouchers can be redeemed publicly.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
     {
-        // Check if user owns this voucher
-        if ($voucher->owner_id !== $request->user()->id) {
-            return ApiResponse::forbidden('You do not have permission to modify this voucher.');
-        }
-
         // Track click using trait (idempotent - only tracks first click)
         $voucher->trackClick();
-        $voucher->save();
 
         return ApiResponse::success([
             'message' => 'Click tracked successfully',
-            'timing' => $voucher->timing,
+            'timing' => $voucher->timing?->toArray(),
         ]);
     }
 }

@@ -28,6 +28,14 @@ Route::prefix('v1')->group(function () {
     // Public redemption API routes
     // Rate limited to 10 requests per minute for public access
     Route::middleware(['throttle:10,1'])->group(base_path('routes/api/redemption.php'));
+    
+    // Public timing tracking (no auth required - vouchers can be redeemed publicly)
+    Route::middleware(['throttle:60,1'])->prefix('vouchers')->name('api.vouchers.')->group(function () {
+        Route::post('/{voucher:code}/timing/click', [\App\Actions\Api\Vouchers\TrackClick::class, 'asController'])
+            ->name('timing.click');
+        Route::post('/{voucher:code}/timing/start', [\App\Actions\Api\Vouchers\TrackRedemptionStart::class, 'asController'])
+            ->name('timing.start');
+    });
 });
 
 /**
