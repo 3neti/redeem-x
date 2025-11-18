@@ -31,7 +31,7 @@ class ShowVoucher
         }
 
         // Load relationships
-        $voucher->load(['redeemers', 'owner']);
+        $voucher->load(['redeemers', 'owner', 'inputs']);
 
         // Transform to VoucherData DTO
         $voucherData = VoucherData::fromModel($voucher);
@@ -45,17 +45,79 @@ class ShowVoucher
             'validation_results' => $voucher->getValidationResults(),
         ];
 
+        // Include collected inputs if voucher has any
+        if ($voucher->inputs->isNotEmpty()) {
+            $response['inputs'] = $this->formatInputs($voucher);
+        }
+
         // If voucher is redeemed, include redeemer details
         if ($voucher->isRedeemed()) {
             $redeemer = $voucher->redeemers->first();
+            $contact = $redeemer?->redeemer; // Get the actual Contact model
             $response['redeemed_by'] = [
-                'mobile' => $redeemer?->mobile,
-                'name' => $redeemer?->name,
+                'mobile' => $contact?->mobile,
+                'name' => $contact?->name,
                 'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
             ];
         }
 
         return ApiResponse::success($response);
+    }
+
+    /**
+     * Format inputs for API response.
+     */
+    private function formatInputs(Voucher $voucher): array
+    {
+        $formatted = [];
+
+        foreach ($voucher->inputs as $input) {
+            $name = $input->name;
+            $value = $input->value;
+
+            // Handle location field - parse JSON
+            if ($name === 'location') {
+                try {
+                    $locationData = json_decode($value, true);
+                    $formatted['location'] = [
+                        'latitude' => $locationData['latitude'] ?? null,
+                        'longitude' => $locationData['longitude'] ?? null,
+                        'accuracy' => $locationData['accuracy'] ?? null,
+                        'altitude' => $locationData['altitude'] ?? null,
+                        'formatted_address' => $locationData['address']['formatted'] ?? null,
+                        'has_snapshot' => isset($locationData['snapshot']),
+                    ];
+                } catch (\Exception $e) {
+                    $formatted['location'] = $value;
+                }
+            }
+            // Handle signature/selfie - indicate presence but don't send full data URL
+            elseif (in_array($name, ['signature', 'selfie'])) {
+                $formatted[$name] = [
+                    'present' => !empty($value),
+                    'size_bytes' => strlen($value),
+                    'format' => $this->extractImageFormat($value),
+                ];
+            }
+            // Regular fields
+            else {
+                $formatted[$name] = $value;
+            }
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Extract image format from data URL.
+     */
+    private function extractImageFormat(string $dataUrl): ?string
+    {
+        if (preg_match('/^data:image\/(\w+);base64/', $dataUrl, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
 }
