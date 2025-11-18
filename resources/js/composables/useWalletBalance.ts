@@ -60,7 +60,7 @@ export function useWalletBalance(type?: string) {
             console.log('[useWalletBalance] Component mounted, setting up Echo listener', {
                 userId: user.id,
                 userWalletId,
-                channel: `user.${user.id}`,
+                channel: `App.Models.User.${user.id}`,
                 event: '.balance.updated'
             });
         }
@@ -74,7 +74,7 @@ export function useWalletBalance(type?: string) {
             updatedAt: string;
             message: string;
         }>(
-            `user.${user.id}`,
+            `App.Models.User.${user.id}`,
             '.balance.updated',
             (event) => {
                 if (DEBUG) {

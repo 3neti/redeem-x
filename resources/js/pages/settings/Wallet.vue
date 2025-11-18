@@ -62,7 +62,7 @@ const { listen } = useEcho<{
     updatedAt: string;
     message: string;
 }>(
-    `user.${user.id}`,
+    `App.Models.User.${user.id}`,
     '.balance.updated',
     (event) => {
         console.log('[Wallet Settings] Echo event received:', event);

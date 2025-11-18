@@ -88,7 +88,7 @@ final class BalanceUpdated implements BalanceUpdatedEventInterface, ShouldBroadc
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->wallet->holder->id),
+            new PrivateChannel('App.Models.User.' . $this->wallet->holder->id),
         ];
     }
 
