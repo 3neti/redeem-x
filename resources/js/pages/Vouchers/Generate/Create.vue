@@ -16,6 +16,8 @@ import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { useWalletBalance } from '@/composables/useWalletBalance';
+import LocationValidationForm from '@/components/voucher/forms/LocationValidationForm.vue';
+import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vue';
 import axios from 'axios';
 
 // Debug flag - set to false to suppress console logs
@@ -27,6 +29,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Config loaded successfully
 
 // Use reactive wallet balance with real-time updates
 const { balance: walletBalance, formattedBalance, realtimeNote, realtimeTime } = useWalletBalance();
@@ -102,6 +106,15 @@ watch(selectedCampaignId, async (campaignId) => {
             riderUrl.value = inst.rider.url || props.config.rider.url.default;
         }
         
+        // Populate validation fields from campaign
+        if (inst.validation) {
+            locationValidation.value = inst.validation.location || null;
+            timeValidation.value = inst.validation.time || null;
+        } else {
+            locationValidation.value = null;
+            timeValidation.value = null;
+        }
+        
         count.value = inst.count || props.config.basic_settings.quantity.default;
         prefix.value = inst.prefix || '';
         mask.value = inst.mask || '';
@@ -140,6 +153,33 @@ const feedbackWebhook = ref('');
 const riderMessage = ref('');
 const riderUrl = ref(props.config.rider.url.default);
 
+// Validation fields - Initialize from config defaults
+const locationValidation = ref<any>(
+    props.config.location_validation.default_enabled ? {
+        required: true,
+        target_lat: null,
+        target_lng: null,
+        radius_meters: (props.config.location_validation.default_radius_km ?? 1) * 1000,
+        on_failure: props.config.location_validation.default_on_failure ?? 'block',
+    } : null
+);
+
+const timeValidation = ref<any>(
+    props.config.time_validation.default_enabled ? {
+        window: props.config.time_validation.default_window_enabled ? {
+            start_time: props.config.time_validation.default_start_time ?? '09:00',
+            end_time: props.config.time_validation.default_end_time ?? '17:00',
+            timezone: props.config.time_validation.default_timezone ?? 'Asia/Manila',
+        } : null,
+        limit_minutes: props.config.time_validation.default_duration_enabled 
+            ? (props.config.time_validation.default_limit_minutes ?? 10) 
+            : null,
+        track_duration: true,
+    } : null
+);
+
+// Validation fields initialized from config
+
 // Build instructions payload for pricing API
 const instructionsForPricing = computed(() => {
     return {
@@ -159,12 +199,31 @@ const instructionsForPricing = computed(() => {
             message: riderMessage.value || null,
             url: riderUrl.value || null,
         },
+        validation: {
+            location: locationValidation.value || null,
+            time: timeValidation.value || null,
+        },
         count: count.value,
         prefix: prefix.value || null,
         mask: mask.value || null,
         ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
     };
 });
+
+// Debug watchers (after all refs are defined)
+if (DEBUG) {
+    watch(locationValidation, (newVal) => {
+        console.log('[Generate] locationValidation changed:', newVal);
+    }, { deep: true });
+    
+    watch(timeValidation, (newVal) => {
+        console.log('[Generate] timeValidation changed:', newVal);
+    }, { deep: true });
+    
+    watch(instructionsForPricing, (newVal) => {
+        console.log('[Generate] instructionsForPricing changed:', JSON.stringify(newVal, null, 2));
+    }, { deep: true });
+}
 
 // Use live pricing API
 const { breakdown: apiBreakdown, loading: pricingLoading, error: pricingError } = useChargeBreakdown(
@@ -248,6 +307,10 @@ const jsonPreview = computed(() => {
             message: riderMessage.value || null,
             url: riderUrl.value || null,
         },
+        validation: {
+            location: locationValidation.value || null,
+            time: timeValidation.value || null,
+        },
         count: count.value,
         prefix: prefix.value || null,
         mask: mask.value || null,
@@ -302,6 +365,9 @@ const handleSubmit = async () => {
         rider_message: riderMessage.value || undefined,
         rider_url: riderUrl.value || undefined,
         campaign_id: selectedCampaignId.value || undefined,
+        // Validation instructions
+        validation_location: locationValidation.value || undefined,
+        validation_time: timeValidation.value || undefined,
     });
 
     if (result) {
@@ -606,6 +672,22 @@ const handleSubmit = async () => {
                             </div>
                         </CardContent>
                     </Card>
+
+                    <!-- Location Validation -->
+                    <LocationValidationForm
+                        v-if="config.location_validation.show_card"
+                        v-model="locationValidation"
+                        :validation-errors="validationErrors"
+                        :config="config.location_validation"
+                    />
+
+                    <!-- Time Validation -->
+                    <TimeValidationForm
+                        v-if="config.time_validation.show_card"
+                        v-model="timeValidation"
+                        :validation-errors="validationErrors"
+                        :config="config.time_validation"
+                    />
 
                     <!-- JSON Preview -->
                     <Collapsible v-if="config.json_preview.show_card" v-model:open="showJsonPreview">

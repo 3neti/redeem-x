@@ -29,11 +29,33 @@ import CashInstructionForm from './CashInstructionForm.vue';
 import InputFieldsForm from './InputFieldsForm.vue';
 import FeedbackInstructionForm from './FeedbackInstructionForm.vue';
 import RiderInstructionForm from './RiderInstructionForm.vue';
+import LocationValidationForm from './LocationValidationForm.vue';
+import TimeValidationForm from './TimeValidationForm.vue';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import type { VoucherInputFieldOption, CashInstruction, InputFields, FeedbackInstruction, RiderInstruction } from '@/types/voucher';
 
 // Debug flag - set to false to suppress console logs
 const DEBUG = false;
+
+interface LocationValidation {
+    required: boolean;
+    target_lat: number | null;
+    target_lng: number | null;
+    radius_meters: number | null;
+    on_failure: 'block' | 'warn';
+}
+
+interface TimeWindow {
+    start_time: string;
+    end_time: string;
+    timezone: string;
+}
+
+interface TimeValidation {
+    window: TimeWindow | null;
+    limit_minutes: number | null;
+    track_duration: boolean;
+}
 
 interface Props {
     modelValue: {
@@ -50,6 +72,8 @@ interface Props {
         feedbackWebhook: string;
         riderMessage: string;
         riderUrl: string;
+        locationValidation: LocationValidation | null;
+        timeValidation: TimeValidation | null;
     };
     inputFieldOptions: VoucherInputFieldOption[];
     validationErrors?: Record<string, string>;
@@ -144,6 +168,26 @@ const riderInstruction = computed<RiderInstruction>({
     },
 });
 
+const locationValidation = computed<LocationValidation | null>({
+    get: () => localValue.value.locationValidation,
+    set: (value) => {
+        localValue.value = {
+            ...localValue.value,
+            locationValidation: value,
+        };
+    },
+});
+
+const timeValidation = computed<TimeValidation | null>({
+    get: () => localValue.value.timeValidation,
+    set: (value) => {
+        localValue.value = {
+            ...localValue.value,
+            timeValidation: value,
+        };
+    },
+});
+
 // Live JSON preview
 const jsonPreview = computed(() => {
     const data = {
@@ -169,6 +213,10 @@ const jsonPreview = computed(() => {
         rider: {
             message: localValue.value.riderMessage || null,
             url: localValue.value.riderUrl || null,
+        },
+        validation: {
+            location: localValue.value.locationValidation || null,
+            time: localValue.value.timeValidation || null,
         },
         count: localValue.value.count,
         prefix: localValue.value.prefix || null,
@@ -212,12 +260,14 @@ const instructionsForPricing = computed(() => {
     const feedbackWebhook = localValue.value.feedbackWebhook;
     const riderMessage = localValue.value.riderMessage;
     const riderUrl = localValue.value.riderUrl;
+    const locationValidationValue = localValue.value.locationValidation;
+    const timeValidationValue = localValue.value.timeValidation;
     const count = localValue.value.count;
     const prefix = localValue.value.prefix;
     const mask = localValue.value.mask;
     const ttlDays = localValue.value.ttlDays;
     
-    if (DEBUG) console.log('[VoucherInstructionsForm] Values:', { amount, selectedInputFields, feedbackEmail, feedbackMobile, feedbackWebhook, riderMessage, riderUrl });
+    if (DEBUG) console.log('[VoucherInstructionsForm] Values:', { amount, selectedInputFields, feedbackEmail, feedbackMobile, feedbackWebhook, riderMessage, riderUrl, locationValidationValue, timeValidationValue });
     
     const result = {
         cash: {
@@ -235,6 +285,10 @@ const instructionsForPricing = computed(() => {
         rider: {
             message: riderMessage || null,
             url: riderUrl || null,
+        },
+        validation: {
+            location: locationValidationValue || null,
+            time: timeValidationValue || null,
         },
         count,
         prefix: prefix || null,
@@ -357,6 +411,20 @@ const { breakdown, loading: pricingLoading, error: pricingError } = props.readon
         <!-- Rider Information -->
         <RiderInstructionForm
             v-model="riderInstruction"
+            :validation-errors="validationErrors"
+            :readonly="readonly"
+        />
+
+        <!-- Location Validation -->
+        <LocationValidationForm
+            v-model="locationValidation"
+            :validation-errors="validationErrors"
+            :readonly="readonly"
+        />
+
+        <!-- Time Validation -->
+        <TimeValidationForm
+            v-model="timeValidation"
             :validation-errors="validationErrors"
             :readonly="readonly"
         />

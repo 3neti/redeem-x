@@ -31,6 +31,8 @@ const instructionsFormData = ref({
     feedbackWebhook: '',
     riderMessage: '',
     riderUrl: '',
+    locationValidation: null as any,
+    timeValidation: null as any,
 });
 
 const form = useForm({
@@ -60,6 +62,10 @@ const form = useForm({
         rider: {
             message: instructionsFormData.value.riderMessage || null,
             url: instructionsFormData.value.riderUrl || null,
+        },
+        validation: {
+            location: instructionsFormData.value.locationValidation || null,
+            time: instructionsFormData.value.timeValidation || null,
         },
         count: instructionsFormData.value.count,
         prefix: instructionsFormData.value.prefix || null,

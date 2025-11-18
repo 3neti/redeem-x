@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
+import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { computed, ref } from 'vue';
+import type { VoucherInputFieldOption } from '@/types/voucher';
 
 interface Campaign {
     id: number;
@@ -17,9 +23,83 @@ interface Campaign {
 
 interface Props {
     campaign: Campaign;
+    input_field_options: VoucherInputFieldOption[];
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+// Parse campaign instructions into form data
+const parseInstructions = (inst: any) => {
+    // Parse TTL from ISO 8601 duration (e.g., P30D)
+    let ttlDays = null;
+    if (inst.ttl) {
+        const match = inst.ttl.match(/P(\d+)D/);
+        ttlDays = match ? parseInt(match[1]) : null;
+    }
+
+    return {
+        amount: inst.cash?.amount || 0,
+        count: inst.count || 1,
+        prefix: inst.prefix || '',
+        mask: inst.mask || '',
+        ttlDays,
+        selectedInputFields: inst.inputs?.fields || [],
+        validationSecret: inst.cash?.validation?.secret || '',
+        validationMobile: inst.cash?.validation?.mobile || '',
+        feedbackEmail: inst.feedback?.email || '',
+        feedbackMobile: inst.feedback?.mobile || '',
+        feedbackWebhook: inst.feedback?.webhook || '',
+        riderMessage: inst.rider?.message || '',
+        riderUrl: inst.rider?.url || '',
+        locationValidation: inst.validation?.location || null,
+        timeValidation: inst.validation?.time || null,
+    };
+};
+
+const instructionsFormData = ref(parseInstructions(props.campaign.instructions));
+
+const form = useForm({
+    name: props.campaign.name,
+    description: props.campaign.description,
+    status: props.campaign.status,
+    instructions: computed(() => ({
+        cash: {
+            amount: instructionsFormData.value.amount,
+            currency: 'PHP',
+            validation: {
+                secret: instructionsFormData.value.validationSecret || null,
+                mobile: instructionsFormData.value.validationMobile || null,
+                country: 'PH',
+                location: null,
+                radius: null,
+            },
+        },
+        inputs: {
+            fields: instructionsFormData.value.selectedInputFields,
+        },
+        feedback: {
+            email: instructionsFormData.value.feedbackEmail || null,
+            mobile: instructionsFormData.value.feedbackMobile || null,
+            webhook: instructionsFormData.value.feedbackWebhook || null,
+        },
+        rider: {
+            message: instructionsFormData.value.riderMessage || null,
+            url: instructionsFormData.value.riderUrl || null,
+        },
+        validation: {
+            location: instructionsFormData.value.locationValidation || null,
+            time: instructionsFormData.value.timeValidation || null,
+        },
+        count: instructionsFormData.value.count,
+        prefix: instructionsFormData.value.prefix || null,
+        mask: instructionsFormData.value.mask || null,
+        ttl: instructionsFormData.value.ttlDays ? `P${instructionsFormData.value.ttlDays}D` : null,
+    })),
+});
+
+function submit() {
+    form.put(`/settings/campaigns/${props.campaign.id}`);
+}
 </script>
 
 <template>
@@ -31,23 +111,81 @@ defineProps<Props>();
                 <div class="flex items-center justify-between">
                     <HeadingSmall
                         :title="`Edit: ${campaign.name}`"
-                        description="Update campaign settings"
+                        description="Update campaign settings and instructions"
                     />
                     <Button variant="outline" as-child>
-                        <a href="/settings/campaigns">Back</a>
+                        <a href="/settings/campaigns">Cancel</a>
                     </Button>
                 </div>
 
-                <div class="border rounded-lg p-6">
-                    <p class="text-muted-foreground">
-                        Campaign edit form coming soon...
-                    </p>
-                    <p class="text-sm text-muted-foreground mt-2">
-                        This will include a full form builder for
-                        VoucherInstructionsData (cash, inputs, validations,
-                        feedback, rider, etc.)
-                    </p>
-                </div>
+                <form @submit.prevent="submit" class="space-y-6">
+                    <!-- Basic Info -->
+                    <div class="border rounded-lg p-6 space-y-4">
+                        <h3 class="font-medium">Basic Information</h3>
+
+                        <div class="space-y-2">
+                            <Label for="name">Campaign Name</Label>
+                            <Input
+                                id="name"
+                                v-model="form.name"
+                                required
+                                placeholder="e.g., Holiday Promo 2024"
+                            />
+                            <p
+                                v-if="form.errors.name"
+                                class="text-sm text-destructive"
+                            >
+                                {{ form.errors.name }}
+                            </p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label for="description">Description</Label>
+                            <Textarea
+                                id="description"
+                                v-model="form.description"
+                                placeholder="Optional description"
+                                rows="3"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label for="status">Status</Label>
+                            <select
+                                id="status"
+                                v-model="form.status"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                <option value="draft">Draft</option>
+                                <option value="active">Active</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Voucher Instructions Form -->
+                    <VoucherInstructionsForm
+                        v-model="instructionsFormData"
+                        :input-field-options="input_field_options"
+                        :validation-errors="form.errors"
+                        :show-count-field="false"
+                    />
+
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            as-child
+                            :disabled="form.processing"
+                        >
+                            <a href="/settings/campaigns">Cancel</a>
+                        </Button>
+                        <Button type="submit" :disabled="form.processing">
+                            {{ form.processing ? 'Saving...' : 'Save Changes' }}
+                        </Button>
+                    </div>
+                </form>
             </div>
         </SettingsLayout>
     </AppLayout>

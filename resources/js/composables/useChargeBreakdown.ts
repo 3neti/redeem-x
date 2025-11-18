@@ -41,6 +41,10 @@ export interface InstructionsData {
         message?: string;
         url?: string;
     };
+    validation?: {
+        location?: Record<string, unknown> | null;
+        time?: Record<string, unknown> | null;
+    };
     count?: number;
     prefix?: string;
     mask?: string;
@@ -72,13 +76,19 @@ export function useChargeBreakdown(
             return null;
         }
 
-        if (DEBUG) console.log('[useChargeBreakdown] Calculating charges for:', instructions.value);
+        if (DEBUG) {
+            console.log('[useChargeBreakdown] Calculating charges for:', instructions.value);
+            console.log('[useChargeBreakdown] Payload validation field:', instructions.value.validation);
+        }
         loading.value = true;
         error.value = null;
 
         try {
             const response = await axios.post('/api/v1/calculate-charges', instructions.value);
-            if (DEBUG) console.log('[useChargeBreakdown] Response received:', response.data);
+            if (DEBUG) {
+                console.log('[useChargeBreakdown] Response received:', response.data);
+                console.log('[useChargeBreakdown] Breakdown items:', response.data.breakdown);
+            }
             const data = response.data;
 
             // Use the breakdown directly from backend (already formatted)

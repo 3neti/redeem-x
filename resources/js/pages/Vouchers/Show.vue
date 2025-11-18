@@ -39,6 +39,10 @@ interface VoucherInstructions {
         message?: string;
         url?: string;
     };
+    validation?: {
+        location?: any;
+        time?: any;
+    };
     count?: number;
     prefix?: string;
     mask?: string;
@@ -128,6 +132,8 @@ const instructionsFormData = computed(() => {
             feedbackWebhook: '',
             riderMessage: '',
             riderUrl: '',
+            locationValidation: null,
+            timeValidation: null,
         };
     }
 
@@ -152,6 +158,8 @@ const instructionsFormData = computed(() => {
         feedbackWebhook: inst.feedback?.webhook || '',
         riderMessage: inst.rider?.message || '',
         riderUrl: inst.rider?.url || '',
+        locationValidation: inst.validation?.location || null,
+        timeValidation: inst.validation?.time || null,
     };
 });
 </script>
