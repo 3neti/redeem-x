@@ -203,6 +203,16 @@ npm run dev          # Development with HMR
 - Uses Wayfinder route functions for type-safe navigation
 - Perfect for embedding in external sites via iframe
 
+**Voucher QR Code Components** - Reusable QR generation and sharing:
+- `useVoucherQr.ts` - Client-side QR generation composable using `qrcode` npm package
+- `QrDisplay.vue` - Shared component for displaying QR codes with loading/error states
+- `QrSharePanel.vue` - Sharing panel with copy, download, email, SMS, WhatsApp, native share
+- `VoucherQrSharePanel.vue` - Voucher-specific wrapper for QR sharing
+- Voucher Show page displays QR code for unredeemed, non-expired vouchers
+- QR codes encode redemption URL: `http://domain/redeem?code={CODE}`
+- Instant generation (client-side, no API latency)
+- Reuses 80% of wallet QR components for consistent UX
+
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.
 

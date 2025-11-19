@@ -68,6 +68,23 @@ class TopUpController extends Controller
                 'reference_no' => $result->reference_no,
                 'amount' => $result->amount,
             ]);
+            
+            // Auto-confirm in fake mode if configured
+            $useFake = config('payment-gateway.netbank.direct_checkout.use_fake', false);
+            $autoConfirm = config('payment-gateway.top_up.auto_confirm_fake', false);
+            
+            if ($useFake && $autoConfirm) {
+                $topUp = TopUp::where('reference_no', $result->reference_no)->first();
+                if ($topUp && !$topUp->isPaid()) {
+                    $topUp->markAsPaid('FAKE-AUTO-' . now()->timestamp);
+                    $user->creditWalletFromTopUp($topUp);
+                    
+                    Log::info('[TopUp] Auto-confirmed (fake mode)', [
+                        'reference_no' => $topUp->reference_no,
+                        'new_balance' => $user->fresh()->balanceFloat,
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,

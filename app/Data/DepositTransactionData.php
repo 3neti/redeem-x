@@ -20,13 +20,13 @@ use Illuminate\Support\Carbon;
 class DepositTransactionData extends Data
 {
     public function __construct(
-        public int $sender_id,
-        public string $sender_name,
-        public string $sender_mobile,
+        public ?int $sender_id,
+        public ?string $sender_name,
+        public ?string $sender_mobile,
         public float $amount,
         public string $currency,
-        public string $institution,
-        public string $institution_name,
+        public ?string $institution,
+        public ?string $institution_name,
         public ?string $operation_id,
         public ?string $channel,
         public ?string $reference_number,

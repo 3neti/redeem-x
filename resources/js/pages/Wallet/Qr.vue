@@ -30,8 +30,8 @@ const page = usePage();
 const config = page.props.loadWalletConfig || {};
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Wallet', href: '/wallet/load' },
-    { title: 'Load', href: '/wallet/load' },
+    { title: 'Wallet', href: '/wallet' },
+    { title: 'QR Load', href: '/wallet/qr' },
 ];
 
 const { formattedBalance } = useWalletBalance();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
+import QrDisplay from '@/components/shared/QrDisplay.vue';
+import VoucherQrSharePanel from '@/components/voucher/VoucherQrSharePanel.vue';
+import { useVoucherQr } from '@/composables/useVoucherQr';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
@@ -98,6 +101,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 const goBack = () => {
     router.visit('/vouchers');
 };
+
+// Generate QR code for voucher
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(props.voucher.code);
+
+onMounted(() => {
+    // Only generate QR if voucher is redeemable
+    if (!props.voucher.is_redeemed && !props.voucher.is_expired) {
+        generateQr();
+    }
+});
 
 // Transform voucher inputs (single source of truth) into flat object for display
 const redemptionInputs = computed<RedemptionInputs | null>(() => {
@@ -237,6 +250,35 @@ const instructionsFormData = computed(() => {
 
                 <!-- Owner Information (if available) -->
                 <VoucherOwnerView v-if="voucher.owner" :owner="voucher.owner" />
+
+                <!-- QR Code Section (only show for unredeemed, non-expired vouchers) -->
+                <div v-if="!voucher.is_redeemed && !voucher.is_expired" class="grid gap-6 md:grid-cols-2">
+                    <!-- QR Display -->
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Redemption QR Code</CardTitle>
+                            <CardDescription>
+                                Scan this QR code to redeem the voucher
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="flex justify-center">
+                            <div class="w-full max-w-sm">
+                                <QrDisplay
+                                    :qr-code="qrData?.qr_code ?? null"
+                                    :loading="qrLoading"
+                                    :error="qrError"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Share Panel -->
+                    <VoucherQrSharePanel
+                        :qr-data="qrData"
+                        :amount="voucher.amount"
+                        :currency="voucher.currency"
+                    />
+                </div>
             </div>
         </ErrorBoundary>
     </AppLayout>

@@ -25,7 +25,42 @@ class GetDepositStats
         $dateTo = $request->input('date_to');
         $institution = $request->input('institution');
 
-        // Get all senders with their pivot data
+        // Calculate stats from all transactions
+        $totalAmount = 0;
+        $totalCount = 0;
+        $todayCount = 0;
+        $monthCount = 0;
+        
+        // 1. Include wallet top-up transactions
+        $walletTransactions = $user->walletTransactions()
+            ->where('type', 'deposit')
+            ->where('amount', '>', 0);
+        
+        if ($dateFrom) {
+            $walletTransactions->where('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $walletTransactions->where('created_at', '<=', $dateTo);
+        }
+        
+        foreach ($walletTransactions->get() as $tx) {
+            // Apply institution filter if provided
+            $txInstitution = $tx->meta['gateway'] ?? null;
+            if ($institution && $txInstitution !== $institution) continue;
+            
+            $amount = $tx->amount / 100; // Convert cents to pesos
+            $totalAmount += $amount;
+            $totalCount++;
+            
+            if ($tx->created_at->isToday()) {
+                $todayCount++;
+            }
+            if ($tx->created_at->isCurrentMonth()) {
+                $monthCount++;
+            }
+        }
+        
+        // 2. Get QR deposits from external senders
         $sendersQuery = $user->senders();
 
         // Apply date filters
@@ -37,12 +72,6 @@ class GetDepositStats
         }
 
         $senders = $sendersQuery->get();
-
-        // Calculate stats from all transactions
-        $totalAmount = 0;
-        $totalCount = 0;
-        $todayCount = 0;
-        $monthCount = 0;
         $uniqueSenders = $senders->count();
 
         foreach ($senders as $sender) {

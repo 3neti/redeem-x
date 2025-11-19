@@ -65,7 +65,7 @@ const copyCode = async () => {
 };
 
 const redeemLink = computed(() => {
-    return `${window.location.origin}/redeem/${props.voucher.code}`;
+    return `${window.location.origin}/redeem?code=${props.voucher.code}`;
 });
 
 const copyRedeemLink = async () => {

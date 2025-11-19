@@ -30,7 +30,44 @@ class ListDeposits
         $search = $request->input('search');
         $institution = $request->input('institution');
 
-        // Get all senders with their pivot data
+        // Collect all deposit transactions
+        $deposits = collect();
+        
+        // 1. Get wallet top-up transactions (deposit type with positive amount)
+        $walletTransactions = $user->walletTransactions()
+            ->where('type', 'deposit')
+            ->where('amount', '>', 0)
+            ->latest()
+            ->get();
+        
+        foreach ($walletTransactions as $tx) {
+            // Apply date filters
+            if ($dateFrom && $tx->created_at < $dateFrom) continue;
+            if ($dateTo && $tx->created_at > $dateTo) continue;
+            
+            // Apply institution filter if provided
+            $txInstitution = $tx->meta['gateway'] ?? null;
+            if ($institution && $txInstitution !== $institution) continue;
+            
+            $deposits->push([
+                'type' => 'wallet_top_up',
+                'sender' => null,
+                'metadata' => [
+                    'amount' => $tx->amountFloat, // Use Bavix Wallet accessor
+                    'currency' => 'PHP',
+                    'institution' => $txInstitution,
+                    'institution_name' => ucfirst($txInstitution ?? 'Top-Up'),
+                    'operation_id' => null,
+                    'channel' => $tx->meta['type'] ?? 'top_up',
+                    'reference_number' => $tx->meta['reference_no'] ?? null,
+                    'transfer_type' => 'TOP_UP',
+                    'timestamp' => $tx->created_at->toIso8601String(),
+                ],
+                'timestamp' => $tx->created_at->toIso8601String(),
+            ]);
+        }
+        
+        // 2. Get QR deposits from external senders
         $sendersQuery = $user->senders();
 
         // Filter by date range
@@ -50,9 +87,6 @@ class ListDeposits
         }
 
         $senders = $sendersQuery->get();
-
-        // Collect all deposit transactions from all senders
-        $deposits = collect();
         
         foreach ($senders as $sender) {
             $pivot = $sender->pivot;
@@ -75,6 +109,7 @@ class ListDeposits
                 $txMetadata['currency'] = 'PHP';
 
                 $deposits->push([
+                    'type' => 'qr_deposit',
                     'sender' => $sender,
                     'metadata' => $txMetadata,
                     'timestamp' => $txMetadata['timestamp'] ?? null,
@@ -96,6 +131,25 @@ class ListDeposits
 
         // Transform to DTOs
         $depositData = $paginatedDeposits->map(function ($item) {
+            if ($item['type'] === 'wallet_top_up') {
+                // Create DTO for wallet top-up (no sender)
+                return DepositTransactionData::from([
+                    'sender_id' => null,
+                    'sender_name' => 'Wallet Top-Up',
+                    'sender_mobile' => null,
+                    'amount' => $item['metadata']['amount'],
+                    'currency' => $item['metadata']['currency'],
+                    'institution' => $item['metadata']['institution'],
+                    'institution_name' => $item['metadata']['institution_name'],
+                    'operation_id' => $item['metadata']['operation_id'],
+                    'channel' => $item['metadata']['channel'],
+                    'reference_number' => $item['metadata']['reference_number'],
+                    'transfer_type' => $item['metadata']['transfer_type'],
+                    'timestamp' => $item['metadata']['timestamp'],
+                ]);
+            }
+            
+            // QR deposit from sender
             return DepositTransactionData::fromMetadata($item['sender'], $item['metadata']);
         });
 

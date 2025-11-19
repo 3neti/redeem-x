@@ -60,10 +60,19 @@ Route::middleware([
     
     // Wallet routes
     Route::prefix('wallet')->name('wallet.')->group(function () {
+        // Dashboard
+        Route::get('/', [\App\Http\Controllers\Wallet\WalletController::class, 'index'])
+            ->name('index');
+        
+        // QR Load (renamed from 'load')
+        Route::get('qr', \App\Http\Controllers\Wallet\QrController::class)
+            ->name('qr');
+        
+        // Backward compatibility redirect
+        Route::redirect('load', 'qr', 301);
+        
         Route::get('balance', \App\Http\Controllers\Wallet\CheckBalanceController::class)
             ->name('balance');
-        Route::get('load', \App\Http\Controllers\Wallet\LoadController::class)
-            ->name('load');
         Route::get('add-funds', \LBHurtado\PaymentGateway\Http\Controllers\GenerateController::class)
             ->name('add-funds');
     });

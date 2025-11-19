@@ -51,6 +51,7 @@ return [
         'min_amount' => env('TOP_UP_MIN_AMOUNT', 1),
         'max_amount' => env('TOP_UP_MAX_AMOUNT', 50000),
         'reference_prefix' => env('TOP_UP_REFERENCE_PREFIX', 'TOPUP'),
+        'auto_confirm_fake' => env('TOP_UP_AUTO_CONFIRM_FAKE', false),
     ],
 
     'gateway' => LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway::class,

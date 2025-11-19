@@ -64,7 +64,7 @@ const mainNavItems = computed<NavItem[]>(() => {
         },
         {
             title: 'Wallet',
-            href: '/wallet/load',
+            href: '/wallet',
             icon: Wallet,
         },
         {
