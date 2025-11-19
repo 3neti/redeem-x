@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { useDebounce } from '@/composables/useDebounce';
 import Heading from '@/components/Heading.vue';
@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2, AlertCircle } from 'lucide-vue-next';
+import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2, AlertCircle, Plus } from 'lucide-vue-next';
 import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
 import { VoucherCodeDisplay } from '@/components/voucher/views';
+import { create as voucherGenerate } from '@/actions/App/Http/Controllers/Vouchers/GenerateController';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -135,10 +136,18 @@ const viewVoucher = (code: string) => {
                     <AlertTitle>Error</AlertTitle>
                     <AlertDescription>{{ error.message }}</AlertDescription>
                 </Alert>
-            <Heading
-                title="Vouchers"
-                description="Manage and track all your vouchers"
-            />
+            <div class="flex items-center justify-between">
+                <Heading
+                    title="Vouchers"
+                    description="Manage and track all your vouchers"
+                />
+                <Button as-child size="lg">
+                    <Link :href="voucherGenerate.url()">
+                        <Plus class="mr-2 h-4 w-4" />
+                        Generate Vouchers
+                    </Link>
+                </Button>
+            </div>
 
             <!-- Stats Cards -->
             <div class="grid gap-4 md:grid-cols-4">

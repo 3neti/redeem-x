@@ -19,6 +19,7 @@ class RolePermissionSeeder extends Seeder
         Permission::create(['name' => 'manage pricing']);
         Permission::create(['name' => 'view all billing']);
         Permission::create(['name' => 'manage users']);
+        Permission::create(['name' => 'manage preferences']);
 
         // Create roles
         $superAdmin = Role::create(['name' => 'super-admin']);
@@ -26,6 +27,7 @@ class RolePermissionSeeder extends Seeder
             'manage pricing',
             'view all billing',
             'manage users',
+            'manage preferences',
         ]);
     }
 }

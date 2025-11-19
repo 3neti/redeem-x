@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(UserSeeder::class);
         $this->call(SystemWalletSeeder::class);
         $this->call(InstructionItemSeeder::class);
+        $this->call(VoucherSettingsSeeder::class);
     }
 }

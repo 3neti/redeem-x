@@ -38,6 +38,8 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // No role assigned - use ADMIN_OVERRIDE_EMAILS in .env to grant admin access
+
         $this->command->info("✅ Admin user created: {$admin->email}");
         $this->command->info("✅ Ordinary user created: {$user->email}");
         $this->command->info("Use /dev-login/{$admin->email} or /dev-login/{$user->email} in local environment");

@@ -70,7 +70,7 @@ const viewCharge = (chargeId: number) => {
                         <Receipt class="h-5 w-5" />
                         <CardTitle>All Charges</CardTitle>
                     </div>
-                    <CardDescription>{{ charges.meta.total }} total records</CardDescription>
+                    <CardDescription>{{ charges?.meta?.total || charges?.data?.length || 0 }} total records</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>

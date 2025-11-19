@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Settings;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Settings\VoucherSettings;
@@ -12,11 +12,14 @@ use Inertia\Response;
 class PreferencesController extends Controller
 {
     /**
-     * Show the user's preferences settings page.
+     * Show the admin preferences page (global voucher defaults).
      */
-    public function edit(Request $request, VoucherSettings $settings): Response
+    public function index(Request $request, VoucherSettings $settings): Response
     {
-        return Inertia::render('settings/Preferences', [
+        // Initialize settings if they don't exist yet
+        $this->ensureSettingsExist($settings);
+
+        return Inertia::render('admin/preferences/Index', [
             'preferences' => [
                 'default_amount' => $settings->default_amount,
                 'default_expiry_days' => $settings->default_expiry_days,
@@ -28,7 +31,7 @@ class PreferencesController extends Controller
     }
 
     /**
-     * Update the user's preferences.
+     * Update the global voucher preferences.
      */
     public function update(Request $request, VoucherSettings $settings): RedirectResponse
     {
@@ -46,6 +49,24 @@ class PreferencesController extends Controller
         
         $settings->save();
 
-        return to_route('preferences.edit')->with('status', 'Preferences updated successfully!');
+        return to_route('admin.preferences.index')->with('status', 'Preferences updated successfully!');
+    }
+
+    /**
+     * Ensure settings exist with defaults from config.
+     */
+    private function ensureSettingsExist(VoucherSettings $settings): void
+    {
+        try {
+            // Try to access a property to trigger exception if missing
+            $settings->default_amount;
+        } catch (\Spatie\LaravelSettings\Exceptions\MissingSettings $e) {
+            // Initialize with defaults from config
+            $settings->default_amount = config('generate.basic_settings.amount.default', 50);
+            $settings->default_expiry_days = config('generate.basic_settings.ttl.default');
+            $settings->default_rider_url = config('generate.rider.url.default', config('app.url'));
+            $settings->default_success_message = config('generate.rider.message.placeholder', 'Thank you for redeeming your voucher! The cash will be transferred shortly.');
+            $settings->save();
+        }
     }
 }

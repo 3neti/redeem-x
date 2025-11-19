@@ -60,11 +60,14 @@ class GenerateController extends Controller
             // Generate vouchers
             $vouchers = GenerateVouchers::run($instructions);
             $count = $vouchers->count();
+            Log::info('[VoucherGeneration] Vouchers generated', ['count' => $count]);
             
             // Calculate charges
             $breakdown = $calculateCharge->handle($user, $instructions);
+            Log::info('[VoucherGeneration] Charges calculated', ['breakdown' => $breakdown]);
             
             // Create charge record
+            Log::info('[VoucherGeneration] Creating charge record...');
             $charge = VoucherGenerationCharge::create([
                 'user_id' => $user->id,
                 'campaign_id' => null, // Could be linked if generation was from campaign
@@ -76,6 +79,7 @@ class GenerateController extends Controller
                 'charge_per_voucher' => ($breakdown->total / $count) / 100,
                 'generated_at' => now(),
             ]);
+            Log::info('[VoucherGeneration] Charge record created', ['charge_id' => $charge->id]);
             
             // Set external metadata if provided
             $externalMetadata = $this->getExternalMetadata($request);

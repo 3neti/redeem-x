@@ -38,13 +38,23 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
-        return [
-            ...parent::share($request),
+        // Debug permissions
+        $permissions = [];
+        if ($request->user()) {
+            $permissions = $request->user()->getAllPermissions()->pluck('name')->toArray();
+            \Log::info('HandleInertiaRequests permissions:', ['permissions' => $permissions, 'user' => $request->user()->email]);
+        }
+
+        $parentShare = parent::share($request);
+        
+        return array_merge($parentShare, [
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user()?->load(['roles:name', 'wallet']),
-                'roles' => $request->user()?->roles->pluck('name') ?? [],
+                'user' => $request->user()?->load(['roles:name', 'permissions:name', 'wallet']),
+                'roles' => $request->user()?->roles->pluck('name')->toArray() ?? [],
+                'permissions' => $permissions,
+                'is_admin_override' => $request->user() && in_array($request->user()->email, config('admin.override_emails', [])),
             ],
             'balance' => [
                 'view_enabled' => config('balance.view_enabled', true),
@@ -57,6 +67,6 @@ class HandleInertiaRequests extends Middleware
             'redeem' => [
                 'widget' => config('redeem.widget'),
             ],
-        ];
+        ]);
     }
 }

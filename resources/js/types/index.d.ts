@@ -11,10 +11,11 @@ export interface BreadcrumbItem {
 }
 
 export interface NavItem {
-    title: string;
-    href: NonNullable<InertiaLinkProps['href']>;
+    title?: string;
+    href?: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;
+    type?: 'separator' | 'item';
 }
 
 export type AppPageProps<

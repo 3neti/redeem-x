@@ -5,6 +5,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { urlIsActive } from '@/lib/utils';
 import { type NavItem } from '@/types';
@@ -21,18 +22,21 @@ const page = usePage();
     <SidebarGroup class="px-2 py-0">
         <SidebarGroupLabel>Platform</SidebarGroupLabel>
         <SidebarMenu>
-            <SidebarMenuItem v-for="item in items" :key="item.title">
-                <SidebarMenuButton
-                    as-child
-                    :is-active="urlIsActive(item.href, page.url)"
-                    :tooltip="item.title"
-                >
-                    <Link :href="item.href">
-                        <component :is="item.icon" />
-                        <span>{{ item.title }}</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
+            <template v-for="(item, index) in items" :key="index">
+                <SidebarSeparator v-if="item.type === 'separator'" class="my-2" />
+                <SidebarMenuItem v-else>
+                    <SidebarMenuButton
+                        as-child
+                        :is-active="urlIsActive(item.href!, page.url)"
+                        :tooltip="item.title"
+                    >
+                        <Link :href="item.href!">
+                            <component :is="item.icon" />
+                            <span>{{ item.title }}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </template>
         </SidebarMenu>
     </SidebarGroup>
 </template>

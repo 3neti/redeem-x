@@ -21,49 +21,97 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { BookOpen, Folder, LayoutGrid, Ticket, BadgeDollarSign, List, Users, Receipt, DollarSign, Wallet, TicketX } from 'lucide-vue-next';
+import { BookOpen, LayoutGrid, Ticket, Users, Receipt, CreditCard, Wallet, TicketX, HelpCircle, DollarSign, Settings2 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+
+// Debug flag
+const DEBUG = true;
 
 const page = usePage();
 const showBalance = computed(() => page.props.sidebar?.balance?.show ?? true);
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'View Vouchers',
-        href: vouchersIndex.url(),
-        icon: List,
-    },
-    {
-        title: 'Generate Vouchers',
-        href: voucherGenerate.url(),
-        icon: Ticket,
-    },
-    {
-        title: 'Load Wallet',
-        href: '/wallet/load',
-        icon: Wallet,
-    },
-    {
-        title: 'Pricing',
-        href: '/admin/pricing',
-        icon: DollarSign,
-    },
-    {
-        title: 'Transactions',
-        href: transactionsIndex.url(),
-        icon: Receipt,
-    },
-    {
-        title: 'Contacts',
-        href: contactsIndex.url(),
-        icon: Users,
+// Check if user has super-admin role or is in admin override list
+const isSuperAdmin = computed(() => {
+    const roles = page.props.auth?.roles || [];
+    return roles.includes('super-admin');
+});
+
+const isAdminOverride = computed(() => page.props.auth?.is_admin_override || false);
+
+const hasAdminAccess = computed(() => isSuperAdmin.value || isAdminOverride.value);
+
+const permissions = computed(() => page.props.auth?.permissions || []);
+
+const mainNavItems = computed<NavItem[]>(() => {
+    // Debug logging
+    if (DEBUG && import.meta.env.DEV) {
+        console.log('[AppSidebar] Auth props:', page.props.auth);
+        console.log('[AppSidebar] Roles:', page.props.auth?.roles);
+        console.log('[AppSidebar] Is super admin:', isSuperAdmin.value);
+        console.log('[AppSidebar] Permissions:', permissions.value);
     }
-];
+    
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Vouchers',
+            href: vouchersIndex.url(),
+            icon: Ticket,
+        },
+        {
+            title: 'Wallet',
+            href: '/wallet/load',
+            icon: Wallet,
+        },
+        {
+            title: 'Transactions',
+            href: transactionsIndex.url(),
+            icon: Receipt,
+        },
+        {
+            title: 'Contacts',
+            href: contactsIndex.url(),
+            icon: Users,
+        },
+    ];
+
+    // Add admin section if user is super-admin or has admin override
+    if (hasAdminAccess.value) {
+        // Add visual separator
+        items.push({ type: 'separator' } as NavItem);
+        
+        // Show all admin links for override users (they bypass permission checks)
+        if (isAdminOverride.value || permissions.value.includes('view all billing')) {
+            items.push({
+                title: 'Billing',
+                href: '/admin/billing',
+                icon: CreditCard,
+            });
+        }
+        
+        if (isAdminOverride.value || permissions.value.includes('manage pricing')) {
+            items.push({
+                title: 'Pricing',
+                href: '/admin/pricing',
+                icon: DollarSign,
+            });
+        }
+        
+        if (isAdminOverride.value || permissions.value.includes('manage preferences')) {
+            items.push({
+                title: 'Preferences',
+                href: '/admin/preferences',
+                icon: Settings2,
+            });
+        }
+    }
+
+    return items;
+});
 
 const footerNavItems: NavItem[] = [
     {
@@ -72,9 +120,9 @@ const footerNavItems: NavItem[] = [
         icon: TicketX,
     },
     {
-        title: 'Github Repo',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
+        title: 'Help',
+        href: '/help',
+        icon: HelpCircle,
     },
     {
         title: 'Documentation',

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import PreferencesController from '@/actions/App/Http/Controllers/Settings/PreferencesController';
-import { edit } from '@/routes/preferences';
+import PreferencesController from '@/actions/App/Http/Controllers/Admin/PreferencesController';
 import { Form, Head } from '@inertiajs/vue3';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -10,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/AppLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem } from '@/types';
 
 interface Props {
@@ -27,17 +25,21 @@ defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
+        title: 'Admin',
+        href: '/admin/billing',
+    },
+    {
         title: 'Preferences',
-        href: edit().url,
+        href: '/admin/preferences',
     },
 ];
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Preferences" />
+        <Head title="Admin - Preferences" />
 
-        <SettingsLayout>
+        <div class="px-4 py-6">
             <div class="flex flex-col space-y-6">
                 <HeadingSmall
                     title="Voucher Defaults"
@@ -143,6 +145,6 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     </div>
                 </Form>
             </div>
-        </SettingsLayout>
+        </div>
     </AppLayout>
 </template>

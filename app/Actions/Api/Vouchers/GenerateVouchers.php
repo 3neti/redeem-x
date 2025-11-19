@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use App\Actions\Billing\CalculateCharge;
 use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
 use App\Models\CampaignVoucher;
+use App\Models\VoucherGenerationCharge;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +53,22 @@ class GenerateVouchers
 
         // Generate vouchers using package action
         $vouchers = BaseGenerateVouchers::run($instructions);
+        
+        // Calculate and create billing record
+        $calculateCharge = app(CalculateCharge::class);
+        $breakdown = $calculateCharge->handle($request->user(), $instructions);
+        
+        VoucherGenerationCharge::create([
+            'user_id' => $request->user()->id,
+            'campaign_id' => $validated['campaign_id'] ?? null,
+            'voucher_codes' => $vouchers->pluck('code')->toArray(),
+            'voucher_count' => $vouchers->count(),
+            'instructions_snapshot' => $instructions->toArray(),
+            'charge_breakdown' => $breakdown->breakdown,
+            'total_charge' => $breakdown->total / 100,
+            'charge_per_voucher' => ($breakdown->total / $vouchers->count()) / 100,
+            'generated_at' => now(),
+        ]);
 
         // Attach vouchers to campaign if campaign_id provided
         if (!empty($validated['campaign_id'])) {

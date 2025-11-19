@@ -93,7 +93,7 @@ Route::middleware([
     // Admin routes (requires super-admin role)
     Route::prefix('admin')
         ->name('admin.')
-        ->middleware('role:super-admin')
+        ->middleware('admin.override')
         ->group(function () {
             // Pricing management
             Route::prefix('pricing')
@@ -117,6 +117,17 @@ Route::middleware([
                         ->name('index');
                     Route::get('{charge}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])
                         ->name('show');
+                });
+            
+            // Global voucher preferences (default settings for all users)
+            Route::prefix('preferences')
+                ->name('preferences.')
+                ->middleware('permission:manage preferences')
+                ->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Admin\PreferencesController::class, 'index'])
+                        ->name('index');
+                    Route::patch('/', [\App\Http\Controllers\Admin\PreferencesController::class, 'update'])
+                        ->name('update');
                 });
         });
 });
