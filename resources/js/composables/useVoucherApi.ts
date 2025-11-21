@@ -59,6 +59,34 @@ export interface GenerateVouchersResponse {
     currency: string;
 }
 
+export interface BulkVoucherItem {
+    mobile?: string;
+    external_metadata?: {
+        external_id?: string;
+        external_type?: string;
+        reference_id?: string;
+        user_id?: string;
+        custom?: Record<string, any>;
+    };
+}
+
+export interface BulkCreateVouchersRequest {
+    campaign_id: number;
+    vouchers: BulkVoucherItem[];
+}
+
+export interface BulkCreateVouchersResponse {
+    count: number;
+    vouchers: VoucherData[];
+    total_amount: number;
+    currency: string;
+    errors?: Array<{
+        index: number;
+        mobile?: string;
+        error: string;
+    }>;
+}
+
 export function useVoucherApi() {
     const loading = ref(false);
     const error = ref<ApiError | null>(null);
@@ -131,6 +159,23 @@ export function useVoucherApi() {
         }
     };
 
+    const bulkCreateVouchers = async (
+        data: BulkCreateVouchersRequest
+    ): Promise<BulkCreateVouchersResponse | null> => {
+        loading.value = true;
+        error.value = null;
+
+        try {
+            const response = await axios.post('/api/v1/vouchers/bulk-create', data);
+            return response.data.data;
+        } catch (err) {
+            error.value = handleError(err);
+            return null;
+        } finally {
+            loading.value = false;
+        }
+    };
+
     return {
         loading,
         error,
@@ -138,5 +183,6 @@ export function useVoucherApi() {
         showVoucher,
         generateVouchers,
         cancelVoucher,
+        bulkCreateVouchers,
     };
 }

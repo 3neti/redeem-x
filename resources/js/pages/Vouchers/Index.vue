@@ -13,6 +13,7 @@ import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
 import { VoucherCodeDisplay } from '@/components/voucher/views';
 import { create as voucherGenerate } from '@/actions/App/Http/Controllers/Vouchers/GenerateController';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { List } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -141,12 +142,20 @@ const viewVoucher = (code: string) => {
                     title="Vouchers"
                     description="Manage and track all your vouchers"
                 />
-                <Button as-child size="lg">
-                    <Link :href="voucherGenerate.url()">
-                        <Plus class="mr-2 h-4 w-4" />
-                        Generate Vouchers
-                    </Link>
-                </Button>
+                <div class="flex gap-2">
+                    <Button as-child variant="outline" size="lg">
+                        <Link href="/vouchers/generate/bulk">
+                            <List class="mr-2 h-4 w-4" />
+                            Bulk Generate
+                        </Link>
+                    </Button>
+                    <Button as-child size="lg">
+                        <Link :href="voucherGenerate.url()">
+                            <Plus class="mr-2 h-4 w-4" />
+                            Generate Vouchers
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             <!-- Stats Cards -->

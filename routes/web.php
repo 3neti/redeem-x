@@ -53,6 +53,10 @@ Route::middleware([
         Route::get('generate/success/{count}', [\App\Http\Controllers\Vouchers\GenerateController::class, 'success'])
             ->name('generate.success');
         
+        // Bulk voucher generation (SPA - no controller needed)
+        Route::get('generate/bulk', fn () => Inertia::render('vouchers/generate/BulkCreate'))
+            ->name('generate.bulk');
+        
         // Show specific voucher (must be last - catches everything)
         Route::get('{voucher}', [App\Http\Controllers\Vouchers\VoucherController::class, 'show'])
             ->name('show');
