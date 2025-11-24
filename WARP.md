@@ -416,6 +416,31 @@ This project uses Laravel Boost to provide AI agents (Claude Code, PhpStorm Juni
 - `application-info` - PHP/Laravel versions, packages, models
 - Full list: `php artisan boost:mcp --help`
 
+**Proactive Tool Usage Pattern:**
+AI assistants should use Boost tools proactively at these stages:
+
+**Investigation Phase** (before making changes):
+```bash
+php artisan boost:mcp database-query "SELECT COUNT(*) FROM table WHERE condition"
+php artisan boost:mcp database-schema table_name
+php artisan boost:mcp tinker "\$model = Model::first(); \$model->relationship;"
+php artisan boost:mcp search-docs "laravel model events"
+```
+
+**Development Phase** (while coding):
+```bash
+php artisan boost:mcp tinker "// Prototype solution interactively"
+php artisan boost:mcp list-artisan-commands | grep -i keyword
+```
+
+**Validation Phase** (after changes):
+```bash
+php artisan boost:mcp tinker "// Test changes interactively"
+php artisan boost:mcp browser-logs  # For frontend debugging
+```
+
+**When NOT to use:** Simple file reads, git operations, or when traditional tools are more efficient.
+
 **Custom Guidelines Location:**
 Project-specific AI guidelines are in `.ai/guidelines/` and include:
 - **Domain knowledge** - Vouchers, cash entities, payments, top-up system
