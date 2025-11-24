@@ -23,6 +23,8 @@ use LBHurtado\Voucher\Models\Voucher;
  * 1. Collect bank account (wallet)
  * 2. Dynamic plugin-based input collection
  * 3. Finalize and review
+ *
+ * @deprecated
  */
 class RedeemWizardController extends Controller
 {
@@ -67,13 +69,13 @@ class RedeemWizardController extends Controller
         // Store in session
         Session::put("redeem.{$voucherCode}.mobile", $validated['mobile']);
         Session::put("redeem.{$voucherCode}.country", $validated['country']);
-        
+
         // Store wallet as bank code string for backward compatibility
         if (! empty($validated['bank_code'])) {
             Session::put("redeem.{$voucherCode}.wallet", $validated['bank_code']);
             Session::put("redeem.{$voucherCode}.bank_code", $validated['bank_code']);
         }
-        
+
         if (! empty($validated['account_number'])) {
             Session::put("redeem.{$voucherCode}.account_number", $validated['account_number']);
         }

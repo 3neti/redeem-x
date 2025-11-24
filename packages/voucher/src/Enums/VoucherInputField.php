@@ -45,6 +45,7 @@ enum VoucherInputField: string
             self::LOCATION => 'Location',
             self::OTP => 'OTP',
             self::SELFIE => 'Selfie Photo',
+            self::KYC => 'Identity Verification (KYC)',
             // Add more custom labels here as needed
             default => $case->value,
         };

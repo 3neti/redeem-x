@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Voucher;
 
+use App\Exceptions\VoucherNotProcessedException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Models\Contact;
@@ -52,22 +53,39 @@ class ProcessRedemption
             'has_bank_account' => ! empty($bankAccount),
         ]);
 
+        // Check if voucher has been processed (cash entity created)
+        if (!$voucher->processed) {
+            Log::warning('[ProcessRedemption] Voucher not yet processed', [
+                'voucher' => $voucher->code,
+                'created_at' => $voucher->created_at,
+                'processed_on' => $voucher->processed_on,
+            ]);
+            
+            throw new VoucherNotProcessedException(
+                'This voucher is still being prepared. Please wait a moment and try again.'
+            );
+        }
+
         return DB::transaction(function () use ($voucher, $phoneNumber, $inputs, $bankAccount) {
             // Track redemption submission timing
             $voucher->trackRedemptionSubmit();
-            // Step 1: Validate location if required
+            
+            // Step 1: Get or create contact (needed for KYC validation)
+            $contact = Contact::fromPhoneNumber($phoneNumber);
+            
+            // Step 2: Validate KYC if required
+            $this->validateKYC($voucher, $contact);
+            
+            // Step 3: Validate location if required
             $this->validateLocation($voucher, $inputs);
 
-            // Step 2: Validate time if required
+            // Step 4: Validate time if required
             $this->validateTime($voucher);
 
-            // Step 3: Get or create contact
-            $contact = Contact::fromPhoneNumber($phoneNumber);
-
-            // Step 4: Prepare metadata for redemption
+            // Step 5: Prepare metadata for redemption
             $meta = $this->prepareMetadata($inputs, $bankAccount);
 
-            // Step 5: Mark voucher as redeemed (uses package action)
+            // Step 6: Mark voucher as redeemed (uses package action)
             $redeemed = RedeemVoucher::run($contact, $voucher->code, $meta);
 
             if (! $redeemed) {
@@ -92,6 +110,47 @@ class ProcessRedemption
 
             return true;
         });
+    }
+
+    /**
+     * Validate KYC if KYC input field is required.
+     *
+     * @param  Voucher  $voucher
+     * @param  Contact  $contact
+     * @return void
+     *
+     * @throws \RuntimeException  If KYC is required but not approved
+     */
+    protected function validateKYC(Voucher $voucher, Contact $contact): void
+    {
+        // Check if KYC is required
+        $kycRequired = in_array('kyc', $voucher->instructions->inputs->fields ?? []);
+        
+        if (!$kycRequired) {
+            Log::debug('[ProcessRedemption] KYC not required', [
+                'voucher' => $voucher->code,
+            ]);
+            return;
+        }
+        
+        // Validate contact has approved KYC
+        if (!$contact->isKycApproved()) {
+            Log::warning('[ProcessRedemption] KYC validation failed', [
+                'voucher' => $voucher->code,
+                'contact_id' => $contact->id,
+                'kyc_status' => $contact->kyc_status,
+            ]);
+            
+            throw new \RuntimeException(
+                'Identity verification required. Please complete KYC before redeeming.'
+            );
+        }
+        
+        Log::info('[ProcessRedemption] KYC validation passed', [
+            'voucher' => $voucher->code,
+            'contact_id' => $contact->id,
+            'kyc_status' => $contact->kyc_status,
+        ]);
     }
 
     /**

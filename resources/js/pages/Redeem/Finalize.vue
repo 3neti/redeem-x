@@ -6,11 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Loader2, AlertCircle, Copy, CheckCircle2 } from 'lucide-vue-next';
+import { CheckCircle, Loader2, AlertCircle, Copy, CheckCircle2, ShieldCheck, Clock } from 'lucide-vue-next';
 
 interface Props {
     voucher_code: string;
     config: any;
+    kyc?: {
+        required: boolean;
+        completed: boolean;
+        status: string | null;
+    };
+    voucher_processing?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -20,6 +26,7 @@ const finalizationData = ref<any>(null);
 const loading = ref(true);
 const submitting = ref(false);
 const error = ref<string | null>(null);
+const retryCountdown = ref(0);
 
 const formattedAmount = computed(() => {
     if (!finalizationData.value?.voucher) return '';
@@ -286,10 +293,30 @@ const handleBack = () => {
     router.visit(`/redeem/${props.voucher_code}/wallet`);
 };
 
+const startKYC = () => {
+    router.visit(`/redeem/${props.voucher_code}/kyc/initiate`);
+};
+
 onMounted(() => {
     // Fetch finalization data
     fetchFinalizationData();
+    
+    // If voucher is processing, show countdown
+    if (props.voucher_processing) {
+        error.value = 'This voucher is still being prepared. Please wait a moment and try again.';
+        startRetryCountdown();
+    }
 });
+
+const startRetryCountdown = () => {
+    retryCountdown.value = 3;
+    const interval = setInterval(() => {
+        retryCountdown.value--;
+        if (retryCountdown.value <= 0) {
+            clearInterval(interval);
+        }
+    }, 1000);
+};
 </script>
 
 <template>
@@ -302,10 +329,24 @@ onMounted(() => {
             </div>
 
             <!-- Error Alert -->
-            <Alert v-if="error" variant="destructive">
-                <AlertCircle class="h-4 w-4" />
-                <AlertDescription>
+            <Alert v-if="error" :variant="voucher_processing ? 'default' : 'destructive'" :class="{ 'border-blue-200 bg-blue-50': voucher_processing }">
+                <Clock v-if="voucher_processing" class="h-4 w-4 text-blue-600" />
+                <AlertCircle v-else class="h-4 w-4" />
+                <AlertDescription :class="{ 'text-blue-800': voucher_processing }">
                     {{ error }}
+                    <div v-if="voucher_processing && retryCountdown > 0" class="mt-2 font-semibold">
+                        Retry in {{ retryCountdown }} second{{ retryCountdown !== 1 ? 's' : '' }}...
+                    </div>
+                    <Button 
+                        v-if="voucher_processing && retryCountdown === 0" 
+                        @click="handleConfirm" 
+                        size="sm" 
+                        class="mt-3"
+                        :disabled="submitting"
+                    >
+                        <Loader2 v-if="submitting" class="h-4 w-4 mr-2 animate-spin" />
+                        {{ submitting ? 'Retrying...' : 'Retry Now' }}
+                    </Button>
                 </AlertDescription>
             </Alert>
 
@@ -415,6 +456,34 @@ onMounted(() => {
                     </CardContent>
                 </Card>
 
+                <!-- KYC Section (if required) -->
+                <Card v-if="kyc?.required" class="border-blue-200">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <ShieldCheck class="h-5 w-5" />
+                            Identity Verification
+                        </CardTitle>
+                        <CardDescription>KYC verification is required for this voucher</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div v-if="!kyc.completed" class="space-y-4">
+                            <Alert class="border-blue-200 bg-blue-50">
+                                <AlertDescription class="text-blue-800">
+                                    You must verify your identity before completing redemption.
+                                    This process takes 1-2 minutes.
+                                </AlertDescription>
+                            </Alert>
+                            <Button @click="startKYC" size="lg" class="w-full">
+                                Start Identity Verification
+                            </Button>
+                        </div>
+                        <div v-else class="flex items-center gap-2 text-green-600 p-3 rounded-lg bg-green-50">
+                            <CheckCircle class="w-5 h-5" />
+                            <span class="font-medium">Identity Verified</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <!-- Confirmation Notice -->
                 <Alert v-if="config?.show_confirmation_notice" class="border-amber-200 bg-amber-50">
                     <AlertCircle class="h-4 w-4 text-amber-600" />
@@ -443,10 +512,10 @@ onMounted(() => {
                         v-if="config?.action_buttons?.show_confirm_button"
                         class="flex-1"
                         @click="handleConfirm"
-                        :disabled="submitting"
+                        :disabled="submitting || (kyc?.required && !kyc?.completed)"
                     >
                         <Loader2 v-if="submitting" class="h-4 w-4 mr-2 animate-spin" />
-                        {{ submitting ? (config?.action_buttons?.confirm_button_processing_text || 'Processing...') : (config?.action_buttons?.confirm_button_text || 'Confirm Redemption') }}
+                        {{ submitting ? (config?.action_buttons?.confirm_button_processing_text || 'Processing...') : (kyc?.required && !kyc?.completed ? 'Complete KYC to Continue' : (config?.action_buttons?.confirm_button_text || 'Confirm Redemption')) }}
                     </Button>
                 </div>
             </template>

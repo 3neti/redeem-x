@@ -213,6 +213,72 @@ npm run dev          # Development with HMR
 - Instant generation (client-side, no API latency)
 - Reuses 80% of wallet QR components for consistent UX
 
+### KYC Redemption System
+**HyperVerge Integration** for identity verification during voucher redemption:
+- When the `kyc` input field is enabled on a voucher, the redeemer must complete KYC verification before redemption
+- **Important**: KYC is NOT a text input - it's handled as a special flow on the Finalize page (like location/selfie/signature)
+- KYC data is stored in the `Contact` model using **schemaless attributes** (via `HasAdditionalAttributes` trait) for flexibility
+- No additional database columns needed - all KYC data stored in the `meta` JSON column
+- Package: `3neti/hyperverge` v1.0+ (published on Packagist)
+
+**Redemption Flow with KYC**:
+1. User enters mobile number on Wallet page
+2. Completes all required inputs (location, selfie, signature, etc.)
+3. On Finalize page, if KYC required:
+   - "Identity Verification Required" card is displayed
+   - Click "Start Identity Verification" → Redirects to HyperVerge mobile flow
+4. User completes KYC in HyperVerge app (selfie + ID verification)
+5. Callback returns to KYCStatus page with auto-polling (every 5 seconds)
+6. On approval: Auto-redirects to Finalize page with KYC verified badge
+7. Confirm button enabled → Completes redemption with KYC validation
+
+**Contact Model KYC Fields** (schemaless attributes via `meta` column):
+- `kyc_transaction_id` - Unique HyperVerge transaction ID
+- `kyc_status` - Enum: pending, processing, approved, rejected, needs_review
+- `kyc_onboarding_url` - HyperVerge verification URL
+- `kyc_submitted_at` - When user completed KYC in app
+- `kyc_completed_at` - When HyperVerge processed results
+- `kyc_rejection_reasons` - Array of rejection reasons (if rejected)
+- All accessed via `$contact->kyc_status`, `$contact->kyc_transaction_id`, etc.
+- Stored in JSON `meta` column for flexibility (no schema changes needed)
+
+**KYC Actions**:
+- `InitiateContactKYC` - Generates HyperVerge onboarding link for contact
+- `ValidateContactKYC` - Checks if contact has approved KYC
+- `FetchContactKYCResult` - Retrieves results from HyperVerge, stores images, updates status
+- `ProcessRedemption::validateKYC()` - Validates KYC before redemption (blocks if not approved)
+
+**Controllers & Routes**:
+- `KYCRedemptionController` - Handles KYC flow:
+  - `GET /redeem/{voucher}/kyc/initiate` - Start KYC flow
+  - `GET /redeem/{voucher}/kyc/callback` - Handle HyperVerge callback
+  - `GET /redeem/{voucher}/kyc/status` - AJAX polling for status updates
+- `RedeemController::finalize()` - Checks KYC status and passes to frontend
+
+**Frontend Pages**:
+- `KYCStatus.vue` - Status page with auto-polling, shows pending/approved/rejected states
+- `Finalize.vue` - Updated with KYC card section:
+  - Shows "Start Identity Verification" button if not completed
+  - Shows "✓ Identity Verified" badge if approved
+  - Disables confirm button until KYC approved
+
+**Environment Variables**:
+```bash
+# HyperVerge API credentials (from 3neti/hyperverge package)
+HYPERVERGE_BASE_URL=https://ind.idv.hyperverge.co/v1
+HYPERVERGE_APP_ID=your_app_id
+HYPERVERGE_APP_KEY=your_app_key
+HYPERVERGE_URL_WORKFLOW=onboarding
+```
+
+**Key Features**:
+- **Contact-level KYC**: Once verified, contact can redeem multiple KYC vouchers without re-verification
+- **Auto-polling**: Status page updates every 5 seconds until approved/rejected
+- **Media storage**: KYC ID cards and selfies stored via Spatie Media Library
+- **Face verification**: `HasFaceVerification` trait enables future biometric auth
+- **Graceful errors**: Handles API timeouts, network errors, session expiration
+- **Mobile-optimized**: HyperVerge flow designed for mobile camera access
+
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.
 

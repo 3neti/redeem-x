@@ -30,10 +30,11 @@ const requiresSignature = computed(() => {
     return (storedData.value?.required_inputs || []).includes('signature');
 });
 
-// Get input fields that should be collected here (excluding location, selfie, signature)
+// Get input fields that should be collected here (excluding location, selfie, signature, kyc)
+// KYC is handled separately on the Finalize page, not as a text input
 const inputFields = computed(() => {
     return (storedData.value?.required_inputs || [])
-        .filter((field: string) => !['location', 'selfie', 'signature'].includes(field));
+        .filter((field: string) => !['location', 'selfie', 'signature', 'kyc'].includes(field));
 });
 
 const handleSubmit = async () => {

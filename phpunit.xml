@@ -32,5 +32,9 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="DISBURSE_DISABLE" value="true"/>
+        <env name="HYPERVERGE_BASE_URL" value="https://ind.idv.hyperverge.co/v1"/>
+        <env name="HYPERVERGE_APP_ID" value="hgqa2f"/>
+        <env name="HYPERVERGE_APP_KEY" value="omr7u46kwhrjf8ot96j4"/>
+        <env name="HYPERVERGE_URL_WORKFLOW" value="onboarding"/>
     </php>
 </phpunit>

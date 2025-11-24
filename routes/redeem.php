@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Redeem\{RedeemController, RedeemWizardController};
+use App\Http\Controllers\Redeem\{KYCRedemptionController, RedeemController};
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,7 +31,7 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
     Route::prefix('{voucher:code}')->group(function () {
         // Step 1: Collect bank account
         Route::get('/wallet', [RedeemController::class, 'wallet'])->name('wallet');
-        Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
+//        Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
 
         // Step 2: Inputs (API-first flow) - Collect email, birthdate, name, etc.
         Route::get('/inputs', [RedeemController::class, 'inputs'])->name('inputs');
@@ -48,6 +48,11 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         // Step 2d: Finalize - Review before confirmation
         Route::get('/finalize', [RedeemController::class, 'finalize'])->name('finalize');
 
+        // Step 2e: KYC routes (if required by voucher)
+        Route::get('/kyc/initiate', [KYCRedemptionController::class, 'initiate'])->name('kyc.initiate');
+        Route::get('/kyc/callback', [KYCRedemptionController::class, 'callback'])->name('kyc.callback');
+        Route::get('/kyc/status', [KYCRedemptionController::class, 'status'])->name('kyc.status');
+
         // Step 3: Finalize and review (wizard flow - must be before plugin route)
         // Note: This is handled by the same route above but renders FinalizeApi for API flow
 
@@ -57,8 +62,8 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         // Step 5: Success page
         Route::get('/success', [RedeemController::class, 'success'])->name('success');
 
-        // Step 2: Dynamic plugin-based input collection (must be last)
-        Route::get('/{plugin}', [RedeemWizardController::class, 'plugin'])->name('plugin');
-        Route::post('/{plugin}', [RedeemWizardController::class, 'storePlugin'])->name('plugin.store');
+//        // Step 2: Dynamic plugin-based input collection (must be last)
+//        Route::get('/{plugin}', [RedeemWizardController::class, 'plugin'])->name('plugin');
+//        Route::post('/{plugin}', [RedeemWizardController::class, 'storePlugin'])->name('plugin.store');
     });
 });

@@ -10,6 +10,9 @@ use LBHurtado\Contact\Traits\HasBankAccount;
 use LBHurtado\Contact\Contracts\Bankable;
 use LBHurtado\Contact\Traits\HasMobile;
 use Illuminate\Database\Eloquent\Model;
+use LBHurtado\HyperVerge\Traits\HasFaceVerification;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * Class Contact.
@@ -21,16 +24,24 @@ use Illuminate\Database\Eloquent\Model;
  * @property string      $bank_code
  * @property string      $account_number
  * @property string      $name
+ * @property string|null $kyc_transaction_id
+ * @property string|null $kyc_status
+ * @property string|null $kyc_onboarding_url
+ * @property string|null $kyc_submitted_at
+ * @property string|null $kyc_completed_at
+ * @property array|null  $kyc_rejection_reasons
  *
  * @method int getKey()
  */
-class Contact extends Model implements Bankable
+class Contact extends Model implements Bankable, HasMedia
 {
     use HasAdditionalAttributes;
     use HasBankAccount;
     use HasFactory;
+    use HasFaceVerification;
     use HasMobile;
     use HasMeta;
+    use InteractsWithMedia;
 
     protected $fillable = [
         'mobile',
@@ -62,6 +73,44 @@ class Contact extends Model implements Bankable
     public static function newFactory(): ContactFactory
     {
         return ContactFactory::new();
+    }
+
+    /**
+     * Register media collections for KYC images.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('kyc_id_cards')
+            ->useDisk('public');
+
+        $this->addMediaCollection('kyc_selfies')
+            ->useDisk('public');
+
+        $this->addMediaCollection('face_reference_selfies')
+            ->singleFile()
+            ->useDisk('public');
+
+        $this->addMediaCollection('face_verification_attempts')
+            ->useDisk('public');
+
+        $this->addMediaCollection('face_reference_selfies_archive')
+            ->useDisk('public');
+    }
+
+    /**
+     * Check if contact has approved KYC.
+     */
+    public function isKycApproved(): bool
+    {
+        return $this->kyc_status === 'approved';
+    }
+
+    /**
+     * Check if contact needs KYC verification.
+     */
+    public function needsKyc(): bool
+    {
+        return !$this->isKycApproved();
     }
 
     public function getBankCodeAttribute(): ?string

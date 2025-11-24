@@ -25,6 +25,66 @@ use LBHurtado\MoneyIssuer\Support\BankRegistry;
 class RedeemController extends Controller
 {
     /**
+     * Show the redemption start page.
+     * If code is provided in query string, validate and redirect to wallet step.
+     *
+     * @return Response|RedirectResponse
+     */
+    public function start(): Response|RedirectResponse
+    {
+        // Get code from query string
+        $code = request()->query('code');
+
+        // Only validate if this is an Inertia request (form submission)
+        // to avoid redirect loop when visiting /redeem?code=XXX directly
+        if ($code && request()->header('X-Inertia')) {
+            $code = strtoupper(trim($code));
+
+            try {
+                $voucher = Voucher::where('code', $code)->firstOrFail();
+
+                // Check if voucher can be redeemed
+                if ($voucher->isRedeemed()) {
+                    return redirect()->route('redeem.start')
+                        ->withInput(['code' => $code])
+                        ->withErrors([
+                            'code' => 'This voucher has already been redeemed.',
+                        ]);
+                }
+
+                if ($voucher->isExpired()) {
+                    return redirect()->route('redeem.start')
+                        ->withInput(['code' => $code])
+                        ->withErrors([
+                            'code' => 'This voucher has expired.',
+                        ]);
+                }
+
+                if ($voucher->starts_at && $voucher->starts_at->isFuture()) {
+                    return redirect()->route('redeem.start')
+                        ->withInput(['code' => $code])
+                        ->withErrors([
+                            'code' => 'This voucher is not yet active.',
+                        ]);
+                }
+
+                // Valid voucher, redirect to wallet
+                return redirect()->route('redeem.wallet', ['voucher' => $voucher->code]);
+            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                return redirect()->route('redeem.start')
+                    ->withInput(['code' => $code])
+                    ->withErrors([
+                        'code' => 'Invalid voucher code.',
+                    ]);
+            }
+        }
+
+        return Inertia::render('redeem/Start', [
+            'initial_code' => old('code', $code),
+        ]);
+    }
+
+    /**
      * Show the wallet page (API-first flow).
      *
      * @param  Voucher  $voucher
@@ -36,14 +96,14 @@ class RedeemController extends Controller
         // TODO: Implement PesoNet settlement rail support in addition to InstaPay
         $bankRegistry = new BankRegistry();
         $allowedRails = config('redeem.bank_select.allowed_settlement_rails', ['INSTAPAY']);
-        
+
         $banks = collect($bankRegistry->all())
             ->filter(function ($bank) use ($allowedRails) {
                 // If no rails specified, include all banks
                 if (empty($allowedRails)) {
                     return true;
                 }
-                
+
                 // Check if bank has any of the allowed settlement rails
                 $bankRails = array_keys($bank['settlement_rail'] ?? []);
                 return !empty(array_intersect($bankRails, $allowedRails));
@@ -78,6 +138,20 @@ class RedeemController extends Controller
                     'widget' => config('redeem.widget'),
                 ]
             ),
+        ]);
+    }
+
+    /**
+     * Show the inputs page (API-first flow).
+     * Collects email, birthdate, name, and other text inputs.
+     *
+     * @param  Voucher  $voucher
+     * @return Response
+     */
+    public function inputs(Voucher $voucher): Response
+    {
+        return Inertia::render('redeem/Inputs', [
+            'voucher_code' => $voucher->code,
         ]);
     }
 
@@ -123,20 +197,6 @@ class RedeemController extends Controller
     }
 
     /**
-     * Show the inputs page (API-first flow).
-     * Collects email, birthdate, name, and other text inputs.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
-     */
-    public function inputs(Voucher $voucher): Response
-    {
-        return Inertia::render('redeem/Inputs', [
-            'voucher_code' => $voucher->code,
-        ]);
-    }
-
-    /**
      * Show the finalize page.
      * This page displays a summary of all collected data before final confirmation.
      *
@@ -145,69 +205,36 @@ class RedeemController extends Controller
      */
     public function finalize(Voucher $voucher): Response
     {
+        // Check if KYC is required
+        $kycRequired = in_array('kyc', $voucher->instructions->inputs->fields ?? []);
+
+        $kycStatus = null;
+        if ($kycRequired) {
+            $mobile = Session::get("redeem.{$voucher->code}.mobile");
+            $country = Session::get("redeem.{$voucher->code}.country", 'PH');
+
+            if ($mobile) {
+                $phoneNumber = new PhoneNumber($mobile, $country);
+                $contact = Contact::fromPhoneNumber($phoneNumber);
+
+                $kycStatus = [
+                    'required' => true,
+                    'completed' => $contact->isKycApproved(),
+                    'status' => $contact->kyc_status,
+                ];
+            } else {
+                $kycStatus = [
+                    'required' => true,
+                    'completed' => false,
+                    'status' => null,
+                ];
+            }
+        }
+
         return Inertia::render('redeem/Finalize', [
             'voucher_code' => $voucher->code,
             'config' => config('redeem.finalize'),
-        ]);
-    }
-
-    /**
-     * Show the redemption start page.
-     * If code is provided in query string, validate and redirect to wallet step.
-     *
-     * @return Response|RedirectResponse
-     */
-    public function start(): Response|RedirectResponse
-    {
-        // Get code from query string
-        $code = request()->query('code');
-        
-        // Only validate if this is an Inertia request (form submission)
-        // to avoid redirect loop when visiting /redeem?code=XXX directly
-        if ($code && request()->header('X-Inertia')) {
-            $code = strtoupper(trim($code));
-            
-            try {
-                $voucher = Voucher::where('code', $code)->firstOrFail();
-                
-                // Check if voucher can be redeemed
-                if ($voucher->isRedeemed()) {
-                    return redirect()->route('redeem.start')
-                        ->withInput(['code' => $code])
-                        ->withErrors([
-                            'code' => 'This voucher has already been redeemed.',
-                        ]);
-                }
-                
-                if ($voucher->isExpired()) {
-                    return redirect()->route('redeem.start')
-                        ->withInput(['code' => $code])
-                        ->withErrors([
-                            'code' => 'This voucher has expired.',
-                        ]);
-                }
-                
-                if ($voucher->starts_at && $voucher->starts_at->isFuture()) {
-                    return redirect()->route('redeem.start')
-                        ->withInput(['code' => $code])
-                        ->withErrors([
-                            'code' => 'This voucher is not yet active.',
-                        ]);
-                }
-                
-                // Valid voucher, redirect to wallet
-                return redirect()->route('redeem.wallet', ['voucher' => $voucher->code]);
-            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-                return redirect()->route('redeem.start')
-                    ->withInput(['code' => $code])
-                    ->withErrors([
-                        'code' => 'Invalid voucher code.',
-                    ]);
-            }
-        }
-        
-        return Inertia::render('redeem/Start', [
-            'initial_code' => old('code', $code),
+            'kyc' => $kycStatus,
         ]);
     }
 
@@ -281,6 +308,17 @@ class RedeemController extends Controller
             return redirect()
                 ->route('redeem.success', $voucher)
                 ->with('success', 'Voucher redeemed successfully!');
+        } catch (\App\Exceptions\VoucherNotProcessedException $e) {
+            // Voucher still being processed - return 425 with retry guidance
+            Log::info('[RedeemController] Voucher not yet processed', [
+                'voucher' => $voucherCode,
+                'retry_after' => 3,
+            ]);
+
+            return redirect()
+                ->route('redeem.finalize', $voucher)
+                ->with('voucher_processing', true)
+                ->with('error', $e->getMessage());
         } catch (\Throwable $e) {
             Log::error('[RedeemController] Redemption failed', [
                 'voucher' => $voucherCode,
