@@ -197,6 +197,53 @@ class RedeemController extends Controller
     }
 
     /**
+     * Store redemption session data (called from frontend before navigation).
+     * This ensures session data is available for KYC and other backend operations.
+     *
+     * @param  Voucher  $voucher
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeSession(Voucher $voucher): \Illuminate\Http\JsonResponse
+    {
+        $data = request()->validate([
+            'mobile' => 'required|string',
+            'country' => 'required|string',
+            'secret' => 'nullable|string',
+            'bank_code' => 'nullable|string',
+            'account_number' => 'nullable|string',
+            'inputs' => 'nullable|array',
+        ]);
+
+        Log::debug('[RedeemController] Storing session data', [
+            'voucher' => $voucher->code,
+            'mobile' => $data['mobile'],
+            'has_inputs' => !empty($data['inputs']),
+        ]);
+
+        // Store in Laravel session
+        Session::put("redeem.{$voucher->code}.mobile", $data['mobile']);
+        Session::put("redeem.{$voucher->code}.country", $data['country']);
+        
+        if (!empty($data['secret'])) {
+            Session::put("redeem.{$voucher->code}.secret", $data['secret']);
+        }
+        
+        if (!empty($data['bank_code'])) {
+            Session::put("redeem.{$voucher->code}.bank_code", $data['bank_code']);
+        }
+        
+        if (!empty($data['account_number'])) {
+            Session::put("redeem.{$voucher->code}.account_number", $data['account_number']);
+        }
+        
+        if (!empty($data['inputs'])) {
+            Session::put("redeem.{$voucher->code}.inputs", $data['inputs']);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Show the finalize page.
      * This page displays a summary of all collected data before final confirmation.
      *

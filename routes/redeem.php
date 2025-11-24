@@ -45,6 +45,9 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         // Step 2c: Signature (API-first flow)
         Route::get('/signature', [RedeemController::class, 'signature'])->name('signature');
 
+        // Store session data (called from frontend before navigation)
+        Route::post('/session', [RedeemController::class, 'storeSession'])->name('session.store');
+
         // Step 2d: Finalize - Review before confirmation
         Route::get('/finalize', [RedeemController::class, 'finalize'])->name('finalize');
 

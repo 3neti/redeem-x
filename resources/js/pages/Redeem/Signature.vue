@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useRedemptionApi } from '@/composables/useRedemptionApi';
 import PublicLayout from '@/layouts/PublicLayout.vue';
@@ -86,6 +86,10 @@ const clearSignature = () => {
     signature.value = '';
 };
 
+const requiresKYC = computed(() => {
+    return (storedData.value?.required_inputs || []).includes('kyc');
+});
+
 const handleSubmit = async () => {
     if (!canvas.value || !hasSignature.value || !storedData.value) return;
 
@@ -104,8 +108,12 @@ const handleSubmit = async () => {
         
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(updatedData));
         
-        // Navigate to finalize page
-        router.visit(`/redeem/${props.voucher_code}/finalize`);
+        // If KYC is required, navigate to KYC initiate, otherwise go to finalize
+        if (requiresKYC.value) {
+            router.visit(`/redeem/${props.voucher_code}/kyc/initiate`);
+        } else {
+            router.visit(`/redeem/${props.voucher_code}/finalize`);
+        }
     } catch (err: any) {
         console.error('Navigation failed:', err);
     }

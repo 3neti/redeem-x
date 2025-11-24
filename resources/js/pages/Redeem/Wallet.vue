@@ -164,6 +164,10 @@ const requiresSignature = computed(() => {
     return (voucherInfo.value?.required_inputs || []).includes('signature');
 });
 
+const requiresKYC = computed(() => {
+    return (voucherInfo.value?.required_inputs || []).includes('kyc');
+});
+
 
 const handleSubmit = async () => {
     validationErrors.value = {};
@@ -188,15 +192,33 @@ const handleSubmit = async () => {
     
     if (isDev) console.log('[Wallet] handleSubmit - Stored data to save:', storedData);
     
-    // Check if there are text-based inputs (not location, selfie, signature)
+    // Store in Laravel session (for backend access, e.g. KYC)
+    try {
+        await fetch(`/redeem/${props.voucher_code}/session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify(storedData),
+        });
+        if (isDev) console.log('[Wallet] handleSubmit - Session stored on backend');
+    } catch (err) {
+        console.error('[Wallet] handleSubmit - Failed to store session:', err);
+        // Continue anyway - sessionStorage fallback
+    }
+    
+    // Check if there are text-based inputs (not location, selfie, signature, kyc)
     const textBasedInputs = (voucherInfo.value?.required_inputs || [])
-        .filter((input: string) => !['location', 'selfie', 'signature'].includes(input));
+        .filter((input: string) => !['location', 'selfie', 'signature', 'kyc'].includes(input));
     
     if (isDev) {
         console.log('[Wallet] handleSubmit - Text-based inputs:', textBasedInputs);
         console.log('[Wallet] handleSubmit - requiresLocation:', requiresLocation.value);
         console.log('[Wallet] handleSubmit - requiresSelfie:', requiresSelfie.value);
         console.log('[Wallet] handleSubmit - requiresSignature:', requiresSignature.value);
+        console.log('[Wallet] handleSubmit - requiresKYC:', requiresKYC.value);
     }
     
     // If there are text-based inputs, go to Inputs page
@@ -228,6 +250,14 @@ const handleSubmit = async () => {
         if (isDev) console.log('[Wallet] handleSubmit - Navigating to signature page');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
         router.visit(`/redeem/${props.voucher_code}/signature`);
+        return;
+    }
+    
+    // If KYC is required (but not location/selfie/signature), save data and navigate to KYC initiate
+    if (requiresKYC.value) {
+        if (isDev) console.log('[Wallet] handleSubmit - Navigating to KYC initiate');
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
+        router.visit(`/redeem/${props.voucher_code}/kyc/initiate`);
         return;
     }
     
