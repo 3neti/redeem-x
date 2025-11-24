@@ -192,23 +192,6 @@ const handleSubmit = async () => {
     
     if (isDev) console.log('[Wallet] handleSubmit - Stored data to save:', storedData);
     
-    // Store in Laravel session (for backend access, e.g. KYC)
-    try {
-        await fetch(`/redeem/${props.voucher_code}/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-            body: JSON.stringify(storedData),
-        });
-        if (isDev) console.log('[Wallet] handleSubmit - Session stored on backend');
-    } catch (err) {
-        console.error('[Wallet] handleSubmit - Failed to store session:', err);
-        // Continue anyway - sessionStorage fallback
-    }
-    
     // Check if there are text-based inputs (not location, selfie, signature, kyc)
     const textBasedInputs = (voucherInfo.value?.required_inputs || [])
         .filter((input: string) => !['location', 'selfie', 'signature', 'kyc'].includes(input));
@@ -257,7 +240,9 @@ const handleSubmit = async () => {
     if (requiresKYC.value) {
         if (isDev) console.log('[Wallet] handleSubmit - Navigating to KYC initiate');
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(storedData));
-        router.visit(`/redeem/${props.voucher_code}/kyc/initiate`);
+        const mobile = storedData.mobile;
+        const country = storedData.country || 'PH';
+        router.visit(`/redeem/${props.voucher_code}/kyc/initiate?mobile=${encodeURIComponent(mobile)}&country=${encodeURIComponent(country)}`);
         return;
     }
     

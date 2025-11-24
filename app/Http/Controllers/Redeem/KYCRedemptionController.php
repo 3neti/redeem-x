@@ -25,25 +25,31 @@ class KYCRedemptionController extends Controller
 {
     /**
      * Initiate KYC verification for the redeemer.
-     * 
-     * Gets mobile from session, creates/finds contact, generates HyperVerge link,
+     *
+     * Gets mobile from request or session, creates/finds contact, generates HyperVerge link,
      * and redirects user to HyperVerge mobile flow.
      */
-    public function initiate(Voucher $voucher): RedirectResponse
+    public function initiate(Request $request, Voucher $voucher): \Symfony\Component\HttpFoundation\Response|RedirectResponse
     {
-        // Get mobile from session
-        $mobile = Session::get("redeem.{$voucher->code}.mobile");
-        $country = Session::get("redeem.{$voucher->code}.country", 'PH');
+        // Get mobile from request query params (passed from frontend) or session
+        $mobile = $request->query('mobile') ?? Session::get("redeem.{$voucher->code}.mobile");
+        $country = $request->query('country') ?? Session::get("redeem.{$voucher->code}.country", 'PH');
 
         if (!$mobile) {
-            Log::error('[KYCRedemptionController] No mobile in session', [
+            Log::error('[KYCRedemptionController] No mobile provided', [
                 'voucher' => $voucher->code,
+                'has_request_mobile' => $request->has('mobile'),
+                'has_session_mobile' => Session::has("redeem.{$voucher->code}.mobile"),
             ]);
 
             return redirect()
                 ->route('redeem.wallet', $voucher)
                 ->with('error', 'Mobile number is required for KYC verification.');
         }
+
+        // Store in session for callback/status endpoints
+        Session::put("redeem.{$voucher->code}.mobile", $mobile);
+        Session::put("redeem.{$voucher->code}.country", $country);
 
         // Get or create contact
         $phoneNumber = new PhoneNumber($mobile, $country);
@@ -77,8 +83,8 @@ class KYCRedemptionController extends Controller
                 'onboarding_url' => $contact->kyc_onboarding_url,
             ]);
 
-            // Redirect to HyperVerge
-            return redirect()->away($contact->kyc_onboarding_url);
+            // Use Inertia location for external redirect (prevents CORS)
+            return Inertia::location($contact->kyc_onboarding_url);
         } catch (\Exception $e) {
             Log::error('[KYCRedemptionController] Failed to initiate KYC', [
                 'voucher' => $voucher->code,
@@ -94,7 +100,7 @@ class KYCRedemptionController extends Controller
 
     /**
      * Handle callback from HyperVerge after user completes KYC.
-     * 
+     *
      * This is where HyperVerge redirects the user after they complete
      * the verification process in their mobile app.
      */
@@ -139,7 +145,7 @@ class KYCRedemptionController extends Controller
 
     /**
      * Check KYC status for a contact (AJAX polling endpoint).
-     * 
+     *
      * Fetches latest results from HyperVerge and returns current status.
      */
     public function status(Request $request, Voucher $voucher): JsonResponse

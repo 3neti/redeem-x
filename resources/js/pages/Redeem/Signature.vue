@@ -96,6 +96,27 @@ const handleSubmit = async () => {
     // Convert canvas to base64 data URL with configured quality
     signature.value = canvas.value.toDataURL(props.image_config.format, props.image_config.quality);
 
+    // If KYC is required, navigate to KYC initiate
+    if (requiresKYC.value) {
+        // Update stored data with signature
+        const updatedData = {
+            ...storedData.value,
+            inputs: {
+                ...storedData.value.inputs,
+                signature: signature.value,
+            },
+        };
+        
+        sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(updatedData));
+        
+        // Navigate to KYC initiate page with mobile/country as query params
+        const mobile = storedData.value.mobile;
+        const country = storedData.value.country || 'PH';
+        router.visit(`/redeem/${props.voucher_code}/kyc/initiate?mobile=${encodeURIComponent(mobile)}&country=${encodeURIComponent(country)}`);
+        return;
+    }
+    
+    // Otherwise, proceed to finalize page for confirmation
     try {
         // Update stored data with signature
         const updatedData = {
@@ -108,14 +129,10 @@ const handleSubmit = async () => {
         
         sessionStorage.setItem(`redeem_${props.voucher_code}`, JSON.stringify(updatedData));
         
-        // If KYC is required, navigate to KYC initiate, otherwise go to finalize
-        if (requiresKYC.value) {
-            router.visit(`/redeem/${props.voucher_code}/kyc/initiate`);
-        } else {
-            router.visit(`/redeem/${props.voucher_code}/finalize`);
-        }
+        // Navigate to finalize page
+        router.visit(`/redeem/${props.voucher_code}/finalize`);
     } catch (err: any) {
-        console.error('Navigation failed:', err);
+        console.error('[Signature] handleSubmit - Navigation failed:', err);
     }
 };
 
