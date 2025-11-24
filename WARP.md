@@ -403,6 +403,38 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 
 ## Important Notes
 
+### AI Development with Laravel Boost
+This project uses Laravel Boost to provide AI agents (Claude Code, PhpStorm Junie, etc.) with contextual understanding of the codebase.
+
+**Available MCP Tools:**
+- `search-docs` - Search Laravel ecosystem documentation (version-specific)
+- `tinker` - Execute PHP code in application context
+- `database-query` - Query database directly
+- `database-schema` - Read database schema
+- `list-artisan-commands` - List available Artisan commands
+- `browser-logs` - Read frontend error logs
+- `application-info` - PHP/Laravel versions, packages, models
+- Full list: `php artisan boost:mcp --help`
+
+**Custom Guidelines Location:**
+Project-specific AI guidelines are in `.ai/guidelines/` and include:
+- **Domain knowledge** - Vouchers, cash entities, payments, top-up system
+- **Package documentation** - All 9 mono-repo packages
+- **Testing patterns** - Pest v4, factories, mocking strategies
+- **Frontend conventions** - Vue 3, Inertia.js, Wayfinder patterns
+- **Artisan commands** - Custom test commands with examples
+
+**Updating Guidelines:**
+```bash
+# Refresh Laravel ecosystem guidelines after package updates
+php artisan boost:update
+
+# Regenerate all guideline files
+php artisan boost:install
+```
+
+Custom guidelines in `.ai/guidelines/` take precedence over generic guidelines. See `.ai/guidelines/README.md` for complete documentation.
+
 ### Wayfinder Route Generation
 When adding or modifying Laravel routes, Wayfinder automatically regenerates TypeScript route definitions. Do not manually edit files in `resources/js/actions/` - they are auto-generated.
 
