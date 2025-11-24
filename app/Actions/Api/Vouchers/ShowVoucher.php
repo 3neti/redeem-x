@@ -6,6 +6,7 @@ namespace App\Actions\Api\Vouchers;
 
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use LBHurtado\Contact\Data\ContactData;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
@@ -51,14 +52,10 @@ class ShowVoucher
         }
 
         // If voucher is redeemed, include redeemer details
-        if ($voucher->isRedeemed()) {
-            $redeemer = $voucher->redeemers->first();
-            $contact = $redeemer?->redeemer; // Get the actual Contact model
-            $response['redeemed_by'] = [
-                'mobile' => $contact?->mobile,
-                'name' => $contact?->name,
-                'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
-            ];
+        if ($voucher->isRedeemed() && $voucher->contact) {
+            $contactData = ContactData::fromModel($voucher->contact)->toArray();
+            $contactData['redeemed_at'] = $voucher->redeemed_at?->toIso8601String();
+            $response['redeemed_by'] = $contactData;
         }
 
         return ApiResponse::success($response);

@@ -22,8 +22,8 @@ class ContactData extends Data
             mobile: $contact->mobile,
             country: $contact->country,
             bank_account: $contact->bank_account,
-            bank_code: $contact->bank_code,
-            account_number: $contact->account_number,
+            bank_code: $contact->bank_account ? $contact->bank_code : null,
+            account_number: $contact->bank_account ? $contact->account_number : null,
             name: $contact->name
         );
     }

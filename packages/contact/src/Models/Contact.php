@@ -64,13 +64,19 @@ class Contact extends Model implements Bankable
         return ContactFactory::new();
     }
 
-    public function getBankCodeAttribute(): string
+    public function getBankCodeAttribute(): ?string
     {
+        if (!$this->bank_account) {
+            return null;
+        }
         return $this->getBankCode();
     }
 
-    public function getAccountNumberAttribute(): string
+    public function getAccountNumberAttribute(): ?string
     {
+        if (!$this->bank_account) {
+            return null;
+        }
         return $this->getAccountNumber();
     }
     

@@ -84,21 +84,13 @@ class SubmitWallet
             // Process redemption
             ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
 
-            // Reload voucher
+            // Reload voucher with relationships
             $voucher->refresh();
+            $voucher->load(['contact', 'cash', 'inputs']);
 
             return ApiResponse::success([
                 'message' => 'Voucher redeemed successfully!',
-                'voucher' => [
-                    'code' => $voucher->code,
-                    'amount' => $voucher->instructions->cash->amount ?? 0,
-                    'currency' => $voucher->instructions->cash->currency ?? 'PHP',
-                    'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
-                ],
-                'rider' => [
-                    'message' => $voucher->instructions->rider->message ?? null,
-                    'url' => $voucher->instructions->rider->url ?? null,
-                ],
+                'voucher' => VoucherData::fromModel($voucher),
             ]);
         } catch (\Throwable $e) {
             \Log::error('[SubmitWallet] Redemption failed', [

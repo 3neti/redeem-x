@@ -2,29 +2,26 @@
 
 ## Package Issues
 
-### Fix the Contact/bank_account issue in the package
+### ✅ RESOLVED: Contact/bank_account issue in the package
 
 **Issue**: When loading VoucherData DTOs, if the voucher has a `contact` relationship (e.g., after redemption), the ContactData transformation fails because it expects a `bank_account` string but receives `null`.
 
-**Current Workaround**: In `SubmitWallet` action, we return a simplified array instead of VoucherData DTO after redemption to avoid loading the contact relationship.
+**Solution Implemented**:
+1. **Phase 1**: Added defensive null checks in `ContactData::fromModel()` - only accesses `bank_code` and `account_number` accessors if `bank_account` is not null
+2. **Phase 2**: Added null guards in Contact model accessors (`getBankCodeAttribute()` and `getAccountNumberAttribute()`)
+3. **Phase 3**: Created migration to backfill null `bank_account` values with default format (`{BANK_CODE}:{mobile}`)
+4. **Phase 4**: Removed workarounds:
+   - `SubmitWallet.php` now returns full `VoucherData` DTO
+   - `ShowVoucher.php` now returns `ContactData` DTO for `redeemed_by`
 
-**Affected Files**:
-- `app/Actions/Api/Redemption/SubmitWallet.php` (lines 92-97)
-- `packages/contact/src/Data/ContactData.php`
-- `packages/contact/src/Classes/BankAccount.php`
+**Files Modified**:
+- `packages/contact/src/Data/ContactData.php` - Added null checks
+- `packages/contact/src/Models/Contact.php` - Made accessors nullable with guards
+- `database/migrations/2025_11_24_110956_backfill_contact_bank_accounts.php` - Backfill migration
+- `app/Actions/Api/Redemption/SubmitWallet.php` - Now uses VoucherData DTO
+- `app/Actions/Api/Vouchers/ShowVoucher.php` - Now uses ContactData DTO
 
-**Root Cause**: 
-- `Contact::fromPhoneNumber()` creates contacts with mobile and country only
-- The `booted()` method should set default bank_account, but it seems to fail in some edge cases
-- `ContactData::fromModel()` tries to call `BankAccount::fromBankAccount()` which requires a non-null string
-
-**Potential Solutions**:
-1. Ensure `Contact::booted()` always sets bank_account before model is saved
-2. Make `BankAccount::fromBankAccount()` accept nullable string and return null
-3. Add null check in ContactData before transforming bank_account
-4. Make bank_account optional in ContactData
-
-**Impact**: Medium - Currently prevents full DTO usage in redemption responses, requires manual property access in some places.
+**Status**: ✅ Complete - All tests passing, DTOs used consistently across API responses
 
 ---
 
