@@ -67,6 +67,12 @@ const capturedItems = computed(() => {
     const items = [];
     const inputs = finalizationData.value?.inputs || {};
     
+    console.log('[Finalize] capturedItems computed');
+    console.log('[Finalize] props.kyc:', props.kyc);
+    console.log('[Finalize] kyc?.required:', props.kyc?.required);
+    console.log('[Finalize] kyc?.completed:', props.kyc?.completed);
+    console.log('[Finalize] kyc?.status:', props.kyc?.status);
+    
     if (inputs.location) {
         items.push({ type: 'location', label: 'Location' });
     }
@@ -76,7 +82,19 @@ const capturedItems = computed(() => {
     if (inputs.signature || finalizationData.value?.has_signature) {
         items.push({ type: 'signature', label: 'Signature' });
     }
+    // Add KYC if required and completed
+    if (props.kyc?.required && props.kyc?.completed) {
+        console.log('[Finalize] ✅ Adding KYC to captured items');
+        items.push({ type: 'kyc', label: 'Identity Verified' });
+    } else {
+        console.log('[Finalize] ❌ NOT adding KYC:', {
+            required: props.kyc?.required,
+            completed: props.kyc?.completed,
+            condition: props.kyc?.required && props.kyc?.completed
+        });
+    }
     
+    console.log('[Finalize] Final captured items:', items);
     return items;
 });
 

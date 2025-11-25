@@ -252,8 +252,22 @@ class RedeemController extends Controller
      */
     public function finalize(Voucher $voucher): Response
     {
+        Log::info('[RedeemController] finalize method called', [
+            'voucher' => $voucher->code,
+        ]);
+        
         // Check if KYC is required
-        $kycRequired = in_array('kyc', $voucher->instructions->inputs->fields ?? []);
+        $inputFields = array_map(
+            fn($field) => $field->value ?? $field, 
+            $voucher->instructions->inputs->fields ?? []
+        );
+        $kycRequired = in_array('kyc', $inputFields);
+        
+        Log::info('[RedeemController] finalize - KYC required check', [
+            'voucher' => $voucher->code,
+            'kyc_required' => $kycRequired,
+            'inputs_fields' => $inputFields,
+        ]);
 
         $kycStatus = null;
         if ($kycRequired) {
@@ -264,12 +278,23 @@ class RedeemController extends Controller
                 $phoneNumber = new PhoneNumber($mobile, $country);
                 $contact = Contact::fromPhoneNumber($phoneNumber);
 
+                Log::debug('[RedeemController] finalize - KYC check', [
+                    'voucher' => $voucher->code,
+                    'contact_id' => $contact->id,
+                    'kyc_status' => $contact->kyc_status,
+                    'is_approved' => $contact->isKycApproved(),
+                ]);
+
                 $kycStatus = [
                     'required' => true,
                     'completed' => $contact->isKycApproved(),
                     'status' => $contact->kyc_status,
                 ];
             } else {
+                Log::warning('[RedeemController] finalize - No mobile in session for KYC check', [
+                    'voucher' => $voucher->code,
+                ]);
+
                 $kycStatus = [
                     'required' => true,
                     'completed' => false,

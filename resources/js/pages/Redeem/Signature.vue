@@ -96,6 +96,10 @@ const handleSubmit = async () => {
     // Convert canvas to base64 data URL with configured quality
     signature.value = canvas.value.toDataURL(props.image_config.format, props.image_config.quality);
 
+    console.log('[Signature] handleSubmit - storedData:', storedData.value);
+    console.log('[Signature] handleSubmit - required_inputs:', storedData.value?.required_inputs);
+    console.log('[Signature] handleSubmit - requiresKYC:', requiresKYC.value);
+
     // If KYC is required, navigate to KYC initiate
     if (requiresKYC.value) {
         // Update stored data with signature
@@ -112,7 +116,10 @@ const handleSubmit = async () => {
         // Navigate to KYC initiate page with mobile/country as query params
         const mobile = storedData.value.mobile;
         const country = storedData.value.country || 'PH';
-        router.visit(`/redeem/${props.voucher_code}/kyc/initiate?mobile=${encodeURIComponent(mobile)}&country=${encodeURIComponent(country)}`);
+        const kycUrl = `/redeem/${props.voucher_code}/kyc/initiate?mobile=${encodeURIComponent(mobile)}&country=${encodeURIComponent(country)}`;
+        
+        console.log('[Signature] ✅ Navigating to KYC:', kycUrl);
+        router.visit(kycUrl);
         return;
     }
     

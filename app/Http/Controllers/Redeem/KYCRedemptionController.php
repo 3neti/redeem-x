@@ -69,8 +69,8 @@ class KYCRedemptionController extends Controller
             ]);
 
             return redirect()
-                ->route('redeem.confirm', $voucher)
-                ->with('success', 'KYC already verified. Proceeding to redemption.');
+                ->route('redeem.finalize', $voucher)
+                ->with('success', 'Identity already verified!');
         }
 
         // Generate onboarding link
@@ -123,18 +123,54 @@ class KYCRedemptionController extends Controller
         $phoneNumber = new PhoneNumber($mobile, $country);
         $contact = Contact::fromPhoneNumber($phoneNumber);
 
+        // Check callback status from HyperVerge
+        $callbackStatus = $request->query('status');
+        $transactionId = $request->query('transactionId');
+
         Log::info('[KYCRedemptionController] KYC callback received', [
             'voucher' => $voucher->code,
             'contact_id' => $contact->id,
-            'transaction_id' => $contact->kyc_transaction_id,
+            'transaction_id' => $transactionId,
+            'callback_status' => $callbackStatus,
         ]);
+
+        // Handle user cancellation
+        if ($callbackStatus === 'user_cancelled') {
+            Log::warning('[KYCRedemptionController] User cancelled KYC', [
+                'voucher' => $voucher->code,
+                'contact_id' => $contact->id,
+            ]);
+
+            return redirect()
+                ->route('redeem.start', ['code' => $voucher->code])
+                ->with('error', 'Identity verification was cancelled. Please try again when ready.');
+        }
+
+        // Handle auto-approval (instant approval from HyperVerge)
+        if ($callbackStatus === 'auto_approved') {
+            Log::info('[KYCRedemptionController] KYC auto-approved', [
+                'voucher' => $voucher->code,
+                'contact_id' => $contact->id,
+                'transaction_id' => $transactionId,
+            ]);
+
+            $contact->update([
+                'kyc_status' => 'approved',
+                'kyc_submitted_at' => now(),
+                'kyc_completed_at' => now(),
+            ]);
+
+            // Redirect directly to finalize (KYC complete)
+            return redirect()
+                ->route('redeem.finalize', $voucher)
+                ->with('success', 'Identity verified successfully!');
+        }
 
         // Update status to processing (webhook will update to approved/rejected)
         $contact->update([
             'kyc_status' => 'processing',
             'kyc_submitted_at' => now(),
         ]);
-
         // Render status page (with polling)
         return Inertia::render('redeem/KYCStatus', [
             'voucher_code' => $voucher->code,
@@ -169,6 +205,13 @@ class KYCRedemptionController extends Controller
             try {
                 FetchContactKYCResult::run($contact);
                 $contact->refresh();
+            } catch (\TypeError $e) {
+                // HyperVerge API returned unexpected format
+                Log::warning('[KYCRedemptionController] KYC result validation failed', [
+                    'contact_id' => $contact->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Keep status as processing, will retry on next poll
             } catch (\Exception $e) {
                 // Still processing, return current status
                 Log::debug('[KYCRedemptionController] Results not ready yet', [
