@@ -12,7 +12,7 @@ use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
 
-use function Pest\Laravel\{actingAs, get, post};
+use function Pest\Laravel\{actingAs, get, post, postJson};
 
 beforeEach(function () {
     Notification::fake();
@@ -37,6 +37,11 @@ function createTestVoucher(User $user, array $fields = []): Voucher
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher)->toBeInstanceOf(LBHurtado\Voucher\Models\Voucher::class);
     
+    // Mark as processed since queue is faked and HandleGeneratedVouchers won't run
+    // In production, this is done by the post-generation pipeline
+    $voucher->processed = true;
+    $voucher->save();
+    
     return $voucher;
 }
 
@@ -48,42 +53,48 @@ test('complete redemption flow with all plugins', function () {
         'location', 'reference_code', 'signature',
     ]);
 
-    // Step 1: Start redemption
-    get("/redeem?code={$voucher->code}")
-        ->assertRedirect("/redeem/{$voucher->code}/wallet");
+    // Step 1: Start redemption (direct access to wallet page)
+    get("/redeem/{$voucher->code}/wallet")
+        ->assertInertia(fn ($page) => $page->component('redeem/Wallet'));
 
-    // Step 2: Submit wallet info
-    post("/redeem/{$voucher->code}/wallet", [
+    // Step 2: Submit wallet info (API endpoint)
+    postJson("/api/v1/redeem/wallet", [
+        'code' => $voucher->code,
         'mobile' => '+639171234567',
-        'country' => 'PH',
         'country' => 'PH',
         'secret' => 'test-secret',
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
-    ])->assertRedirect("/redeem/{$voucher->code}/inputs");
+    ])->assertOk();
 
-    // Step 3: Submit inputs plugin
-    post("/redeem/{$voucher->code}/inputs", [
-        'email' => 'test@example.com',
-        'name' => 'John Doe',
-        'address' => '123 Main St',
-        'birth_date' => '1990-01-01',
-        'gross_monthly_income' => '50000',
-        'location' => 'Manila',
-        'reference_code' => 'REF123',
-    ])->assertRedirect("/redeem/{$voucher->code}/signature");
+    // Step 3: Submit inputs plugin (API endpoint)
+    postJson("/api/v1/redeem/plugin", [
+        'code' => $voucher->code,
+        'plugin' => 'inputs',
+        'data' => [
+            'email' => 'test@example.com',
+            'name' => 'John Doe',
+            'address' => '123 Main St',
+            'birth_date' => '1990-01-01',
+            'gross_monthly_income' => '50000',
+            'location' => 'Manila',
+            'reference_code' => 'REF123',
+        ],
+    ])->assertOk();
 
-    // Step 4: Submit signature plugin
-    post("/redeem/{$voucher->code}/signature", [
-        'signature' => 'data:image/png;base64,iVBORw0KGgoAAAANS',
-    ])->assertRedirect("/redeem/{$voucher->code}/finalize");
+    // Step 4: Submit signature plugin (API endpoint)
+    postJson("/api/v1/redeem/plugin", [
+        'code' => $voucher->code,
+        'plugin' => 'signature',
+        'data' => [
+            'signature' => 'data:image/png;base64,iVBORw0KGgoAAAANS',
+        ],
+    ])->assertOk();
 
-    // Step 5: Finalize and confirm
-    get("/redeem/{$voucher->code}/finalize")
-        ->assertInertia(fn ($page) => $page->component('redeem/Finalize'));
-
-    post("/redeem/{$voucher->code}/confirm")
-        ->assertRedirect("/redeem/{$voucher->code}/success");
+    // Step 5: Finalize and confirm (API endpoint)
+    postJson("/api/v1/redeem/confirm", [
+        'code' => $voucher->code,
+    ])->assertOk();
 
     // Verify: Voucher is redeemed
     $voucher->refresh();
@@ -108,22 +119,24 @@ test('complete redemption flow with minimal fields', function () {
     $user = User::factory()->create();
     $voucher = createTestVoucher($user);
 
-    // Step 1: Start redemption
-    get("/redeem?code={$voucher->code}")
-        ->assertRedirect("/redeem/{$voucher->code}/wallet");
+    // Step 1: Start redemption (direct access to wallet page)
+    get("/redeem/{$voucher->code}/wallet")
+        ->assertInertia(fn ($page) => $page->component('redeem/Wallet'));
 
-    // Step 2: Submit wallet info
-    post("/redeem/{$voucher->code}/wallet", [
+    // Step 2: Submit wallet info (API endpoint)
+    postJson("/api/v1/redeem/wallet", [
+        'code' => $voucher->code,
         'mobile' => '09171234567',
         'country' => 'PH',
         'secret' => 'test-secret',
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
-    ])->assertRedirect("/redeem/{$voucher->code}/finalize"); // Skip plugins
+    ])->assertOk();
 
-    // Step 3: Finalize and confirm
-    post("/redeem/{$voucher->code}/confirm")
-        ->assertRedirect("/redeem/{$voucher->code}/success");
+    // Step 3: Finalize and confirm (API endpoint)
+    postJson("/api/v1/redeem/confirm", [
+        'code' => $voucher->code,
+    ])->assertOk();
 
     // Verify: Voucher is redeemed
     $voucher->refresh();
