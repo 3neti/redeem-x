@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\InstructionItem;
 use App\Models\User;
+use App\Observers\InstructionItemObserver;
 use App\Observers\UserObserver;
 use App\Services\DataEnrichers\DataEnricherRegistry;
 use Illuminate\Support\ServiceProvider;
@@ -26,5 +28,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         User::observe(UserObserver::class);
+        InstructionItem::observe(InstructionItemObserver::class);
     }
 }
