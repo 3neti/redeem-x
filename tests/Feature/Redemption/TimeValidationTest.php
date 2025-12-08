@@ -157,10 +157,12 @@ describe('Duration Limit Validation', function () {
         // Track timing (5 minutes duration)
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 12, 0, 0));
         $voucher->trackRedemptionStart();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
         
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 12, 5, 0)); // 5 minutes later
         $voucher->trackRedemptionSubmit();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
 
         $inputs = [];
@@ -186,10 +188,12 @@ describe('Duration Limit Validation', function () {
         // Track timing (15 minutes duration - exceeds limit)
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 12, 0, 0));
         $voucher->trackRedemptionStart();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
         
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 12, 15, 0)); // 15 minutes later
         $voucher->trackRedemptionSubmit();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
 
         $inputs = [];
@@ -230,10 +234,12 @@ describe('Combined Time and Duration Validation', function () {
 
         // Track timing (5 minutes duration)
         $voucher->trackRedemptionStart();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
         
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 12, 5, 0));
         $voucher->trackRedemptionSubmit();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
 
         $inputs = [];
@@ -263,10 +269,12 @@ describe('Combined Time and Duration Validation', function () {
 
         // Track timing (5 minutes duration - within limit)
         $voucher->trackRedemptionStart();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
         
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 20, 5, 0));
         $voucher->trackRedemptionSubmit();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
 
         $inputs = [];
@@ -289,10 +297,12 @@ describe('Combined Time and Duration Validation', function () {
 
         // Track timing (15 minutes duration - exceeds limit)
         $voucher->trackRedemptionStart();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
         
         Carbon::setTestNow(Carbon::create(2025, 1, 17, 12, 15, 0));
         $voucher->trackRedemptionSubmit();
+        $voucher->processed = true; // Re-mark after save
         $voucher->save();
 
         $inputs = [];
@@ -411,7 +421,12 @@ function createVoucherWithTimeValidation(
     auth()->setUser($user);
     $vouchers = GenerateVouchers::run($instructions);
     
-    return $vouchers->first();
+    $voucher = $vouchers->first();
+    // Mark as processed since queue is faked
+    $voucher->processed = true;
+    $voucher->save();
+    
+    return $voucher;
 }
 
 function createVoucherWithoutTimeValidation(User $user): Voucher
@@ -439,5 +454,10 @@ function createVoucherWithoutTimeValidation(User $user): Voucher
     auth()->setUser($user);
     $vouchers = GenerateVouchers::run($instructions);
     
-    return $vouchers->first();
+    $voucher = $vouchers->first();
+    // Mark as processed since queue is faked
+    $voucher->processed = true;
+    $voucher->save();
+    
+    return $voucher;
 }
