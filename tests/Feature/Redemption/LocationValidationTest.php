@@ -356,7 +356,12 @@ function createVoucherWithLocationValidation(
     auth()->setUser($user);
     $vouchers = GenerateVouchers::run($instructions);
     
-    return $vouchers->first();
+    $voucher = $vouchers->first();
+    // Mark as processed since queue is faked
+    $voucher->processed = true;
+    $voucher->save();
+    
+    return $voucher;
 }
 
 function createVoucherWithoutLocationValidation(User $user): Voucher
@@ -384,5 +389,10 @@ function createVoucherWithoutLocationValidation(User $user): Voucher
     auth()->setUser($user);
     $vouchers = GenerateVouchers::run($instructions);
     
-    return $vouchers->first();
+    $voucher = $vouchers->first();
+    // Mark as processed since queue is faked
+    $voucher->processed = true;
+    $voucher->save();
+    
+    return $voucher;
 }
