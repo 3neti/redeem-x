@@ -37,29 +37,10 @@ class InstructionCostEvaluator
             'source_data' => $source->toArray(),
         ]);
 
-        // First, add the cash amount (voucher face value) if present
-        if ($cashAmount > 0) {
-            $cashAmountLabel = config('redeem.cost_breakdown.cash_amount_label', 'Cash Amount');
-            $cashAmountInCentavos = (int) ($cashAmount * 100);
-
-            Log::info('[InstructionCostEvaluator] ✅ Adding cash amount', [
-                'label' => $cashAmountLabel,
-                'unit_price' => $cashAmountInCentavos,
-                'quantity' => $count,
-                'total_price' => $cashAmountInCentavos * $count,
-            ]);
-
-            $charges->push([
-                'index' => 'cash.amount.value',
-                'item' => null, // No InstructionItem for cash amount
-                'value' => $cashAmount,
-                'unit_price' => $cashAmountInCentavos,
-                'quantity' => $count,
-                'price' => $cashAmountInCentavos * $count,
-                'currency' => $source->cash?->currency ?? 'PHP',
-                'label' => $cashAmountLabel,
-            ]);
-        }
+        // Cash face value is NOT a charge.
+        // We only charge configured InstructionItems (e.g., 'cash.amount' transaction fee).
+        // The actual face value (cash.amount) is transferred to the redeemer and should not
+        // be added to the cost breakdown here.
 
         foreach ($items as $item) {
             if (in_array($item->index, $this->excludedFields)) {
