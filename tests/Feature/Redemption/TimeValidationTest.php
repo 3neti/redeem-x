@@ -316,10 +316,15 @@ describe('Combined Time and Duration Validation', function () {
 
 describe('No Time Validation', function () {
     test('allows redemption when no time validation configured', function () {
+        // Set test time before creating voucher to ensure processed_on is valid
+        Carbon::setTestNow(Carbon::create(2025, 1, 17, 2, 0, 0)); // Any time
+        
         // Create voucher WITHOUT time validation
         $voucher = createVoucherWithoutTimeValidation($this->user);
-
-        Carbon::setTestNow(Carbon::create(2025, 1, 17, 2, 0, 0)); // Any time
+        
+        // Ensure voucher is marked as processed
+        $voucher->refresh();
+        expect($voucher->processed)->toBeTrue();
 
         $inputs = [];
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
@@ -456,7 +461,8 @@ function createVoucherWithoutTimeValidation(User $user): Voucher
     
     $voucher = $vouchers->first();
     // Mark as processed since queue is faked
-    $voucher->processed = true;
+    // Use processed_on directly instead of processed accessor
+    $voucher->processed_on = now();
     $voucher->save();
     
     return $voucher;
