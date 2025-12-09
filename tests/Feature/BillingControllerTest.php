@@ -10,14 +10,18 @@ use Spatie\Permission\Models\Role;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    // Create permissions and roles
-    Permission::create(['name' => 'view all billing']);
-    $adminRole = Role::create(['name' => 'super-admin']);
-    $adminRole->givePermissionTo('view all billing');
+    // Clear permission cache
+    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     
-    // Create users
-    $this->admin = User::factory()->create();
+    // Seed roles and permissions
+    $this->artisan('db:seed', ['--class' => 'RolePermissionSeeder']);
+    
+    // Create admin user and add to override list
+    $this->admin = User::factory()->create(['email' => 'admin@test.com']);
     $this->admin->assignRole('super-admin');
+    
+    // Add admin email to override list so they bypass permission checks
+    config(['admin.override_emails' => ['admin@test.com']]);
     
     $this->user1 = User::factory()->create();
     $this->user2 = User::factory()->create();

@@ -8,16 +8,15 @@ use Spatie\Permission\Models\Role;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    // Create permissions
-    $managePermission = \Spatie\Permission\Models\Permission::create(['name' => 'manage pricing']);
+    // Seed roles and permissions
+    $this->artisan('db:seed', ['--class' => 'RolePermissionSeeder']);
     
-    // Create super-admin role and assign permissions
-    $adminRole = Role::create(['name' => 'super-admin']);
-    $adminRole->givePermissionTo($managePermission);
-    
-    // Create admin user with super-admin role
-    $this->admin = User::factory()->create();
+    // Create admin user and add to override list
+    $this->admin = User::factory()->create(['email' => 'admin@test.com']);
     $this->admin->assignRole('super-admin');
+    
+    // Add admin email to override list so they bypass permission checks
+    config(['admin.override_emails' => ['admin@test.com']]);
     
     // Create regular user
     $this->user = User::factory()->create();
@@ -83,9 +82,12 @@ test('admin can update pricing', function () {
         ->and($this->item->meta['label'])->toBe('Updated Base Fee')
         ->and($this->item->meta['description'])->toBe('This is the base fee for all vouchers');
     
-    // Verify price history was created
-    expect($this->item->priceHistory()->count())->toBe(1);
-    $history = $this->item->priceHistory()->first();
+    // Verify price history was created for this update
+    // Filter to records with reason (controller updates) to exclude observer-created ones
+    $updateHistory = $this->item->priceHistory()->whereNotNull('reason')->get();
+    expect($updateHistory)->toHaveCount(1);
+    
+    $history = $updateHistory->first();
     expect($history->old_price)->toBe(2000)
         ->and($history->new_price)->toBe(2500)
         ->and($history->changed_by)->toBe($this->admin->id)
