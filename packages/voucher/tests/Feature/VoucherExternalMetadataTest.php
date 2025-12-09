@@ -16,7 +16,7 @@ beforeEach(function () {
 });
 
 // Helper to create a voucher
-function createVoucher()
+function createTestVoucherForMetadata()
 {
     $instructions = VoucherInstructionsData::generateFromScratch();
     return GenerateVouchers::run($instructions)->first();
@@ -69,15 +69,15 @@ test('voucher can clear external metadata', function () {
 
 test('can query vouchers by external metadata field', function () {
     // Create vouchers with different external metadata
-    $voucher1 = createVoucher();
+    $voucher1 = createTestVoucherForMetadata();
     $voucher1->external_metadata = ['user_id' => 'USER-001'];
     $voucher1->save();
 
-    $voucher2 = createVoucher();
+    $voucher2 = createTestVoucherForMetadata();
     $voucher2->external_metadata = ['user_id' => 'USER-002'];
     $voucher2->save();
 
-    $voucher3 = createVoucher();
+    $voucher3 = createTestVoucherForMetadata();
     $voucher3->external_metadata = ['user_id' => 'USER-001'];
     $voucher3->save();
 
@@ -88,15 +88,15 @@ test('can query vouchers by external metadata field', function () {
 });
 
 test('can query vouchers by multiple external metadata values', function () {
-    $voucher1 = createVoucher();
+    $voucher1 = createTestVoucherForMetadata();
     $voucher1->external_metadata = ['user_id' => 'USER-001'];
     $voucher1->save();
 
-    $voucher2 = createVoucher();
+    $voucher2 = createTestVoucherForMetadata();
     $voucher2->external_metadata = ['user_id' => 'USER-002'];
     $voucher2->save();
 
-    $voucher3 = createVoucher();
+    $voucher3 = createTestVoucherForMetadata();
     $voucher3->external_metadata = ['user_id' => 'USER-003'];
     $voucher3->save();
 
