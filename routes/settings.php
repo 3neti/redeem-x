@@ -22,6 +22,10 @@ Route::middleware([
         return Inertia::render('settings/Appearance');
     })->name('appearance.edit');
 
+    Route::get('settings/preferences', function () {
+        return Inertia::render('settings/Preferences');
+    })->name('preferences.edit');
+
     Route::get('settings/wallet', [WalletController::class, 'edit'])->name('wallet.edit');
     Route::post('settings/wallet', [WalletController::class, 'store'])->name('wallet.store');
 
