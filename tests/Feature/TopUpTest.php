@@ -26,8 +26,16 @@ test('user can initiate top-up', function () {
     expect($result)->not->toBeNull()
         ->and($result->gateway)->toBe('netbank')
         ->and($result->amount)->toBe(1000.0)
-        ->and($result->redirect_url)->toContain('checkout.netbank.ph')
         ->and($result->institution_code)->toBe('GCASH');
+    
+    // In fake mode (default for testing), expect local callback URL
+    // In real mode, expect actual NetBank checkout URL
+    if (config('payment-gateway.netbank.direct_checkout.use_fake')) {
+        expect($result->redirect_url)->toContain('topup/callback')
+            ->and($result->redirect_url)->toContain('mock=1');
+    } else {
+        expect($result->redirect_url)->toContain('checkout.netbank.ph');
+    }
 });
 
 test('top-up is saved to database', function () {
