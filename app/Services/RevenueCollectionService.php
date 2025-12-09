@@ -33,17 +33,14 @@ class RevenueCollectionService
      */
     public function getPendingRevenue(?float $minAmount = null): Collection
     {
-        $minCentavos = $minAmount ? (int)($minAmount * 100) : 0;
-        
-        return InstructionItem::query()
-            ->whereHas('wallet', function($q) use ($minCentavos) {
-                $q->where('balance', '>', $minCentavos);
-            })
-            ->with(['wallet', 'revenueDestination'])
+        // Query all items and filter by balance in PHP
+        // This works with bavix/wallet's lazy initialization
+        return InstructionItem::with('revenueDestination')
             ->get()
-            ->filter(function($item) {
+            ->filter(function($item) use ($minAmount) {
                 $balance = (float) $item->balanceFloat;
-                return $balance > 0;
+                $minBalance = $minAmount ?? 0;
+                return $balance > $minBalance;
             })
             ->map(function($item) {
                 $destination = $this->resolveDestination($item);
@@ -147,13 +144,13 @@ class RevenueCollectionService
         ?float $minAmount = null,
         ?Wallet $destinationOverride = null
     ): Collection {
-        $minCentavos = $minAmount ? (int)($minAmount * 100) : 0;
-        
-        $items = InstructionItem::query()
-            ->whereHas('wallet', function($q) use ($minCentavos) {
-                $q->where('balance', '>', $minCentavos);
-            })
-            ->get();
+        // Get all items and filter by balance in PHP
+        $items = InstructionItem::all()
+            ->filter(function($item) use ($minAmount) {
+                $balance = (float) $item->balanceFloat;
+                $minBalance = $minAmount ?? 0;
+                return $balance > $minBalance;
+            });
         
         $collections = collect();
         $errors = collect();
@@ -186,15 +183,9 @@ class RevenueCollectionService
      */
     public function getTotalPendingRevenue(): float
     {
-        $total = InstructionItem::query()
-            ->whereHas('wallet', function($q) {
-                $q->where('balance', '>', 0);
-            })
-            ->with('wallet')
-            ->get()
+        // Query all items and sum balances in PHP
+        return InstructionItem::all()
             ->sum(fn($item) => (float) $item->balanceFloat);
-        
-        return $total;
     }
 
     /**
@@ -207,7 +198,7 @@ class RevenueCollectionService
         $pending = $this->getPendingRevenue();
         $totalPending = $pending->sum('balance');
         
-        $allTimeCollected = RevenueCollection::sum('amount') / 100;
+        $allTimeCollected = (float) (RevenueCollection::sum('amount') / 100);
         $collectionsCount = RevenueCollection::count();
         
         $lastCollection = RevenueCollection::with(['instructionItem', 'destination'])
