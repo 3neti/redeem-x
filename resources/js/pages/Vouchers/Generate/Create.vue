@@ -596,14 +596,23 @@ const handleSubmit = async () => {
                                         Auto mode selects INSTAPAY for amounts &lt; ₱50k, PESONET otherwise
                                     </p>
                                     
-                                    <!-- Rail validation warning -->
-                                    <Alert v-if="railValidation" :variant="railValidation.type === 'warning' ? 'destructive' : 'default'" class="mt-2">
-                                        <AlertTriangle v-if="railValidation.type === 'warning'" class="h-4 w-4" />
-                                        <Info v-else class="h-4 w-4" />
-                                        <AlertDescription class="text-sm">
-                                            {{ railValidation.message }}
-                                        </AlertDescription>
-                                    </Alert>
+                                    <!-- Rail validation warning with smooth transition -->
+                                    <transition
+                                        enter-active-class="transition-all duration-200 ease-out"
+                                        leave-active-class="transition-all duration-150 ease-in"
+                                        enter-from-class="opacity-0 -translate-y-2"
+                                        enter-to-class="opacity-100 translate-y-0"
+                                        leave-from-class="opacity-100 translate-y-0"
+                                        leave-to-class="opacity-0 -translate-y-2"
+                                    >
+                                        <Alert v-if="railValidation" :variant="railValidation.type === 'warning' ? 'destructive' : 'default'" class="mt-2">
+                                            <AlertTriangle v-if="railValidation.type === 'warning'" class="h-4 w-4" />
+                                            <Info v-else class="h-4 w-4" />
+                                            <AlertDescription class="text-sm">
+                                                {{ railValidation.message }}
+                                            </AlertDescription>
+                                        </Alert>
+                                    </transition>
                                 </div>
 
                                 <!-- Fee Strategy -->
