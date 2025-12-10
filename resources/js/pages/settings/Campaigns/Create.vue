@@ -33,6 +33,8 @@ const instructionsFormData = ref({
     riderUrl: '',
     locationValidation: null as any,
     timeValidation: null as any,
+    settlementRail: null as string | null,
+    feeStrategy: 'absorb' as string,
 });
 
 const form = useForm({
@@ -50,6 +52,8 @@ const form = useForm({
                 location: null,
                 radius: null,
             },
+            settlement_rail: instructionsFormData.value.settlementRail || null,
+            fee_strategy: instructionsFormData.value.feeStrategy || 'absorb',
         },
         inputs: {
             fields: instructionsFormData.value.selectedInputFields,

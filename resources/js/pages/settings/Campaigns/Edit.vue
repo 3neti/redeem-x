@@ -53,6 +53,8 @@ const parseInstructions = (inst: any) => {
         riderUrl: inst.rider?.url || '',
         locationValidation: inst.validation?.location || null,
         timeValidation: inst.validation?.time || null,
+        settlementRail: inst.cash?.settlement_rail || null,
+        feeStrategy: inst.cash?.fee_strategy || 'absorb',
     };
 };
 
@@ -73,6 +75,8 @@ const form = useForm({
                 location: null,
                 radius: null,
             },
+            settlement_rail: instructionsFormData.value.settlementRail || null,
+            fee_strategy: instructionsFormData.value.feeStrategy || 'absorb',
         },
         inputs: {
             fields: instructionsFormData.value.selectedInputFields,

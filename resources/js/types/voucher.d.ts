@@ -34,6 +34,8 @@ export interface CashInstruction {
     amount: number;
     currency: string;
     validation: CashValidation;
+    settlement_rail?: string | null; // 'INSTAPAY' | 'PESONET' | null (auto)
+    fee_strategy?: string; // 'absorb' | 'include' | 'add'
 }
 
 export interface InputFields {

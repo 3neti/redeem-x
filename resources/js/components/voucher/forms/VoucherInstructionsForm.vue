@@ -74,6 +74,8 @@ interface Props {
         riderUrl: string;
         locationValidation: LocationValidation | null;
         timeValidation: TimeValidation | null;
+        settlementRail: string | null;
+        feeStrategy: string;
     };
     inputFieldOptions: VoucherInputFieldOption[];
     validationErrors?: Record<string, string>;
@@ -113,6 +115,8 @@ const cashInstruction = computed<CashInstruction>({
             location: null,
             radius: null,
         },
+        settlement_rail: localValue.value.settlementRail || null,
+        fee_strategy: localValue.value.feeStrategy || 'absorb',
     }),
     set: (value) => {
         localValue.value = {
@@ -120,6 +124,8 @@ const cashInstruction = computed<CashInstruction>({
             amount: value.amount,
             validationSecret: value.validation.secret || '',
             validationMobile: value.validation.mobile || '',
+            settlementRail: value.settlement_rail || null,
+            feeStrategy: value.fee_strategy || 'absorb',
         };
     },
 });
@@ -201,6 +207,8 @@ const jsonPreview = computed(() => {
                 location: null,
                 radius: null,
             },
+            settlement_rail: localValue.value.settlementRail || null,
+            fee_strategy: localValue.value.feeStrategy || 'absorb',
         },
         inputs: {
             fields: localValue.value.selectedInputFields,
