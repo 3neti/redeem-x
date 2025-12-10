@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Log;
 class RedeemVoucher
 {
     use AsAction;
-
+    
+    private const DEBUG = false;
     const META_KEY = 'redemption';
 
     /**
@@ -26,12 +27,14 @@ class RedeemVoucher
     public function handle(Contact $contact, string $voucher_code, array $meta = []): bool
     {
         // 1) Log what we're about to attempt
-        Log::debug('[RedeemVoucher] Attempting redemption', [
-            'voucher_code' => $voucher_code,
-            'contact_id'   => $contact->getKey(),
-            'contact_mobile' => $contact->mobile,
-            'meta'           => $meta,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[RedeemVoucher] Attempting redemption', [
+                'voucher_code' => $voucher_code,
+                'contact_id'   => $contact->getKey(),
+                'contact_mobile' => $contact->mobile,
+                'meta'           => $meta,
+            ]);
+        }
 
         try {
             $success = Vouchers::redeem(

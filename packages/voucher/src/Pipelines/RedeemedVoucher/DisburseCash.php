@@ -18,6 +18,8 @@ use Closure;
 
 class DisburseCash
 {
+    private const DEBUG = false;
+    
     public function __construct(protected PaymentGatewayInterface $gateway) {}
 
     /**
@@ -29,13 +31,17 @@ class DisburseCash
      */
     public function handle($voucher, Closure $next)
     {
-        Log::debug('[DisburseCash] Starting', ['voucher' => $voucher->code]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseCash] Starting', ['voucher' => $voucher->code]);
+        }
 
         $input = DisburseInputData::fromVoucher($voucher);
 
         event(new DisburseInputPrepared($voucher, $input));
 
-        Log::debug('[DisburseCash] Payload ready', ['input' => $input->toArray()]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseCash] Payload ready', ['input' => $input->toArray()]);
+        }
 
         // CRITICAL: Validate EMI + PESONET combination
         $bankRegistry = app(BankRegistry::class);
@@ -44,7 +50,7 @@ class DisburseCash
         if ($rail === SettlementRail::PESONET && $bankRegistry->isEMI($input->bank)) {
             $bankName = $bankRegistry->getBankName($input->bank);
             
-            Log::error('[DisburseCash] EMI with PESONET detected - blocking disbursement', [
+            Log::warning('[DisburseCash] EMI with PESONET detected - blocking disbursement', [
                 'voucher' => $voucher->code,
                 'bank_code' => $input->bank,
                 'bank_name' => $bankName,
@@ -95,13 +101,15 @@ class DisburseCash
         $totalCost = ($input->amount * 100) + $feeAmount; // amount in pesos to centavos + fee
         $feeStrategy = $voucher->instructions?->cash?->fee_strategy ?? 'absorb';
         
-        Log::debug('[DisburseCash] Fee calculation', [
-            'rail' => $rail->value,
-            'fee_amount' => $feeAmount,
-            'disbursement_amount' => $input->amount,
-            'total_cost' => $totalCost,
-            'fee_strategy' => $feeStrategy,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseCash] Fee calculation', [
+                'rail' => $rail->value,
+                'fee_amount' => $feeAmount,
+                'disbursement_amount' => $input->amount,
+                'total_cost' => $totalCost,
+                'fee_strategy' => $feeStrategy,
+            ]);
+        }
         
         // Withdraw funds from cash wallet (money has left the system)
         $cash = $voucher->cash;

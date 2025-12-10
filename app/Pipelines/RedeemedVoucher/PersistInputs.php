@@ -14,6 +14,7 @@ use Closure;
  */
 class PersistInputs
 {
+    private const DEBUG = false;
     /**
      * Handle the persistence of redemption inputs to the voucher inputs table.
      *
@@ -31,27 +32,33 @@ class PersistInputs
         $redeemer = $voucher->redeemers->first();
 
         if (! $redeemer) {
-            Log::debug('[PersistInputs] No redeemer found; skipping', [
-                'voucher' => $voucher->code,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[PersistInputs] No redeemer found; skipping', [
+                    'voucher' => $voucher->code,
+                ]);
+            }
             return $next($voucher);
         }
 
         $metadata = $redeemer->metadata['redemption'] ?? [];
         $inputs = $metadata['inputs'] ?? [];
 
-        Log::debug('[PersistInputs] Loaded redemption metadata', [
-            'voucher'  => $voucher->code,
-            'inputs' => array_keys($inputs),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[PersistInputs] Loaded redemption metadata', [
+                'voucher'  => $voucher->code,
+                'inputs' => array_keys($inputs),
+            ]);
+        }
 
         // Save each input to voucher inputs table using the HasInputs trait
         foreach ($inputs as $name => $value) {
             if (empty($value)) {
-                Log::debug('[PersistInputs] Skipping empty input', [
-                    'voucher' => $voucher->code,
-                    'input' => $name,
-                ]);
+                if (self::DEBUG) {
+                    Log::debug('[PersistInputs] Skipping empty input', [
+                        'voucher' => $voucher->code,
+                        'input' => $name,
+                    ]);
+                }
                 continue;
             }
 
@@ -73,9 +80,11 @@ class PersistInputs
             }
         }
 
-        Log::debug('[PersistInputs] Completed persisting inputs', [
-            'voucher' => $voucher->code,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[PersistInputs] Completed persisting inputs', [
+                'voucher' => $voucher->code,
+            ]);
+        }
 
         return $next($voucher);
     }

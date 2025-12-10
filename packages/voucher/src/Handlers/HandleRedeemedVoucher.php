@@ -6,6 +6,7 @@ use LBHurtado\Voucher\Pipelines\RedeemedVoucher\ValidateRedeemerAndCash;
 use LBHurtado\Voucher\Pipelines\RedeemedVoucher\DisburseCash;
 use LBHurtado\Voucher\Events\DisbursementRequested;
 use LBHurtado\Wallet\Events\DisbursementFailed;
+use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Models\Voucher;
 use Illuminate\Support\Facades\Log;
@@ -53,11 +54,20 @@ class HandleRedeemedVoucher
                     return $voucher;
                 });
         } catch (\Throwable $e) {
-            Log::error('[HandleRedeemedVoucher] Pipeline failed; dispatching DisbursementFailed.', [
-                'voucher'   => $voucher->code,
-                'exception' => $e->getMessage(),
-                'trace'     => $e->getTraceAsString(),
-            ]);
+            // Handle known business exceptions gracefully (no stack trace)
+            if ($e instanceof InvalidSettlementRailException) {
+                Log::warning('[HandleRedeemedVoucher] Settlement rail validation failed.', [
+                    'voucher'   => $voucher->code,
+                    'message'   => $e->getMessage(),
+                ]);
+            } else {
+                // Log unexpected errors with full trace for debugging
+                Log::error('[HandleRedeemedVoucher] Pipeline failed; dispatching DisbursementFailed.', [
+                    'voucher'   => $voucher->code,
+                    'exception' => $e->getMessage(),
+                    'trace'     => $e->getTraceAsString(),
+                ]);
+            }
 
             event(new DisbursementFailed($voucher, $e));
 

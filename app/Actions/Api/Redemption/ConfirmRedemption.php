@@ -9,6 +9,7 @@ use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Models\Voucher;
+use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
 use Propaganistas\LaravelPhone\PhoneNumber;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -108,11 +109,20 @@ class ConfirmRedemption
                     ],
                 ], 200);
             } catch (\Throwable $e) {
-                Log::error('[ConfirmRedemption] Redemption processing failed', [
-                    'voucher' => $voucherCode,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
+                // Handle known business exceptions gracefully (no stack trace)
+                if ($e instanceof InvalidSettlementRailException) {
+                    Log::warning('[ConfirmRedemption] Settlement rail validation failed', [
+                        'voucher' => $voucherCode,
+                        'message' => $e->getMessage(),
+                    ]);
+                } else {
+                    // Log unexpected errors with full trace for debugging
+                    Log::error('[ConfirmRedemption] Redemption processing failed', [
+                        'voucher' => $voucherCode,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
 
                 return ApiResponse::error('Failed to process redemption: ' . $e->getMessage(), 422);
             }

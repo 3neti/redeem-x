@@ -100,14 +100,18 @@ class DisburseInputData extends Data
             
             if ($settlementRailEnum instanceof \LBHurtado\PaymentGateway\Enums\SettlementRail) {
                 $via = $settlementRailEnum->value;
-                Log::debug('[DisburseInputData] Using rail from voucher instructions', ['rail' => $via]);
+                if (self::DEBUG) {
+                    Log::debug('[DisburseInputData] Using rail from voucher instructions', ['rail' => $via]);
+                }
             } else {
                 // Auto-select based on amount: INSTAPAY <50k, PESONET ≥50k
                 $via = $amount < 50000 ? 'INSTAPAY' : 'PESONET';
-                Log::debug('[DisburseInputData] Auto-selected rail based on amount', [
-                    'amount' => $amount,
-                    'selected_rail' => $via,
-                ]);
+                if (self::DEBUG) {
+                    Log::debug('[DisburseInputData] Auto-selected rail based on amount', [
+                        'amount' => $amount,
+                        'selected_rail' => $via,
+                    ]);
+                }
             }
         }
 

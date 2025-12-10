@@ -28,6 +28,8 @@ use Propaganistas\LaravelPhone\PhoneNumber;
 class ProcessRedemption
 {
     use AsAction;
+    
+    private const DEBUG = false;
 
     /**
      * Process voucher redemption.
@@ -127,9 +129,11 @@ class ProcessRedemption
         $kycRequired = in_array('kyc', $voucher->instructions->inputs->fields ?? []);
         
         if (!$kycRequired) {
-            Log::debug('[ProcessRedemption] KYC not required', [
-                'voucher' => $voucher->code,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[ProcessRedemption] KYC not required', [
+                    'voucher' => $voucher->code,
+                ]);
+            }
             return;
         }
         
@@ -167,9 +171,11 @@ class ProcessRedemption
         $timeValidation = $voucher->instructions->validation?->time;
         
         if (!$timeValidation) {
-            Log::debug('[ProcessRedemption] No time validation configured', [
-                'voucher' => $voucher->code,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[ProcessRedemption] No time validation configured', [
+                    'voucher' => $voucher->code,
+                ]);
+            }
             return;
         }
 
@@ -277,9 +283,11 @@ class ProcessRedemption
         $locationValidation = $voucher->instructions->validation?->location;
         
         if (!$locationValidation) {
-            Log::debug('[ProcessRedemption] No location validation configured', [
-                'voucher' => $voucher->code,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[ProcessRedemption] No location validation configured', [
+                    'voucher' => $voucher->code,
+                ]);
+            }
             return;
         }
 
