@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Log;
 
 trait HasSafeDefaults
 {
+    /** @var bool Enable verbose validation logging */
+    private const DEBUG = false;
+    
     /**
      * Loop over your rulesAndDefaults() map, validate each property,
      * and overwrite it with either the validated value or its default.
@@ -33,20 +36,24 @@ trait HasSafeDefaults
                 [$key => $toTest],
                 [$key => $rules]
             );
-
             if ($validator->fails()) {
-                Log::debug("[{$class}] “{$key}” failed validation, falling back to default", [
-                    'raw'     => $toTest,
-                    'default' => $default,
-                    'errors'  => $validator->errors()->all(),
-                ]);
+                if (self::DEBUG) {
+                    Log::debug("[{$class}] "{$key}" failed validation, falling back to default", [
+                        'raw'     => $toTest,
+                        'default' => $default,
+                        'errors'  => $validator->errors()->all(),
+                    ]);
+                }
 
                 $this->{$key} = $default;
             } else {
                 $validated = $validator->validated()[$key];
-                Log::debug("[{$class}] “{$key}” validated successfully", [
-                    'raw'       => $toTest,
-                    'validated' => $validated,
+                if (self::DEBUG) {
+                    Log::debug("[{$class}] "{$key}" validated successfully", [
+                        'raw'       => $toTest,
+                        'validated' => $validated,
+                    ]);
+                }
                 ]);
 
                 // Put it back into the property—if TTL, cast back to CarbonInterval

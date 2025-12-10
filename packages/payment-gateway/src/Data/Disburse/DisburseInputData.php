@@ -12,6 +12,9 @@ use Illuminate\Support\Arr;
 
 class DisburseInputData extends Data
 {
+    /** @var bool Enable verbose data flow logging */
+    private const DEBUG = false;
+    
     const BANK_ACCOUNT_KEY = 'redemption.bank_account';
 
     public function __construct(
@@ -26,52 +29,64 @@ class DisburseInputData extends Data
         Voucher $voucher,
         ?string $via = null,
     ): self {
-        Log::debug('[DisburseInputData] fromVoucher beginning', [
-            'voucher_code' => $voucher->code,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] fromVoucher beginning', [
+                'voucher_code' => $voucher->code,
+            ]);
+        }
 
         $cash = $voucher->cash;
         if (! $cash) {
             Log::error('[DisburseInputData] No Cash entity found', ['voucher' => $voucher->code]);
             throw new \RuntimeException("Voucher {$voucher->code} has no cash entity");
         }
-        Log::debug('[DisburseInputData] Found Cash entity', [
-            'cash_id' => $cash->getKey(),
-            'amount'  => $cash->amount->getAmount()->toFloat(),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] Found Cash entity', [
+                'cash_id' => $cash->getKey(),
+                'amount'  => $cash->amount->getAmount()->toFloat(),
+            ]);
+        }
 
         $redeemer = $voucher->redeemer;
         if (! $redeemer) {
             Log::error('[DisburseInputData] No Redeemer relation found', ['voucher' => $voucher->code]);
             throw new \RuntimeException("Voucher {$voucher->code} has no redeemer");
         }
-        Log::debug('[DisburseInputData] Found Redeemer relation', [
-            'redeemer_id' => $redeemer->getKey(),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] Found Redeemer relation', [
+                'redeemer_id' => $redeemer->getKey(),
+            ]);
+        }
 
         $contact = $voucher->contact;
         if (! $contact) {
             Log::error('[DisburseInputData] No Contact attached to voucher', ['voucher' => $voucher->code]);
             throw new \RuntimeException("Voucher {$voucher->code} has no Contact attached");
         }
-        Log::debug('[DisburseInputData] Found Contact', [
-            'contact_id'     => $contact->getKey(),
-            'contact_mobile' => $contact->mobile,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] Found Contact', [
+                'contact_id'     => $contact->getKey(),
+                'contact_mobile' => $contact->mobile,
+            ]);
+        }
 
         $rawBank = Arr::get($redeemer->metadata, self::BANK_ACCOUNT_KEY, $contact->bank_account);
-        Log::debug('[DisburseInputData] Raw bank value from metadata or fallback', [
-            'metadata'       => $redeemer->metadatak,
-            'key'            => self::BANK_ACCOUNT_KEY,
-            'rawBank'        => $rawBank,
-            'fallbackBank'   => $contact->bank_account,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] Raw bank value from metadata or fallback', [
+                'metadata'       => $redeemer->metadata,
+                'key'            => self::BANK_ACCOUNT_KEY,
+                'rawBank'        => $rawBank,
+                'fallbackBank'   => $contact->bank_account,
+            ]);
+        }
 
         $bankAccount = BankAccount::fromBankAccountWithFallback($rawBank, $contact->bank_account);
-        Log::debug('[DisburseInputData] Parsed BankAccount', [
-            'bank_code'      => $bankAccount->getBankCode(),
-            'account_number' => $bankAccount->getAccountNumber(),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] Parsed BankAccount', [
+                'bank_code'      => $bankAccount->getBankCode(),
+                'account_number' => $bankAccount->getAccountNumber(),
+            ]);
+        }
 
         $reference = "{$voucher->code}-{$contact->mobile}";
         $amount    = $cash->amount->getAmount()->toFloat();
@@ -96,7 +111,9 @@ class DisburseInputData extends Data
             }
         }
 
-        Log::debug('[DisburseInputData] Building final payload', compact('reference', 'amount', 'account', 'bank', 'via'));
+        if (self::DEBUG) {
+            Log::debug('[DisburseInputData] Building final payload', compact('reference', 'amount', 'account', 'bank', 'via'));
+        }
 
         return self::from([
             'reference'      => $reference,

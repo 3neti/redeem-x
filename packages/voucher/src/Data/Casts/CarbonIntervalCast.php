@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Log;
 
 class CarbonIntervalCast implements Cast
 {
+    /** @var bool Enable verbose casting logging */
+    private const DEBUG = false;
+    
     public function cast(
         DataProperty $property,
         mixed $value,
@@ -17,38 +20,52 @@ class CarbonIntervalCast implements Cast
         CreationContext $context
     ): mixed {
         $name = $property->name;
-        Log::debug("[CarbonIntervalCast] Casting “{$name}”", ['raw' => $value, 'type' => gettype($value)]);
+        if (self::DEBUG) {
+            Log::debug("[CarbonIntervalCast] Casting "{$name}"", ['raw' => $value, 'type' => gettype($value)]);
+        }
 
         // Already a CarbonInterval?
         if ($value instanceof CarbonInterval) {
-            Log::debug("[CarbonIntervalCast] “{$name}” is already a CarbonInterval, returning as-is");
+            if (self::DEBUG) {
+                Log::debug("[CarbonIntervalCast] "{$name}" is already a CarbonInterval, returning as-is");
+            }
             return $value;
         }
 
         // Empty string -> null
         if ($value === '') {
-            Log::debug("[CarbonIntervalCast] “{$name}” is empty string, casting to null");
+            if (self::DEBUG) {
+                Log::debug("[CarbonIntervalCast] "{$name}" is empty string, casting to null");
+            }
             return null;
         }
 
         // Null stays null
         if ($value === null) {
-            Log::debug("[CarbonIntervalCast] “{$name}” is null, returning null");
+            if (self::DEBUG) {
+                Log::debug("[CarbonIntervalCast] "{$name}" is null, returning null");
+            }
             return null;
         }
 
         // Numeric → seconds
         if (is_numeric($value)) {
-            Log::debug("[CarbonIntervalCast] “{$name}” numeric, interpreting as seconds");
+            if (self::DEBUG) {
+                Log::debug("[CarbonIntervalCast] "{$name}" numeric, interpreting as seconds");
+            }
             return CarbonInterval::seconds((int) $value);
         }
 
         // String → try parse
         if (is_string($value)) {
-            Log::debug("[CarbonIntervalCast] “{$name}” string, attempting CarbonInterval::make()");
+            if (self::DEBUG) {
+                Log::debug("[CarbonIntervalCast] "{$name}" string, attempting CarbonInterval::make()");
+            }
             try {
                 $ci = CarbonInterval::make($value);
-                Log::debug("[CarbonIntervalCast] “{$name}” parsed successfully", ['interval' => $ci]);
+                if (self::DEBUG) {
+                    Log::debug("[CarbonIntervalCast] "{$name}" parsed successfully", ['interval' => $ci]);
+                }
                 return $ci;
             } catch (\Throwable $e) {
                 Log::error("[CarbonIntervalCast] “{$name}” failed to parse as CarbonInterval", [

@@ -394,9 +394,6 @@ const handleSubmit = async () => {
     if (insufficientFunds.value) return;
 
     validationErrors.value = {};
-    
-    console.log('[DEBUG] Settlement Rail Value:', settlementRail.value, typeof settlementRail.value);
-    console.log('[DEBUG] Fee Strategy Value:', feeStrategy.value, typeof feeStrategy.value);
 
     const result = await generateVouchers({
         amount: amount.value,
