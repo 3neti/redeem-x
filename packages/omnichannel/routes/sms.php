@@ -5,8 +5,6 @@ use LBHurtado\OmniChannel\Handlers\{SMSAutoRegister, SMSRegister};
 use LBHurtado\OmniChannel\Services\SMSRouterService;
 use Illuminate\Support\Facades\Log;
 
-Log::info('📌 SMS Routes Loaded');
-
 /** @var SMSRouterService $router */
 $router = resolve(SMSRouterService::class);
 //Log::info("✅  Resolved SMSRouterService instance.", ['instance' => get_class($router)]);

@@ -38,11 +38,9 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
-        // Debug permissions
         $permissions = [];
         if ($request->user()) {
             $permissions = $request->user()->getAllPermissions()->pluck('name')->toArray();
-            \Log::info('HandleInertiaRequests permissions:', ['permissions' => $permissions, 'user' => $request->user()->email]);
         }
 
         $parentShare = parent::share($request);
