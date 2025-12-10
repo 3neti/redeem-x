@@ -162,6 +162,72 @@ npm run build:ssr    # Build with SSR support
 npm run dev          # Development with HMR
 ```
 
+## Git Workflow
+
+### Branch Strategy
+All feature development should use feature branches, not direct commits to `main`.
+
+```bash
+# Create a new feature branch
+git checkout -b feature/descriptive-name
+
+# Examples:
+git checkout -b feature/emi-rail-restrictions
+git checkout -b fix/settlement-rail-validation
+git checkout -b refactor/cleanup-debug-logs
+```
+
+### Development Workflow
+```bash
+# 1. Create feature branch from main
+git checkout main
+git pull origin main
+git checkout -b feature/your-feature
+
+# 2. Make changes and commit
+git add -A
+git commit -m "descriptive commit message"
+
+# 3. Push feature branch
+git push origin feature/your-feature
+
+# 4. Create PR or merge to main after review
+git checkout main
+git merge feature/your-feature
+git push origin main
+
+# 5. Clean up feature branch
+git branch -d feature/your-feature
+git push origin --delete feature/your-feature
+```
+
+### Commit Message Guidelines
+- Use descriptive commit messages
+- First line: brief summary (50 chars or less)
+- Add detailed description if needed
+- Reference related issues/tickets if applicable
+
+**Good examples:**
+```
+Add EMI rail restriction validation
+
+Fix settlement rail validation for GCash transactions
+
+Refactor: Clean up debug logging in redemption flow
+```
+
+**Bad examples:**
+```
+fixed bug
+update
+WIP
+```
+
+### IMPORTANT: Avoid Direct Main Commits
+- **DO NOT** commit directly to `main` for feature work
+- Use feature branches for all changes
+- Exception: Hotfixes in production emergencies (document why)
+
 ## Architecture Overview
 
 ### Tech Stack
