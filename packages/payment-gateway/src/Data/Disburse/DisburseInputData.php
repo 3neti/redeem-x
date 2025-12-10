@@ -81,10 +81,10 @@ class DisburseInputData extends Data
         // Smart rail selection: Use voucher instruction, parameter, or auto-select based on amount
         if ($via === null) {
             // Check if voucher has settlement_rail in instructions
-            $instructionRail = $voucher->instructions?->cash?->settlement_rail?->value ?? null;
+            $settlementRailEnum = $voucher->instructions?->cash?->settlement_rail ?? null;
             
-            if ($instructionRail) {
-                $via = $instructionRail;
+            if ($settlementRailEnum instanceof \LBHurtado\PaymentGateway\Enums\SettlementRail) {
+                $via = $settlementRailEnum->value;
                 Log::debug('[DisburseInputData] Using rail from voucher instructions', ['rail' => $via]);
             } else {
                 // Auto-select based on amount: INSTAPAY <50k, PESONET ≥50k
