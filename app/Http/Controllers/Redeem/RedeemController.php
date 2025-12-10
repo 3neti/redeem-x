@@ -434,6 +434,7 @@ class RedeemController extends Controller
                 'message' => $voucher->instructions->rider->message ?? null,
                 'url' => $voucher->instructions->rider->url ?? null,
             ],
+            'metadata' => $voucher->instructions->metadata ?? null,
             'config' => config('redeem.success'),
         ]);
     }

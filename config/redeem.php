@@ -261,6 +261,18 @@ return [
         // Special: {{ amount }} (formatted with currency)
         'show_footer_note' => env('REDEEM_SUCCESS_SHOW_FOOTER', true),
         'footer_note' => env('REDEEM_SUCCESS_FOOTER_NOTE', "{{ voucher.cash.currency }} {{ voucher.cash.amount }} has been transferred to {{ bank_account }} by redeeming {{ code }}."),
+        
+        // Metadata display (transparency information)
+        'show_metadata' => env('REDEEM_SUCCESS_SHOW_METADATA', true),
+        'metadata' => [
+            'position' => env('REDEEM_SUCCESS_METADATA_POSITION', 'after-details'), // 'after-details', 'after-instruction', 'bottom'
+            'show_as_card' => env('REDEEM_SUCCESS_METADATA_AS_CARD', true),
+            'compact' => env('REDEEM_SUCCESS_METADATA_COMPACT', true),
+            'show_issuer' => env('REDEEM_SUCCESS_METADATA_SHOW_ISSUER', false),
+            'show_copyright' => env('REDEEM_SUCCESS_METADATA_SHOW_COPYRIGHT', true),
+            'show_licenses' => env('REDEEM_SUCCESS_METADATA_SHOW_LICENSES', true),
+            'title' => env('REDEEM_SUCCESS_METADATA_TITLE', 'Voucher Information'),
+        ],
     ],
 
     /*
