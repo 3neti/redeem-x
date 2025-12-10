@@ -10,6 +10,8 @@ use LBHurtado\Voucher\Data\VoucherInstructionsData;
 
 class InstructionCostEvaluator
 {
+    private const DEBUG = false;
+    
     protected array $excludedFields = [
         'count',
         'mask',
@@ -29,13 +31,15 @@ class InstructionCostEvaluator
         $count = $source->count ?? 1;
         $cashAmount = $source->cash?->amount ?? 0;
 
-        Log::debug('[InstructionCostEvaluator] Starting evaluation', [
-            'user_id' => $customer->id,
-            'instruction_items_count' => $items->count(),
-            'count' => $count,
-            'cash_amount' => $cashAmount,
-            'source_data' => $source->toArray(),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[InstructionCostEvaluator] Starting evaluation', [
+                'user_id' => $customer->id,
+                'instruction_items_count' => $items->count(),
+                'count' => $count,
+                'cash_amount' => $cashAmount,
+                'source_data' => $source->toArray(),
+            ]);
+        }
 
         // Cash face value is NOT a charge.
         // We only charge configured InstructionItems (e.g., 'cash.amount' transaction fee).
@@ -65,11 +69,13 @@ class InstructionCostEvaluator
                 // Case-insensitive comparison (enum values are uppercase)
                 $isSelected = in_array(strtoupper($fieldName), array_map('strtoupper', $selectedFields));
                 
-                Log::debug("[InstructionCostEvaluator] Checking input field: {$fieldName}", [
-                    'selectedFieldsRaw' => $selectedFieldsRaw,
-                    'selectedFieldsExtracted' => $selectedFields,
-                    'isSelected' => $isSelected,
-                ]);
+                if (self::DEBUG) {
+                    Log::debug("[InstructionCostEvaluator] Checking input field: {$fieldName}", [
+                        'selectedFieldsRaw' => $selectedFieldsRaw,
+                        'selectedFieldsExtracted' => $selectedFields,
+                        'isSelected' => $isSelected,
+                    ]);
+                }
                 $value = $isSelected ? $fieldName : null;
             } else {
                 $value = data_get($source, $item->index);
@@ -101,12 +107,14 @@ class InstructionCostEvaluator
                 
                 $shouldCharge = $isEnabled && $item->price > 0;
                 
-                Log::debug("[InstructionCostEvaluator] Validation item: {$item->index}", [
-                    'value' => $value,
-                    'valueArray' => $valueArray,
-                    'isEnabled' => $isEnabled,
-                    'shouldCharge' => $shouldCharge,
-                ]);
+                if (self::DEBUG) {
+                    Log::debug("[InstructionCostEvaluator] Validation item: {$item->index}", [
+                        'value' => $value,
+                        'valueArray' => $valueArray,
+                        'isEnabled' => $isEnabled,
+                        'shouldCharge' => $shouldCharge,
+                    ]);
+                }
             } else {
                 $isTruthyString = is_string($value) && trim($value) !== '';
                 $isTruthyBoolean = is_bool($value) && $value === true;
@@ -117,23 +125,27 @@ class InstructionCostEvaluator
 
             $price = $item->getAmountProduct($customer);
 
-            Log::debug("[InstructionCostEvaluator] Evaluating: {$item->index}", [
-                'value' => $value,
-                'type' => gettype($value),
-                'price' => $price,
-                'should_charge' => $shouldCharge,
-            ]);
+            if (self::DEBUG) {
+                Log::debug("[InstructionCostEvaluator] Evaluating: {$item->index}", [
+                    'value' => $value,
+                    'type' => gettype($value),
+                    'price' => $price,
+                    'should_charge' => $shouldCharge,
+                ]);
+            }
 
             if ($shouldCharge) {
                 $label = $item->meta['label'] ?? $item->name;
 
-                Log::info('[InstructionCostEvaluator] ✅ Chargeable instruction', [
-                    'index' => $item->index,
-                    'label' => $label,
-                    'unit_price' => $price,
-                    'quantity' => $count,
-                    'total_price' => $price * $count,
-                ]);
+                if (self::DEBUG) {
+                    Log::info('[InstructionCostEvaluator] ✅ Chargeable instruction', [
+                        'index' => $item->index,
+                        'label' => $label,
+                        'unit_price' => $price,
+                        'quantity' => $count,
+                        'total_price' => $price * $count,
+                    ]);
+                }
 
                 $charges->push([
                     'index' => $item->index,
@@ -148,10 +160,12 @@ class InstructionCostEvaluator
             }
         }
 
-        Log::info('[InstructionCostEvaluator] Evaluation complete', [
-            'total_items_charged' => $charges->count(),
-            'total_amount' => $charges->sum('price'),
-        ]);
+        if (self::DEBUG) {
+            Log::info('[InstructionCostEvaluator] Evaluation complete', [
+                'total_items_charged' => $charges->count(),
+                'total_amount' => $charges->sum('price'),
+            ]);
+        }
 
         return $charges;
     }

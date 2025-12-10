@@ -15,6 +15,8 @@ use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
 class BalanceService
 {
+    private const DEBUG = false;
+    
     public function __construct(
         protected PaymentGatewayInterface $gateway
     ) {}
@@ -57,11 +59,13 @@ class BalanceService
         // Check for alerts
         $this->checkAlerts($balance);
 
-        Log::info('[BalanceService] Balance updated', [
-            'account' => $accountNumber,
-            'balance' => $result['balance'],
-            'available_balance' => $result['available_balance'],
-        ]);
+        if (self::DEBUG) {
+            Log::info('[BalanceService] Balance updated', [
+                'account' => $accountNumber,
+                'balance' => $result['balance'],
+                'available_balance' => $result['available_balance'],
+            ]);
+        }
 
         return $balance->fresh();
     }
