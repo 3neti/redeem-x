@@ -5,10 +5,14 @@ namespace LBHurtado\Voucher\Pipelines\Voucher;
 use Bavix\Wallet\Interfaces\Customer;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Cash\Models\Cash;
+use LBHurtado\Voucher\Services\FeeCalculator;
 use Closure;
 
 class PersistCash
 {
+    public function __construct(
+        protected FeeCalculator $feeCalculator
+    ) {}
     public function handle($voucher, Closure $next)
     {
         Log::debug('[PersistCash] Starting PersistCash for voucher', [
@@ -29,16 +33,32 @@ class PersistCash
         }
 
         $instructions = $voucher->instructions;
-        $amount       = $instructions->cash->amount;
+        $originalAmount = $instructions->cash->amount;
         $currency     = $instructions->cash->currency;
-        $secret       = $instructions->cash->validation->secret;;
+        $secret       = $instructions->cash->validation->secret;
+        
+        // Calculate adjusted amount based on fee strategy
+        $feeCalculation = $this->feeCalculator->calculateAdjustedAmount($originalAmount, $instructions);
+        $amount = $feeCalculation['adjusted_amount'];
 
-        Log::debug('[PersistCash] Creating Cash record', compact('amount', 'currency', 'secret'));
+        Log::debug('[PersistCash] Creating Cash record', [
+            'original_amount' => $originalAmount,
+            'adjusted_amount' => $amount,
+            'currency' => $currency,
+            'secret' => $secret,
+            'fee_strategy' => $feeCalculation['strategy'],
+            'fee_amount' => $feeCalculation['fee_amount'],
+            'rail' => $feeCalculation['rail'],
+        ]);
 
         $cash = Cash::create([
             'amount'   => $amount,
             'currency' => $currency,
-            'meta'     => ['notes' => 'change this'],
+            'meta'     => [
+                'notes' => 'Cash entity with fee calculation',
+                'original_amount' => $originalAmount,
+                'fee_calculation' => $feeCalculation,
+            ],
             ...($secret ? ['secret' => $secret] : []),
         ]);
 
