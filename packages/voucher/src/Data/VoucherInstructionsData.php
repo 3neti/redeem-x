@@ -45,6 +45,8 @@ class VoucherInstructionsData extends Data
             'cash.validation.country'  => 'nullable|string|size:2',
             'cash.validation.location' => 'nullable|string',
             'cash.validation.radius'   => 'nullable|string',
+            'cash.settlement_rail'     => 'nullable|string|in:INSTAPAY,PESONET',
+            'cash.fee_strategy'        => 'required|string|in:absorb,include,add',
 
             'inputs' => ['nullable', 'array'],
             'inputs.fields' => ['nullable', 'array'],
@@ -107,6 +109,8 @@ class VoucherInstructionsData extends Data
             'cash' => [
                 'amount' => $validated['cash']['amount'],
                 'currency' => $validated['cash']['currency'],
+                'settlement_rail' => $validated['cash']['settlement_rail'] ?? null,
+                'fee_strategy' => $validated['cash']['fee_strategy'] ?? 'absorb',
                 'validation' => [
                     'secret'   => $validated['cash']['validation']['secret'] ?? null,
                     'mobile'   => $validated['cash']['validation']['mobile'] ?? null,
@@ -162,6 +166,8 @@ class VoucherInstructionsData extends Data
             'cash' => [
                 'amount' => 0,
                 'currency' => Number::defaultCurrency(),
+                'settlement_rail' => null,
+                'fee_strategy' => 'absorb',
                 'validation' => [
                     'secret' => null,
                     'mobile' => null,

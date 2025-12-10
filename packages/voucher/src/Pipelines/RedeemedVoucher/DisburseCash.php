@@ -8,7 +8,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData
 };
 use LBHurtado\PaymentGateway\Support\BankRegistry;
-use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
+use LBHurtado\PaymentGateway\Enums\{DisbursementStatus, SettlementRail};
 use LBHurtado\Voucher\Events\DisburseInputPrepared;
 use LBHurtado\Wallet\Actions\WithdrawCash;
 use Illuminate\Support\Facades\Log;
@@ -66,6 +66,20 @@ class DisburseCash
         $gatewayName = config('payment-gateway.default', 'netbank');
         $normalizedStatus = DisbursementStatus::fromGateway($gatewayName, $response->status)->value;
         
+        // Get fee for the selected rail
+        $rail = SettlementRail::from($input->via);
+        $feeAmount = $this->gateway->getRailFee($rail);
+        $totalCost = ($input->amount * 100) + $feeAmount; // amount in pesos to centavos + fee
+        $feeStrategy = $voucher->instructions?->cash?->fee_strategy ?? 'absorb';
+        
+        Log::debug('[DisburseCash] Fee calculation', [
+            'rail' => $rail->value,
+            'fee_amount' => $feeAmount,
+            'disbursement_amount' => $input->amount,
+            'total_cost' => $totalCost,
+            'fee_strategy' => $feeStrategy,
+        ]);
+        
         // Withdraw funds from cash wallet (money has left the system)
         $cash = $voucher->cash;
         $withdrawal = WithdrawCash::run(
@@ -84,6 +98,10 @@ class DisburseCash
                     'status' => $normalizedStatus,
                     'amount' => $input->amount,
                     'currency' => 'PHP',
+                    'settlement_rail' => $rail->value,
+                    'fee_amount' => $feeAmount,
+                    'total_cost' => $totalCost,
+                    'fee_strategy' => $feeStrategy,
                     'recipient_identifier' => $input->account_number,
                     'disbursed_at' => now()->toIso8601String(),
                     'transaction_uuid' => $response->uuid,

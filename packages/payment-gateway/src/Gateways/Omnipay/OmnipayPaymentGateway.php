@@ -379,6 +379,20 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
     }
     
     /**
+     * Get the transaction fee for a specific settlement rail.
+     * 
+     * @param SettlementRail $rail The settlement rail
+     * @return int Fee amount in minor units (centavos)
+     */
+    public function getRailFee(SettlementRail $rail): int
+    {
+        $railsConfig = config('omnipay.gateways.netbank.options.rails', []);
+        $railConfig = $railsConfig[$rail->value] ?? [];
+        
+        return $railConfig['fee'] ?? 0;
+    }
+    
+    /**
      * Validate that bank supports the selected settlement rail.
      * 
      * @param string $bankCode SWIFT BIC code

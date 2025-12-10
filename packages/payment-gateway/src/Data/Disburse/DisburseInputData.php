@@ -24,7 +24,7 @@ class DisburseInputData extends Data
 
     public static function fromVoucher(
         Voucher $voucher,
-        string $via = 'INSTAPAY',
+        ?string $via = null,
     ): self {
         Log::debug('[DisburseInputData] fromVoucher beginning', [
             'voucher_code' => $voucher->code,
@@ -77,6 +77,24 @@ class DisburseInputData extends Data
         $amount    = $cash->amount->getAmount()->toFloat();
         $account   = $bankAccount->getAccountNumber();
         $bank      = $bankAccount->getBankCode();
+        
+        // Smart rail selection: Use voucher instruction, parameter, or auto-select based on amount
+        if ($via === null) {
+            // Check if voucher has settlement_rail in instructions
+            $instructionRail = $voucher->instructions?->cash?->settlement_rail?->value ?? null;
+            
+            if ($instructionRail) {
+                $via = $instructionRail;
+                Log::debug('[DisburseInputData] Using rail from voucher instructions', ['rail' => $via]);
+            } else {
+                // Auto-select based on amount: INSTAPAY <50k, PESONET ≥50k
+                $via = $amount < 50000 ? 'INSTAPAY' : 'PESONET';
+                Log::debug('[DisburseInputData] Auto-selected rail based on amount', [
+                    'amount' => $amount,
+                    'selected_rail' => $via,
+                ]);
+            }
+        }
 
         Log::debug('[DisburseInputData] Building final payload', compact('reference', 'amount', 'account', 'bank', 'via'));
 

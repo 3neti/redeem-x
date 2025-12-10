@@ -4,6 +4,7 @@ namespace LBHurtado\PaymentGateway\Gateways\Netbank;
 
 use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\{CanCheckBalance, CanCollect, CanConfirmDeposit, CanDisburse, CanGenerate};
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use Illuminate\Support\Facades\Http;
 
 class NetbankPaymentGateway implements PaymentGatewayInterface
@@ -27,5 +28,19 @@ class NetbankPaymentGateway implements PaymentGatewayInterface
         ]);
 
         return $response->json('access_token');
+    }
+    
+    /**
+     * Get the transaction fee for a specific settlement rail.
+     * 
+     * @param SettlementRail $rail The settlement rail
+     * @return int Fee amount in minor units (centavos)
+     */
+    public function getRailFee(SettlementRail $rail): int
+    {
+        $railsConfig = config('omnipay.gateways.netbank.options.rails', []);
+        $railConfig = $railsConfig[$rail->value] ?? [];
+        
+        return $railConfig['fee'] ?? 0;
     }
 }
