@@ -3,12 +3,14 @@
 namespace LBHurtado\Voucher\Actions;
 
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Data\VoucherMetadataData;
 use Illuminate\Support\Facades\{Log, Validator};
 use LBHurtado\Voucher\Events\VouchersGenerated;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Illuminate\Support\Collection;
 use Carbon\CarbonInterval;
+use Illuminate\Support\Facades\Route;
 
 class GenerateVouchers
 {
@@ -58,6 +60,11 @@ class GenerateVouchers
             throw new \Exception('No authenticated user found. Please ensure a user is logged in.');
         }
 
+        // Populate metadata if not already provided
+        if (is_null($instructions->metadata)) {
+            $instructions->metadata = $this->createMetadata($owner);
+        }
+
         $voucherBuilder = Vouchers::withPrefix($prefix)
             ->withMask($mask)
             ->withMetadata(['instructions' => $instructions->toCleanArray()]) // This is most important! Pass instructions as metadata.
@@ -88,5 +95,51 @@ class GenerateVouchers
         VouchersGenerated::dispatch($collection);
 
         return $collection;
+    }
+
+    /**
+     * Create metadata for voucher instructions.
+     */
+    private function createMetadata($owner): VoucherMetadataData
+    {
+        // Get redemption URLs
+        $redemptionUrls = [
+            'web' => route('redeem.start'),
+        ];
+
+        // Add API endpoint if route exists
+        if (Route::has('api.redemption.validate')) {
+            $redemptionUrls['api'] = route('api.redemption.validate');
+        }
+
+        // Add widget URL if configured
+        if ($widgetUrl = config('voucher.redemption.widget_url')) {
+            $redemptionUrls['widget'] = $widgetUrl;
+        }
+
+        // Determine primary URL (prefer web)
+        $primaryUrl = $redemptionUrls['web'] ?? null;
+
+        // Collect active licenses (non-null values)
+        $licenses = array_filter(config('voucher.metadata.licenses', []));
+
+        return VoucherMetadataData::from([
+            'version' => config('voucher.metadata.version'),
+            'system_name' => config('voucher.metadata.system_name'),
+            'copyright' => config('voucher.metadata.copyright'),
+            'licenses' => $licenses,
+            'issuer_id' => $owner->id,
+            'issuer_name' => $owner->name ?? $owner->email,
+            'issuer_email' => $owner->email,
+            'redemption_urls' => $redemptionUrls,
+            'primary_url' => $primaryUrl,
+            'created_at' => now(),
+            'issued_at' => now(),
+
+            // Optional fields (signature support)
+            'public_key' => config('voucher.security.enable_signatures') 
+                ? config('voucher.security.public_key') 
+                : null,
+        ]);
     }
 }

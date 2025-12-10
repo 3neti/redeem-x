@@ -15,6 +15,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
+    // Inspect voucher metadata (public, no auth)
+    // GET /api/v1/vouchers/{code}/inspect
+    Route::get('/{code}/inspect', [\App\Actions\Api\Vouchers\InspectVoucher::class, 'asController'])
+        ->name('inspect')
+        ->withoutMiddleware('auth:sanctum');
+
     // Generate vouchers
     // POST /api/v1/vouchers
     Route::post('/', [\App\Actions\Api\Vouchers\GenerateVouchers::class, 'asController'])

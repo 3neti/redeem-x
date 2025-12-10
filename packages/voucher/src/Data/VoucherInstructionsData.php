@@ -12,6 +12,7 @@ use Propaganistas\LaravelPhone\Rules\Phone;
 use Illuminate\Support\Number;
 use Spatie\LaravelData\Data;
 use Carbon\CarbonInterval;
+use LBHurtado\Voucher\Data\VoucherMetadataData;
 
 class VoucherInstructionsData extends Data
 {
@@ -29,6 +30,7 @@ class VoucherInstructionsData extends Data
         #[WithCast(CarbonIntervalCast::class)]
         public CarbonInterval|null           $ttl,              // Expiry time (TTL)
         public ?ValidationInstructionData    $validation = null, // Validation instructions
+        public ?VoucherMetadataData          $metadata = null,   // System metadata (version, copyright, licenses, issuer, redemption URLs)
     ){
         $this->applyRulesAndDefaults();
 //        $this->ttl = $ttl ?: CarbonInterval::hours(config('instructions.ttl'));
