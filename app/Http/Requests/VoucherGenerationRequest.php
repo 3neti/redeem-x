@@ -62,6 +62,10 @@ class VoucherGenerationRequest extends FormRequest
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
             
+            // Settlement rail and fee strategy
+            'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
+            'fee_strategy' => 'nullable|string|in:absorb,include,add',
+            
             // External metadata for external system integration
             'external_metadata' => 'nullable|array|max:5',
             'external_metadata.external_id' => 'nullable|string|max:255',
@@ -102,6 +106,8 @@ class VoucherGenerationRequest extends FormRequest
                     'location' => null,
                     'radius' => null,
                 ],
+                'settlement_rail' => $validated['settlement_rail'] ?? null,
+                'fee_strategy' => $validated['fee_strategy'] ?? 'absorb',
             ],
             'inputs' => [
                 'fields' => $inputFields,
