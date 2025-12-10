@@ -202,3 +202,69 @@ it('checks if code is EMI using isEMI()', function () {
     $isEmi = $bankRegistry->isEMI('AGBUPHM1XXX');
     expect($isEmi)->toBeFalse();
 });
+
+// EMI Rail Restriction Tests
+
+it('restricts GCash to INSTAPAY only (EMI override)', function () {
+    $bankRegistry = new BankRegistry();
+
+    $allowedRails = $bankRegistry->getAllowedRails('GXCHPHM2XXX');
+
+    // GCash should only support INSTAPAY (from bank-restrictions config)
+    expect($allowedRails)->toBe(['INSTAPAY']);
+
+    // Verify supportsRail() respects the restriction
+    expect($bankRegistry->supportsRail('GXCHPHM2XXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::INSTAPAY))->toBeTrue();
+    expect($bankRegistry->supportsRail('GXCHPHM2XXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET))->toBeFalse();
+});
+
+it('restricts PayMaya to INSTAPAY only (EMI override)', function () {
+    $bankRegistry = new BankRegistry();
+
+    $allowedRails = $bankRegistry->getAllowedRails('PYMYPHM2XXX');
+
+    // PayMaya should only support INSTAPAY
+    expect($allowedRails)->toBe(['INSTAPAY']);
+    expect($bankRegistry->supportsRail('PYMYPHM2XXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::INSTAPAY))->toBeTrue();
+    expect($bankRegistry->supportsRail('PYMYPHM2XXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET))->toBeFalse();
+});
+
+it('allows traditional banks to use both rails (no override)', function () {
+    $bankRegistry = new BankRegistry();
+
+    // BDO supports both rails (no EMI restriction)
+    $allowedRails = $bankRegistry->getAllowedRails('BNORPHMMXXX');
+    expect($allowedRails)->toContain('INSTAPAY');
+    expect($allowedRails)->toContain('PESONET');
+
+    expect($bankRegistry->supportsRail('BNORPHMMXXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::INSTAPAY))->toBeTrue();
+    expect($bankRegistry->supportsRail('BNORPHMMXXX', \LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET))->toBeTrue();
+});
+
+it('maintains backward compatibility with getAllowedRails()', function () {
+    $bankRegistry = new BankRegistry();
+
+    // Test bank with only PESONET (no override, fallback to banks.json)
+    $allowedRails = $bankRegistry->getAllowedRails('AGBUPHM1XXX');
+    expect($allowedRails)->toBe(['PESONET']);
+
+    // Test bank with both rails (no override)
+    $allowedRails = $bankRegistry->getAllowedRails('BOPIPHMMXXX'); // BPI
+    expect($allowedRails)->toContain('INSTAPAY');
+    expect($allowedRails)->toContain('PESONET');
+});
+
+it('restricts all configured EMIs to INSTAPAY only', function () {
+    $bankRegistry = new BankRegistry();
+    $restrictions = config('bank-restrictions.emi_restrictions');
+
+    foreach ($restrictions as $swiftBic => $config) {
+        $allowedRails = $bankRegistry->getAllowedRails($swiftBic);
+
+        expect($allowedRails)
+            ->toBe(['INSTAPAY'], "$swiftBic should only support INSTAPAY");
+
+        expect($bankRegistry->supportsRail($swiftBic, \LBHurtado\PaymentGateway\Enums\SettlementRail::PESONET))
+            ->toBeFalse("$swiftBic should not support PESONET");
+    }
+});

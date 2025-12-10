@@ -43,12 +43,39 @@ class BankRegistry
     }
     
     /**
-     * Check if bank supports a specific settlement rail
+     * Get allowed settlement rails for a bank.
+     * 
+     * Checks EMI restrictions config first (override), then falls back to banks.json.
+     * This prevents invalid rail selections for EMIs that only support INSTAPAY.
+     * 
+     * @param string $swiftBic Bank SWIFT/BIC code
+     * @return array List of allowed rail names (e.g., ['INSTAPAY'])
+     */
+    public function getAllowedRails(string $swiftBic): array
+    {
+        // Check EMI restrictions config first (takes precedence)
+        $restrictions = config('bank-restrictions.emi_restrictions', []);
+        if (isset($restrictions[$swiftBic])) {
+            return $restrictions[$swiftBic]['allowed_rails'];
+        }
+        
+        // Fallback: Return all rails from banks.json
+        $supportedRails = $this->supportedSettlementRails($swiftBic);
+        return array_keys($supportedRails);
+    }
+    
+    /**
+     * Check if bank supports a specific settlement rail.
+     * 
+     * Now uses getAllowedRails() which respects EMI restrictions.
+     * 
+     * @param string $swiftBic Bank SWIFT/BIC code
+     * @param SettlementRail $rail Settlement rail to check
+     * @return bool True if bank supports the rail
      */
     public function supportsRail(string $swiftBic, SettlementRail $rail): bool
     {
-        $supportedRails = $this->supportedSettlementRails($swiftBic);
-        return isset($supportedRails[$rail->value]);
+        return in_array($rail->value, $this->getAllowedRails($swiftBic), true);
     }
     
     /**

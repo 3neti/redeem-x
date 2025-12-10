@@ -41,6 +41,11 @@ class PaymentGatewayServiceProvider extends ServiceProvider
             'omnipay'
         );
 
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/bank-restrictions.php',
+            'bank-restrictions'
+        );
+
         $this->app->singleton(SystemUserResolverService::class, fn () => new SystemUserResolverService());
 
         $this->app->bind(PaymentGatewayInterface::class, function ($app) {
@@ -93,6 +98,7 @@ class PaymentGatewayServiceProvider extends ServiceProvider
             __DIR__ . '/../config/payment-gateway.php' => config_path('payment-gateway.php'),
             __DIR__ . '/../config/payment.php' => config_path('payment.php'),
             __DIR__ . '/../config/omnipay.php' => config_path('omnipay.php'),
+            __DIR__ . '/../config/bank-restrictions.php' => config_path('bank-restrictions.php'),
         ], 'config');
 
         // Use PHP as the default currency globally
