@@ -7,6 +7,8 @@ use Closure;
 
 class EscrowAction
 {
+    private const DEBUG = false;
+    
     public function handle($voucher, Closure $next)
     {
 //        $instructions = $voucher->instructions;
@@ -26,7 +28,9 @@ class EscrowAction
 //            throw new \RuntimeException('Failed to credit house wallet.');
 //        }
 
-        Log::info("Funds escrowed from customer to house wallet for voucher ID: {$voucher->id}.");
+        if (self::DEBUG) {
+            Log::info("Funds escrowed from customer to house wallet for voucher ID: {$voucher->id}.");
+        }
 
         return $next($voucher);
     }

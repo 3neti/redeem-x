@@ -7,6 +7,8 @@ use Closure;
 
 class CheckBalance
 {
+    private const DEBUG = false;
+    
     public function handle($voucher, Closure $next)
     {
 //        $instructions = $voucher->instructions;
@@ -18,7 +20,9 @@ class CheckBalance
 //            throw new \RuntimeException('Insufficient balance to create a voucher.');
 //        }
 
-        Log::info("Sufficient balance confirmed for voucher ID: {$voucher->id}.");
+        if (self::DEBUG) {
+            Log::info("Sufficient balance confirmed for voucher ID: {$voucher->id}.");
+        }
 
         return $next($voucher);
     }
