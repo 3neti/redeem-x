@@ -7,10 +7,14 @@ use Illuminate\Support\Facades\Log;
 
 class TriggerPostGenerationWorkflows
 {
+    private const DEBUG = false;
+    
     public function handle($vouchers, Closure $next)
     {
         // @todo Trigger downstream tasks like syncing to external systems or scheduling dispatch
-        Log::info('Executing post-generation workflows for vouchers.');
+        if (self::DEBUG) {
+            Log::info('Executing post-generation workflows for vouchers.');
+        }
 
         $vouchers->each(function ($voucher) {
             // Placeholder for future integrations or job dispatching

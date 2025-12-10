@@ -9,20 +9,28 @@ use Illuminate\Pipeline\Pipeline;
 
 class HandleGeneratedVouchers implements ShouldQueue
 {
+    private const DEBUG = false;
+    
     public function handle(VouchersGenerated $event): void
     {
-        Log::info('[HandleGeneratedVouchers] Event received', [
-            'voucher_count' => $event->getVouchers()->count(),
-        ]);
+        if (self::DEBUG) {
+            Log::info('[HandleGeneratedVouchers] Event received', [
+                'voucher_count' => $event->getVouchers()->count(),
+            ]);
+        }
 
         try {
             DB::transaction(function () use ($event) {
                 $all = $event->getVouchers();
-                Log::debug('[HandleGeneratedVouchers] Total vouchers in event', ['total' => $all->count()]);
+                if (self::DEBUG) {
+                    Log::debug('[HandleGeneratedVouchers] Total vouchers in event', ['total' => $all->count()]);
+                }
 
                 // Process only unprocessed vouchers in the pipeline
                 $unprocessed = $all->filter(fn($voucher) => !$voucher->processed);
-                Log::debug('[HandleGeneratedVouchers] Unprocessed vouchers', ['count' => $unprocessed->count()]);
+                if (self::DEBUG) {
+                    Log::debug('[HandleGeneratedVouchers] Unprocessed vouchers', ['count' => $unprocessed->count()]);
+                }
 
                 $post_generation_pipeline_array = config('voucher-pipeline.post-generation');
 
@@ -31,7 +39,9 @@ class HandleGeneratedVouchers implements ShouldQueue
                     ->through($post_generation_pipeline_array)
                     ->thenReturn();
 
-                Log::info('[HandleGeneratedVouchers] Pipeline completed', ['processed' => $unprocessed->count()]);
+                if (self::DEBUG) {
+                    Log::info('[HandleGeneratedVouchers] Pipeline completed', ['processed' => $unprocessed->count()]);
+                }
             });
         } catch (\Throwable $e) {
             Log::error('[HandleGeneratedVouchers] Failed to process vouchers', [
@@ -41,6 +51,8 @@ class HandleGeneratedVouchers implements ShouldQueue
             throw $e;
         }
 
-        Log::info('[HandleGeneratedVouchers] Handler finished successfully');
+        if (self::DEBUG) {
+            Log::info('[HandleGeneratedVouchers] Handler finished successfully');
+        }
     }
 }

@@ -7,10 +7,14 @@ use Illuminate\Support\Facades\Log;
 
 class RunFraudChecks
 {
+    private const DEBUG = false;
+    
     public function handle($vouchers, Closure $next)
     {
         // @todo Implement fraud detection logic here
-        Log::info('Running fraud checks on generated vouchers.');
+        if (self::DEBUG) {
+            Log::info('Running fraud checks on generated vouchers.');
+        }
 
         // Example: flag vouchers for review based on pattern
         $vouchers->each(function ($voucher) {

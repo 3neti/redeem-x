@@ -8,23 +8,33 @@ use Closure;
 
 class CreateCashEntities
 {
+    private const DEBUG = false;
+    
     public function handle($vouchers, Closure $next)
     {
-        Log::debug('[CreateCashEntities] Starting to mint cash for vouchers.', [
-            'total_vouchers' => $vouchers->count(),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[CreateCashEntities] Starting to mint cash for vouchers.', [
+                'total_vouchers' => $vouchers->count(),
+            ]);
+        }
 
         $vouchers->each(function ($voucher) {
-            Log::debug('[CreateCashEntities] Minting cash for voucher.', [
-                'voucher_id' => $voucher->id,
-                'voucher_code' => $voucher->code,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[CreateCashEntities] Minting cash for voucher.', [
+                    'voucher_id' => $voucher->id,
+                    'voucher_code' => $voucher->code,
+                ]);
+            }
             MintCash::run($voucher);
-            Log::debug('[CreateCashEntities] Minted cash successfully.', [
-                'voucher_id' => $voucher->id,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[CreateCashEntities] Minted cash successfully.', [
+                    'voucher_id' => $voucher->id,
+                ]);
+            }
         });
-        Log::debug('[CreateCashEntities] Finished processing all vouchers.');
+        if (self::DEBUG) {
+            Log::debug('[CreateCashEntities] Finished processing all vouchers.');
+        }
 
         return $next($vouchers);
     }

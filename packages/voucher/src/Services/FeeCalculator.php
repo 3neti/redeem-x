@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 
 class FeeCalculator
 {
+    private const DEBUG = false;
+    
     public function __construct(
         protected PaymentGatewayInterface $gateway
     ) {}
@@ -63,15 +65,17 @@ class FeeCalculator
             default => $originalAmount * 100, // Issuer pays or already included
         };
         
-        Log::debug('[FeeCalculator] Fee calculation complete', [
-            'original_amount' => $originalAmount,
-            'adjusted_amount' => $adjustedAmount,
-            'fee_amount' => $feeAmount,
-            'fee_in_pesos' => $feeInPesos,
-            'total_cost' => $totalCost,
-            'strategy' => $feeStrategy,
-            'rail' => $rail->value,
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[FeeCalculator] Fee calculation complete', [
+                'original_amount' => $originalAmount,
+                'adjusted_amount' => $adjustedAmount,
+                'fee_amount' => $feeAmount,
+                'fee_in_pesos' => $feeInPesos,
+                'total_cost' => $totalCost,
+                'strategy' => $feeStrategy,
+                'rail' => $rail->value,
+            ]);
+        }
         
         return [
             'adjusted_amount' => $adjustedAmount,

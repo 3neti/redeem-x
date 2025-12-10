@@ -29,6 +29,8 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
 {
     use CanConfirmDeposit;
     
+    private const DEBUG = false;
+    
     protected GatewayInterface $gateway;
     protected BankRegistry $bankRegistry;
     
@@ -55,13 +57,15 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             ? $validated->toArray()
             : $validated;
         
-        Log::debug('[OmnipayPaymentGateway] Starting disbursement', [
-            'wallet_id' => $wallet->getKey(),
-            'reference' => $data['reference'],
-            'amount' => $data['amount'],
-            'bank' => $data['bank'],
-            'via' => $data['via'],
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[OmnipayPaymentGateway] Starting disbursement', [
+                'wallet_id' => $wallet->getKey(),
+                'reference' => $data['reference'],
+                'amount' => $data['amount'],
+                'bank' => $data['bank'],
+                'via' => $data['via'],
+            ]);
+        }
         
         $amount = $data['amount'];
         $currency = config('disbursement.currency', 'PHP');
@@ -89,11 +93,13 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             // Get the deposit transaction (user receiving)
             $transaction = $transfer->deposit;
             
-            Log::debug('[OmnipayPaymentGateway] Funds transferred from system', [
-                'transaction_uuid' => $transaction->uuid,
-                'amount_centavos' => $credits->getMinorAmount()->toInt(),
-                'transfer_uuid' => $transfer->uuid,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[OmnipayPaymentGateway] Funds transferred from system', [
+                    'transaction_uuid' => $transaction->uuid,
+                    'amount_centavos' => $credits->getMinorAmount()->toInt(),
+                    'transfer_uuid' => $transfer->uuid,
+                ]);
+            }
             
             // Convert amount to minor units (centavos)
             $amountInCentavos = (int) ($amount * 100);
@@ -171,10 +177,12 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
      */
     public function generate(string $account, Money $amount, array $merchantData = []): string
     {
-        Log::debug('[OmnipayPaymentGateway] Generating QR code', [
-            'account' => $account,
-            'amount' => $amount->getAmount()->toFloat(),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[OmnipayPaymentGateway] Generating QR code', [
+                'account' => $account,
+                'amount' => $amount->getAmount()->toFloat(),
+            ]);
+        }
         
         // Convert to minor units
         $amountInCentavos = $amount->getMinorAmount()->toInt();
@@ -205,11 +213,13 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             // We send city to satisfy API requirements
             $params['merchantCity'] = $merchant->city ?? 'Manila';
             
-            Log::debug('[OmnipayPaymentGateway] Rendered merchant name', [
-                'template' => $template,
-                'rendered' => $merchantName,
-                'city' => $params['merchantCity'],
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[OmnipayPaymentGateway] Rendered merchant name', [
+                    'template' => $template,
+                    'rendered' => $merchantName,
+                    'city' => $params['merchantCity'],
+                ]);
+            }
         }
         
         $response = $this->gateway->generateQr($params)->send();
@@ -240,10 +250,12 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             $transaction = Transaction::whereJsonContains('meta->operationId', $operationId)
                 ->firstOrFail();
             
-            Log::debug('[OmnipayPaymentGateway] Found transaction for confirmation', [
-                'operation_id' => $operationId,
-                'transaction_uuid' => $transaction->uuid,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[OmnipayPaymentGateway] Found transaction for confirmation', [
+                    'operation_id' => $operationId,
+                    'transaction_uuid' => $transaction->uuid,
+                ]);
+            }
             
             // Confirm the transaction
             $transaction->payable->confirm($transaction);
@@ -298,11 +310,13 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             $rawStatus = $response->getStatus();
             $normalized = \LBHurtado\PaymentGateway\Enums\DisbursementStatus::fromGateway('netbank', $rawStatus);
             
-            Log::info('[OmnipayPaymentGateway] Status checked', [
-                'transaction_id' => $transactionId,
-                'raw_status' => $rawStatus,
-                'normalized_status' => $normalized->value,
-            ]);
+            if (self::DEBUG) {
+                Log::info('[OmnipayPaymentGateway] Status checked', [
+                    'transaction_id' => $transactionId,
+                    'raw_status' => $rawStatus,
+                    'normalized_status' => $normalized->value,
+                ]);
+            }
             
             return [
                 'status' => $normalized->value,
@@ -326,9 +340,11 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
     public function checkAccountBalance(string $accountNumber): array
     {
         try {
-            Log::debug('[OmnipayPaymentGateway] Checking balance', [
-                'account' => $accountNumber,
-            ]);
+            if (self::DEBUG) {
+                Log::debug('[OmnipayPaymentGateway] Checking balance', [
+                    'account' => $accountNumber,
+                ]);
+            }
             
             $response = $this->gateway->checkBalance([
                 'accountNumber' => $accountNumber,
@@ -349,10 +365,12 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 ];
             }
             
-            Log::info('[OmnipayPaymentGateway] Balance checked', [
-                'account' => $accountNumber,
-                'balance' => $response->getBalance(),
-            ]);
+            if (self::DEBUG) {
+                Log::info('[OmnipayPaymentGateway] Balance checked', [
+                    'account' => $accountNumber,
+                    'balance' => $response->getBalance(),
+                ]);
+            }
             
             return [
                 'balance' => $response->getBalance(),

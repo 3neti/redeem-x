@@ -10,6 +10,8 @@ use LBHurtado\Wallet\Services\SystemUserResolverService;
 
 class ReconciliationService
 {
+    private const DEBUG = false;
+    
     public function __construct(
         protected BalanceService $balanceService,
         protected SystemUserResolverService $systemUserResolver
@@ -36,11 +38,13 @@ class ReconciliationService
             ->where('id', '!=', $systemWalletId)
             ->sum('balance') ?? 0;
 
-        Log::debug('[ReconciliationService] Total user balance calculated', [
-            'total' => $total,
-            'system_wallet_id_excluded' => $systemWalletId,
-            'formatted' => Money::ofMinor($total, 'PHP')->formatTo('en_PH'),
-        ]);
+        if (self::DEBUG) {
+            Log::debug('[ReconciliationService] Total user balance calculated', [
+                'total' => $total,
+                'system_wallet_id_excluded' => $systemWalletId,
+                'formatted' => Money::ofMinor($total, 'PHP')->formatTo('en_PH'),
+            ]);
+        }
 
         return (int) $total;
     }
@@ -152,7 +156,9 @@ class ReconciliationService
             'suppressed' => $suppressWarnings,
         ];
 
-        Log::info('[ReconciliationService] Reconciliation status', $result);
+        if (self::DEBUG) {
+            Log::info('[ReconciliationService] Reconciliation status', $result);
+        }
 
         return $result;
     }

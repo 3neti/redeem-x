@@ -11,6 +11,8 @@ use LBHurtado\PaymentGateway\Exceptions\TopUpException;
 
 class TopUpController extends Controller
 {
+    private const DEBUG = false;
+    
     /**
      * Display top-up page.
      */
@@ -63,11 +65,13 @@ class TopUpController extends Controller
                 institutionCode: $validated['institution_code'] ?? null
             );
 
-            Log::info('[TopUp] Initiated successfully', [
-                'user_id' => $user->id,
-                'reference_no' => $result->reference_no,
-                'amount' => $result->amount,
-            ]);
+            if (self::DEBUG) {
+                Log::info('[TopUp] Initiated successfully', [
+                    'user_id' => $user->id,
+                    'reference_no' => $result->reference_no,
+                    'amount' => $result->amount,
+                ]);
+            }
             
             // Auto-confirm in fake mode if configured
             $useFake = config('payment-gateway.netbank.direct_checkout.use_fake', false);
@@ -79,10 +83,12 @@ class TopUpController extends Controller
                     $topUp->markAsPaid('FAKE-AUTO-' . now()->timestamp);
                     $user->creditWalletFromTopUp($topUp);
                     
-                    Log::info('[TopUp] Auto-confirmed (fake mode)', [
-                        'reference_no' => $topUp->reference_no,
-                        'new_balance' => $user->fresh()->balanceFloat,
-                    ]);
+                    if (self::DEBUG) {
+                        Log::info('[TopUp] Auto-confirmed (fake mode)', [
+                            'reference_no' => $topUp->reference_no,
+                            'new_balance' => $user->fresh()->balanceFloat,
+                        ]);
+                    }
                 }
             }
 
