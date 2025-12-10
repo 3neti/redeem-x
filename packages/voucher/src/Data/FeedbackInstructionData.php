@@ -119,17 +119,17 @@ class FeedbackInstructionData extends Data
         }
     }
 
-    public static function defaultEmail(): string
+    public static function defaultEmail(): ?string
     {
         return config('instructions.feedback.email');
     }
 
-    public static function defaultMobile(): string
+    public static function defaultMobile(): ?string
     {
         return config('instructions.feedback.mobile');
     }
 
-    public static function defaultWebhook(): string
+    public static function defaultWebhook(): ?string
     {
         return config('instructions.feedback.webhook');
     }
