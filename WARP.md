@@ -357,6 +357,27 @@ Uses **Laravel WorkOS** for authentication:
 - Path aliases configured: `@/` resolves to `resources/js/`
 - Types in `resources/js/types/`
 
+### Settlement Rail Selection
+**INSTAPAY vs PESONET** - Users can choose disbursement rail when generating vouchers:
+- **INSTAPAY**: Real-time transfer, ≤₱50k, ₱10 fee
+- **PESONET**: Next business day, ≤₱1M, ₱25 fee  
+- **Auto mode**: Smart selection based on amount (<₱50k = INSTAPAY, ≥₱50k = PESONET)
+
+**Fee Strategy Options**:
+- `absorb`: Issuer pays the fee (default)
+- `include`: Fee deducted from voucher amount
+- `add`: Fee added to disbursement (redeemer receives voucher + fee)
+
+**UI Location**: Voucher Generation page → Basic Settings → Disbursement Settings
+
+**Data Flow**:
+1. Frontend: `CashInstructionForm.vue` captures rail + fee strategy
+2. API: `GenerateVouchers` action validates and stores in `VoucherInstructionsData`
+3. Backend: `DisburseInputData::fromVoucher()` reads from voucher instructions
+4. Gateway: `OmnipayPaymentGateway` sends to NetBank with selected rail
+
+**Important**: See `docs/DEBUGGING_SETTLEMENT_RAIL.md` for debugging guide and common pitfalls when adding new form fields.
+
 ### Payment Gateway Configuration
 
 **Dual Gateway Support:**
