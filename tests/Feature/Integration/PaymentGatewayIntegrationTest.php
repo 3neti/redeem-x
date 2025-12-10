@@ -78,6 +78,11 @@ test('disbursement failure handling', function () {
     // Note: With DISBURSE_DISABLE=true, this tests the mock setup
     
     $mockGateway = Mockery::mock(PaymentGatewayInterface::class);
+    
+    // Mock getRailFee for FeeCalculator during voucher generation
+    $mockGateway->shouldReceive('getRailFee')
+        ->andReturn(1000); // ₱10 fee in centavos
+    
     app()->instance(PaymentGatewayInterface::class, $mockGateway);
     
     // Mock gateway to return false (failure) - but won't be called with DISBURSE_DISABLE=true
@@ -129,6 +134,11 @@ test('disbursement metadata storage', function () {
     // Test that successful disbursement stores metadata correctly
     
     $mockGateway = Mockery::mock(PaymentGatewayInterface::class);
+    
+    // Mock getRailFee for FeeCalculator during voucher generation
+    $mockGateway->shouldReceive('getRailFee')
+        ->andReturn(1000); // ₱10 fee in centavos
+    
     app()->instance(PaymentGatewayInterface::class, $mockGateway);
     
     // Note: With DISBURSE_DISABLE=true, disbursement won't run
