@@ -6,6 +6,7 @@ use Brick\Money\Money;
 
 use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
 use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use Bavix\Wallet\Interfaces\Wallet;
 
 interface PaymentGatewayInterface
@@ -53,4 +54,12 @@ interface PaymentGatewayInterface
      * @return array{balance: int, available_balance: int, currency: string, as_of: ?string, raw: array}
      */
     public function checkAccountBalance(string $accountNumber): array;
+    
+    /**
+     * Get the transaction fee for a specific settlement rail.
+     *
+     * @param SettlementRail $rail The settlement rail
+     * @return int Fee amount in minor units (centavos)
+     */
+    public function getRailFee(SettlementRail $rail): int;
 }

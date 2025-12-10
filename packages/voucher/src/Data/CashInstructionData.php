@@ -2,6 +2,7 @@
 
 namespace LBHurtado\Voucher\Data;
 
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Data\Traits\HasSafeDefaults;
 use Spatie\LaravelData\Data;
 use Brick\Money\Money;
@@ -14,6 +15,8 @@ class CashInstructionData extends Data
         public float $amount,
         public string $currency,
         public CashValidationRulesData $validation,
+        public ?SettlementRail $settlement_rail = null,
+        public string $fee_strategy = 'absorb',
     ) { $this->applyRulesAndDefaults(); }
 
     protected function rulesAndDefaults(): array
@@ -26,6 +29,14 @@ class CashInstructionData extends Data
             'currency' => [
                 ['required', 'string', 'size:3'],
                 config('instructions.cash.currency')
+            ],
+            'settlement_rail' => [
+                ['nullable', 'string', 'in:INSTAPAY,PESONET'],
+                null
+            ],
+            'fee_strategy' => [
+                ['required', 'string', 'in:absorb,include,add'],
+                'absorb'
             ]
         ];
     }
