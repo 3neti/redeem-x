@@ -9,6 +9,8 @@ use Illuminate\Support\Arr;
 use Closure;
 class UpdateContact
 {
+    private const DEBUG = false;
+    
     protected array $inputToContactMap = [
         'name'                  => Contact::NAME_FIELD,
         'email'                 => Contact::EMAIL_FIELD,
@@ -20,9 +22,11 @@ class UpdateContact
     public function handle($voucher, Closure $next)
     {
         if (! $voucher->instructions->inputs->contains(VoucherInputField::NAME)) {
-            Log::warning('[UpdateContact] No input name instruction found for voucher', [
-                'voucher_code' => $voucher->code,
-            ]);
+            if (self::DEBUG) {
+                Log::warning('[UpdateContact] No input name instruction found for voucher', [
+                    'voucher_code' => $voucher->code,
+                ]);
+            }
             return $next($voucher);
         }
 
@@ -41,18 +45,22 @@ class UpdateContact
             $inputValue = Arr::get($voucher->redeemers->first()->metadata,'redemption.inputs.' . $inputKey);
             $currentValue = $contact->{$contactField};
 
-            Log::debug("[UpdateContact] Iterating through input contact map. Field: {$contactField}", [
-                'inputKey' => $inputKey,
-                'contactField' => $contactField,
-                'old' => $currentValue,
-                'new' => $inputValue,
-            ]);
-
-            if ($inputValue && $inputValue !== $currentValue) {
-                Log::debug("[UpdateContact] Preparing to update contact. Field: {$contactField}", [
+            if (self::DEBUG) {
+                Log::debug("[UpdateContact] Iterating through input contact map. Field: {$contactField}", [
+                    'inputKey' => $inputKey,
+                    'contactField' => $contactField,
                     'old' => $currentValue,
                     'new' => $inputValue,
                 ]);
+            }
+
+            if ($inputValue && $inputValue !== $currentValue) {
+                if (self::DEBUG) {
+                    Log::debug("[UpdateContact] Preparing to update contact. Field: {$contactField}", [
+                        'old' => $currentValue,
+                        'new' => $inputValue,
+                    ]);
+                }
                 $contact->{$contactField} = $inputValue;
                 $changes[$contactField] = $inputValue;
             }
@@ -66,7 +74,9 @@ class UpdateContact
                 'changes'    => $changes,
             ]);
         } else {
-            Log::debug('[UpdateContact] No changes detected in contact fields.');
+            if (self::DEBUG) {
+                Log::debug('[UpdateContact] No changes detected in contact fields.');
+            }
         }
 
         return $next($voucher);
