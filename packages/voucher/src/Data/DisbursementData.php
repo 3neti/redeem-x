@@ -2,7 +2,7 @@
 
 namespace LBHurtado\Voucher\Data;
 
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
 use Spatie\LaravelData\Data;
 

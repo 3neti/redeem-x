@@ -6,7 +6,7 @@ use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisbursePayloadData;
 use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisburseResponseData;
 use LBHurtado\PaymentGateway\Tests\Models\AnotherUser;
 use Illuminate\Support\Str;
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 beforeEach(function () {
     $this->gatewayMock = mock(PaymentGatewayInterface::class);

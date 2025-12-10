@@ -3,7 +3,7 @@
 namespace LBHurtado\PaymentGateway\Data;
 
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use Spatie\LaravelData\{Data, DataCollection};
 
 class SettlementBanksData extends Data

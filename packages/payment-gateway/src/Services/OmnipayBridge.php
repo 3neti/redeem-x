@@ -10,7 +10,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
 };
 use LBHurtado\PaymentGateway\Data\Wallet\BalanceData;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use Omnipay\Common\GatewayInterface;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Models\Transaction;

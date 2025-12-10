@@ -9,7 +9,7 @@ use Illuminate\Http\Response;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
