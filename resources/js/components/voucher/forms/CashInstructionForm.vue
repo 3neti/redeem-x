@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, DollarSign } from 'lucide-vue-next';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ChevronDown, DollarSign, AlertTriangle, Info } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import CashValidationRulesForm from './CashValidationRulesForm.vue';
 import type { CashInstruction } from '@/types/voucher';
+import { AMOUNT_LIMITS } from '@/config/bank-restrictions';
 
 interface Props {
     modelValue: CashInstruction;
@@ -87,6 +89,29 @@ const totalCost = computed(() => {
     if (strategy === 'add') return localValue.value.amount + estimatedFee.value;
     return localValue.value.amount;
 });
+
+// Rail validation
+const railValidation = computed(() => {
+    const amount = localValue.value.amount;
+    const rail = selectedRailValue.value;
+    
+    // Check if PESONET is selected
+    if (rail === 'PESONET') {
+        // Check if amount exceeds INSTAPAY limit
+        if (amount > AMOUNT_LIMITS.INSTAPAY.max) {
+            return {
+                type: 'warning',
+                message: `Note: EMIs (GCash, PayMaya, etc.) do not support PESONET. Redeemers with EMI accounts cannot claim this voucher as the amount (₱${amount.toLocaleString()}) exceeds the INSTAPAY limit (₱${AMOUNT_LIMITS.INSTAPAY.max.toLocaleString()}).`
+            };
+        }
+        return {
+            type: 'info',
+            message: 'Note: EMIs (GCash, PayMaya, etc.) do not support PESONET. Redeemers with EMI accounts will need to provide a traditional bank account.'
+        };
+    }
+    
+    return null;
+});
 </script>
 
 <template>
@@ -158,6 +183,15 @@ const totalCost = computed(() => {
                         Selected: <strong>{{ selectedRailValue }}</strong> · Est. fee: ₱{{ estimatedFee }}
                     </p>
                     <InputError :message="validationErrors['cash.settlement_rail']" />
+                    
+                    <!-- Rail validation warning -->
+                    <Alert v-if="railValidation" :variant="railValidation.type === 'warning' ? 'destructive' : 'default'" class="mt-2">
+                        <AlertTriangle v-if="railValidation.type === 'warning'" class="h-4 w-4" />
+                        <Info v-else class="h-4 w-4" />
+                        <AlertDescription class="text-sm">
+                            {{ railValidation.message }}
+                        </AlertDescription>
+                    </Alert>
                 </div>
 
                 <div class="space-y-3">
