@@ -54,7 +54,6 @@ trait HasSafeDefaults
                         'validated' => $validated,
                     ]);
                 }
-                ]);
 
                 // Put it back into the property—if TTL, cast back to CarbonInterval
                 if ($key === 'ttl') {
