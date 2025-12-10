@@ -8,27 +8,35 @@ use Illuminate\Pipeline\Pipeline;
 
 class HandleUpdatedVoucher
 {
+    private const DEBUG = false;
+    
     public function handle(Voucher $voucher): void
     {
-        Log::info('[HandleUpdatedVoucher] Starting pipeline for updated voucher.', [
-            'voucher' => $voucher->code,
-            'id'      => $voucher->getKey(),
-        ]);
+        if (self::DEBUG) {
+            Log::info('[HandleUpdatedVoucher] Starting pipeline for updated voucher.', [
+                'voucher' => $voucher->code,
+                'id'      => $voucher->getKey(),
+            ]);
+        }
 
         $updated_pipeline = config('voucher-pipeline.updated');
 
-        Log::info('[HandleUpdatedVoucher] Pipeline arranged for updated voucher.', [
-            'pipeline' => $updated_pipeline,
-        ]);
+        if (self::DEBUG) {
+            Log::info('[HandleUpdatedVoucher] Pipeline arranged for updated voucher.', [
+                'pipeline' => $updated_pipeline,
+            ]);
+        }
 
         try {
             app(Pipeline::class)
                 ->send($voucher)
                 ->through($updated_pipeline)
                 ->then(function (Voucher $voucher) {
-                    Log::info('[HandleUpdatedVoucher] Pipeline completed successfully.', [
-                        'voucher' => $voucher->code,
-                    ]);
+                    if (self::DEBUG) {
+                        Log::info('[HandleUpdatedVoucher] Pipeline completed successfully.', [
+                            'voucher' => $voucher->code,
+                        ]);
+                    }
 
                     return $voucher;
                 });
