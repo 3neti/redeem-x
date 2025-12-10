@@ -46,7 +46,7 @@ class VoucherInstructionsData extends Data
             'cash.validation.location' => 'nullable|string',
             'cash.validation.radius'   => 'nullable|string',
             'cash.settlement_rail'     => 'nullable|string|in:INSTAPAY,PESONET',
-            'cash.fee_strategy'        => 'required|string|in:absorb,include,add',
+            'cash.fee_strategy'        => 'nullable|string|in:absorb,include,add',
 
             'inputs' => ['nullable', 'array'],
             'inputs.fields' => ['nullable', 'array'],
