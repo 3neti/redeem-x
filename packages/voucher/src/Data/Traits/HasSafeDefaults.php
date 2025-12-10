@@ -38,7 +38,7 @@ trait HasSafeDefaults
             );
             if ($validator->fails()) {
                 if (self::DEBUG) {
-                    Log::debug("[{$class}] "{$key}" failed validation, falling back to default", [
+                    Log::debug("[{$class}] \"{$key}\" failed validation, falling back to default", [
                         'raw'     => $toTest,
                         'default' => $default,
                         'errors'  => $validator->errors()->all(),
@@ -49,7 +49,7 @@ trait HasSafeDefaults
             } else {
                 $validated = $validator->validated()[$key];
                 if (self::DEBUG) {
-                    Log::debug("[{$class}] "{$key}" validated successfully", [
+                    Log::debug("[{$class}] \"{$key}\" validated successfully", [
                         'raw'       => $toTest,
                         'validated' => $validated,
                     ]);
