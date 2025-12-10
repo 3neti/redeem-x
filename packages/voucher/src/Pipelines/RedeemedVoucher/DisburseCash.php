@@ -36,6 +36,27 @@ class DisburseCash
 
         Log::debug('[DisburseCash] Payload ready', ['input' => $input->toArray()]);
 
+        // CRITICAL: Validate EMI + PESONET combination
+        $bankRegistry = app(BankRegistry::class);
+        $rail = SettlementRail::from($input->via);
+        
+        if ($rail === SettlementRail::PESONET && $bankRegistry->isEMI($input->bank)) {
+            Log::error('[DisburseCash] EMI with PESONET detected - blocking disbursement', [
+                'voucher' => $voucher->code,
+                'bank_code' => $input->bank,
+                'bank_name' => $bankRegistry->getBankName($input->bank),
+                'rail' => $rail->value,
+                'amount' => $input->amount,
+            ]);
+            
+            throw new \RuntimeException(
+                sprintf(
+                    'Cannot disburse to EMI (%s) via PESONET. EMIs only support INSTAPAY for real-time transfers.',
+                    $bankRegistry->getBankName($input->bank)
+                )
+            );
+        }
+
         // TODO: make a pipeline to check voucher->cash and voucher->contact
         $response = $this->gateway->disburse($voucher->cash, $input);
 
