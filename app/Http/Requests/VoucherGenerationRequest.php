@@ -83,6 +83,13 @@ class VoucherGenerationRequest extends FormRequest
     {
         $validated = $this->validated();
         
+        // Debug: Log what we received
+        \Illuminate\Support\Facades\Log::debug('[VoucherGenerationRequest] Validated data', [
+            'settlement_rail' => $validated['settlement_rail'] ?? 'NOT SET',
+            'fee_strategy' => $validated['fee_strategy'] ?? 'NOT SET',
+            'all_keys' => array_keys($validated),
+        ]);
+        
         // Parse input_fields if it's JSON string
         $inputFields = $validated['input_fields'] ?? [];
         if (is_string($inputFields)) {
