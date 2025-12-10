@@ -12,7 +12,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { CheckCircle2, Copy, Download, Home } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { useClipboard } from '@/composables/useClipboard';
 
 interface Voucher {
     id: number;
@@ -39,19 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Success', href: '#' },
 ];
 
-const copiedCode = ref<string | null>(null);
-
-const copyToClipboard = async (code: string) => {
-    try {
-        await navigator.clipboard.writeText(code);
-        copiedCode.value = code;
-        setTimeout(() => {
-            copiedCode.value = null;
-        }, 2000);
-    } catch (err) {
-        console.error('Failed to copy:', err);
-    }
-};
+const { copy, isCopied } = useClipboard();
 
 const downloadCsv = () => {
     const headers = ['Code', 'Amount', 'Currency', 'Status', 'Expires At', 'Created At'];
@@ -191,13 +179,13 @@ const formatDate = (dateString?: string) => {
                                     </td>
                                     <td class="px-4 py-3">
                                         <Button
-                                            @click="copyToClipboard(voucher.code)"
+                                            @click="copy(voucher.code)"
                                             variant="ghost"
                                             size="icon"
                                             class="h-8 w-8"
                                         >
                                             <CheckCircle2
-                                                v-if="copiedCode === voucher.code"
+                                                v-if="isCopied(voucher.code)"
                                                 class="h-4 w-4 text-green-600"
                                             />
                                             <Copy v-else class="h-4 w-4" />
