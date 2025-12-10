@@ -8,7 +8,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData,
     DisburseResponseData
 };
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Omnipay\Common\GatewayInterface;

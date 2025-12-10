@@ -27,6 +27,10 @@
         {
             "type": "path",
             "url": "./../contact"
+        },
+        {
+            "type": "path",
+            "url": "./../money-issuer"
         }
     ],
     "authors": [
@@ -39,11 +43,7 @@
         "psr-4": {
             "LBHurtado\\PaymentGateway\\": "src/",
             "LBHurtado\\PaymentGateway\\Database\\Factories\\": "database/factories/"
-        },
-        "files": [
-            "src/Support/Helpers.php"
-        ]
-
+        }
     },
     "autoload-dev": {
         "psr-4": {
@@ -64,6 +64,7 @@
         "brick/money": "^0.10.1",
         "lbhurtado/laravel-model-channel": "dev-main",
         "lbhurtado/wallet": "dev-main",
+        "lbhurtado/money-issuer": "dev-main",
         "propaganistas/laravel-phone": "^6.0",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",

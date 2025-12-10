@@ -3170,12 +3170,13 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/payment-gateway",
-                "reference": "fd429ffe4d8cf329e731649596bbd4edd3dea101"
+                "reference": "6cf26ee27b6d66af8c23c2a0dfc9c85757cdc374"
             },
             "require": {
                 "brick/money": "^0.10.1",
                 "laravel/sanctum": "^4.0",
                 "lbhurtado/laravel-model-channel": "dev-main",
+                "lbhurtado/money-issuer": "dev-main",
                 "lbhurtado/wallet": "dev-main",
                 "league/omnipay": "^3.2",
                 "lorisleiva/laravel-actions": "^2.9",
@@ -3202,10 +3203,7 @@
                 "psr-4": {
                     "LBHurtado\\PaymentGateway\\": "src/",
                     "LBHurtado\\PaymentGateway\\Database\\Factories\\": "database/factories/"
-                },
-                "files": [
-                    "src/Support/Helpers.php"
-                ]
+                }
             },
             "autoload-dev": {
                 "psr-4": {

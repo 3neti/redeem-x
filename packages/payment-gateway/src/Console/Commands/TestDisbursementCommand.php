@@ -2,7 +2,7 @@
 
 namespace LBHurtado\PaymentGateway\Console\Commands;
 
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 
 /**

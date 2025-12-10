@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e0fe402503a76114026fe757058b5087",
+    "content-hash": "b7abbac95e71e795035a97d73c64ef39",
     "packages": [
         {
             "name": "bavix/laravel-wallet",
@@ -1846,6 +1846,64 @@
                 }
             ],
             "description": "A package to enable assigning channels to Eloquent Models",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/money-issuer",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "./../money-issuer",
+                "reference": "59906648cdab2b5e6f5a1713b7af80986d67da39"
+            },
+            "require": {
+                "brick/money": "^0.10.1",
+                "lorisleiva/laravel-actions": "^2.9",
+                "spatie/laravel-data": "^4.15"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\MoneyIssuer\\MoneyIssuerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\MoneyIssuer\\": "src/",
+                    "LBHurtado\\MoneyIssuer\\Database\\Factories\\": "database/factories/"
+                },
+                "files": [
+                    "src/Support/Helpers.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\MoneyIssuer\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/pest"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Electronic Money Issuer",
             "transport-options": {
                 "relative": true
             }
@@ -11853,6 +11911,7 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "lbhurtado/laravel-model-channel": 20,
+        "lbhurtado/money-issuer": 20,
         "lbhurtado/voucher": 20,
         "lbhurtado/wallet": 20
     },
@@ -11860,5 +11919,5 @@
     "prefer-lowest": false,
     "platform": {},
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

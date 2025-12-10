@@ -7,7 +7,7 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseResponseData,
     DisburseInputData
 };
-use LBHurtado\PaymentGateway\Support\BankRegistry;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\{DisbursementStatus, SettlementRail};
 use LBHurtado\Voucher\Events\DisburseInputPrepared;
 use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
