@@ -141,6 +141,10 @@ class GenerateVouchers
 
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
+            
+            // Settlement rail and fee strategy
+            'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
+            'fee_strategy' => 'nullable|string|in:absorb,include,add',
 
             'campaign_id' => 'nullable|integer|exists:campaigns,id',
         ];
@@ -174,6 +178,8 @@ class GenerateVouchers
                     'location' => null,
                     'radius' => null,
                 ],
+                'settlement_rail' => $validated['settlement_rail'] ?? null,
+                'fee_strategy' => $validated['fee_strategy'] ?? 'absorb',
             ],
             'inputs' => [
                 'fields' => $inputFields,
