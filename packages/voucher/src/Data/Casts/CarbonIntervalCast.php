@@ -21,13 +21,13 @@ class CarbonIntervalCast implements Cast
     ): mixed {
         $name = $property->name;
         if (self::DEBUG) {
-            Log::debug("[CarbonIntervalCast] Casting "{$name}"", ['raw' => $value, 'type' => gettype($value)]);
+            Log::debug("[CarbonIntervalCast] Casting \"{$name}\"", ['raw' => $value, 'type' => gettype($value)]);
         }
 
         // Already a CarbonInterval?
         if ($value instanceof CarbonInterval) {
             if (self::DEBUG) {
-                Log::debug("[CarbonIntervalCast] "{$name}" is already a CarbonInterval, returning as-is");
+                Log::debug("[CarbonIntervalCast] \"{$name}\" is already a CarbonInterval, returning as-is");
             }
             return $value;
         }
@@ -35,7 +35,7 @@ class CarbonIntervalCast implements Cast
         // Empty string -> null
         if ($value === '') {
             if (self::DEBUG) {
-                Log::debug("[CarbonIntervalCast] "{$name}" is empty string, casting to null");
+                Log::debug("[CarbonIntervalCast] \"{$name}\" is empty string, casting to null");
             }
             return null;
         }
@@ -43,7 +43,7 @@ class CarbonIntervalCast implements Cast
         // Null stays null
         if ($value === null) {
             if (self::DEBUG) {
-                Log::debug("[CarbonIntervalCast] "{$name}" is null, returning null");
+                Log::debug("[CarbonIntervalCast] \"{$name}\" is null, returning null");
             }
             return null;
         }
@@ -51,7 +51,7 @@ class CarbonIntervalCast implements Cast
         // Numeric → seconds
         if (is_numeric($value)) {
             if (self::DEBUG) {
-                Log::debug("[CarbonIntervalCast] "{$name}" numeric, interpreting as seconds");
+                Log::debug("[CarbonIntervalCast] \"{$name}\" numeric, interpreting as seconds");
             }
             return CarbonInterval::seconds((int) $value);
         }
@@ -59,12 +59,12 @@ class CarbonIntervalCast implements Cast
         // String → try parse
         if (is_string($value)) {
             if (self::DEBUG) {
-                Log::debug("[CarbonIntervalCast] "{$name}" string, attempting CarbonInterval::make()");
+                Log::debug("[CarbonIntervalCast] \"{$name}\" string, attempting CarbonInterval::make()");
             }
             try {
                 $ci = CarbonInterval::make($value);
                 if (self::DEBUG) {
-                    Log::debug("[CarbonIntervalCast] "{$name}" parsed successfully", ['interval' => $ci]);
+                    Log::debug("[CarbonIntervalCast] \"{$name}\" parsed successfully", ['interval' => $ci]);
                 }
                 return $ci;
             } catch (\Throwable $e) {
