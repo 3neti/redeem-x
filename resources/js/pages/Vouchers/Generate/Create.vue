@@ -11,6 +11,8 @@ import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 import { Head, router } from '@inertiajs/vue3';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
@@ -106,6 +108,12 @@ watch(selectedCampaignId, async (campaignId) => {
             riderUrl.value = inst.rider.url || props.config.rider.url.default;
         }
         
+        // Populate settlement rail and fee strategy from campaign
+        if (inst.cash) {
+            settlementRail.value = inst.cash.settlement_rail || null;
+            feeStrategy.value = inst.cash.fee_strategy || 'absorb';
+        }
+        
         // Populate validation fields from campaign
         if (inst.validation) {
             locationValidation.value = inst.validation.location || null;
@@ -153,6 +161,37 @@ const feedbackWebhook = ref('');
 const riderMessage = ref('');
 const riderUrl = ref(props.config.rider.url.default);
 
+// Settlement rail and fee strategy
+const settlementRail = ref<string | null>(null);
+const feeStrategy = ref<string>('absorb');
+
+// Rail fees for preview (must match config/omnipay.php)
+const railFees = { INSTAPAY: 10, PESONET: 25 };
+
+// Computed values for fee preview
+const selectedRailValue = computed(() => {
+    if (settlementRail.value) return settlementRail.value;
+    return amount.value < 50000 ? 'INSTAPAY' : 'PESONET';
+});
+
+const estimatedFee = computed(() => {
+    return railFees[selectedRailValue.value as keyof typeof railFees] || 0;
+});
+
+const adjustedAmount = computed(() => {
+    if (feeStrategy.value === 'include') {
+        return amount.value - estimatedFee.value;
+    }
+    return amount.value;
+});
+
+const totalCost = computed(() => {
+    if (feeStrategy.value === 'add') {
+        return amount.value + estimatedFee.value;
+    }
+    return amount.value;
+});
+
 // Validation fields - Initialize from config defaults
 const locationValidation = ref<any>(
     props.config.location_validation.default_enabled ? {
@@ -186,6 +225,8 @@ const instructionsForPricing = computed(() => {
         cash: {
             amount: amount.value,
             currency: 'PHP',
+            settlement_rail: settlementRail.value || null,
+            fee_strategy: feeStrategy.value || 'absorb',
         },
         inputs: {
             fields: selectedInputFields.value,
@@ -265,6 +306,8 @@ const formData = computed(() => ({
     input_fields: selectedInputFields.value,
     validation_secret: validationSecret.value || undefined,
     validation_mobile: validationMobile.value || undefined,
+    settlement_rail: settlementRail.value || undefined,
+    fee_strategy: feeStrategy.value || undefined,
     feedback_email: feedbackEmail.value || undefined,
     feedback_mobile: feedbackMobile.value || undefined,
     feedback_webhook: feedbackWebhook.value || undefined,
@@ -294,6 +337,8 @@ const jsonPreview = computed(() => {
                 location: null,
                 radius: null,
             },
+            settlement_rail: settlementRail.value || null,
+            fee_strategy: feeStrategy.value || 'absorb',
         },
         inputs: {
             fields: selectedInputFields.value,
@@ -359,6 +404,8 @@ const handleSubmit = async () => {
         input_fields: selectedInputFields.value.length > 0 ? selectedInputFields.value : undefined,
         validation_secret: validationSecret.value || undefined,
         validation_mobile: validationMobile.value || undefined,
+        settlement_rail: settlementRail.value || undefined,
+        fee_strategy: feeStrategy.value || undefined,
         feedback_email: feedbackEmail.value || undefined,
         feedback_mobile: feedbackMobile.value || undefined,
         feedback_webhook: feedbackWebhook.value || undefined,
@@ -501,6 +548,75 @@ const handleSubmit = async () => {
                                 <p class="text-xs text-muted-foreground">
                                     {{ config.basic_settings.ttl.help_text }}
                                 </p>
+                            </div>
+
+                            <!-- Settlement Rail & Fee Strategy -->
+                            <div class="pt-4 border-t space-y-4">
+                                <h4 class="text-sm font-medium">Disbursement Settings</h4>
+                                
+                                <!-- Settlement Rail -->
+                                <div class="space-y-2">
+                                    <Label for="settlement_rail">Settlement Rail</Label>
+                                    <Select v-model="settlementRail">
+                                        <SelectTrigger id="settlement_rail">
+                                            <SelectValue placeholder="Auto (based on amount)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem :value="null">Auto (based on amount)</SelectItem>
+                                            <SelectItem value="INSTAPAY">INSTAPAY (Real-time, ₱50k max, ₱10 fee)</SelectItem>
+                                            <SelectItem value="PESONET">PESONET (Next day, ₱1M max, ₱25 fee)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p class="text-xs text-muted-foreground">
+                                        Auto mode selects INSTAPAY for amounts &lt; ₱50k, PESONET otherwise
+                                    </p>
+                                </div>
+
+                                <!-- Fee Strategy -->
+                                <div class="space-y-2">
+                                    <Label>Fee Strategy</Label>
+                                    <RadioGroup v-model="feeStrategy" class="space-y-2">
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="absorb" id="absorb" />
+                                            <Label for="absorb" class="font-normal cursor-pointer">
+                                                <div>
+                                                    <div class="font-medium">Absorb (Default)</div>
+                                                    <div class="text-xs text-muted-foreground">You pay the fee, redeemer gets full amount</div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="include" id="include" />
+                                            <Label for="include" class="font-normal cursor-pointer">
+                                                <div>
+                                                    <div class="font-medium">Include</div>
+                                                    <div class="text-xs text-muted-foreground">Fee deducted from voucher (redeemer gets ₱{{ adjustedAmount }})</div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="add" id="add" />
+                                            <Label for="add" class="font-normal cursor-pointer">
+                                                <div>
+                                                    <div class="font-medium">Add to Amount</div>
+                                                    <div class="text-xs text-muted-foreground">Redeemer receives ₱{{ totalCost }} (voucher + fee)</div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+
+                                <!-- Fee Preview -->
+                                <div class="p-3 bg-muted rounded-md space-y-1 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Selected Rail:</span>
+                                        <span class="font-medium">{{ selectedRailValue }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Estimated Fee:</span>
+                                        <span class="font-medium">₱{{ estimatedFee }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
