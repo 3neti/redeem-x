@@ -20,6 +20,9 @@ import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 import LocationValidationForm from '@/components/voucher/forms/LocationValidationForm.vue';
 import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vue';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, Info } from 'lucide-vue-next';
+import { AMOUNT_LIMITS } from '@/config/bank-restrictions';
 import axios from 'axios';
 
 // Debug flag - set to false to suppress console logs
@@ -190,6 +193,28 @@ const totalCost = computed(() => {
         return amount.value + estimatedFee.value;
     }
     return amount.value;
+});
+
+// Rail validation for EMI warnings
+const railValidation = computed(() => {
+    const railValue = selectedRailValue.value;
+    
+    // Check if PESONET is selected
+    if (railValue === 'PESONET') {
+        // Check if amount exceeds INSTAPAY limit
+        if (amount.value > AMOUNT_LIMITS.INSTAPAY.max) {
+            return {
+                type: 'warning',
+                message: `Note: EMIs (GCash, PayMaya, etc.) do not support PESONET. Redeemers with EMI accounts cannot claim this voucher as the amount (₱${amount.value.toLocaleString()}) exceeds the INSTAPAY limit (₱${AMOUNT_LIMITS.INSTAPAY.max.toLocaleString()}).`
+            };
+        }
+        return {
+            type: 'info',
+            message: 'Note: EMIs (GCash, PayMaya, etc.) do not support PESONET. Redeemers with EMI accounts will need to provide a traditional bank account.'
+        };
+    }
+    
+    return null;
 });
 
 // Validation fields - Initialize from config defaults
@@ -570,6 +595,15 @@ const handleSubmit = async () => {
                                     <p class="text-xs text-muted-foreground">
                                         Auto mode selects INSTAPAY for amounts &lt; ₱50k, PESONET otherwise
                                     </p>
+                                    
+                                    <!-- Rail validation warning -->
+                                    <Alert v-if="railValidation" :variant="railValidation.type === 'warning' ? 'destructive' : 'default'" class="mt-2">
+                                        <AlertTriangle v-if="railValidation.type === 'warning'" class="h-4 w-4" />
+                                        <Info v-else class="h-4 w-4" />
+                                        <AlertDescription class="text-sm">
+                                            {{ railValidation.message }}
+                                        </AlertDescription>
+                                    </Alert>
                                 </div>
 
                                 <!-- Fee Strategy -->
