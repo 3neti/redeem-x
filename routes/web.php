@@ -10,6 +10,10 @@ Route::get('/', fn () => Inertia::render('Welcome'));
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');
 
+// Public voucher inspect page (no authentication required)
+Route::get('/vouchers/inspect', fn () => Inertia::render('vouchers/Inspect'))
+    ->name('vouchers.inspect');
+
 // Webhook routes (no authentication required)
 Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('netbank/payment', [\App\Http\Controllers\Webhooks\NetBankWebhookController::class, 'handlePayment'])

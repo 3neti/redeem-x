@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import QrDisplay from '@/components/shared/QrDisplay.vue';
 import VoucherQrSharePanel from '@/components/voucher/VoucherQrSharePanel.vue';
+import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
@@ -46,6 +47,7 @@ interface VoucherInstructions {
         location?: any;
         time?: any;
     };
+    metadata?: any;
     count?: number;
     prefix?: string;
     mask?: string;
@@ -91,7 +93,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const activeTab = ref<'details' | 'instructions'>('details');
+const activeTab = ref<'details' | 'instructions' | 'metadata'>('details');
+
+const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Vouchers', href: '/vouchers' },
@@ -227,6 +231,18 @@ const instructionsFormData = computed(() => {
                         >
                             Instructions
                         </button>
+                        <button
+                            v-if="hasMetadata"
+                            @click="activeTab = 'metadata'"
+                            :class="[
+                                activeTab === 'metadata'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
+                                'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors',
+                            ]"
+                        >
+                            Metadata
+                        </button>
                     </nav>
                 </div>
 
@@ -245,6 +261,14 @@ const instructionsFormData = computed(() => {
                         :input-field-options="input_field_options"
                         :readonly="true"
                         :show-count-field="false"
+                    />
+                </div>
+
+                <!-- Metadata Tab Content -->
+                <div v-show="activeTab === 'metadata'" v-if="hasMetadata">
+                    <VoucherMetadataDisplay 
+                        :metadata="voucher.instructions.metadata" 
+                        :show-all-fields="true"
                     />
                 </div>
 

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ExternalLink } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
+import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
 import { useTemplateProcessor } from '@/composables/useTemplateProcessor';
 
 interface Props {
@@ -30,6 +31,7 @@ interface Props {
         message?: string;
         url?: string;
     };
+    metadata?: any;
     config: any;
 }
 
@@ -221,6 +223,15 @@ onMounted(() => {
                         <span class="text-xs">{{ mobile }}</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Metadata Display -->
+            <div v-if="config?.show_metadata && metadata && config?.metadata?.position === 'after-details'">
+                <VoucherMetadataDisplay 
+                    :metadata="metadata" 
+                    :compact="config?.metadata?.compact ?? true"
+                    :show-all-fields="false"
+                />
             </div>
 
             <!-- Advertisement - after details -->
