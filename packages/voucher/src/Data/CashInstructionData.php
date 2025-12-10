@@ -4,6 +4,8 @@ namespace LBHurtado\Voucher\Data;
 
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Data\Traits\HasSafeDefaults;
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Casts\EnumCast;
 use Spatie\LaravelData\Data;
 use Brick\Money\Money;
 
@@ -15,6 +17,7 @@ class CashInstructionData extends Data
         public float $amount,
         public string $currency,
         public CashValidationRulesData $validation,
+        #[WithCast(EnumCast::class)]
         public ?SettlementRail $settlement_rail = null,
         public string $fee_strategy = 'absorb',
     ) { $this->applyRulesAndDefaults(); }
@@ -31,7 +34,7 @@ class CashInstructionData extends Data
                 config('instructions.cash.currency')
             ],
             'settlement_rail' => [
-                ['nullable', 'string', 'in:INSTAPAY,PESONET'],
+                ['nullable'],
                 null
             ],
             'fee_strategy' => [
