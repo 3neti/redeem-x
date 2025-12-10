@@ -51,5 +51,26 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Handle invalid settlement rail exceptions gracefully
+        $exceptions->render(function (\LBHurtado\Voucher\Exceptions\InvalidSettlementRailException $e, $request) {
+            // Log at WARNING level (not ERROR) since this is validation, not a system error
+            \Illuminate\Support\Facades\Log::warning('[InvalidSettlementRail] User attempted invalid rail combination', [
+                'message' => $e->getMessage(),
+                'user_id' => auth()->id(),
+                'ip' => $request->ip(),
+            ]);
+            
+            // Return clean JSON response for API/AJAX requests
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'error' => $e->getMessage(),
+                    'type' => 'invalid_settlement_rail',
+                ], 422);
+            }
+            
+            // For web requests, redirect back with error message
+            return redirect()->back()->withErrors([
+                'settlement_rail' => $e->getMessage(),
+            ]);
+        });
     })->create();
