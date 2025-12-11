@@ -72,6 +72,13 @@ if (props.initialCode) {
     preview.code = props.initialCode;
 }
 
+// Computed property for checking if code is valid
+const hasValidCode = computed(() => {
+    return !!preview.code && typeof preview.code === 'string'
+        ? preview.code.trim().length > 0
+        : !!preview.code?.value && preview.code.value.trim().length > 0;
+});
+
 // Debug logging
 onMounted(() => {
     console.log('[RedeemWidget] onMounted called');
@@ -91,7 +98,8 @@ const submitButton = ref<HTMLButtonElement | null>(null);
 
 function submit() {
     // Use preview code if available, otherwise fall back to form code
-    form.code = (preview.code || form.code).trim().toUpperCase();
+    const entered = (typeof preview.code === 'string' ? preview.code : preview.code.value) || form.code;
+    form.code = (entered || '').trim().toUpperCase();
     
     // Submit to start route which will validate and redirect
     form.get(start.url(), {
@@ -163,7 +171,7 @@ function submit() {
                 ref="submitButton"
                 type="submit"
                 class="w-full"
-                :disabled="form.processing || !preview.code?.trim()"
+                :disabled="form.processing || !hasValidCode"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}
             </Button>
