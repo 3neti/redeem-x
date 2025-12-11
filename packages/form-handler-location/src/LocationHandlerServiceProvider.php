@@ -48,8 +48,8 @@ class LocationHandlerServiceProvider extends ServiceProvider
         
         // Publish frontend assets (Vue components, composables)
         $this->publishes([
-            __DIR__.'/../resources/js' => resource_path('js/vendor/form-handler-location'),
-        ], 'location-handler-assets');
+            __DIR__.'/../stubs/resources/js/FormHandlerLocation' => resource_path('js/FormHandlerLocation'),
+        ], 'location-handler-stubs');
         
         // Register with DriverRegistry if form-flow-manager is loaded
         if ($this->app->bound(DriverRegistry::class)) {

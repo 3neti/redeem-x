@@ -47,11 +47,10 @@ class LocationHandler implements FormHandlerInterface
     
     public function render(FormFlowStepData $step, array $context = [])
     {
-        // Note: After publishing assets, the component is at:
-        // resources/js/vendor/form-handler-location/pages/LocationCapturePage.vue
-        // But we need to copy it to resources/js/pages/ for Inertia to find it
+        // After publishing stubs and copying to pages/, Inertia finds it at:
+        // resources/js/pages/LocationCapturePage.vue
         
-        return Inertia::render('Vendor/FormHandlerLocation/LocationCapturePage', [
+        return Inertia::render('LocationCapturePage', [
             'flow_id' => $context['flow_id'] ?? null,
             'step' => (string) ($context['step_index'] ?? 0),
             'config' => array_merge([
