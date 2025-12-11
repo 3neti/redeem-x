@@ -47,16 +47,17 @@ class LocationHandler implements FormHandlerInterface
     
     public function render(FormFlowStepData $step, array $context = [])
     {
-        return Inertia::render('FormHandlerLocation::LocationCapture', [
+        return Inertia::render('FormHandlerLocation::LocationCapturePage', [
+            'flow_id' => $context['flow_id'] ?? null,
+            'step' => (string) ($context['step_index'] ?? 0),
             'config' => array_merge([
                 'opencage_api_key' => config('location-handler.opencage_api_key'),
                 'map_provider' => config('location-handler.map_provider', 'google'),
                 'mapbox_token' => config('location-handler.mapbox_token'),
+                'google_maps_api_key' => config('location-handler.google_maps_api_key'),
                 'capture_snapshot' => config('location-handler.capture_snapshot', true),
                 'require_address' => config('location-handler.require_address', false),
             ], $step->config),
-            'flow_id' => $context['flow_id'] ?? null,
-            'step_index' => $context['step_index'] ?? 0,
         ]);
     }
     
