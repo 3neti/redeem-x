@@ -126,3 +126,59 @@ export interface VoucherGenerationResult {
     total_cost: number;
     message: string;
 }
+
+// Inspect API types
+export interface RequiredInput {
+    value: string;
+    label: string;
+}
+
+export interface LocationValidation {
+    required: boolean;
+    target_lat: number;
+    target_lng: number;
+    radius_meters: number;
+    on_failure: 'block' | 'warn';
+    description: string;
+}
+
+export interface TimeWindow {
+    start_time: string;
+    end_time: string;
+    timezone: string;
+}
+
+export interface TimeValidation {
+    window: TimeWindow | null;
+    limit_minutes: number | null;
+    description: string;
+}
+
+export interface InspectInstructions {
+    amount: number;
+    currency: string;
+    formatted_amount: string;
+    required_inputs: RequiredInput[];
+    expires_at: string | null;
+    starts_at: string | null;
+    validation: {
+        has_secret: boolean;
+        is_assigned: boolean;
+        assigned_mobile_masked: string | null;
+    };
+    location_validation?: LocationValidation;
+    time_validation?: TimeValidation;
+    rider?: {
+        message: string;
+        url: string;
+    };
+}
+
+export interface InspectResponse {
+    success: boolean;
+    code: string;
+    status: 'active' | 'redeemed' | 'expired' | 'scheduled';
+    metadata: any;
+    info: any;
+    instructions?: InspectInstructions;
+}

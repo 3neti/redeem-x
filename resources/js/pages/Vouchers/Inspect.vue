@@ -5,14 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, AlertCircle } from 'lucide-vue-next';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, AlertCircle, Info } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
+import VoucherInstructionsDisplay from '@/components/voucher/VoucherInstructionsDisplay.vue';
+import type { InspectResponse } from '@/types/voucher';
 
 const code = ref('');
 const loading = ref(false);
 const error = ref('');
-const voucherData = ref<any>(null);
+const voucherData = ref<InspectResponse | null>(null);
 
 const hasSearched = computed(() => voucherData.value !== null || error.value !== '');
 
@@ -140,11 +143,46 @@ const reset = () => {
                     </CardContent>
                 </Card>
 
-                <!-- Metadata Display -->
-                <VoucherMetadataDisplay 
-                    :metadata="voucherData.metadata" 
-                    :show-all-fields="true"
-                />
+                <!-- Tabs: Instructions & System Info -->
+                <Tabs default-value="instructions" class="mb-6">
+                    <TabsList class="grid w-full grid-cols-2">
+                        <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                        <TabsTrigger value="system-info">System Info</TabsTrigger>
+                    </TabsList>
+                    
+                    <!-- Instructions Tab -->
+                    <TabsContent value="instructions" class="mt-6">
+                        <VoucherInstructionsDisplay 
+                            v-if="voucherData.instructions"
+                            :instructions="voucherData.instructions"
+                            :voucher-status="voucherData.status"
+                        />
+                        
+                        <!-- Old vouchers without instructions -->
+                        <Card v-else>
+                            <CardContent class="pt-6">
+                                <div class="flex items-start gap-3">
+                                    <Info class="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p class="text-sm font-medium">No instructions available</p>
+                                        <p class="text-sm text-muted-foreground mt-1">
+                                            This voucher was created before detailed instructions were tracked.
+                                            Please contact the issuer for redemption information.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    
+                    <!-- System Info Tab -->
+                    <TabsContent value="system-info" class="mt-6">
+                        <VoucherMetadataDisplay 
+                            :metadata="voucherData.metadata" 
+                            :show-all-fields="true"
+                        />
+                    </TabsContent>
+                </Tabs>
 
                 <!-- Actions -->
                 <div class="mt-6 flex justify-center">
