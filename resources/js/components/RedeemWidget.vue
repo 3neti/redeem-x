@@ -61,23 +61,24 @@ const form = useForm({
     code: props.initialCode || '',
 });
 
-// Voucher preview
-const preview = useVoucherPreview({
-    debounceMs: 500,
-    minCodeLength: 4,
-});
+// Voucher preview (destructure refs so v-model gets a plain ref)
+const {
+    code,
+    loading,
+    error,
+    voucherData,
+    showPreview,
+    reset: resetPreview,
+    hidePreview,
+} = useVoucherPreview({ debounceMs: 500, minCodeLength: 4 });
 
 // Initialize preview code with initial code if provided
 if (props.initialCode) {
-    preview.code = props.initialCode;
+    code.value = props.initialCode;
 }
 
 // Computed property for checking if code is valid
-const hasValidCode = computed(() => {
-    return !!preview.code && typeof preview.code === 'string'
-        ? preview.code.trim().length > 0
-        : !!preview.code?.value && preview.code.value.trim().length > 0;
-});
+const hasValidCode = computed(() => code.value.trim().length > 0);
 
 // Debug logging
 onMounted(() => {
@@ -98,7 +99,7 @@ const submitButton = ref<HTMLButtonElement | null>(null);
 
 function submit() {
     // Use preview code if available, otherwise fall back to form code
-    const entered = (typeof preview.code === 'string' ? preview.code : preview.code.value) || form.code;
+    const entered = code.value || form.code;
     form.code = (entered || '').trim().toUpperCase();
     
     // Submit to start route which will validate and redirect
@@ -156,7 +157,7 @@ function submit() {
                 <Label v-if="config.showLabel" for="code">{{ config.label }}</Label>
                 <Input
                     id="code"
-                    v-model="preview.code"
+                    v-model="code"
                     :placeholder="config.placeholder"
                     required
                     autofocus
@@ -178,23 +179,23 @@ function submit() {
         </form>
 
         <!-- Voucher Preview -->
-        <div v-if="preview.showPreview" class="mt-6">
+        <div v-if="showPreview" class="mt-6">
             <!-- Loading State -->
-            <div v-if="preview.loading" class="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+            <div v-if="loading" class="flex items-center justify-center gap-2 py-8 text-muted-foreground">
                 <Spinner class="h-5 w-5" />
                 <span>Checking voucher...</span>
             </div>
 
             <!-- Error State -->
-            <Alert v-else-if="preview.error" variant="destructive">
+            <Alert v-else-if="error" variant="destructive">
                 <AlertCircle class="h-4 w-4" />
                 <AlertDescription>
-                    {{ preview.error }}
+                    {{ error }}
                 </AlertDescription>
             </Alert>
 
             <!-- Preview Tabs -->
-            <div v-else-if="preview.voucherData">
+            <div v-else-if="voucherData">
                 <Tabs default-value="instructions">
                     <TabsList class="grid w-full grid-cols-2">
                         <TabsTrigger value="instructions">Instructions</TabsTrigger>
@@ -203,9 +204,9 @@ function submit() {
                     
                     <TabsContent value="instructions" class="mt-4">
                         <VoucherInstructionsDisplay
-                            v-if="preview.voucherData.instructions"
-                            :instructions="preview.voucherData.instructions"
-                            :voucher-status="preview.voucherData.status"
+                            v-if="voucherData.instructions"
+                            :instructions="voucherData.instructions"
+                            :voucher-status="voucherData.status"
                         />
                         <Alert v-else>
                             <AlertCircle class="h-4 w-4" />
@@ -217,7 +218,7 @@ function submit() {
                     
                     <TabsContent value="system-info" class="mt-4">
                         <VoucherMetadataDisplay 
-                            :metadata="preview.voucherData.metadata"
+                            :metadata="voucherData.metadata"
                             :show-all-fields="true"
                         />
                     </TabsContent>
