@@ -6,7 +6,14 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/InputError.vue';
+import VoucherInstructionsDisplay from '@/components/voucher/VoucherInstructionsDisplay.vue';
+import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
+import { AlertCircle } from 'lucide-vue-next';
+import { useVoucherPreview } from '@/composables/useVoucherPreview';
 import { wallet, start } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
 
 interface Props {
@@ -54,6 +61,17 @@ const form = useForm({
     code: props.initialCode || '',
 });
 
+// Voucher preview
+const preview = useVoucherPreview({
+    debounceMs: 500,
+    minCodeLength: 4,
+});
+
+// Initialize preview code with initial code if provided
+if (props.initialCode) {
+    preview.code.value = props.initialCode;
+}
+
 // Debug logging
 onMounted(() => {
     console.log('[RedeemWidget] onMounted called');
@@ -72,7 +90,8 @@ const voucherInput = ref<HTMLInputElement | null>(null);
 const submitButton = ref<HTMLButtonElement | null>(null);
 
 function submit() {
-    form.code = form.code.trim().toUpperCase();
+    // Use preview code if available, otherwise fall back to form code
+    form.code = (preview.code.value || form.code).trim().toUpperCase();
     
     // Submit to start route which will validate and redirect
     form.get(start.url(), {
@@ -129,13 +148,13 @@ function submit() {
                 <Label v-if="config.showLabel" for="code">{{ config.label }}</Label>
                 <Input
                     id="code"
-                    v-model="form.code"
+                    v-model="preview.code.value"
                     :placeholder="config.placeholder"
                     required
                     autofocus
                     ref="voucherInput"
                     class="text-center text-lg tracking-wider"
-                    @input="form.code = form.code.toUpperCase()"
+                    @input="preview.code.value = preview.code.value.toUpperCase()"
                 />
                 <InputError :message="errors.code" class="mt-1" />
             </div>
@@ -145,10 +164,58 @@ function submit() {
                 ref="submitButton"
                 type="submit"
                 class="w-full"
-                :disabled="form.processing || !form.code?.trim()"
+                :disabled="form.processing || !preview.code.value?.trim()"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}
             </Button>
         </form>
+
+        <!-- Voucher Preview -->
+        <div v-if="preview.showPreview" class="mt-6">
+            <!-- Loading State -->
+            <div v-if="preview.loading" class="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+                <Spinner class="h-5 w-5" />
+                <span>Checking voucher...</span>
+            </div>
+
+            <!-- Error State -->
+            <Alert v-else-if="preview.error" variant="destructive">
+                <AlertCircle class="h-4 w-4" />
+                <AlertDescription>
+                    {{ preview.error }}
+                </AlertDescription>
+            </Alert>
+
+            <!-- Preview Tabs -->
+            <div v-else-if="preview.voucherData">
+                <Tabs default-value="instructions">
+                    <TabsList class="grid w-full grid-cols-2">
+                        <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                        <TabsTrigger value="system-info">System Info</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="instructions" class="mt-4">
+                        <VoucherInstructionsDisplay
+                            v-if="preview.voucherData.instructions"
+                            :instructions="preview.voucherData.instructions"
+                            :voucher-status="preview.voucherData.status"
+                        />
+                        <Alert v-else>
+                            <AlertCircle class="h-4 w-4" />
+                            <AlertDescription>
+                                This voucher was created before detailed instructions were tracked.
+                            </AlertDescription>
+                        </Alert>
+                    </TabsContent>
+                    
+                    <TabsContent value="system-info" class="mt-4">
+                        <VoucherMetadataDisplay 
+                            :metadata="preview.voucherData.metadata"
+                            :show-all-fields="true"
+                        />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </div>
     </div>
 </template>
