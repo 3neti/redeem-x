@@ -194,8 +194,22 @@ function submit() {
                 </AlertDescription>
             </Alert>
 
+            <!-- Preview disabled notice -->
+            <Alert v-else-if="voucherData && voucherData.preview && voucherData.preview.enabled === false">
+                <AlertDescription>
+                    {{ voucherData.preview.message || 'Preview disabled by issuer.' }}
+                </AlertDescription>
+            </Alert>
+
             <!-- Preview Tabs -->
             <div v-else-if="voucherData">
+                <!-- Preview Message (if provided by issuer) -->
+                <Alert v-if="voucherData.preview && voucherData.preview.message" class="mb-4" variant="default">
+                    <AlertDescription>
+                        <strong class="font-semibold">Note from issuer:</strong> {{ voucherData.preview.message }}
+                    </AlertDescription>
+                </Alert>
+                
                 <Tabs default-value="instructions">
                     <TabsList class="grid w-full grid-cols-2">
                         <TabsTrigger value="instructions">Instructions</TabsTrigger>

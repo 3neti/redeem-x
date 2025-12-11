@@ -13,7 +13,9 @@ import { Head, router } from '@inertiajs/vue3';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlertCircle, Banknote, Code, FileText, Send, Settings } from 'lucide-vue-next';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AlertCircle, Banknote, Code, Eye, FileText, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -123,6 +125,17 @@ watch(selectedCampaignId, async (campaignId) => {
             timeValidation.value = null;
         }
         
+        // Populate preview controls from campaign metadata
+        if (inst.metadata) {
+            previewEnabled.value = inst.metadata.preview_enabled ?? true;
+            previewScope.value = inst.metadata.preview_scope ?? 'full';
+            previewMessage.value = inst.metadata.preview_message ?? '';
+        } else {
+            previewEnabled.value = true;
+            previewScope.value = 'full';
+            previewMessage.value = '';
+        }
+        
         count.value = inst.count || props.config.basic_settings.quantity.default;
         prefix.value = inst.prefix || '';
         mask.value = inst.mask || '';
@@ -160,6 +173,11 @@ const feedbackWebhook = ref('');
 
 const riderMessage = ref('');
 const riderUrl = ref(props.config.rider.url.default);
+
+// Preview controls
+const previewEnabled = ref<boolean>(true);
+const previewScope = ref<string>('full');
+const previewMessage = ref<string>('');
 
 // Settlement rail and fee strategy
 const settlementRail = ref<string | null>(null);
@@ -415,6 +433,10 @@ const handleSubmit = async () => {
         // Validation instructions
         validation_location: locationValidation.value || undefined,
         validation_time: timeValidation.value || undefined,
+        // Preview controls
+        preview_enabled: previewEnabled.value,
+        preview_scope: previewScope.value,
+        preview_message: previewMessage.value || undefined,
     });
 
     if (result) {
@@ -807,6 +829,71 @@ const handleSubmit = async () => {
                         :validation-errors="validationErrors"
                         :config="config.time_validation"
                     />
+
+                    <!-- Preview Controls -->
+                    <Card>
+                        <CardHeader>
+                            <div class="flex items-center gap-2">
+                                <Eye class="h-5 w-5" />
+                                <CardTitle>Preview Controls</CardTitle>
+                            </div>
+                            <CardDescription>
+                                Control what information is visible when the voucher code is previewed before redemption
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <!-- Preview Enabled Toggle -->
+                            <div class="flex items-start space-x-3">
+                                <Checkbox
+                                    id="preview_enabled"
+                                    v-model:checked="previewEnabled"
+                                />
+                                <div class="space-y-1 leading-none">
+                                    <Label
+                                        for="preview_enabled"
+                                        class="text-sm font-medium cursor-pointer"
+                                    >
+                                        Allow Preview
+                                    </Label>
+                                    <p class="text-xs text-muted-foreground">
+                                        Allow redeemers to preview voucher details by entering the code on /redeem
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Preview Scope (only shown when preview enabled) -->
+                            <div v-if="previewEnabled" class="space-y-2">
+                                <Label for="preview_scope">Preview Scope</Label>
+                                <Select v-model="previewScope">
+                                    <SelectTrigger id="preview_scope">
+                                        <SelectValue placeholder="Select preview scope" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="full">Full Details (amount, instructions, metadata)</SelectItem>
+                                        <SelectItem value="requirements_only">Requirements Only (input fields, validations)</SelectItem>
+                                        <SelectItem value="none">None (completely hidden)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p class="text-xs text-muted-foreground">
+                                    Choose how much information to reveal when the voucher is previewed
+                                </p>
+                            </div>
+
+                            <!-- Preview Message (optional issuer note) -->
+                            <div v-if="previewEnabled" class="space-y-2">
+                                <Label for="preview_message">Preview Message (Optional)</Label>
+                                <Textarea
+                                    id="preview_message"
+                                    v-model="previewMessage"
+                                    placeholder="Add a custom message shown during preview (e.g., 'This voucher is for authorized personnel only')"
+                                    rows="2"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    Optional message displayed to the redeemer during preview
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <!-- JSON Preview -->
                     <Collapsible v-if="config.json_preview.show_card" v-model:open="showJsonPreview">

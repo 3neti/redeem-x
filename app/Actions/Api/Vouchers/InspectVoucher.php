@@ -66,12 +66,34 @@ class InspectVoucher
             ];
         }
 
-        // Add instructions data (if available)
+        // Determine preview policy from metadata (defaults: enabled=true, scope='full')
+        $previewEnabled = true;
+        $previewScope = 'full';
+        $previewMessage = null;
+        if (is_array($metadata)) {
+            $previewEnabled = array_key_exists('preview_enabled', $metadata) ? (bool)$metadata['preview_enabled'] : true;
+            $previewScope = $metadata['preview_scope'] ?? 'full';
+            $previewMessage = $metadata['preview_message'] ?? null;
+        }
+
+        $response['preview'] = [
+            'enabled' => $previewEnabled && $previewScope !== 'none',
+            'scope' => $previewEnabled ? $previewScope : 'none',
+            'message' => $previewMessage,
+        ];
+
+        // Add instructions data obeying preview policy
         if (isset($voucher->metadata['instructions'])) {
             try {
-                $response['instructions'] = $this->formatInstructions($voucher);
+                if ($response['preview']['enabled'] === false) {
+                    // No instructions exposed
+                } elseif ($response['preview']['scope'] === 'requirements_only') {
+                    $full = $this->formatInstructions($voucher);
+                    $response['instructions'] = $this->filterRequirementsOnly($full);
+                } else { // full
+                    $response['instructions'] = $this->formatInstructions($voucher);
+                }
             } catch (\Exception $e) {
-                // Log error but don't fail the request
                 \Log::warning('[InspectVoucher] Failed to format instructions', [
                     'code' => $voucher->code,
                     'error' => $e->getMessage(),
@@ -160,6 +182,34 @@ class InspectVoucher
         }
 
         return $response;
+    }
+
+    /**
+     * Filter instructions to requirements-only scope.
+     */
+    private function filterRequirementsOnly(array $full): array
+    {
+        // Only keep non-sensitive fields helpful for preparation
+        $allowed = [
+            'required_inputs',
+            'validation',
+            'location_validation',
+            'time_validation',
+            'starts_at',
+            'expires_at',
+            'rider',
+        ];
+
+        $filtered = [];
+        foreach ($allowed as $key) {
+            if (array_key_exists($key, $full)) {
+                $filtered[$key] = $full[$key];
+            }
+        }
+
+        // Ensure amount/currency are removed
+        unset($filtered['amount'], $filtered['currency'], $filtered['formatted_amount']);
+        return $filtered;
     }
 
     /**

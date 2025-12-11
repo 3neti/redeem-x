@@ -155,23 +155,29 @@ export interface TimeValidation {
 }
 
 export interface InspectInstructions {
-    amount: number;
-    currency: string;
-    formatted_amount: string;
-    required_inputs: RequiredInput[];
-    expires_at: string | null;
-    starts_at: string | null;
-    validation: {
-        has_secret: boolean;
-        is_assigned: boolean;
-        assigned_mobile_masked: string | null;
+    amount?: number; // optional when scope = requirements_only/none
+    currency?: string; // optional
+    formatted_amount?: string; // optional
+    required_inputs?: RequiredInput[];
+    expires_at?: string | null;
+    starts_at?: string | null;
+    validation?: {
+        has_secret?: boolean;
+        is_assigned?: boolean;
+        assigned_mobile_masked?: string | null;
     };
     location_validation?: LocationValidation;
     time_validation?: TimeValidation;
     rider?: {
-        message: string;
-        url: string;
+        message?: string;
+        url?: string;
     };
+}
+
+export interface PreviewPolicy {
+    enabled: boolean;
+    scope: 'full' | 'requirements_only' | 'none';
+    message?: string;
 }
 
 export interface InspectResponse {
@@ -180,5 +186,6 @@ export interface InspectResponse {
     status: 'active' | 'redeemed' | 'expired' | 'scheduled';
     metadata: any;
     info: any;
+    preview?: PreviewPolicy;
     instructions?: InspectInstructions;
 }

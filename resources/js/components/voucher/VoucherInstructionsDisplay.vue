@@ -51,6 +51,10 @@ const statusText = computed(() => {
     return props.voucherStatus.charAt(0).toUpperCase() + props.voucherStatus.slice(1);
 });
 
+const showAmountCard = computed(() => {
+    return !!props.instructions?.formatted_amount;
+});
+
 const formattedExpiresAt = computed(() => {
     if (!props.instructions.expires_at) return null;
     
@@ -139,7 +143,7 @@ const hasRequirements = computed(() => {
 <template>
     <div class="space-y-4">
         <!-- Amount Card (Prominent) -->
-        <Card>
+        <Card v-if="showAmountCard">
             <CardContent class="pt-6">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
