@@ -8,7 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Http;
 use LBHurtado\FormFlowManager\Data\FormFlowInstructionsData;
+use LBHurtado\FormFlowManager\Data\FormFlowStepData;
 use LBHurtado\FormFlowManager\Services\FormFlowService;
+use LBHurtado\FormFlowManager\Contracts\FormHandlerInterface;
 
 /**
  * Form Flow Controller
@@ -52,11 +54,11 @@ class FormFlowController extends Controller
     }
     
     /**
-     * Get flow state
+     * Get flow state or render current step
      * 
      * GET /form-flow/{flow_id}
      */
-    public function show(string $flowId)
+    public function show(Request $request, string $flowId)
     {
         $state = $this->flowService->getFlowState($flowId);
         
@@ -64,9 +66,31 @@ class FormFlowController extends Controller
             abort(404, 'Flow not found');
         }
         
-        return response()->json([
-            'success' => true,
-            'state' => $state,
+        // If JSON is requested, return state
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'state' => $state,
+            ]);
+        }
+        
+        // Otherwise, render the current step's handler view
+        $currentStepIndex = $state['current_step'];
+        $stepData = FormFlowStepData::from($state['instructions']['steps'][$currentStepIndex]);
+        
+        // Get the handler by name
+        $handlerClass = $this->getHandlerClass($stepData->handler);
+        
+        if (!$handlerClass) {
+            abort(500, "Handler not found: {$stepData->handler}");
+        }
+        
+        $handler = app($handlerClass);
+        
+        // Render the handler's view
+        return $handler->render($stepData, [
+            'flow_id' => $flowId,
+            'step_index' => $currentStepIndex,
         ]);
     }
     
@@ -200,5 +224,27 @@ class FormFlowController extends Controller
                 'data' => $data,
             ]);
         }
+    }
+    
+    /**
+     * Get handler class from handler name
+     * 
+     * Maps handler names to their class implementations.
+     * For now, hardcoded. In future, use a registry.
+     * 
+     * @param string $handlerName Handler name (e.g., 'location', 'selfie')
+     * @return string|null Handler class name or null if not found
+     */
+    protected function getHandlerClass(string $handlerName): ?string
+    {
+        $handlers = [
+            'location' => \LBHurtado\FormHandlerLocation\LocationHandler::class,
+            // Add more handlers here as they are created
+            // 'selfie' => \LBHurtado\FormHandlerSelfie\SelfieHandler::class,
+            // 'signature' => \LBHurtado\FormHandlerSignature\SignatureHandler::class,
+            // 'kyc' => \LBHurtado\FormHandlerKyc\KycHandler::class,
+        ];
+        
+        return $handlers[$handlerName] ?? null;
     }
 }
