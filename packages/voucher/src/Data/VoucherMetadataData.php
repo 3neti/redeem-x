@@ -45,6 +45,11 @@ class VoucherMetadataData extends Data
         public ?string $notes = null,            // Admin notes
         public ?array $tags = null,              // Categorization tags
         public ?array $custom = null,            // Extensibility
+
+        // Preview/X-ray controls (optional, backward compatible)
+        public ?bool $preview_enabled = null,    // null => default allow
+        public ?string $preview_scope = null,    // 'full' | 'requirements_only' | 'none'
+        public ?string $preview_message = null,  // optional issuer note
     ) {}
 
     public static function rules(): array
@@ -69,6 +74,11 @@ class VoucherMetadataData extends Data
             'notes' => ['nullable', 'string'],
             'tags' => ['nullable', 'array'],
             'custom' => ['nullable', 'array'],
+
+            // Preview policy
+            'preview_enabled' => ['nullable', 'boolean'],
+            'preview_scope' => ['nullable', 'in:full,requirements_only,none'],
+            'preview_message' => ['nullable', 'string'],
         ];
     }
 

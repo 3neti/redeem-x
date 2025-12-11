@@ -12,10 +12,12 @@ use App\Models\VoucherGenerationCharge;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Data\VoucherMetadataData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -147,6 +149,11 @@ class GenerateVouchers
             'fee_strategy' => 'nullable|string|in:absorb,include,add',
 
             'campaign_id' => 'nullable|integer|exists:campaigns,id',
+            
+            // Preview controls
+            'preview_enabled' => 'nullable|boolean',
+            'preview_scope' => 'nullable|string|in:full,requirements_only,none',
+            'preview_message' => 'nullable|string|max:500',
         ];
     }
 
@@ -167,6 +174,56 @@ class GenerateVouchers
             $ttl = CarbonInterval::days($validated['ttl_days']);
         }
 
+        // Get authenticated user for metadata
+        $owner = auth()->user();
+        
+        // Get redemption URLs
+        $redemptionUrls = [
+            'web' => route('redeem.start'),
+        ];
+        
+        // Add API endpoint if route exists
+        if (Route::has('api.redemption.validate')) {
+            $redemptionUrls['api'] = route('api.redemption.validate');
+        }
+        
+        // Add widget URL if configured
+        if ($widgetUrl = config('voucher.redemption.widget_url')) {
+            $redemptionUrls['widget'] = $widgetUrl;
+        }
+        
+        // Determine primary URL (prefer web)
+        $primaryUrl = $redemptionUrls['web'] ?? null;
+        
+        // Collect active licenses (non-null values)
+        $licenses = array_filter(config('voucher.metadata.licenses', []));
+        
+        // Create metadata with preview controls
+        $metadata = VoucherMetadataData::from([
+            'version' => config('voucher.metadata.version'),
+            'system_name' => config('voucher.metadata.system_name'),
+            'copyright' => config('voucher.metadata.copyright'),
+            'licenses' => $licenses,
+            'issuer_id' => $owner->id,
+            'issuer_name' => $owner->name ?? $owner->email,
+            'issuer_email' => $owner->email,
+            'redemption_urls' => $redemptionUrls,
+            'primary_url' => $primaryUrl,
+            'created_at' => now(),
+            'issued_at' => now(),
+            
+            // Optional fields (signature support)
+            'public_key' => config('voucher.security.enable_signatures') 
+                ? config('voucher.security.public_key') 
+                : null,
+            
+            // Preview controls from request
+            // Use array_key_exists to properly handle false boolean values
+            'preview_enabled' => array_key_exists('preview_enabled', $validated) ? $validated['preview_enabled'] : true,
+            'preview_scope' => $validated['preview_scope'] ?? 'full',
+            'preview_message' => $validated['preview_message'] ?? null,
+        ]);
+        
         $data_array = [
             'cash' => [
                 'amount' => $validated['amount'],
@@ -197,6 +254,7 @@ class GenerateVouchers
             'prefix' => $validated['prefix'] ?? '',
             'mask' => $validated['mask'] ?? '',
             'ttl' => $ttl,
+            'metadata' => $metadata,
         ];
 
         return VoucherInstructionsData::from($data_array);

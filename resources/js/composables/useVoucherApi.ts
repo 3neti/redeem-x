@@ -50,6 +50,9 @@ export interface GenerateVouchersRequest {
     feedback_webhook?: string;
     rider_message?: string;
     rider_url?: string;
+    preview_enabled?: boolean;
+    preview_scope?: string;
+    preview_message?: string;
 }
 
 export interface GenerateVouchersResponse {

@@ -10,9 +10,15 @@ Route::get('/', fn () => Inertia::render('Welcome'));
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');
 
-// Public voucher inspect page (no authentication required)
-Route::get('/vouchers/inspect', fn () => Inertia::render('vouchers/Inspect'))
-    ->name('vouchers.inspect');
+// Public voucher inspect page (deprecated): hard redirect to /redeem, preserving ?code
+Route::get('/vouchers/inspect', function () {
+    $code = request()->query('code');
+    if ($code) {
+        // Preserve code in query and redirect to redeem start
+        return redirect()->route('redeem.start', ['code' => $code]);
+    }
+    return redirect()->route('redeem.start');
+})->name('vouchers.inspect');
 
 // Webhook routes (no authentication required)
 Route::prefix('webhooks')->name('webhooks.')->group(function () {
