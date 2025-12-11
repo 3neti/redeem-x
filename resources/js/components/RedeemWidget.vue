@@ -69,7 +69,7 @@ const preview = useVoucherPreview({
 
 // Initialize preview code with initial code if provided
 if (props.initialCode) {
-    preview.code.value = props.initialCode;
+    preview.code = props.initialCode;
 }
 
 // Debug logging
@@ -91,7 +91,7 @@ const submitButton = ref<HTMLButtonElement | null>(null);
 
 function submit() {
     // Use preview code if available, otherwise fall back to form code
-    form.code = (preview.code.value || form.code).trim().toUpperCase();
+    form.code = (preview.code || form.code).trim().toUpperCase();
     
     // Submit to start route which will validate and redirect
     form.get(start.url(), {
@@ -148,13 +148,13 @@ function submit() {
                 <Label v-if="config.showLabel" for="code">{{ config.label }}</Label>
                 <Input
                     id="code"
-                    v-model="preview.code.value"
+                    v-model="preview.code"
                     :placeholder="config.placeholder"
                     required
                     autofocus
                     ref="voucherInput"
                     class="text-center text-lg tracking-wider"
-                    @input="preview.code.value = preview.code.value.toUpperCase()"
+                    @input="preview.code = preview.code.toUpperCase()"
                 />
                 <InputError :message="errors.code" class="mt-1" />
             </div>
@@ -164,7 +164,7 @@ function submit() {
                 ref="submitButton"
                 type="submit"
                 class="w-full"
-                :disabled="form.processing || !preview.code.value?.trim()"
+                :disabled="form.processing || !preview.code?.trim()"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}
             </Button>
