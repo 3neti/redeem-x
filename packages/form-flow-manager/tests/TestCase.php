@@ -15,11 +15,13 @@ abstract class TestCase extends BaseTestCase
     {
         return [
             \Spatie\LaravelData\LaravelDataServiceProvider::class,
+            \LBHurtado\FormFlowManager\FormFlowServiceProvider::class,
         ];
     }
 
     public function getEnvironmentSetUp($app)
     {
+        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
         
         // Laravel Data configuration
