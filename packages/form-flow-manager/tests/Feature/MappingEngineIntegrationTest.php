@@ -4,6 +4,8 @@ use LBHurtado\FormFlowManager\Services\MappingEngine;
 use LBHurtado\FormFlowManager\Services\TemplateRenderer;
 use LBHurtado\FormFlowManager\Services\ExpressionEvaluator;
 use LBHurtado\FormFlowManager\Data\DriverConfigData;
+use LBHurtado\FormFlowManager\Data\FormFlowStepData;
+use LBHurtado\FormFlowManager\Data\FormFlowInstructionsData;
 
 beforeEach(function () {
     $this->renderer = new TemplateRenderer();
@@ -16,52 +18,76 @@ it('transforms simple text input field', function () {
         'name' => 'test',
         'version' => '1.0',
         'source' => 'stdClass',
-        'target' => 'stdClass',
+        'target' => FormFlowStepData::class,
         'mappings' => [
-            'field_name' => '{{ source.name }}',
-            'field_type' => 'text',
+            'handler' => '{{ source.handler }}',
+            'config' => [
+                'label' => '{{ source.label }}',
+                'required' => '{{ source.required }}',
+            ],
             'required' => '{{ source.required }}',
+            'priority' => '{{ source.priority }}',
         ],
     ]);
     
     $source = (object) [
-        'name' => 'email',
+        'handler' => 'text',
+        'label' => 'Email Address',
         'required' => true,
+        'priority' => 10,
     ];
     
-    // Note: This would normally return a Data object, but for testing we'll check the internal logic
-    // In real usage, you'd need to define the target class properly
-    expect($driver->name)->toBe('test');
-})->skip('Requires proper Data target class');
+    $context = ['source' => $source];
+    
+    // Test template rendering
+    $handlerResult = $this->renderer->render('{{ source.handler }}', $context);
+    expect($handlerResult)->toBe('text');
+    
+    $labelResult = $this->renderer->render('{{ source.label }}', $context);
+    expect($labelResult)->toBe('Email Address');
+    
+    expect($driver->target)->toBe(FormFlowStepData::class);
+});
 
 it('handles array_map transformation', function () {
     $driver = DriverConfigData::from([
         'name' => 'test',
         'version' => '1.0',
         'source' => 'stdClass',
-        'target' => 'stdClass',
+        'target' => FormFlowInstructionsData::class,
         'mappings' => [
-            'fields' => [
+            'flow_id' => '{{ source.id }}',
+            'steps' => [
                 'source' => 'items',
                 'transform' => 'array_map',
                 'handler' => [
-                    'name' => '{{ item.name }}',
-                    'value' => '{{ item.value }}',
+                    'handler' => '{{ item.type }}',
+                    'config' => [],
+                    'required' => true,
+                    'priority' => '{{ item.priority }}',
                 ],
             ],
         ],
     ]);
     
     $source = (object) [
+        'id' => 'test-flow',
         'items' => [
-            (object) ['name' => 'field1', 'value' => 'value1'],
-            (object) ['name' => 'field2', 'value' => 'value2'],
+            (object) ['type' => 'location', 'priority' => 10],
+            (object) ['type' => 'selfie', 'priority' => 20],
         ],
     ];
     
-    expect($driver->getMappingForField('fields'))->toHaveKey('transform');
-    expect($driver->getMappingForField('fields')['transform'])->toBe('array_map');
-})->skip('Requires proper Data target class');
+    expect($driver->getMappingForField('steps'))->toHaveKey('transform');
+    expect($driver->getMappingForField('steps')['transform'])->toBe('array_map');
+    expect($driver->target)->toBe(FormFlowInstructionsData::class);
+    
+    // Test that the mapping structure is correct
+    $mapping = $driver->getMappingForField('steps');
+    expect($mapping['source'])->toBe('items');
+    expect($mapping['handler'])->toHaveKey('handler');
+    expect($mapping['handler']['handler'])->toBe('{{ item.type }}');
+});
 
 it('evaluates conditional mappings with when clause', function () {
     $mapping = [

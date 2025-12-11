@@ -19,6 +19,13 @@
             "LBHurtado\\FormFlowManager\\Tests\\": "tests/"
         }
     },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\FormFlowManager\\FormFlowServiceProvider"
+            ]
+        }
+    },
     "require": {
         "php": "^8.2",
         "symfony/yaml": "^7.4",
