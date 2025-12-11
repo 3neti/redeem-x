@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d4dc40fadcfbdbd7ea5581bdaf2763f0",
+    "content-hash": "70ae7115c29b5d75f8f51f12488ebd94",
     "packages": [
         {
             "name": "3neti/hyperverge",
@@ -2943,11 +2943,11 @@
         },
         {
             "name": "lbhurtado/form-flow-manager",
-            "version": "dev-feature/form-flow-system",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-flow-manager",
-                "reference": "1eda5a6b1dc9a30cf3a843ccbcdd39c68872f0be"
+                "reference": "e113450dfdd1108da0373f0bc3fbaf73b4ce18ce"
             },
             "require": {
                 "php": "^8.2",
@@ -2959,6 +2959,13 @@
                 "pestphp/pest": "^3.8"
             },
             "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormFlowManager\\FormFlowServiceProvider"
+                    ]
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "LBHurtado\\FormFlowManager\\": "src/"
@@ -2984,6 +2991,56 @@
                 }
             ],
             "description": "Driver-based form flow orchestration system with DirXML-style mapping",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/form-handler-location",
+            "version": "dev-feature/form-flow-system",
+            "dist": {
+                "type": "path",
+                "url": "./packages/form-handler-location",
+                "reference": "ec4786a97dc54c46271888e8c4cac3d80c33f7a0"
+            },
+            "require": {
+                "lbhurtado/form-flow-manager": "dev-main",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerLocation\\LocationHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerLocation\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerLocation\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Location capture handler for form flow system",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -14209,6 +14266,7 @@
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
         "lbhurtado/form-flow-manager": 20,
+        "lbhurtado/form-handler-location": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/money-issuer": 20,
