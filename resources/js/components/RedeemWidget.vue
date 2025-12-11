@@ -154,7 +154,6 @@ function submit() {
                     autofocus
                     ref="voucherInput"
                     class="text-center text-lg tracking-wider"
-                    @input="preview.code = preview.code.toUpperCase()"
                 />
                 <InputError :message="errors.code" class="mt-1" />
             </div>

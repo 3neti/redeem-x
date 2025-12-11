@@ -85,7 +85,14 @@ export function useVoucherPreview(options: UseVoucherPreviewOptions = {}) {
     }
 
     // Watch code changes
-    watch(code, (newCode) => {
+    watch(code, (newCode, oldCode) => {
+        // Auto-uppercase (only if different to avoid infinite loop)
+        const uppercased = newCode.toUpperCase();
+        if (uppercased !== newCode) {
+            code.value = uppercased;
+            return; // The watch will trigger again with uppercase value
+        }
+        
         debouncedFetch(newCode);
     });
 
