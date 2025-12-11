@@ -1,0 +1,40 @@
+{
+    "name": "lbhurtado/form-handler-location",
+    "description": "Location capture handler for form flow system",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "lbhurtado/form-flow-manager": "dev-main",
+        "spatie/laravel-data": "^4.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.3",
+        "pestphp/pest": "^3.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\FormHandlerLocation\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\FormHandlerLocation\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\FormHandlerLocation\\LocationHandlerServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
