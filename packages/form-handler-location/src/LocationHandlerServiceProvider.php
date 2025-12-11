@@ -36,6 +36,11 @@ class LocationHandlerServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register test routes (only in local/testing)
+        if (!$this->app->isProduction()) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/test.php');
+        }
+        
         // Publish configuration
         $this->publishes([
             __DIR__.'/../config/location-handler.php' => config_path('location-handler.php'),
