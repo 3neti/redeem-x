@@ -1,0 +1,60 @@
+# Location Capture Driver
+# Example driver for standalone location capture
+#
+# This demonstrates how to create a simple form flow for just capturing
+# a user's location, useful for check-ins, attendance, or location verification.
+
+driver:
+  name: "location-capture"
+  version: "1.0"
+  source: "App\\Data\\LocationRequestData"
+  target: "LBHurtado\\FormFlowManager\\Data\\FormFlowInstructionsData"
+
+mappings:
+  # Unique flow instance identifier
+  flow_id:
+    template: "location_{{ source.request_id }}"
+  
+  # Single step: capture location
+  steps:
+    - handler: "location"
+      config:
+        # Optional: validation rules for location
+        validation_rules:
+          when: "{{ source.validation }}"
+          from: "{{ source.validation }}"
+        
+        # Map accuracy requirements
+        required_accuracy:
+          when: "{{ source.required_accuracy }}"
+          from: "{{ source.required_accuracy }}"
+        
+        # Enable/disable GPS requirement
+        require_gps: "{{ source.require_gps ?? true }}"
+      
+      required: true
+      priority: 10
+  
+  # Callback URLs
+  callbacks:
+    on_complete:
+      template: "{{ url('/api/location/' ~ source.request_id ~ '/complete') }}"
+    on_cancel:
+      template: "{{ url('/location/cancel') }}"
+  
+  # Context data
+  context:
+    type: "location-capture"
+    request_id: "{{ source.request_id }}"
+    purpose: "{{ source.purpose ?? 'general' }}"
+    user_id: "{{ source.user_id }}"
+  
+  # No pre-populated session data needed
+  session_data: {}
+
+# Constants
+constants:
+  default_accuracy: 50  # meters
+
+# No filters needed for single-step flow
+filters: {}

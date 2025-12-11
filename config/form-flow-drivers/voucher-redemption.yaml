@@ -1,0 +1,93 @@
+# Voucher Redemption Driver
+# Transforms VoucherInstructionsData → FormFlowInstructionsData
+#
+# This driver configuration defines how to map voucher-specific data structures
+# into generic form flow instructions for the autonomous form collection system.
+
+driver:
+  name: "voucher-redemption"
+  version: "1.0"
+  source: "LBHurtado\\Voucher\\Data\\VoucherInstructionsData"
+  target: "LBHurtado\\FormFlowManager\\Data\\FormFlowInstructionsData"
+
+mappings:
+  # Unique flow instance identifier
+  flow_id:
+    template: "voucher_{{ source.code }}"
+  
+  # Transform voucher input fields into form flow steps
+  steps:
+    source: "instructions.inputs.fields"
+    transform: "array_map"
+    handler:
+      field: "{{ item }}"
+      config:
+        # Image quality settings for selfie/signature handlers
+        image_quality:
+          when: "{{ item in ['selfie', 'signature'] }}"
+          from: "{{ config('model-input.image_quality.' ~ item) }}"
+        
+        # Location validation rules
+        validation_rules:
+          when: "{{ item == 'location' }}"
+          from: "{{ source.instructions.validation.location }}"
+        
+        # KYC configuration
+        kyc_config:
+          when: "{{ item == 'kyc' }}"
+          from:
+            hyperverge_app_id: "{{ env('HYPERVERGE_APP_ID') }}"
+            hyperverge_app_key: "{{ env('HYPERVERGE_APP_KEY') }}"
+            callback_url: "{{ url('/redeem/' ~ source.code ~ '/kyc/callback') }}"
+      
+      required: true
+      priority: "{{ priorities[item] ?? 50 }}"
+  
+  # Callback URLs for flow completion/cancellation
+  callbacks:
+    on_complete:
+      template: "{{ url('/api/redeem/' ~ source.code ~ '/finalize') }}"
+    on_cancel:
+      template: "{{ url('/redeem') }}"
+    on_error:
+      template: "{{ url('/redeem/' ~ source.code ~ '/error') }}"
+  
+  # Context data passed through the flow
+  context:
+    type: "redemption"
+    voucher_code: "{{ source.code }}"
+    amount: "{{ source.amount }}"
+    currency: "{{ source.currency }}"
+    formatted_amount: "{{ source.formatted_amount ?? source.amount }}"
+    expires_at: "{{ source.expires_at }}"
+    issuer:
+      name: "{{ source.owner.name ?? 'Unknown' }}"
+      email: "{{ source.owner.email ?? null }}"
+  
+  # Pre-populate session data if available
+  session_data:
+    mobile: "{{ session('redeem.' ~ source.code ~ '.mobile') }}"
+    country: "{{ session('redeem.' ~ source.code ~ '.country', 'PH') }}"
+    bank_code: "{{ session('redeem.' ~ source.code ~ '.bank_code') }}"
+    account_number: "{{ session('redeem.' ~ source.code ~ '.account_number') }}"
+    inputs: "{{ session('redeem.' ~ source.code ~ '.inputs') }}"
+
+# Constants accessible in templates
+constants:
+  priorities:
+    location: 10
+    selfie: 20
+    signature: 30
+    kyc: 40
+    otp: 50
+    biometric: 60
+
+# Filters to apply to the result
+filters:
+  # Filter out disabled handlers
+  steps:
+    - "config('form-flow.handlers.' ~ item.field ~ '.enabled', true)"
+  
+  # Skip flow entirely if no input fields required
+  skip_flow_if:
+    - "empty(source.instructions.inputs.fields)"

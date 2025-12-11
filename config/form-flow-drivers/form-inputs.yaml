@@ -1,0 +1,148 @@
+# Form Inputs Driver
+# Driver for collecting various text-based form inputs
+#
+# Supports multiple input types:
+# - text (string fields: name, email, etc.)
+# - enum (select/dropdown fields)
+# - numeric (integer/decimal numbers)
+# - date (date/datetime fields)
+#
+# This demonstrates dynamic form generation from a schema definition.
+
+driver:
+  name: "form-inputs"
+  version: "1.0"
+  source: "App\\Data\\FormInputRequestData"
+  target: "LBHurtado\\FormFlowManager\\Data\\FormFlowInstructionsData"
+
+mappings:
+  # Unique flow instance identifier
+  flow_id:
+    template: "form_{{ source.form_id }}"
+  
+  # Transform form fields into handler steps
+  steps:
+    source: "fields"
+    transform: "array_map"
+    handler:
+      field: "{{ item.type }}"  # text, enum, numeric, date
+      config:
+        # Field metadata
+        field_name: "{{ item.name }}"
+        label: "{{ item.label }}"
+        placeholder: "{{ item.placeholder ?? item.label }}"
+        help_text: "{{ item.help_text ?? null }}"
+        
+        # Validation rules
+        required: "{{ item.required ?? false }}"
+        min_length:
+          when: "{{ item.type == 'text' && item.min_length }}"
+          from: "{{ item.min_length }}"
+        max_length:
+          when: "{{ item.type == 'text' && item.max_length }}"
+          from: "{{ item.max_length }}"
+        
+        # Pattern validation (email, phone, etc.)
+        pattern:
+          when: "{{ item.pattern }}"
+          from: "{{ item.pattern }}"
+        pattern_message: "{{ item.pattern_message ?? 'Invalid format' }}"
+        
+        # Numeric field constraints
+        min_value:
+          when: "{{ item.type == 'numeric' && item.min_value }}"
+          from: "{{ item.min_value }}"
+        max_value:
+          when: "{{ item.type == 'numeric' && item.max_value }}"
+          from: "{{ item.max_value }}"
+        step:
+          when: "{{ item.type == 'numeric' && item.step }}"
+          from: "{{ item.step }}"
+        
+        # Enum/select options
+        options:
+          when: "{{ item.type == 'enum' }}"
+          from: "{{ item.options }}"
+        multiple:
+          when: "{{ item.type == 'enum' && item.multiple }}"
+          from: "{{ item.multiple }}"
+        
+        # Date field constraints
+        min_date:
+          when: "{{ item.type == 'date' && item.min_date }}"
+          from: "{{ item.min_date }}"
+        max_date:
+          when: "{{ item.type == 'date' && item.max_date }}"
+          from: "{{ item.max_date }}"
+        format:
+          when: "{{ item.type == 'date' }}"
+          from: "{{ item.format ?? 'Y-m-d' }}"
+        
+        # Default value
+        default_value:
+          when: "{{ item.default_value }}"
+          from: "{{ item.default_value }}"
+        
+        # Conditional display
+        show_if:
+          when: "{{ item.show_if }}"
+          from: "{{ item.show_if }}"
+      
+      required: "{{ item.required ?? false }}"
+      priority: "{{ item.priority ?? 50 }}"
+  
+  # Callback URLs
+  callbacks:
+    on_complete:
+      template: "{{ url('/api/forms/' ~ source.form_id ~ '/submit') }}"
+    on_cancel:
+      template: "{{ url('/forms/' ~ source.form_id ~ '/cancel') }}"
+    on_error:
+      template: "{{ url('/forms/' ~ source.form_id ~ '/error') }}"
+  
+  # Context data
+  context:
+    type: "form-inputs"
+    form_id: "{{ source.form_id }}"
+    form_title: "{{ source.title }}"
+    form_description: "{{ source.description ?? null }}"
+    submit_button_text: "{{ source.submit_button_text ?? 'Submit' }}"
+    user_id: "{{ source.user_id ?? null }}"
+  
+  # Pre-populate from session if available
+  session_data:
+    saved_data: "{{ session('forms.' ~ source.form_id ~ '.data') }}"
+    last_step: "{{ session('forms.' ~ source.form_id ~ '.last_step') }}"
+
+# Constants
+constants:
+  # Common input types
+  input_types:
+    text: "text"
+    email: "email"
+    phone: "tel"
+    url: "url"
+    password: "password"
+    textarea: "textarea"
+    numeric: "number"
+    enum: "select"
+    date: "date"
+    datetime: "datetime-local"
+    time: "time"
+  
+  # Common validation patterns
+  patterns:
+    email: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    phone_ph: "^(09|\\+639)\\d{9}$"
+    url: "^https?:\\/\\/.+"
+    alphanumeric: "^[a-zA-Z0-9]+$"
+
+# Filters
+filters:
+  # Filter out disabled fields
+  steps:
+    - "{{ item.enabled ?? true }}"
+  
+  # Skip if form already submitted
+  skip_flow_if:
+    - "{{ source.already_submitted }}"

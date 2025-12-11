@@ -1,0 +1,74 @@
+# Selfie Verification Driver
+# Example driver for standalone selfie/photo capture
+#
+# This demonstrates a simple form flow for capturing user selfies,
+# useful for identity verification, profile photos, or photo documentation.
+
+driver:
+  name: "selfie-verification"
+  version: "1.0"
+  source: "App\\Data\\SelfieRequestData"
+  target: "LBHurtado\\FormFlowManager\\Data\\FormFlowInstructionsData"
+
+mappings:
+  # Unique flow instance identifier
+  flow_id:
+    template: "selfie_{{ source.verification_id }}"
+  
+  # Single step: capture selfie
+  steps:
+    - handler: "selfie"
+      config:
+        # Image quality settings from config
+        image_quality:
+          from: "{{ config('model-input.image_quality.selfie') }}"
+        
+        # Optional: liveness detection requirements
+        liveness_check:
+          when: "{{ source.require_liveness }}"
+          from: "{{ source.require_liveness }}"
+        
+        # Capture mode: camera, upload, or both
+        capture_mode: "{{ source.capture_mode ?? 'camera' }}"
+        
+        # Maximum file size (bytes)
+        max_file_size: "{{ source.max_file_size ?? 5242880 }}"  # 5MB default
+        
+        # Allowed formats
+        allowed_formats: "{{ source.allowed_formats ?? ['jpg', 'jpeg', 'png'] }}"
+      
+      required: true
+      priority: 10
+  
+  # Callback URLs
+  callbacks:
+    on_complete:
+      template: "{{ url('/api/verification/' ~ source.verification_id ~ '/complete') }}"
+    on_cancel:
+      template: "{{ url('/verification/cancel') }}"
+    on_error:
+      template: "{{ url('/verification/error') }}"
+  
+  # Context data
+  context:
+    type: "selfie-verification"
+    verification_id: "{{ source.verification_id }}"
+    purpose: "{{ source.purpose ?? 'identity-verification' }}"
+    user_id: "{{ source.user_id }}"
+    requires_review: "{{ source.requires_review ?? false }}"
+  
+  # Pre-populate if retry attempt
+  session_data:
+    previous_attempt: "{{ session('verification.' ~ source.verification_id ~ '.attempt') }}"
+
+# Constants
+constants:
+  default_quality: 80
+  min_width: 640
+  min_height: 480
+
+# Filters
+filters:
+  # Skip if user already verified
+  skip_flow_if:
+    - "{{ source.already_verified }}"

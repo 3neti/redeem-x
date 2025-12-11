@@ -1,0 +1,17 @@
+driver:
+  name: "test-driver"
+  version: "1.0"
+  source: "App\\Source"
+  target: "App\\Target"
+
+mappings:
+  field: "value"
+  code: "{{ source.code }}"
+  name: "{{ source.name }}"
+
+constants:
+  test_constant: "test_value"
+
+filters:
+  skip_flow_if:
+    - "empty(source.code)"

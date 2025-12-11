@@ -1,0 +1,6 @@
+driver:
+  name: "invalid"
+  # Missing: version, source, target
+
+mappings:
+  field: "value"

@@ -71,6 +71,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./packages/form-flow-manager",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -92,6 +99,7 @@
         "lbhurtado/sms": "^2.4",
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
+        "lbhurtado/form-flow-manager": "@dev",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",
         "php-http/discovery": "^1.14",
@@ -100,7 +108,8 @@
         "resend/resend-php": "^0.18.0",
         "spatie/laravel-medialibrary": "^11.17",
         "spatie/laravel-permission": "^6.23",
-        "spatie/laravel-settings": "^3.5"
+        "spatie/laravel-settings": "^3.5",
+        "symfony/yaml": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
