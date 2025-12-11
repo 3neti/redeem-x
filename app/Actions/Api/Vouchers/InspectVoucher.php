@@ -8,6 +8,7 @@ use FrittenKeeZ\Vouchers\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Number;
 use Lorisleiva\Actions\Concerns\AsAction;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 
 /**
@@ -66,8 +67,16 @@ class InspectVoucher
         }
 
         // Add instructions data (if available)
-        if ($voucher->instructions) {
-            $response['instructions'] = $this->formatInstructions($voucher);
+        if (isset($voucher->metadata['instructions'])) {
+            try {
+                $response['instructions'] = $this->formatInstructions($voucher);
+            } catch (\Exception $e) {
+                // Log error but don't fail the request
+                \Log::warning('[InspectVoucher] Failed to format instructions', [
+                    'code' => $voucher->code,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json($response);
@@ -78,7 +87,8 @@ class InspectVoucher
      */
     private function formatInstructions(Voucher $voucher): array
     {
-        $instructions = $voucher->instructions;
+        // Parse instructions from metadata (accessor may fail for some vouchers)
+        $instructions = VoucherInstructionsData::from($voucher->metadata['instructions']);
 
         // Format amount
         $formattedAmount = Number::currency(
