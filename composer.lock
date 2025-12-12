@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "70ae7115c29b5d75f8f51f12488ebd94",
+    "content-hash": "ef9bb8802ef9dff68b6816065c445dde",
     "packages": [
         {
             "name": "3neti/hyperverge",
@@ -2947,7 +2947,7 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-flow-manager",
-                "reference": "e113450dfdd1108da0373f0bc3fbaf73b4ce18ce"
+                "reference": "627b8cd69595a50e0211ebf6ad94a9fa38b8e976"
             },
             "require": {
                 "php": "^8.2",
@@ -2955,6 +2955,8 @@
                 "symfony/yaml": "^7.4"
             },
             "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "lbhurtado/form-handler-location": "dev-main",
                 "orchestra/testbench": "^10.3",
                 "pestphp/pest": "^3.8"
             },
@@ -3002,7 +3004,7 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-location",
-                "reference": "ec4786a97dc54c46271888e8c4cac3d80c33f7a0"
+                "reference": "8a3a8b13ab6ac9b5a004cfa1339f75e355e7b2b8"
             },
             "require": {
                 "lbhurtado/form-flow-manager": "dev-main",
@@ -3010,8 +3012,10 @@
                 "spatie/laravel-data": "^4.0"
             },
             "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
                 "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
             },
             "type": "library",
             "extra": {
@@ -3031,6 +3035,11 @@
                     "LBHurtado\\FormHandlerLocation\\Tests\\": "tests/"
                 }
             },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
             "license": [
                 "proprietary"
             ],
@@ -3041,6 +3050,63 @@
                 }
             ],
             "description": "Location capture handler for form flow system",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/form-handler-selfie",
+            "version": "dev-feature/form-flow-system",
+            "dist": {
+                "type": "path",
+                "url": "./packages/form-handler-selfie",
+                "reference": "f7399d60f799b5d718f2140cb37c33adedbb80c7"
+            },
+            "require": {
+                "lbhurtado/form-flow-manager": "dev-main",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerSelfie\\SelfieHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSelfie\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSelfie\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Selfie capture handler for form flow system",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -14267,6 +14333,7 @@
         "lbhurtado/contact": 20,
         "lbhurtado/form-flow-manager": 20,
         "lbhurtado/form-handler-location": 20,
+        "lbhurtado/form-handler-selfie": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/money-issuer": 20,

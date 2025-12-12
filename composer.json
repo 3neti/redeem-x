@@ -85,6 +85,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./packages/form-handler-selfie",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -108,6 +115,7 @@
         "lbhurtado/wallet": "@dev",
         "lbhurtado/form-flow-manager": "@dev",
         "lbhurtado/form-handler-location": "@dev",
+        "lbhurtado/form-handler-selfie": "@dev",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",
         "php-http/discovery": "^1.14",
