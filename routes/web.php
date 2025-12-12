@@ -158,6 +158,16 @@ Route::middleware([
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
 
+// Form Flow demo completion callback
+Route::post('/form-flow-complete', function () {
+    logger('Form flow completed', request()->all());
+    return response()->json([
+        'success' => true,
+        'message' => 'Form flow completed successfully!',
+        'data' => request()->all()
+    ]);
+})->name('form-flow.complete.callback');
+
 // Development login (bypass WorkOS) - MUST be after auth.php
 if (app()->environment('local')) {
     Route::get('/dev-login/{email}', function ($email) {

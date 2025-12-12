@@ -77,9 +77,19 @@
         <h1>Form Flow System Demo</h1>
         <p class="subtitle">Test the fully autonomous multi-step form flow system</p>
         
-        <button id="startFlowBtn" onclick="startFlow()">
-            Start Form Flow
-        </button>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button id="startFlowBtn" onclick="startFlow()">
+                Start Basic Form Flow
+            </button>
+            
+            <button id="startLocationFlowBtn" onclick="startLocationFlow()" style="background: #10b981;">
+                Start Form + Location Flow
+            </button>
+            
+            <button id="startLocationOnlyBtn" onclick="startLocationOnly()" style="background: #f59e0b;">
+                Location Only
+            </button>
+        </div>
         
         <div id="result"></div>
     </div>
@@ -149,7 +159,138 @@ Redirecting to form in 2 seconds...</pre>
             } catch (error) {
                 result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
                 btn.disabled = false;
-                btn.innerHTML = 'Start Form Flow';
+                btn.innerHTML = 'Start Basic Form Flow';
+            }
+        }
+        
+        async function startLocationFlow() {
+            const btn = document.getElementById('startLocationFlowBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating flow...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/form-flow/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reference_id: `demo-location-${Date.now()}`,
+                        steps: [
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'User Information',
+                                    description: 'Tell us about yourself',
+                                    fields: [
+                                        { name: 'full_name', type: 'text', label: 'Full Name', required: true },
+                                        { name: 'email', type: 'email', label: 'Email Address', required: true },
+                                        { name: 'phone', type: 'text', label: 'Phone Number', required: false }
+                                    ]
+                                }
+                            },
+                            {
+                                handler: 'location',
+                                config: {
+                                    title: 'Your Location',
+                                    require_address: true,
+                                    capture_snapshot: true
+                                }
+                            }
+                        ],
+                        callbacks: {
+                            on_complete: window.location.origin + '/form-flow-complete',
+                            on_cancel: window.location.origin + '/form-flow-demo.html'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <pre>Mixed flow created!
+
+Steps: Form → Location
+Reference ID: ${data.reference_id}
+
+Redirecting...</pre>
+                    `;
+                    setTimeout(() => {
+                        window.location.href = data.flow_url;
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to create flow');
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                btn.disabled = false;
+                btn.innerHTML = 'Start Form + Location Flow';
+            }
+        }
+        
+        async function startLocationOnly() {
+            const btn = document.getElementById('startLocationOnlyBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating flow...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/form-flow/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reference_id: `demo-location-only-${Date.now()}`,
+                        steps: [
+                            {
+                                handler: 'location',
+                                config: {
+                                    title: 'Share Your Location',
+                                    description: 'We need your location to complete this request',
+                                    require_address: true,
+                                    capture_snapshot: true,
+                                    map_provider: 'google'
+                                }
+                            }
+                        ],
+                        callbacks: {
+                            on_complete: window.location.origin + '/form-flow-complete',
+                            on_cancel: window.location.origin + '/form-flow-demo.html'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <pre>Location-only flow created!
+
+Reference ID: ${data.reference_id}
+
+Redirecting...</pre>
+                    `;
+                    setTimeout(() => {
+                        window.location.href = data.flow_url;
+                    }, 1500);
+                } else {
+                    throw new Error('Failed to create flow');
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                btn.disabled = false;
+                btn.innerHTML = 'Location Only';
             }
         }
     </script>
