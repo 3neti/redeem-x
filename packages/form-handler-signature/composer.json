@@ -1,0 +1,56 @@
+{
+    "name": "lbhurtado/form-handler-signature",
+    "description": "Signature capture handler for form flow system",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "lbhurtado/form-flow-manager": "dev-main",
+        "spatie/laravel-data": "^4.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.3",
+        "pestphp/pest": "^3.8",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "inertiajs/inertia-laravel": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\FormHandlerSignature\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\FormHandlerSignature\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../form-flow-manager"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\FormHandlerSignature\\SignatureHandlerServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

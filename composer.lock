@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ef9bb8802ef9dff68b6816065c445dde",
+    "content-hash": "26ea0cb46566b4bee507c412e909fd9d",
     "packages": [
         {
             "name": "3neti/hyperverge",
@@ -3107,6 +3107,63 @@
                 }
             ],
             "description": "Selfie capture handler for form flow system",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/form-handler-signature",
+            "version": "dev-feature/form-flow-system",
+            "dist": {
+                "type": "path",
+                "url": "./packages/form-handler-signature",
+                "reference": "7869a2a58b79dcaffad5b7df5f92250a42e0ea58"
+            },
+            "require": {
+                "lbhurtado/form-flow-manager": "dev-main",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerSignature\\SignatureHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSignature\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSignature\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Signature capture handler for form flow system",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -14334,6 +14391,7 @@
         "lbhurtado/form-flow-manager": 20,
         "lbhurtado/form-handler-location": 20,
         "lbhurtado/form-handler-selfie": 20,
+        "lbhurtado/form-handler-signature": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/money-issuer": 20,

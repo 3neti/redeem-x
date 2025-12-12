@@ -92,6 +92,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./packages/form-handler-signature",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -116,6 +123,7 @@
         "lbhurtado/form-flow-manager": "@dev",
         "lbhurtado/form-handler-location": "@dev",
         "lbhurtado/form-handler-selfie": "@dev",
+        "lbhurtado/form-handler-signature": "@dev",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",
         "php-http/discovery": "^1.14",
