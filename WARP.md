@@ -457,10 +457,24 @@ curl -X POST http://app.test/form-flow/start \
 **Plugin Development**:
 Create specialized handlers by:
 1. Implement `FormHandlerInterface`
-2. Register in `config/form-flow.php` handlers array
+2. Create service provider that auto-registers handler
 3. Publish Vue components to `resources/js/pages/FormFlow/`
+4. Package auto-discovers via Laravel Package Discovery
 
-Example: `form-handler-location` package provides location capture with GPS and reverse geocoding.
+**Plugin Architecture**:
+- Core (`form-flow-manager`): Lightweight orchestration engine
+- Plugins (`form-handler-*`): Optional specialized handlers
+- Auto-discovery: Plugins self-register via service providers
+- No hardcoded dependencies: Core doesn't know about plugins
+- Host app chooses: Install only the plugins you need
+
+See [Plugin Architecture Documentation](packages/form-flow-manager/PLUGIN_ARCHITECTURE.md) for creating custom handlers.
+
+**Available Plugins**:
+- `form-handler-location` - GPS capture, reverse geocoding, map snapshots
+- `form-handler-selfie` - Camera capture (planned)
+- `form-handler-signature` - Digital signature (planned)
+- `form-handler-kyc` - Identity verification (planned)
 
 **Driver System** (Advanced):
 - Transform domain-specific data (e.g., VoucherInstructionsData) to FormFlowInstructionsData
