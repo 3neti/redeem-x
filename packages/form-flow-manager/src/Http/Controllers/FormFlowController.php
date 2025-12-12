@@ -117,12 +117,42 @@ class FormFlowController extends Controller
      */
     public function updateStep(Request $request, string $flowId, int $step)
     {
-        $data = $request->validate([
+        // First, validate that data is present
+        $request->validate([
             'data' => 'required|array',
         ]);
         
         try {
-            $state = $this->flowService->updateStepData($flowId, $step, $data['data']);
+            // Get flow state to access step config
+            $state = $this->flowService->getFlowState($flowId);
+            
+            if (!$state) {
+                throw new \RuntimeException('Flow not found');
+            }
+            
+            // Get the step data
+            $stepData = FormFlowStepData::from($state['instructions']['steps'][$step]);
+            
+            // Get the handler
+            $handlerClass = $this->getHandlerClass($stepData->handler);
+            
+            if (!$handlerClass) {
+                throw new \RuntimeException("Handler not found: {$stepData->handler}");
+            }
+            
+            $handler = app($handlerClass);
+            
+            // Validate the submitted data using handler's validation rules
+            // This will throw ValidationException with 422 status if validation fails
+            if (method_exists($handler, 'validateStep')) {
+                $handler->validateStep($stepData, $request->input('data'));
+            } else {
+                // Fallback to generic validate method
+                $handler->validate($request->input('data'), []);
+            }
+            
+            // If validation passes, update the flow state
+            $state = $this->flowService->updateStepData($flowId, $step, $request->input('data'));
             
             return response()->json([
                 'success' => true,
@@ -246,16 +276,20 @@ class FormFlowController extends Controller
      * Get handler class from handler name
      * 
      * Maps handler names to their class implementations.
-     * For now, hardcoded. In future, use a registry.
+     * Built-in handler: 'form' (for basic inputs)
+     * Plugin handlers: 'location', 'selfie', 'signature', 'kyc'
      * 
-     * @param string $handlerName Handler name (e.g., 'location', 'selfie')
+     * @param string $handlerName Handler name
      * @return string|null Handler class name or null if not found
      */
     protected function getHandlerClass(string $handlerName): ?string
     {
         $handlers = [
+            // Built-in handler
+            'form' => \LBHurtado\FormFlowManager\Handlers\FormHandler::class,
+            
+            // Plugin handlers
             'location' => \LBHurtado\FormHandlerLocation\LocationHandler::class,
-            // Add more handlers here as they are created
             // 'selfie' => \LBHurtado\FormHandlerSelfie\SelfieHandler::class,
             // 'signature' => \LBHurtado\FormHandlerSignature\SignatureHandler::class,
             // 'kyc' => \LBHurtado\FormHandlerKyc\KycHandler::class,

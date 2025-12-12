@@ -16,7 +16,7 @@ use LBHurtado\FormFlowManager\Services\FormFlowService;
  * Test 1: Form handler accepts basic text inputs
  */
 test('form handler accepts basic text inputs', function () {
-    $response = test()->postJson('/form-flow/start', [
+    $response = $this->postJson('/form-flow/start', [
         'reference_id' => 'ref-basic-' . uniqid(),
         'steps' => [
             [
@@ -42,7 +42,7 @@ test('form handler accepts basic text inputs', function () {
  * Test 2: Form handler accepts various input types
  */
 test('form handler supports multiple input types', function () {
-    $response = test()->postJson('/form-flow/start', [
+    $response = $this->postJson('/form-flow/start', [
         'reference_id' => 'ref-types-' . uniqid(),
         'steps' => [
             [
@@ -71,7 +71,7 @@ test('form handler supports multiple input types', function () {
  * Test 3: Mixed handlers - form + location plugin
  */
 test('flow can mix form handler with specialized handlers', function () {
-    $response = test()->postJson('/form-flow/start', [
+    $response = $this->postJson('/form-flow/start', [
         'reference_id' => 'ref-mixed-' . uniqid(),
         'steps' => [
             // Step 1: Basic form inputs
@@ -108,7 +108,7 @@ test('form handler renders generic form UI', function () {
     $referenceId = 'ref-render-' . uniqid();
     
     // Create flow with form handler
-    $createResponse = test()->postJson('/form-flow/start', [
+    $createResponse = $this->postJson('/form-flow/start', [
         'reference_id' => $referenceId,
         'steps' => [
             [
@@ -132,7 +132,7 @@ test('form handler renders generic form UI', function () {
     $flowUrl = $createResponse->json('flow_url');
     
     // Access the flow URL
-    $accessResponse = test()->get($flowUrl);
+    $accessResponse = $this->get($flowUrl);
     
     // Should render successfully
     expect($accessResponse->status())->not->toBe(404);
@@ -146,7 +146,7 @@ test('form handler accepts form submission', function () {
     $referenceId = 'ref-submit-' . uniqid();
     
     // Create flow
-    test()->postJson('/form-flow/start', [
+    $this->postJson('/form-flow/start', [
         'reference_id' => $referenceId,
         'steps' => [
             [
@@ -170,7 +170,7 @@ test('form handler accepts form submission', function () {
     $flowId = $state['flow_id'];
     
     // Submit form data
-    $submitResponse = test()->postJson("/form-flow/{$flowId}/step/0", [
+    $submitResponse = $this->postJson("/form-flow/{$flowId}/step/0", [
         'data' => [
             'name' => 'Juan Dela Cruz',
             'email' => 'juan@example.com',
@@ -192,7 +192,7 @@ test('form handler validates required fields', function () {
     $referenceId = 'ref-validate-' . uniqid();
     
     // Create flow
-    test()->postJson('/form-flow/start', [
+    $this->postJson('/form-flow/start', [
         'reference_id' => $referenceId,
         'steps' => [
             [
@@ -216,7 +216,7 @@ test('form handler validates required fields', function () {
     $flowId = $state['flow_id'];
     
     // Submit incomplete data
-    $submitResponse = test()->postJson("/form-flow/{$flowId}/step/0", [
+    $submitResponse = $this->postJson("/form-flow/{$flowId}/step/0", [
         'data' => [
             'name' => 'Juan Dela Cruz',
             // Missing required 'email' field
@@ -232,7 +232,7 @@ test('form handler validates required fields', function () {
  * Test 7: Fallback for missing plugin - selfie as file upload
  */
 test('fallback to form handler when plugin does not exist', function () {
-    $response = test()->postJson('/form-flow/start', [
+    $response = $this->postJson('/form-flow/start', [
         'reference_id' => 'ref-fallback-' . uniqid(),
         'steps' => [
             // Step 1: Name and address (basic form)
@@ -266,7 +266,7 @@ test('fallback to form handler when plugin does not exist', function () {
  * Test 8: Form handler with validation rules
  */
 test('form handler supports validation rules', function () {
-    $response = test()->postJson('/form-flow/start', [
+    $response = $this->postJson('/form-flow/start', [
         'reference_id' => 'ref-rules-' . uniqid(),
         'steps' => [
             [

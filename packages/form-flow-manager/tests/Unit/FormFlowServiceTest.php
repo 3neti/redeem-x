@@ -10,6 +10,7 @@ beforeEach(function () {
 
 it('starts a new flow', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-flow-123',
         'flow_id' => 'test-flow-123',
         'steps' => [
             ['handler' => 'location', 'config' => [], 'priority' => 10],
@@ -29,8 +30,10 @@ it('starts a new flow', function () {
 
 it('retrieves flow state', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-retrieve',
         'flow_id' => 'test-retrieve',
         'steps' => [['handler' => 'location', 'config' => []]],
+        'callbacks' => ['on_complete' => 'http://example.com/callback'],
     ]);
     
     $this->service->startFlow($instructions);
@@ -42,8 +45,10 @@ it('retrieves flow state', function () {
 
 it('updates step data', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-update',
         'flow_id' => 'test-update',
         'steps' => [['handler' => 'location', 'config' => []]],
+        'callbacks' => ['on_complete' => 'http://example.com/callback'],
     ]);
     
     $this->service->startFlow($instructions);
@@ -57,8 +62,10 @@ it('updates step data', function () {
 
 it('completes a flow', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-complete',
         'flow_id' => 'test-complete',
         'steps' => [['handler' => 'location', 'config' => []]],
+        'callbacks' => ['on_complete' => 'http://example.com/callback'],
     ]);
     
     $this->service->startFlow($instructions);
@@ -70,8 +77,10 @@ it('completes a flow', function () {
 
 it('cancels a flow', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-cancel',
         'flow_id' => 'test-cancel',
         'steps' => [['handler' => 'location', 'config' => []]],
+        'callbacks' => ['on_complete' => 'http://example.com/callback'],
     ]);
     
     $this->service->startFlow($instructions);
@@ -83,8 +92,10 @@ it('cancels a flow', function () {
 
 it('checks if flow exists', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-exists',
         'flow_id' => 'test-exists',
         'steps' => [['handler' => 'location', 'config' => []]],
+        'callbacks' => ['on_complete' => 'http://example.com/callback'],
     ]);
     
     expect($this->service->flowExists('test-exists'))->toBeFalse();
@@ -94,8 +105,10 @@ it('checks if flow exists', function () {
 
 it('clears flow state', function () {
     $instructions = FormFlowInstructionsData::from([
+        'reference_id' => 'ref-test-clear',
         'flow_id' => 'test-clear',
         'steps' => [['handler' => 'location', 'config' => []]],
+        'callbacks' => ['on_complete' => 'http://example.com/callback'],
     ]);
     
     $this->service->startFlow($instructions);

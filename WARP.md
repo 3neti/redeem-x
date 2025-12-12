@@ -345,6 +345,138 @@ HYPERVERGE_URL_WORKFLOW=onboarding
 - **Graceful errors**: Handles API timeouts, network errors, session expiration
 - **Mobile-optimized**: HyperVerge flow designed for mobile camera access
 
+### Form Flow System
+**Fully Autonomous Multi-Step Form System** for collecting user inputs in a wizard-style flow:
+- Package: `lbhurtado/form-flow-manager` (mono-repo package)
+- DirXML-style driver architecture for transforming domain data into form flows
+- Built-in FormHandler for basic inputs (text, email, date, number, select, checkbox, textarea, file)
+- Plugin system for specialized handlers (location, selfie, signature, KYC)
+- HyperVerge-style two-session flow: server-to-server POST → browser GET
+
+**Architecture**:
+```
+Host App → POST /form-flow/start {reference_id, steps, callbacks}
+           ↓
+           Returns {flow_url}
+           ↓
+User → GET flow_url (separate session)
+       ↓
+       Renders UI → Collects data → Stores by reference_id
+       ↓
+       Triggers on_complete callback with collected data
+```
+
+**Built-in Form Handler**:
+- Handler name: `form`
+- Supports 8 field types: text, email, date, number, textarea, select, checkbox, file
+- Dynamic validation rules based on field configuration
+- Renders GenericForm.vue component
+- Used when no specialized plugin exists for an input type
+
+**Field Configuration**:
+```json
+{
+  "name": "field_name",
+  "type": "text|email|date|number|textarea|select|checkbox|file",
+  "label": "Field Label",
+  "placeholder": "Optional placeholder",
+  "required": true,
+  "options": ["Option1", "Option2"],  // For select type
+  "validation": ["email", "max:255"]  // Additional Laravel rules
+}
+```
+
+**Usage Example**:
+```bash
+# Create a form flow
+curl -X POST http://app.test/form-flow/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reference_id": "unique-ref-123",
+    "steps": [
+      {
+        "handler": "form",
+        "config": {
+          "title": "Personal Information",
+          "description": "Please provide your details",
+          "fields": [
+            {"name": "name", "type": "text", "required": true},
+            {"name": "email", "type": "email", "required": true},
+            {"name": "birthdate", "type": "date", "required": true}
+          ]
+        }
+      },
+      {
+        "handler": "location",
+        "config": {"require_address": true}
+      }
+    ],
+    "callbacks": {
+      "on_complete": "https://app.test/callback",
+      "on_cancel": "https://app.test/cancel"
+    }
+  }'
+
+# Response:
+# {
+#   "success": true,
+#   "reference_id": "unique-ref-123",
+#   "flow_url": "http://app.test/form-flow/flow-abc123"
+# }
+```
+
+**Components & Files**:
+- Backend:
+  - `FormFlowController` - HTTP endpoints for flow management
+  - `FormFlowService` - Session-based state management
+  - `FormHandler` - Built-in handler for basic inputs
+  - `FormHandlerInterface` - Contract for plugin handlers
+  - `FormFlowInstructionsData` - DTO for flow configuration
+  - `FormFlowStepData` - DTO for individual step configuration
+- Frontend:
+  - `GenericForm.vue` - Dynamic form component (published to `resources/js/pages/FormFlow/`)
+  - Inertia.js for seamless navigation
+  - Tailwind CSS + shadcn/ui components
+- Testing:
+  - 75 tests (175 assertions) covering all functionality
+  - TDD approach with Pest PHP
+
+**Routes**:
+- `POST /form-flow/start` - Create new flow (CSRF exempt, server-to-server)
+- `GET /form-flow/{flow_id}` - Render current step or get state (JSON)
+- `POST /form-flow/{flow_id}/step/{step}` - Submit step data
+- `POST /form-flow/{flow_id}/complete` - Mark flow complete, trigger callback
+- `POST /form-flow/{flow_id}/cancel` - Cancel flow, trigger cancel callback
+- `DELETE /form-flow/{flow_id}` - Clear flow state
+
+**Session Storage**:
+- Flow state stored in session: `form_flow.{flow_id}`
+- Reference mapping: `form_flow_ref.{reference_id}` → `flow_id`
+- Data structure: status, current_step, completed_steps, collected_data, timestamps
+
+**Plugin Development**:
+Create specialized handlers by:
+1. Implement `FormHandlerInterface`
+2. Register in `config/form-flow.php` handlers array
+3. Publish Vue components to `resources/js/pages/FormFlow/`
+
+Example: `form-handler-location` package provides location capture with GPS and reverse geocoding.
+
+**Driver System** (Advanced):
+- Transform domain-specific data (e.g., VoucherInstructionsData) to FormFlowInstructionsData
+- YAML-based driver configs in `config/form-flow-drivers/`
+- Template rendering with Twig-style expressions
+- Mapping engine with conditional logic
+- See `packages/form-flow-manager/config/form-flow-drivers/` for examples
+
+**Key Features**:
+- **Autonomous**: No manual step management - flows handle navigation automatically
+- **Validation**: Step-level validation with Laravel rules
+- **Callbacks**: Webhook notifications on completion/cancellation
+- **Reusable**: Share flows across multiple applications
+- **Type-safe**: Full TypeScript support on frontend
+- **Testable**: Comprehensive test coverage with Pest PHP
+
 ### Laravel Wayfinder Integration
 This project uses Laravel Wayfinder to generate type-safe, auto-generated TypeScript route definitions from Laravel controllers. Route files are generated in `resources/js/actions/` mirroring the controller structure.
 

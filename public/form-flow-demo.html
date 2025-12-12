@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Flow Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .error {
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Form Flow System Demo</h1>
+        <p class="subtitle">Test the fully autonomous multi-step form flow system</p>
+        
+        <button id="startFlowBtn" onclick="startFlow()">
+            Start Form Flow
+        </button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function startFlow() {
+            const btn = document.getElementById('startFlowBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating flow...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/form-flow/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin', // Include cookies
+                    body: JSON.stringify({
+                        reference_id: `demo-${Date.now()}`,
+                        steps: [
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'User Registration',
+                                    description: 'Complete all fields to register',
+                                    fields: [
+                                        { name: 'full_name', type: 'text', label: 'Full Name', required: true },
+                                        { name: 'email', type: 'email', label: 'Email Address', required: true },
+                                        { name: 'birthdate', type: 'date', label: 'Date of Birth', required: true },
+                                        { name: 'gender', type: 'select', label: 'Gender', options: ['Male', 'Female', 'Other'], required: true },
+                                        { name: 'bio', type: 'textarea', label: 'Short Bio', required: false },
+                                        { name: 'terms', type: 'checkbox', label: 'I agree to the terms and conditions', required: true }
+                                    ]
+                                }
+                            }
+                        ],
+                        callbacks: {
+                            on_complete: window.location.origin + '/form-flow-complete',
+                            on_cancel: window.location.origin + '/form-flow-demo.html'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <pre>Flow created successfully!
+
+Reference ID: ${data.reference_id}
+Flow URL: ${data.flow_url}
+
+Redirecting to form in 2 seconds...</pre>
+                    `;
+                    
+                    // Redirect to the flow URL (session cookie will be included automatically)
+                    setTimeout(() => {
+                        window.location.href = data.flow_url;
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to create flow');
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                btn.disabled = false;
+                btn.innerHTML = 'Start Form Flow';
+            }
+        }
+    </script>
+</body>
+</html>

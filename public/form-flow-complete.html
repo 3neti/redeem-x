@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Completed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .success-icon svg {
+            width: 50px;
+            height: 50px;
+            stroke: white;
+            stroke-width: 3;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .data-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            text-align: left;
+            margin-top: 30px;
+        }
+        .data-container h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        pre {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            border: 1px solid #e5e7eb;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        
+        <h1>Form Completed Successfully!</h1>
+        <p class="subtitle">Your form has been submitted and processed</p>
+        
+        <div class="data-container">
+            <h3>Callback Data</h3>
+            <p>In a real application, the server would POST collected data to this endpoint.</p>
+            <pre id="callbackData">Waiting for callback data...</pre>
+        </div>
+        
+        <a href="/form-flow-demo.html">← Start Another Form</a>
+    </div>
+
+    <script>
+        // In a real application, this would be a backend endpoint that receives POST data
+        // For now, we'll just display a message
+        document.getElementById('callbackData').textContent = 
+            'This is a demo completion page.\n\n' +
+            'In production, the form-flow system would POST to this URL with:\n' +
+            '{\n' +
+            '  "flow_id": "flow-xxxxx",\n' +
+            '  "status": "completed",\n' +
+            '  "collected_data": {\n' +
+            '    "0": {\n' +
+            '      "full_name": "...",\n' +
+            '      "email": "...",\n' +
+            '      // ... all form data\n' +
+            '    }\n' +
+            '  },\n' +
+            '  "completed_at": "2025-12-12T05:30:00Z"\n' +
+            '}';
+    </script>
+</body>
+</html>
