@@ -111,7 +111,7 @@ class FormFlowController extends Controller
             }
             
             // Render a completion page or redirect
-            return inertia('FormFlow/Complete', [
+            return inertia('form-flow/core/Complete', [
                 'flow_id' => $flowId,
                 'state' => $state,
                 'callback_triggered' => $callbackUrl !== null,

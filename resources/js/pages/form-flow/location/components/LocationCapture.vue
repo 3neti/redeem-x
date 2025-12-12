@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useBrowserLocation } from '@/FormHandlerLocation/composables/useBrowserLocation';
+import { useBrowserLocation } from '../composables/useBrowserLocation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, MapPin } from 'lucide-vue-next';
-import GeoPermissionAlert from '@/FormHandlerLocation/components/GeoPermissionAlert.vue';
+import GeoPermissionAlert from './GeoPermissionAlert.vue';
 
 export interface LocationCaptureConfig {
     opencage_api_key?: string;

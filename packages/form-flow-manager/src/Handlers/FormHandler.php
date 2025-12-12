@@ -71,7 +71,7 @@ class FormHandler implements FormHandlerInterface
         $title = $step->config['title'] ?? 'Form';
         $description = $step->config['description'] ?? null;
         
-        return Inertia::render('FormFlow/GenericForm', [
+        return Inertia::render('form-flow/core/GenericForm', [
             'flow_id' => $context['flow_id'] ?? null,
             'step_index' => $context['step_index'] ?? 0,
             'title' => $title,

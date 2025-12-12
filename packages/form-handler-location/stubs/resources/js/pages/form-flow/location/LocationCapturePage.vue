@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import LocationCapture, { type LocationData, type LocationCaptureConfig } from '../components/LocationCapture.vue';
+import LocationCapture, { type LocationData, type LocationCaptureConfig } from './components/LocationCapture.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 
 interface Props {

@@ -57,7 +57,7 @@ class FormFlowServiceProvider extends ServiceProvider
         
         // Publish Vue components
         $this->publishes([
-            __DIR__.'/../stubs/resources/js/pages/FormFlow' => resource_path('js/pages/FormFlow'),
+            __DIR__.'/../stubs/resources/js/pages/form-flow/core' => resource_path('js/pages/form-flow/core'),
         ], 'form-flow-views');
         
         // Auto-discover drivers

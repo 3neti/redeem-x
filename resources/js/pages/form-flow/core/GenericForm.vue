@@ -54,6 +54,8 @@ async function handleSubmit() {
     apiError.value = null;
     errors.value = {};
 
+    console.log('[GenericForm] Form data before submit:', formData.value);
+
     try {
         router.post(
             `/form-flow/${props.flow_id}/step/${props.step_index}`,
@@ -198,7 +200,12 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         <div v-else-if="field.type === 'checkbox'" class="flex items-center space-x-2">
                             <Checkbox
                                 :id="field.name"
-                                v-model:checked="formData[field.name]"
+                                :checked="formData[field.name]"
+                                @update:modelValue="(value) => {
+                                    console.log(`[GenericForm] Checkbox '${field.name}' changed:`, value, 'type:', typeof value);
+                                    formData[field.name] = value;
+                                    console.log(`[GenericForm] formData['${field.name}'] is now:`, formData[field.name]);
+                                }"
                                 :required="field.required"
                                 :class="{ 'border-destructive': errors[field.name] }"
                             />
