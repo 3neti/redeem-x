@@ -181,7 +181,7 @@ test('generated URL can be accessed in a separate session', function () {
     expect($accessResponse->status())->not->toBe(404);
     
     // Should render HTML page with Inertia (not JSON)
-    expect($accessResponse->headers->test()->get('content-type'))->toContain('text/html');
+    expect($accessResponse->headers->get('content-type'))->toContain('text/html');
 });
 
 /**

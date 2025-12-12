@@ -28,16 +28,33 @@ class FormFlowController extends Controller
      * Start a new form flow
      * 
      * POST /form-flow/start
+     * 
+     * Following HyperVerge pattern:
+     * - Accepts reference_id (unique transaction identifier)
+     * - Returns flow_url for separate session access
      */
     public function start(Request $request)
     {
         $validated = $request->validate([
-            'flow_id' => 'required|string',
-            'steps' => 'required|array',
+            'reference_id' => [
+                'required',
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    // Check if reference_id already exists
+                    $existingFlow = $this->flowService->getFlowStateByReference($value);
+                    if ($existingFlow) {
+                        $fail('The reference_id has already been used.');
+                    }
+                },
+            ],
+            'steps' => 'required|array|min:1',
             'steps.*.handler' => 'required|string',
-            'steps.*.config' => 'array',
-            'callbacks' => 'array',
-            'metadata' => 'array',
+            'steps.*.config' => 'nullable|array',
+            'callbacks' => 'required|array',
+            'callbacks.on_complete' => 'required|url',
+            'callbacks.on_cancel' => 'nullable|url',
+            'metadata' => 'nullable|array',
             'title' => 'nullable|string',
             'description' => 'nullable|string',
         ]);
@@ -47,9 +64,8 @@ class FormFlowController extends Controller
         
         return response()->json([
             'success' => true,
-            'flow_id' => $state['flow_id'],
-            'state' => $state,
-            'next_url' => route('form-flow.show', ['flow_id' => $state['flow_id']]),
+            'reference_id' => $state['reference_id'],
+            'flow_url' => route('form-flow.show', ['flow_id' => $state['flow_id']]),
         ]);
     }
     

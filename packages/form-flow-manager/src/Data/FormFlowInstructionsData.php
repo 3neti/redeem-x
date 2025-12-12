@@ -16,12 +16,15 @@ use Spatie\LaravelData\Attributes\DataCollectionOf;
 class FormFlowInstructionsData extends Data
 {
     public function __construct(
-        /** Unique flow identifier */
-        public string $flow_id,
+        /** Unique reference identifier (like HyperVerge transactionId) */
+        public string $reference_id,
+        
+        /** Unique flow identifier (internal) */
+        public ?string $flow_id = null,
         
         /** Array of steps to collect */
         #[DataCollectionOf(FormFlowStepData::class)]
-        public array $steps,
+        public array $steps = [],
         
         /** Callback URLs */
         public array $callbacks = [],

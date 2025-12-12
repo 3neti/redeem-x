@@ -23,8 +23,12 @@ class FormFlowService
      */
     public function startFlow(FormFlowInstructionsData $instructions): array
     {
+        // Generate internal flow_id if not provided
+        $flowId = $instructions->flow_id ?? uniqid('flow-', true);
+        
         $state = [
-            'flow_id' => $instructions->flow_id,
+            'flow_id' => $flowId,
+            'reference_id' => $instructions->reference_id,
             'instructions' => $instructions->toArray(),
             'current_step' => 0,
             'completed_steps' => [],
@@ -33,13 +37,14 @@ class FormFlowService
             'status' => 'active',
         ];
         
-        $this->saveFlowState($instructions->flow_id, $state);
+        $this->saveFlowState($flowId, $state);
+        $this->mapReferenceToFlow($instructions->reference_id, $flowId);
         
         return $state;
     }
     
     /**
-     * Get flow state
+     * Get flow state by flow_id
      * 
      * @param string $flowId Flow identifier
      * @return array|null Flow state or null if not found
@@ -47,6 +52,23 @@ class FormFlowService
     public function getFlowState(string $flowId): ?array
     {
         return Session::get($this->getSessionKey($flowId));
+    }
+    
+    /**
+     * Get flow state by reference_id
+     * 
+     * @param string $referenceId Reference identifier
+     * @return array|null Flow state or null if not found
+     */
+    public function getFlowStateByReference(string $referenceId): ?array
+    {
+        $flowId = $this->getFlowIdByReference($referenceId);
+        
+        if (!$flowId) {
+            return null;
+        }
+        
+        return $this->getFlowState($flowId);
     }
     
     /**
@@ -196,6 +218,40 @@ class FormFlowService
     protected function getSessionKey(string $flowId): string
     {
         return "form_flow.{$flowId}";
+    }
+    
+    /**
+     * Get session key for reference mapping
+     * 
+     * @param string $referenceId Reference identifier
+     * @return string Session key
+     */
+    protected function getReferenceKey(string $referenceId): string
+    {
+        return "form_flow_ref.{$referenceId}";
+    }
+    
+    /**
+     * Map reference_id to flow_id
+     * 
+     * @param string $referenceId Reference identifier
+     * @param string $flowId Flow identifier
+     * @return void
+     */
+    protected function mapReferenceToFlow(string $referenceId, string $flowId): void
+    {
+        Session::put($this->getReferenceKey($referenceId), $flowId);
+    }
+    
+    /**
+     * Get flow_id by reference_id
+     * 
+     * @param string $referenceId Reference identifier
+     * @return string|null Flow identifier or null if not found
+     */
+    protected function getFlowIdByReference(string $referenceId): ?string
+    {
+        return Session::get($this->getReferenceKey($referenceId));
     }
     
     /**
