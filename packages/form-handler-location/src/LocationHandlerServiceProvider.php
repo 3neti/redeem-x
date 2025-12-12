@@ -51,15 +51,8 @@ class LocationHandlerServiceProvider extends ServiceProvider
             __DIR__.'/../stubs/resources/js/FormHandlerLocation' => resource_path('js/FormHandlerLocation'),
         ], 'location-handler-stubs');
         
-        // Register with DriverRegistry if form-flow-manager is loaded
-        if ($this->app->bound(DriverRegistry::class)) {
-            $registry = $this->app->make(DriverRegistry::class);
-            $handler = $this->app->make(LocationHandler::class);
-            
-            // Register the handler (the registry will handle duplicates)
-            // Note: We're registering as a handler, not a driver
-            // Drivers are YAML-based configs, handlers are PHP classes
-        }
+        // Auto-register handler with form-flow-manager
+        $this->registerHandler();
         
         // Register Inertia view namespace
         if (class_exists(\Inertia\Inertia::class)) {
@@ -67,5 +60,20 @@ class LocationHandlerServiceProvider extends ServiceProvider
                 'form_handler_location_path' => resource_path('js/vendor/form-handler-location'),
             ]);
         }
+    }
+    
+    /**
+     * Register the location handler with form-flow-manager
+     */
+    protected function registerHandler(): void
+    {
+        // Get current handlers from config
+        $handlers = config('form-flow.handlers', []);
+        
+        // Add location handler
+        $handlers['location'] = LocationHandler::class;
+        
+        // Update config
+        config(['form-flow.handlers' => $handlers]);
     }
 }

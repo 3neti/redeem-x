@@ -320,23 +320,23 @@ class FormFlowController extends Controller
      * 
      * Maps handler names to their class implementations.
      * Built-in handler: 'form' (for basic inputs)
-     * Plugin handlers: 'location', 'selfie', 'signature', 'kyc'
+     * Plugin handlers registered via config: 'location', 'selfie', etc.
      * 
      * @param string $handlerName Handler name
      * @return string|null Handler class name or null if not found
      */
     protected function getHandlerClass(string $handlerName): ?string
     {
-        $handlers = [
-            // Built-in handler
+        // Get handlers from config (allows plugins to register)
+        $configHandlers = config('form-flow.handlers', []);
+        
+        // Built-in handlers
+        $builtInHandlers = [
             'form' => \LBHurtado\FormFlowManager\Handlers\FormHandler::class,
-            
-            // Plugin handlers
-            'location' => \LBHurtado\FormHandlerLocation\LocationHandler::class,
-            // 'selfie' => \LBHurtado\FormHandlerSelfie\SelfieHandler::class,
-            // 'signature' => \LBHurtado\FormHandlerSignature\SignatureHandler::class,
-            // 'kyc' => \LBHurtado\FormHandlerKyc\KycHandler::class,
         ];
+        
+        // Merge: config handlers override built-in if needed
+        $handlers = array_merge($builtInHandlers, $configHandlers);
         
         return $handlers[$handlerName] ?? null;
     }
