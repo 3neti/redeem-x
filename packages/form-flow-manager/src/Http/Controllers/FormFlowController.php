@@ -152,6 +152,24 @@ class FormFlowController extends Controller
             // Update the flow state with processed data
             $state = $this->flowService->updateStepData($flowId, $step, $processedData);
             
+            // Check if this is an Inertia request (has X-Inertia header)
+            $isInertia = $request->header('X-Inertia');
+            
+            // For Inertia requests, redirect to next step
+            if ($isInertia) {
+                $totalSteps = count($state['instructions']['steps']);
+                $nextStepIndex = $state['current_step'];
+                
+                if ($nextStepIndex < $totalSteps) {
+                    // Redirect to show next step (Inertia will render it)
+                    return redirect()->route('form-flow.show', ['flow_id' => $flowId]);
+                }
+                
+                // All steps completed - could redirect to completion page
+                return redirect()->route('form-flow.show', ['flow_id' => $flowId]);
+            }
+            
+            // For API/test requests, return JSON
             return response()->json([
                 'success' => true,
                 'state' => $state,
