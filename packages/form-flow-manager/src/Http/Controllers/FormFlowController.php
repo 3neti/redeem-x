@@ -90,8 +90,35 @@ class FormFlowController extends Controller
             ]);
         }
         
-        // Otherwise, render the current step's handler view
+        // Check if all steps are completed
         $currentStepIndex = $state['current_step'];
+        $totalSteps = count($state['instructions']['steps']);
+        
+        if ($currentStepIndex >= $totalSteps) {
+            // All steps completed - automatically complete the flow
+            $state = $this->flowService->completeFlow($flowId);
+            
+            // Trigger on_complete callback if defined
+            $callbackUrl = $state['instructions']['callbacks']['on_complete'] ?? null;
+            
+            if ($callbackUrl) {
+                $this->triggerCallback($callbackUrl, [
+                    'flow_id' => $flowId,
+                    'status' => 'completed',
+                    'collected_data' => $state['collected_data'],
+                    'completed_at' => $state['completed_at'],
+                ]);
+            }
+            
+            // Render a completion page or redirect
+            return inertia('FormFlow/Complete', [
+                'flow_id' => $flowId,
+                'state' => $state,
+                'callback_triggered' => $callbackUrl !== null,
+            ]);
+        }
+        
+        // Otherwise, render the current step's handler view
         $stepData = FormFlowStepData::from($state['instructions']['steps'][$currentStepIndex]);
         
         // Get the handler by name
