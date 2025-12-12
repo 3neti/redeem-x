@@ -15,7 +15,9 @@ abstract class TestCase extends BaseTestCase
     {
         return [
             \Spatie\LaravelData\LaravelDataServiceProvider::class,
+            \Inertia\ServiceProvider::class,
             \LBHurtado\FormFlowManager\FormFlowServiceProvider::class,
+            \LBHurtado\FormHandlerLocation\LocationHandlerServiceProvider::class,
         ];
     }
 
@@ -36,5 +38,14 @@ abstract class TestCase extends BaseTestCase
             \Spatie\LaravelData\Normalizers\JsonNormalizer::class,
         ]);
         $app['config']->set('data.date_format', "Y-m-d\TH:i:sP");
+        
+        // Location handler configuration
+        $app['config']->set('location-handler.opencage_api_key', 'test_key');
+        $app['config']->set('location-handler.map_provider', 'google');
+        $app['config']->set('location-handler.capture_snapshot', true);
+        $app['config']->set('location-handler.require_address', false);
+        
+        // Register location handler
+        $app['config']->set('form-flow.handlers.location', \LBHurtado\FormHandlerLocation\LocationHandler::class);
     }
 }

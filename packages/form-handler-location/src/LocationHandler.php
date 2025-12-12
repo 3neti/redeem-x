@@ -25,14 +25,18 @@ class LocationHandler implements FormHandlerInterface
     
     public function handle(Request $request, FormFlowStepData $step, array $context = []): array
     {
-        $validated = $request->validate([
+        // Extract data from 'data' key if present (from form submission)
+        $inputData = $request->input('data', $request->all());
+        
+        // Validate using Laravel's validator directly
+        $validated = validator($inputData, [
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'formatted_address' => 'nullable|string|max:500',
             'address_components' => 'nullable|array',
             'snapshot' => 'nullable|string', // base64 encoded image
             'accuracy' => 'nullable|numeric|min:0',
-        ]);
+        ])->validate();
         
         $validated['timestamp'] = now()->toIso8601String();
         

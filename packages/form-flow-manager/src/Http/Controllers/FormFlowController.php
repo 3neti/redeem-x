@@ -142,17 +142,15 @@ class FormFlowController extends Controller
             
             $handler = app($handlerClass);
             
-            // Validate the submitted data using handler's validation rules
-            // This will throw ValidationException with 422 status if validation fails
-            if (method_exists($handler, 'validateStep')) {
-                $handler->validateStep($stepData, $request->input('data'));
-            } else {
-                // Fallback to generic validate method
-                $handler->validate($request->input('data'), []);
-            }
+            // Process data through handler (validates and transforms)
+            // Handlers should extract data from request->input('data') or request->all()
+            $processedData = $handler->handle($request, $stepData, [
+                'flow_id' => $flowId,
+                'step_index' => $step,
+            ]);
             
-            // If validation passes, update the flow state
-            $state = $this->flowService->updateStepData($flowId, $step, $request->input('data'));
+            // Update the flow state with processed data
+            $state = $this->flowService->updateStepData($flowId, $step, $processedData);
             
             return response()->json([
                 'success' => true,
