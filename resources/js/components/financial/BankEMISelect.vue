@@ -4,23 +4,22 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { BANKS, getPopularEMIs, getBanksByRail } from '@/data/banks';
 
 interface Props {
-    modelValue?: string | null;
+    modelValue: string;
     settlementRail?: string | null;
     disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    modelValue: 'GXCHPHM2XXX', // Default to GCash
     settlementRail: null,
     disabled: false,
 });
 
 const emit = defineEmits<{
-    'update:modelValue': [value: string | null];
+    'update:modelValue': [value: string];
 }>();
 
 const localValue = computed({
-    get: () => props.modelValue || 'GXCHPHM2XXX',
+    get: () => props.modelValue,
     set: (value) => emit('update:modelValue', value),
 });
 
