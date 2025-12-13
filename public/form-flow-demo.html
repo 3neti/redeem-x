@@ -101,6 +101,10 @@
             <button id="startKYCBtn" onclick="startKYCFlow()" style="background: #ef4444;">
                 Form + KYC + Location
             </button>
+            
+            <button id="startFinancialBtn" onclick="startFinancialFlow()" style="background: #14b8a6;">
+                Demographics + Financial Info
+            </button>
         </div>
         
         <div id="result"></div>
@@ -541,6 +545,82 @@ Redirecting...</pre>
                 result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
                 btn.disabled = false;
                 btn.innerHTML = 'Form + KYC + Location';
+            }
+        }
+        
+        async function startFinancialFlow() {
+            const btn = document.getElementById('startFinancialBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating flow...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/form-flow/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reference_id: `demo-financial-${Date.now()}`,
+                        steps: [
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'Personal Information',
+                                    description: 'Please provide your basic details',
+                                    fields: [
+                                        { name: 'full_name', type: 'text', label: 'Full Name', required: true },
+                                        { name: 'email', type: 'email', label: 'Email Address', required: true },
+                                        { name: 'phone', type: 'text', label: 'Phone Number', placeholder: '09171234567', required: true }
+                                    ]
+                                }
+                            },
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'Banking Information',
+                                    description: 'Please provide your banking details for payment',
+                                    fields: [
+                                        { name: 'amount', type: 'number', label: 'Amount (PHP)', placeholder: 'Enter amount', required: true },
+                                        { name: 'recipient_country', type: 'recipient_country', label: 'Country', required: true },
+                                        { name: 'settlement_rail', type: 'settlement_rail', label: 'Payment Method', required: false },
+                                        { name: 'bank_account', type: 'bank_account', label: 'Bank or E-Wallet', required: true }
+                                    ]
+                                }
+                            }
+                        ],
+                        callbacks: {
+                            on_complete: window.location.origin + '/form-flow-complete',
+                            on_cancel: window.location.origin + '/form-flow-demo.html'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <pre>Financial form flow created!
+
+Steps: Demographics → Banking Info
+Reference ID: ${data.reference_id}
+
+Redirecting...</pre>
+                    `;
+                    setTimeout(() => {
+                        window.location.href = data.flow_url;
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to create flow');
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                btn.disabled = false;
+                btn.innerHTML = 'Demographics + Financial Info';
             }
         }
     </script>
