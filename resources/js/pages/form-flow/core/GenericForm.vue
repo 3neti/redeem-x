@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
+import { CountrySelect, SettlementRailSelect, BankEMISelect } from '@/components/financial';
 
 interface FieldDefinition {
     name: string;
-    type: 'text' | 'email' | 'date' | 'number' | 'textarea' | 'select' | 'checkbox' | 'file';
+    type: 'text' | 'email' | 'date' | 'number' | 'textarea' | 'select' | 'checkbox' | 'file' | 'recipient_country' | 'settlement_rail' | 'bank_account';
     label?: string;
     placeholder?: string;
     required?: boolean;
@@ -42,7 +43,17 @@ const apiError = ref<string | null>(null);
 
 // Initialize form data with default values
 props.fields.forEach((field) => {
-    formData.value[field.name] = field.type === 'checkbox' ? false : '';
+    if (field.type === 'checkbox') {
+        formData.value[field.name] = false;
+    } else if (field.type === 'recipient_country') {
+        formData.value[field.name] = 'PH';
+    } else if (field.type === 'settlement_rail') {
+        formData.value[field.name] = null;
+    } else if (field.type === 'bank_account') {
+        formData.value[field.name] = 'GXCHPHM2XXX';
+    } else {
+        formData.value[field.name] = '';
+    }
 });
 
 // Computed properties
@@ -237,6 +248,51 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                     const target = e.target as HTMLInputElement;
                                     formData[field.name] = target.files?.[0] || null;
                                 }"
+                            />
+                            <p v-if="errors[field.name]" class="text-sm text-destructive">
+                                {{ errors[field.name] }}
+                            </p>
+                        </div>
+
+                        <!-- Recipient Country -->
+                        <div v-else-if="field.type === 'recipient_country'">
+                            <Label :for="field.name" :class="{ 'text-destructive': errors[field.name] }">
+                                {{ getFieldLabel(field) }}
+                                <span v-if="field.required" class="text-destructive">*</span>
+                            </Label>
+                            <CountrySelect
+                                v-model="formData[field.name]"
+                            />
+                            <p v-if="errors[field.name]" class="text-sm text-destructive">
+                                {{ errors[field.name] }}
+                            </p>
+                        </div>
+
+                        <!-- Settlement Rail -->
+                        <div v-else-if="field.type === 'settlement_rail'">
+                            <Label :for="field.name" :class="{ 'text-destructive': errors[field.name] }">
+                                {{ getFieldLabel(field) }}
+                                <span v-if="field.required" class="text-destructive">*</span>
+                            </Label>
+                            <SettlementRailSelect
+                                v-model="formData[field.name]"
+                                :amount="formData.amount || 0"
+                                :bank-code="formData.bank_account || null"
+                            />
+                            <p v-if="errors[field.name]" class="text-sm text-destructive">
+                                {{ errors[field.name] }}
+                            </p>
+                        </div>
+
+                        <!-- Bank/EMI Account -->
+                        <div v-else-if="field.type === 'bank_account'">
+                            <Label :for="field.name" :class="{ 'text-destructive': errors[field.name] }">
+                                {{ getFieldLabel(field) }}
+                                <span v-if="field.required" class="text-destructive">*</span>
+                            </Label>
+                            <BankEMISelect
+                                v-model="formData[field.name]"
+                                :settlement-rail="formData.settlement_rail || null"
                             />
                             <p v-if="errors[field.name]" class="text-sm text-destructive">
                                 {{ errors[field.name] }}

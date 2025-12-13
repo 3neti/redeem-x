@@ -85,7 +85,7 @@ class FormHandler implements FormHandlerInterface
         return [
             'fields' => 'required|array|min:1',
             'fields.*.name' => 'required|string',
-            'fields.*.type' => 'required|string|in:text,email,date,number,textarea,select,checkbox,file',
+            'fields.*.type' => 'required|string|in:text,email,date,number,textarea,select,checkbox,file,recipient_country,settlement_rail,bank_account',
             'fields.*.label' => 'nullable|string',
             'fields.*.required' => 'nullable|boolean',
             'fields.*.validation' => 'nullable|array',
@@ -146,6 +146,9 @@ class FormHandler implements FormHandlerInterface
             'textarea' => ['string'],
             'text' => ['string'],
             'select' => ['string'],
+            'recipient_country' => ['string', 'size:2'], // ISO 3166-1 alpha-2
+            'settlement_rail' => ['nullable', 'string', 'in:INSTAPAY,PESONET'],
+            'bank_account' => ['string', 'size:11'], // SWIFT/BIC code format
             default => ['string'],
         };
     }
