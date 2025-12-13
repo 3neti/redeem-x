@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')->group(base_path('routes/redeem.php'));
             Route::middleware('web')->group(base_path('routes/auth.php'));
             Route::middleware('web')->group(base_path('routes/settings.php'));
+            
+            // Test routes for KYC (only in non-production)
+            if (!app()->environment('production')) {
+                Route::middleware('web')->group(base_path('routes/test-kyc.php'));
+            }
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

@@ -97,6 +97,10 @@
             <button id="startSignatureBtn" onclick="startSignatureFlow()" style="background: #8b5cf6;">
                 Form + Signature + Location
             </button>
+            
+            <button id="startKYCBtn" onclick="startKYCFlow()" style="background: #ef4444;">
+                Form + KYC + Location
+            </button>
         </div>
         
         <div id="result"></div>
@@ -459,6 +463,84 @@ Redirecting...</pre>
                 result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
                 btn.disabled = false;
                 btn.innerHTML = 'Form + Signature + Location';
+            }
+        }
+        
+        async function startKYCFlow() {
+            const btn = document.getElementById('startKYCBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating flow...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/form-flow/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reference_id: `demo-kyc-${Date.now()}`,
+                        steps: [
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'Personal Info',
+                                    description: 'Required for identity verification',
+                                    fields: [
+                                        { name: 'full_name', type: 'text', label: 'Full Name', required: true },
+                                        { name: 'email', type: 'email', label: 'Email', required: true },
+                                        { name: 'mobile', type: 'text', label: 'Mobile Number', required: true, placeholder: '+639171234567' }
+                                    ]
+                                }
+                            },
+                            {
+                                handler: 'kyc',
+                                config: {
+                                    title: 'Identity Verification',
+                                    description: 'Complete KYC verification using HyperVerge'
+                                }
+                            },
+                            {
+                                handler: 'location',
+                                config: {
+                                    title: 'Your Location',
+                                    require_address: true,
+                                    capture_snapshot: true
+                                }
+                            }
+                        ],
+                        callbacks: {
+                            on_complete: window.location.origin + '/form-flow-complete',
+                            on_cancel: window.location.origin + '/form-flow-demo.html'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <pre>KYC flow created!
+
+Steps: Form → KYC Verification → Location
+Reference ID: ${data.reference_id}
+
+Redirecting...</pre>
+                    `;
+                    setTimeout(() => {
+                        window.location.href = data.flow_url;
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to create flow');
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                btn.disabled = false;
+                btn.innerHTML = 'Form + KYC + Location';
             }
         }
     </script>

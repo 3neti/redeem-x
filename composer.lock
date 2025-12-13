@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "26ea0cb46566b4bee507c412e909fd9d",
+    "content-hash": "1546af6d1f27251f52a7cf588d568ecd",
     "packages": [
         {
             "name": "3neti/hyperverge",
@@ -2993,6 +2993,67 @@
                 }
             ],
             "description": "Driver-based form flow orchestration system with DirXML-style mapping",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/form-handler-kyc",
+            "version": "dev-feature/form-flow-system",
+            "dist": {
+                "type": "path",
+                "url": "./packages/form-handler-kyc",
+                "reference": "28291e7c1acb61d6e31dabc2e2fac03b85a5b5ee"
+            },
+            "require": {
+                "3neti/hyperverge": "^1.0",
+                "lbhurtado/contact": "dev-main",
+                "lbhurtado/form-flow-manager": "dev-main",
+                "lorisleiva/laravel-actions": "^2.9",
+                "php": "^8.2",
+                "propaganistas/laravel-phone": "^6.0",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerKYC\\KYCHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerKYC\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerKYC\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "KYC/identity verification handler for form flow system using HyperVerge",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -14389,6 +14450,7 @@
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
         "lbhurtado/form-flow-manager": 20,
+        "lbhurtado/form-handler-kyc": 20,
         "lbhurtado/form-handler-location": 20,
         "lbhurtado/form-handler-selfie": 20,
         "lbhurtado/form-handler-signature": 20,

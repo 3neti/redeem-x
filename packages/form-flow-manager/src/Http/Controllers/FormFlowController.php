@@ -6,7 +6,9 @@ namespace LBHurtado\FormFlowManager\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use LBHurtado\FormFlowManager\Data\FormFlowInstructionsData;
 use LBHurtado\FormFlowManager\Data\FormFlowStepData;
 use LBHurtado\FormFlowManager\Services\FormFlowService;
@@ -80,6 +82,29 @@ class FormFlowController extends Controller
         
         if (!$state) {
             abort(404, 'Flow not found');
+        }
+        
+        // Check if there's a completed KYC step in cache (from callback)
+        // This handles async handlers where the callback runs in a different session
+        $kycCompleted = Cache::get("kyc_completed.{$flowId}");
+        if ($kycCompleted) {
+            // Apply the completed step to current session
+            $this->flowService->updateStepData(
+                $flowId,
+                $kycCompleted['step_index'],
+                $kycCompleted['kyc_data']
+            );
+            
+            // Clear cache entry
+            Cache::forget("kyc_completed.{$flowId}");
+            
+            // Reload state after update
+            $state = $this->flowService->getFlowState($flowId);
+            
+            Log::debug('[FormFlowController] Applied completed step from cache', [
+                'flow_id' => $flowId,
+                'step_index' => $kycCompleted['step_index'],
+            ]);
         }
         
         // If JSON is requested, return state
