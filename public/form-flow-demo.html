@@ -584,11 +584,19 @@ Redirecting...</pre>
                                 config: {
                                     title: 'Banking Information',
                                     description: 'Please provide your banking details for payment',
+                                    variables: {
+                                        $country: 'PH',
+                                        $rail: 'PESONET',
+                                        $defaultBank: 'GXCHPHM2XXX',
+                                        $defaultAmount: 100,
+                                        $minAmount: 50,
+                                        $maxAmount: 50000
+                                    },
                                     fields: [
-                                        { name: 'amount', type: 'number', label: 'Amount (PHP)', placeholder: 'Enter amount', required: true },
-                                        { name: 'recipient_country', type: 'recipient_country', label: 'Country', required: true },
-                                        { name: 'settlement_rail', type: 'settlement_rail', label: 'Payment Method', required: false },
-                                        { name: 'bank_account', type: 'bank_account', label: 'Bank or E-Wallet', required: true }
+                                        { name: 'amount', type: 'number', label: 'Amount (PHP)', placeholder: 'Enter amount', default: '$defaultAmount', min: '$minAmount', max: '$maxAmount', required: true },
+                                        { name: 'recipient_country', type: 'recipient_country', label: 'Country', default: '$country', readonly: true, required: true },
+                                        { name: 'settlement_rail', type: 'settlement_rail', label: 'Payment Method', default: '$rail', required: false },
+                                        { name: 'bank_account', type: 'bank_account', label: 'Bank or E-Wallet', default: '$defaultBank', required: true }
                                     ]
                                 }
                             }
