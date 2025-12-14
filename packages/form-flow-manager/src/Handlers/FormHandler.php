@@ -251,6 +251,18 @@ class FormHandler implements FormHandlerInterface
             }
         }
         
+        // Resolve description
+        if (isset($config['description']) && is_string($config['description'])) {
+            // Replace all variable references in description
+            $description = $config['description'];
+            foreach ($variables as $varName => $varValue) {
+                if (is_scalar($varValue)) {
+                    $description = str_replace($varName, (string) $varValue, $description);
+                }
+            }
+            $config['description'] = $description;
+        }
+        
         // Return config with resolved fields (remove variables block as it's no longer needed)
         $resolvedConfig = $config;
         $resolvedConfig['fields'] = $fields;
