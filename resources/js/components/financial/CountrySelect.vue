@@ -4,11 +4,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { COUNTRIES, DEFAULT_COUNTRY } from '@/data/countries';
 
 interface Props {
-    modelValue: string;
+    modelValue?: string;
     disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    modelValue: undefined,
     disabled: false,
 });
 
@@ -17,7 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const localValue = computed({
-    get: () => props.modelValue,
+    get: () => props.modelValue || '',
     set: (value) => emit('update:modelValue', value),
 });
 </script>

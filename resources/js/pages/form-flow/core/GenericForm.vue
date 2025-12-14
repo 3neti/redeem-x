@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,29 +47,37 @@ const errors = ref<Record<string, string>>({});
 const submitting = ref(false);
 const apiError = ref<string | null>(null);
 
-// Initialize form data with default values (from field.default or fallback defaults)
-props.fields.forEach((field) => {
-    // ALWAYS set a value to avoid undefined issues
-    if (field.default !== undefined && field.default !== null) {
-        // Use explicitly provided default value
-        formData.value[field.name] = field.default;
-    } else if (field.type === 'checkbox') {
-        formData.value[field.name] = false;
-    } else if (field.type === 'recipient_country') {
-        formData.value[field.name] = 'PH'; // Fallback if backend didn't resolve
-    } else if (field.type === 'settlement_rail') {
-        formData.value[field.name] = null;
-    } else if (field.type === 'bank_account') {
-        formData.value[field.name] = 'GXCHPHM2XXX'; // Fallback if backend didn't resolve
-    } else {
-        formData.value[field.name] = '';
-    }
+// Initialize form data - must happen synchronously for Vue reactivity
+const initializeFormData = () => {
+    // Clear existing data to avoid stale values from previous step
+    formData.value = {};
     
-    // Debug log to see what backend sent
-    if (field.type.includes('recipient_country') || field.type.includes('bank_account')) {
-        console.log(`[GenericForm Init] ${field.name} (${field.type}): default=${field.default}, resolved=${formData.value[field.name]}`);
-    }
-});
+    props.fields.forEach((field) => {
+        // ALWAYS set a value to avoid undefined issues
+        if (field.default !== undefined && field.default !== null) {
+            // Use explicitly provided default value from backend
+            formData.value[field.name] = field.default;
+        } else if (field.type === 'checkbox') {
+            formData.value[field.name] = false;
+        } else if (field.type === 'recipient_country') {
+            formData.value[field.name] = 'PH'; // Fallback if backend didn't resolve
+        } else if (field.type === 'settlement_rail') {
+            formData.value[field.name] = null;
+        } else if (field.type === 'bank_account') {
+            formData.value[field.name] = 'GXCHPHM2XXX'; // Fallback if backend didn't resolve
+        } else {
+            formData.value[field.name] = '';
+        }
+    });
+};
+
+// Initialize immediately (props are available in setup)
+initializeFormData();
+
+// Re-initialize when fields change (Inertia navigation to next step)
+watch(() => props.fields, () => {
+    initializeFormData();
+}, { deep: true });
 
 // Computed properties
 const pageTitle = computed(() => props.title || 'Form');
