@@ -79,6 +79,7 @@ class FormHandler implements FormHandlerInterface
         $fields = $resolvedConfig['fields'] ?? [];
         $title = $resolvedConfig['title'] ?? 'Form';
         $description = $resolvedConfig['description'] ?? null;
+        $autoSync = $resolvedConfig['auto_sync'] ?? null;
         
         return Inertia::render('form-flow/core/GenericForm', [
             'flow_id' => $context['flow_id'] ?? null,
@@ -86,6 +87,7 @@ class FormHandler implements FormHandlerInterface
             'title' => $title,
             'description' => $description,
             'fields' => $fields,
+            'auto_sync' => $autoSync,
         ]);
     }
     
@@ -93,6 +95,13 @@ class FormHandler implements FormHandlerInterface
     {
         return [
             'variables' => 'nullable|array',
+            'auto_sync' => 'nullable|array',
+            'auto_sync.enabled' => 'nullable|boolean',
+            'auto_sync.source_field' => 'nullable|string',
+            'auto_sync.target_field' => 'nullable|string',
+            'auto_sync.condition_field' => 'nullable|string',
+            'auto_sync.condition_values' => 'nullable|array',
+            'auto_sync.debounce_ms' => 'nullable|integer',
             'fields' => 'required|array|min:1',
             'fields.*.name' => 'required|string',
             'fields.*.type' => 'required|string|in:text,email,date,number,textarea,select,checkbox,file,recipient_country,settlement_rail,bank_account',

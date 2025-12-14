@@ -26,6 +26,19 @@ Collected Data (all user inputs + original voucher data)
 ### Step 0: Wallet Information
 **Purpose**: Collect disbursement details with voucher context
 
+**Auto-Sync Configuration**:
+```javascript
+auto_sync: {
+  enabled: true,
+  source_field: 'mobile',
+  target_field: 'account_number',
+  condition_field: 'settlement_rail',
+  condition_values: ['INSTAPAY'],
+  debounce_ms: 1500
+}
+```
+When settlement rail is INSTAPAY, mobile number automatically syncs to account_number after 1.5s debounce. Manual edits to account_number disable auto-sync.
+
 **Variables**:
 - `$voucherCode` - The voucher code being redeemed
 - `$voucherAmount` - Voucher amount (e.g., 750)
@@ -41,28 +54,42 @@ Collected Data (all user inputs + original voucher data)
 - `mobile` - Text input for mobile number
 - `recipient_country` - Readonly, default: PH
 - `bank_code` - Bank/EMI selector, default: `$defaultBank`
-- `account_number` - Text input for account number
+- `account_number` - Text input for account number (auto-synced from mobile when INSTAPAY)
 
 **Description**: "Redeeming voucher {CODE} - ₱{AMOUNT} from {ISSUER}"
 
-### Step 1: Demographics
-**Purpose**: Collect personal information
+### Step 1: KYC Verification
+**Handler**: `kyc`
+**Purpose**: Identity verification via HyperVerge (moved to Step 1 for data extraction)
 
-**Phase 2 Context Variables** (in description):
-- `$step0_mobile` - Mobile number from previous step
-- `$step0_voucher_code` - Voucher code from variables
-- `$step0_amount` - Amount from previous step
-- `$step0_settlement_rail` - Rail from previous step
+**Config**:
+- `title`: "Identity Verification - KYC"
+- `description`: "Complete identity verification to auto-fill your details"
+
+**Data Returned** (flattened for Phase 2 variables):
+- `name` - Full name from ID card (e.g., "HURTADO LESTER BIADORA")
+- `date_of_birth` - Birth date from ID card (e.g., "1970-04-21")
+- `address` - Address from ID card (if available)
+- `transaction_id` - KYC transaction ID
+- `status` - KYC status (approved, pending, rejected)
+
+### Step 2: Basic Information
+**Purpose**: Collect personal information (pre-populated from KYC)
+
+**Phase 2 Context Variables** (from Step 1 KYC):
+- `$step1_name` - Full name from KYC
+- `$step1_date_of_birth` - Birth date from KYC
+- `$step1_address` - Address from KYC
 
 **Fields**:
-- `full_name` - Text input
-- `email` - Email input
-- `birth_date` - Date input
-- `address` - Textarea for full address
+- `full_name` - Text input, default: `$step1_name`
+- `birth_date` - Date input, default: `$step1_date_of_birth`
+- `address` - Textarea, default: `$step1_address`
+- `email` - Email input (not available from KYC)
 
-**Description**: "For {MOBILE} - Voucher: {CODE} (₱{AMOUNT} via {RAIL})"
+**Description**: "Verify your details from KYC"
 
-### Step 2: Selfie Capture
+### Step 3: Selfie Capture
 **Handler**: `selfie`
 **Purpose**: Identity verification via photo
 
@@ -71,7 +98,7 @@ Collected Data (all user inputs + original voucher data)
 - `description`: "Please take a clear selfie for identity verification"
 - `require_face_detection`: true
 
-### Step 3: Location Capture
+### Step 4: Location Capture
 **Handler**: `location`
 **Purpose**: GPS coordinates and address capture
 
@@ -80,7 +107,7 @@ Collected Data (all user inputs + original voucher data)
 - `description`: "We need your current location for verification"
 - `require_address`: true
 
-### Step 4: Signature Capture
+### Step 5: Signature Capture
 **Handler**: `signature`
 **Purpose**: Digital signature for agreement
 
@@ -89,30 +116,57 @@ Collected Data (all user inputs + original voucher data)
 - `description`: "Please provide your digital signature"
 - `required`: true
 
-### Step 5: KYC Verification
-**Handler**: `kyc`
-**Purpose**: Identity verification via HyperVerge
-
-**Config**:
-- `title`: "Identity Verification"
-- `description`: "Complete KYC verification to proceed"
-- `provider`: "hyperverge"
 
 ## Key Features
 
-### 1. Variable Resolution
+### 1. Auto-Sync Configuration
+**Configuration-driven field synchronization** for dynamic form behavior:
+- Specify source/target fields, condition field, and trigger values in JSON
+- Debounced updates (configurable delay)
+- Manual override detection prevents unwanted syncing
+- Reset on condition change
+
+**Example**: Mobile number auto-syncs to account_number when settlement_rail is INSTAPAY (for GCash, PayMaya)
+
+**Configuration Schema**:
+```javascript
+{
+  auto_sync: {
+    enabled: true,
+    source_field: 'mobile',
+    target_field: 'account_number',
+    condition_field: 'settlement_rail',
+    condition_values: ['INSTAPAY'],
+    debounce_ms: 1500
+  }
+}
+```
+
+### 2. KYC Data Extraction & Pre-Population
+**Automatic data extraction** from KYC verification results:
+- KYC handler flattens nested response data for Phase 2 variables
+- Extracted fields: `name`, `date_of_birth`, `address`, `id_number`, `id_type`
+- Phase 2 variables (`$step1_name`, `$step1_date_of_birth`, etc.) pre-populate subsequent form fields
+- User can edit pre-filled values if needed
+
+**Data Flow**:
+```
+KYC Handler → Flattened Data → Phase 2 Variables → Basic Info Step (pre-filled)
+```
+
+### 3. Variable Resolution
 Variables from the variables block are automatically resolved throughout the flow:
 - Field defaults: `$voucherAmount` → `amount` field
 - Descriptions: "Redeeming voucher $voucherCode"
 - Validation context: Amount limits based on `$settlementRail`
 
-### 2. Phase 2 Context Variables
+### 4. Phase 2 Context Variables
 Data from previous steps is available in subsequent steps:
 - Format: `$step{N}_{fieldname}`
 - Example: `$step0_mobile` references the mobile field from Step 0
 - Automatically populated by FormHandler from `collected_data`
 
-### 3. Readonly Fields
+### 5. Readonly Fields
 Certain fields are marked readonly to prevent modification:
 - `amount` - Fixed by voucher
 - `recipient_country` - Fixed to PH for this demo

@@ -668,12 +668,20 @@ Redirecting...</pre>
                     body: JSON.stringify({
                         reference_id: `redemption-${voucherCode}-${Date.now()}`,
                         steps: [
-                            // Step 0: Wallet Information (no code entry - already validated!)
+                            // Step 0: Wallet Information with auto-sync
                             {
                                 handler: 'form',
                                 config: {
                                     title: 'Wallet Information',
                                     description: `Redeeming voucher ${voucherCode} - ₱${voucherAmount} from ${issuerName}`,
+                                    auto_sync: {
+                                        enabled: true,
+                                        source_field: 'mobile',
+                                        target_field: 'account_number',
+                                        condition_field: 'settlement_rail',
+                                        condition_values: ['INSTAPAY'],
+                                        debounce_ms: 1500
+                                    },
                                     variables: {
                                         // Voucher metadata from /redeem lookup
                                         $voucherCode: voucherCode,
@@ -701,21 +709,32 @@ Redirecting...</pre>
                                     ]
                                 }
                             },
-                            // Step 1: Demographics
+                            // Step 1: KYC (moved from Step 5)
+                            {
+                                handler: 'kyc',
+                                config: {
+                                    title: 'Identity Verification - KYC',
+                                    description: 'Complete identity verification to auto-fill your details'
+                                }
+                            },
+                            // Step 2: Basic Information (moved from Step 1, pre-populated from KYC)
                             {
                                 handler: 'form',
                                 config: {
                                     title: 'Personal Information',
-                                    description: 'For $step0_mobile - Voucher: $step0_voucher_code (₱$step0_amount via $step0_settlement_rail)',
+                                    description: 'Verify your details from KYC',
                                     fields: [
-                                        { name: 'full_name', type: 'text', label: 'Full Name', required: true },
-                                        { name: 'email', type: 'email', label: 'Email Address', required: true },
-                                        { name: 'birth_date', type: 'date', label: 'Birth Date', required: true },
-                                        { name: 'address', type: 'textarea', label: 'Address', required: false }
+                                        { name: 'full_name', type: 'text', label: 'Full Name', 
+                                          default: '$step1_name', required: true },
+                                        { name: 'birth_date', type: 'date', label: 'Birth Date', 
+                                          default: '$step1_date_of_birth', required: true },
+                                        { name: 'address', type: 'textarea', label: 'Address', 
+                                          default: '$step1_address', required: false },
+                                        { name: 'email', type: 'email', label: 'Email Address', required: true }
                                     ]
                                 }
                             },
-                            // Step 2: Selfie
+                            // Step 3: Selfie
                             {
                                 handler: 'selfie',
                                 config: {
@@ -726,7 +745,7 @@ Redirecting...</pre>
                                     quality: 0.9
                                 }
                             },
-                            // Step 3: Location
+                            // Step 4: Location
                             {
                                 handler: 'location',
                                 config: {
@@ -736,7 +755,7 @@ Redirecting...</pre>
                                     capture_snapshot: true
                                 }
                             },
-                            // Step 4: Signature
+                            // Step 5: Signature
                             {
                                 handler: 'signature',
                                 config: {
@@ -746,14 +765,6 @@ Redirecting...</pre>
                                     height: 256,
                                     quality: 0.85,
                                     line_width: 2
-                                }
-                            },
-                            // Step 5: KYC
-                            {
-                                handler: 'kyc',
-                                config: {
-                                    title: 'Identity Verification - KYC',
-                                    description: 'Complete KYC verification (requires HyperVerge credentials)'
                                 }
                             }
                         ],
@@ -773,7 +784,7 @@ Redirecting...</pre>
 Voucher: ${voucherCode} (₱${voucherAmount} ${voucherCurrency} via ${settlementRail})
 Issuer: ${issuerName}
 
-Steps: Wallet (pre-filled) → Demographics → Selfie → Location → Signature → KYC
+Steps: Wallet (auto-sync) → KYC → Basic Info (pre-filled) → Selfie → Location → Signature
 Reference ID: ${data.reference_id}
 
 Redirecting...</pre>

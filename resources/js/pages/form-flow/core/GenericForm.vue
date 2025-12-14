@@ -28,17 +28,28 @@ interface FieldDefinition {
     disabled?: boolean;
 }
 
+interface AutoSyncConfig {
+    enabled: boolean;
+    source_field: string;
+    target_field: string;
+    condition_field: string;
+    condition_values: string[];
+    debounce_ms?: number;
+}
+
 interface Props {
     flow_id: string;
     step_index: number;
     title?: string;
     description?: string;
     fields: FieldDefinition[];
+    auto_sync?: AutoSyncConfig;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     title: 'Form',
     description: undefined,
+    auto_sync: undefined,
 });
 
 // Form state
@@ -46,6 +57,7 @@ const formData = ref<Record<string, any>>({});
 const errors = ref<Record<string, string>>({});
 const submitting = ref(false);
 const apiError = ref<string | null>(null);
+const manualOverrides = ref<Record<string, boolean>>({});
 
 // Initialize form data - must happen synchronously for Vue reactivity
 const initializeFormData = () => {
@@ -78,6 +90,53 @@ initializeFormData();
 watch(() => props.fields, () => {
     initializeFormData();
 }, { deep: true });
+
+// Debounce helper
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+    let timer: ReturnType<typeof setTimeout>;
+    return function (this: any, ...args: any[]) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    } as T;
+}
+
+// Auto-sync logic
+if (props.auto_sync?.enabled) {
+    const { source_field, target_field, condition_field, condition_values, debounce_ms = 1500 } = props.auto_sync;
+    
+    // Sync target field from source field
+    const syncFields = debounce(() => {
+        // Check if condition is met
+        const conditionValue = formData.value[condition_field];
+        const shouldSync = condition_values.includes(conditionValue);
+        
+        // Only sync if not manually overridden and condition is met
+        if (!manualOverrides.value[target_field] && shouldSync) {
+            formData.value[target_field] = formData.value[source_field];
+        }
+    }, debounce_ms);
+    
+    // Watch source field changes
+    watch(() => formData.value[source_field], () => {
+        syncFields();
+    });
+    
+    // Track manual edits to target field
+    watch(() => formData.value[target_field], (newVal, oldVal) => {
+        // Only set override if value was manually changed (not from auto-sync)
+        if (oldVal !== undefined && newVal !== formData.value[source_field]) {
+            manualOverrides.value[target_field] = true;
+        }
+    });
+    
+    // Reset target field and override when condition changes
+    watch(() => formData.value[condition_field], (newVal, oldVal) => {
+        if (newVal !== oldVal) {
+            formData.value[target_field] = '';
+            manualOverrides.value[target_field] = false;
+        }
+    });
+}
 
 // Computed properties
 const pageTitle = computed(() => props.title || 'Form');
