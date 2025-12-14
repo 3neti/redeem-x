@@ -23,7 +23,6 @@ class FormHandler implements FormHandlerInterface
     {
         return 'form';
     }
-    }
     
     public function handle(Request $request, FormFlowStepData $step, array $context = []): array
     {
