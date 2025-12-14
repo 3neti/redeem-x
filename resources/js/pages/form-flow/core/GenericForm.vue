@@ -49,19 +49,25 @@ const apiError = ref<string | null>(null);
 
 // Initialize form data with default values (from field.default or fallback defaults)
 props.fields.forEach((field) => {
-    if (field.default !== undefined) {
+    // ALWAYS set a value to avoid undefined issues
+    if (field.default !== undefined && field.default !== null) {
         // Use explicitly provided default value
         formData.value[field.name] = field.default;
     } else if (field.type === 'checkbox') {
         formData.value[field.name] = false;
     } else if (field.type === 'recipient_country') {
-        formData.value[field.name] = 'PH';
+        formData.value[field.name] = 'PH'; // Fallback if backend didn't resolve
     } else if (field.type === 'settlement_rail') {
         formData.value[field.name] = null;
     } else if (field.type === 'bank_account') {
-        formData.value[field.name] = 'GXCHPHM2XXX';
+        formData.value[field.name] = 'GXCHPHM2XXX'; // Fallback if backend didn't resolve
     } else {
         formData.value[field.name] = '';
+    }
+    
+    // Debug log to see what backend sent
+    if (field.type.includes('recipient_country') || field.type.includes('bank_account')) {
+        console.log(`[GenericForm Init] ${field.name} (${field.type}): default=${field.default}, resolved=${formData.value[field.name]}`);
     }
 });
 
