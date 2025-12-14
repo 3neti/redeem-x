@@ -105,6 +105,10 @@
             <button id="startFinancialBtn" onclick="startFinancialFlow()" style="background: #14b8a6;">
                 Demographics + Financial Info
             </button>
+            
+            <button id="startRedemptionBtn" onclick="startRedemptionFlow()" style="background: #6366f1;">
+                Simulated Redemption Flow
+            </button>
         </div>
         
         <div id="result"></div>
@@ -634,6 +638,156 @@ Redirecting...</pre>
                 result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
                 btn.disabled = false;
                 btn.innerHTML = 'Demographics + Financial Info';
+            }
+        }
+        
+        async function startRedemptionFlow() {
+            const btn = document.getElementById('startRedemptionBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating flow...';
+            result.innerHTML = '';
+            
+            // REAL VOUCHER DATA (from REDEMPTION-YZYP generated via API)
+            const voucherCode = 'REDEMPTION-YZYP';
+            const voucherAmount = 750;
+            const voucherCurrency = 'PHP';
+            const settlementRail = 'PESONET';
+            const issuerName = 'Lester B. Hurtado';
+            const requiredInputs = ['mobile', 'name', 'email', 'birth_date', 'address', 'selfie', 'location', 'signature', 'kyc'];
+            
+            try {
+                const response = await fetch('/form-flow/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reference_id: `redemption-${voucherCode}-${Date.now()}`,
+                        steps: [
+                            // Step 0: Wallet Information (no code entry - already validated!)
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'Wallet Information',
+                                    description: `Redeeming voucher ${voucherCode} - ₱${voucherAmount} from ${issuerName}`,
+                                    variables: {
+                                        // Voucher metadata from /redeem lookup
+                                        $voucherCode: voucherCode,
+                                        $voucherAmount: voucherAmount,
+                                        $voucherCurrency: voucherCurrency,
+                                        $settlementRail: settlementRail,
+                                        $issuerName: issuerName,
+                                        // Defaults for wallet fields
+                                        $defaultCountry: 'PH',
+                                        $defaultBank: 'GXCHPHM2XXX'
+                                    },
+                                    fields: [
+                                        { name: 'amount', type: 'number', label: 'Amount (PHP)', 
+                                          default: '$voucherAmount', readonly: true, required: true },
+                                        { name: 'settlement_rail', type: 'settlement_rail', label: 'Payment Method',
+                                          default: '$settlementRail', required: true },
+                                        { name: 'mobile', type: 'text', label: 'Mobile Number', 
+                                          placeholder: '+639171234567', required: true },
+                                        { name: 'recipient_country', type: 'recipient_country', label: 'Country',
+                                          default: '$defaultCountry', readonly: true, required: true },
+                                        { name: 'bank_code', type: 'bank_account', label: 'Bank/EMI',
+                                          default: '$defaultBank', required: true },
+                                        { name: 'account_number', type: 'text', label: 'Account Number',
+                                          placeholder: '1234567890', required: true }
+                                    ]
+                                }
+                            },
+                            // Step 1: Demographics
+                            {
+                                handler: 'form',
+                                config: {
+                                    title: 'Personal Information',
+                                    description: 'For $step0_mobile - Voucher: $step0_voucher_code (₱$step0_amount via $step0_settlement_rail)',
+                                    fields: [
+                                        { name: 'full_name', type: 'text', label: 'Full Name', required: true },
+                                        { name: 'email', type: 'email', label: 'Email Address', required: true },
+                                        { name: 'birth_date', type: 'date', label: 'Birth Date', required: true },
+                                        { name: 'address', type: 'textarea', label: 'Address', required: false }
+                                    ]
+                                }
+                            },
+                            // Step 2: Selfie
+                            {
+                                handler: 'selfie',
+                                config: {
+                                    title: 'Identity Verification - Selfie',
+                                    description: 'Take a selfie for verification',
+                                    width: 640,
+                                    height: 480,
+                                    quality: 0.9
+                                }
+                            },
+                            // Step 3: Location
+                            {
+                                handler: 'location',
+                                config: {
+                                    title: 'Location Capture',
+                                    description: 'Verify your location',
+                                    require_address: true,
+                                    capture_snapshot: true
+                                }
+                            },
+                            // Step 4: Signature
+                            {
+                                handler: 'signature',
+                                config: {
+                                    title: 'Digital Signature',
+                                    description: 'Sign to confirm redemption',
+                                    width: 600,
+                                    height: 256,
+                                    quality: 0.85,
+                                    line_width: 2
+                                }
+                            },
+                            // Step 5: KYC
+                            {
+                                handler: 'kyc',
+                                config: {
+                                    title: 'Identity Verification - KYC',
+                                    description: 'Complete KYC verification (requires HyperVerge credentials)'
+                                }
+                            }
+                        ],
+                        callbacks: {
+                            on_complete: window.location.origin + '/form-flow-complete',
+                            on_cancel: window.location.origin + '/form-flow-demo.html'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <pre>Redemption flow created!
+
+Voucher: ${voucherCode} (₱${voucherAmount} ${voucherCurrency} via ${settlementRail})
+Issuer: ${issuerName}
+
+Steps: Wallet (pre-filled) → Demographics → Selfie → Location → Signature → KYC
+Reference ID: ${data.reference_id}
+
+Redirecting...</pre>
+                    `;
+                    setTimeout(() => {
+                        window.location.href = data.flow_url;
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to create flow');
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                btn.disabled = false;
+                btn.innerHTML = 'Simulated Redemption Flow';
             }
         }
     </script>
