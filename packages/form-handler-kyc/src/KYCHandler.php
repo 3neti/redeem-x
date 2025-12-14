@@ -65,6 +65,7 @@ class KYCHandler implements FormHandlerInterface
                             'full_name' => 'HURTADO LESTER BIADORA',
                             'date_of_birth' => '1970-04-21',
                             'nationality' => 'Filipino',
+                            'address' => '123 Main Street, Quezon City, Metro Manila, Philippines',
                         ],
                     ],
                 ],
