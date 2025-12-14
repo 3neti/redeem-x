@@ -23,12 +23,16 @@ class FormHandler implements FormHandlerInterface
     {
         return 'form';
     }
+    }
     
     public function handle(Request $request, FormFlowStepData $step, array $context = []): array
     {
-        $fields = $step->config['fields'] ?? [];
+        // Resolve variables with collected data from previous steps
+        $collectedData = $context['collected_data'] ?? [];
+        $resolvedConfig = $this->resolveVariables($step->config, $collectedData);
+        $fields = $resolvedConfig['fields'] ?? [];
         
-        // Build validation rules
+        // Build validation rules with resolved variables
         $rules = $this->buildValidationRules($fields);
         
         // Validate the submitted data
@@ -55,6 +59,8 @@ class FormHandler implements FormHandlerInterface
      */
     public function validateStep(FormFlowStepData $step, array $data): bool
     {
+        // Note: This method is called without context, so we can't resolve
+        // variables here. Variables should already be resolved when this is called.
         $fields = $step->config['fields'] ?? [];
         $rules = $this->buildValidationRules($fields);
         
