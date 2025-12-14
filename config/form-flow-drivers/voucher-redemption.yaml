@@ -29,11 +29,13 @@ steps:
       - name: "amount"
         type: "number"
         label: "Amount"
+        default: "{{ amount }}"
         readonly: true
         required: true
       - name: "settlement_rail"
         type: "settlement_rail"
         label: "Payment Method"
+        default: "INSTAPAY"
         required: true
       - name: "mobile"
         type: "text"
@@ -43,11 +45,13 @@ steps:
       - name: "recipient_country"
         type: "recipient_country"
         label: "Country"
+        default: "PH"
         readonly: true
         required: true
       - name: "bank_code"
         type: "bank_account"
         label: "Bank/EMI"
+        default: "GXCHPHM2XXX"
         required: true
       - name: "account_number"
         type: "text"
