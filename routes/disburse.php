@@ -26,8 +26,11 @@ Route::prefix('disburse')->name('disburse.')->group(function () {
     // Start: Enter voucher code
     Route::get('/', [DisburseController::class, 'start'])->name('start');
     
-    // Callback after flow completion
+    // Callback after flow completion (does not redeem)
     Route::post('/{voucher:code}/complete', [DisburseController::class, 'complete'])->name('complete');
+    
+    // Redeem voucher after user confirmation
+    Route::post('/{voucher:code}/redeem', [DisburseController::class, 'redeem'])->name('redeem');
     
     // Cancel callback
     Route::get('/cancel', [DisburseController::class, 'cancel'])->name('cancel');

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 interface Props {
     flow_id: string;
@@ -16,9 +17,28 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// Detect if this is a disburse flow
+const isDisburseFlow = computed(() => props.state.reference_id.startsWith('disburse-'));
+
+// Extract voucher code from reference_id (format: disburse-{CODE}-{timestamp})
+const voucherCode = computed(() => {
+    if (!isDisburseFlow.value) return null;
+    const parts = props.state.reference_id.split('-');
+    // Remove 'disburse' prefix and timestamp suffix
+    return parts.slice(1, -1).join('-');
+});
+
 function handleClose() {
-    // Redirect back to demo or close window
-    window.location.href = '/form-flow-demo.html';
+    if (isDisburseFlow.value && voucherCode.value) {
+        // POST to redeem endpoint with flow_id and reference_id
+        router.post(`/disburse/${voucherCode.value}/redeem`, {
+            flow_id: props.flow_id,
+            reference_id: props.state.reference_id,
+        });
+    } else {
+        // Redirect back to demo or close window
+        window.location.href = '/form-flow-demo.html';
+    }
 }
 </script>
 
@@ -63,7 +83,7 @@ function handleClose() {
                 <!-- Actions -->
                 <div class="flex justify-center pt-4">
                     <Button @click="handleClose">
-                        Back to Demo
+                        {{ isDisburseFlow ? 'Confirm Redemption' : 'Back to Demo' }}
                     </Button>
                 </div>
             </CardContent>

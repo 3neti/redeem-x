@@ -74,7 +74,9 @@ class DriverService
         $inputFields = $voucher->instructions->inputs->fields ?? [];
         
         foreach ($inputFields as $field) {
-            $step = $this->buildStepForField($field, $voucher);
+            // Convert enum to string if needed
+            $fieldName = is_object($field) && method_exists($field, '__toString') ? (string)$field : (is_object($field) && isset($field->value) ? $field->value : $field);
+            $step = $this->buildStepForField($fieldName, $voucher);
             if ($step) {
                 $steps[] = $step;
             }
@@ -88,11 +90,20 @@ class DriverService
      */
     protected function buildWalletStep(Voucher $voucher): array
     {
+        $instructions = $voucher->instructions;
+        $amount = $instructions->cash->amount;
+        $currency = $instructions->cash->currency;
+        $settlementRail = $instructions->cash->settlement_rail?->value ?? 'INSTAPAY';
+        
+        // Format amount for display
+        $formattedAmount = number_format($amount / 100, 2);
+        $amountDisplay = "₱{$formattedAmount}";
+        
         return [
             'handler' => 'form',
             'config' => [
                 'title' => 'Wallet Information',
-                'description' => "Redeeming voucher {$voucher->code} - {$voucher->formatted_amount} from {$voucher->owner->name}",
+                'description' => "Redeeming voucher {$voucher->code} - {$amountDisplay} from {$voucher->owner->name}",
                 'auto_sync' => [
                     'enabled' => true,
                     'source_field' => 'mobile',
@@ -103,9 +114,9 @@ class DriverService
                 ],
                 'variables' => [
                     '$voucherCode' => $voucher->code,
-                    '$voucherAmount' => $voucher->amount,
-                    '$voucherCurrency' => $voucher->currency,
-                    '$settlementRail' => $voucher->instructions->cash->settlement_rail ?? 'INSTAPAY',
+                    '$voucherAmount' => $amount,
+                    '$voucherCurrency' => $currency,
+                    '$settlementRail' => $settlementRail,
                     '$defaultCountry' => 'PH',
                     '$defaultBank' => 'GXCHPHM2XXX',
                 ],
@@ -140,7 +151,7 @@ class DriverService
     /**
      * Build combined text fields step
      */
-    protected function buildTextFieldsStep(Voucher $voucher): array
+    protected function buildTextFieldsStep(Voucher $voucher): ?array
     {
         static $built = false;
         
@@ -150,21 +161,24 @@ class DriverService
         
         $built = true;
         $inputFields = $voucher->instructions->inputs->fields ?? [];
+        
+        // Convert enums to strings for comparison
+        $fieldNames = array_map(fn($f) => is_object($f) && isset($f->value) ? $f->value : $f, $inputFields);
         $fields = [];
         
-        if (in_array('name', $inputFields)) {
+        if (in_array('name', $fieldNames)) {
             $fields[] = ['name' => 'full_name', 'type' => 'text', 'label' => 'Full Name', 'required' => true];
         }
         
-        if (in_array('email', $inputFields)) {
+        if (in_array('email', $fieldNames)) {
             $fields[] = ['name' => 'email', 'type' => 'email', 'label' => 'Email Address', 'required' => true];
         }
         
-        if (in_array('birth_date', $inputFields)) {
+        if (in_array('birth_date', $fieldNames)) {
             $fields[] = ['name' => 'birth_date', 'type' => 'date', 'label' => 'Birth Date', 'required' => true];
         }
         
-        if (in_array('address', $inputFields)) {
+        if (in_array('address', $fieldNames)) {
             $fields[] = ['name' => 'address', 'type' => 'textarea', 'label' => 'Address', 'required' => false];
         }
         

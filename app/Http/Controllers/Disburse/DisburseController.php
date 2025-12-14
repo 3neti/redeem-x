@@ -91,14 +91,36 @@ class DisburseController extends Controller
     
     /**
      * Handle form flow completion (callback)
+     * Note: Does NOT redeem automatically - just acknowledges callback
      */
-    public function complete(Voucher $voucher): RedirectResponse
+    public function complete(Voucher $voucher)
     {
-        // Get form flow reference ID
-        $referenceId = "disburse-{$voucher->code}-" . request()->query('ref', '');
+        // Callback received - form flow complete
+        // Do not redeem here - user must click confirm button
+        return response()->json([
+            'success' => true,
+            'message' => 'Flow completed, awaiting user confirmation',
+        ]);
+    }
+    
+    /**
+     * Process voucher redemption after user confirmation
+     */
+    public function redeem(Voucher $voucher): RedirectResponse
+    {
+        // Get reference_id from request (sent from Complete.vue)
+        $referenceId = request()->input('reference_id');
+        $flowId = request()->input('flow_id');
+        
+        if (!$referenceId && !$flowId) {
+            return redirect()->route('disburse.start')
+                ->withErrors(['error' => 'Session expired. Please try again.']);
+        }
         
         // Retrieve collected data from form flow
-        $state = $this->formFlowService->getFlowStateByReference($referenceId);
+        $state = $referenceId 
+            ? $this->formFlowService->getFlowStateByReference($referenceId)
+            : $this->formFlowService->getFlowState($flowId);
         
         if (!$state) {
             return redirect()->route('disburse.start')
@@ -108,10 +130,33 @@ class DisburseController extends Controller
         $collectedData = $state['collected_data'] ?? [];
         
         // Map form flow data to redemption format
-        $redemptionData = $this->mapCollectedData($collectedData);
+        $flatData = $this->mapCollectedData($collectedData);
+        
+        // Extract mobile and country for PhoneNumber
+        $mobile = $flatData['mobile'] ?? null;
+        $country = $flatData['recipient_country'] ?? 'PH';
+        
+        if (!$mobile) {
+            return redirect()->route('disburse.start')
+                ->withErrors(['error' => 'Mobile number is required.']);
+        }
+        
+        // Create PhoneNumber instance
+        $phoneNumber = new \Propaganistas\LaravelPhone\PhoneNumber($mobile, $country);
+        
+        // Prepare bank account data
+        $bankAccount = [
+            'bank_code' => $flatData['bank_code'] ?? null,
+            'account_number' => $flatData['account_number'] ?? null,
+        ];
+        
+        // Prepare other inputs (exclude wallet fields)
+        $inputs = collect($flatData)
+            ->except(['mobile', 'recipient_country', 'bank_code', 'account_number', 'amount', 'settlement_rail'])
+            ->toArray();
         
         // Process redemption (marks voucher as redeemed, creates cash, disburses, sends notifications)
-        ProcessRedemption::run($voucher, $redemptionData);
+        ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
         
         // Clear form flow session
         $this->formFlowService->clearFlow($state['flow_id']);
