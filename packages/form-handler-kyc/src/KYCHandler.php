@@ -38,7 +38,7 @@ class KYCHandler implements FormHandlerInterface
         if (config('kyc-handler.use_fake', false) && isset($inputData['mobile'])) {
             \Log::info('[KYCHandler] 🎭 FAKE MODE - Returning simulated KYC data');
             
-            return [
+            $mockData = [
                 'transaction_id' => 'MOCK-KYC-' . time(),
                 'status' => 'approved',
                 'application_status' => 'auto_approved',
@@ -65,10 +65,14 @@ class KYCHandler implements FormHandlerInterface
                             'full_name' => 'HURTADO LESTER BIADORA',
                             'date_of_birth' => '1970-04-21',
                             'nationality' => 'Filipino',
+                            'address' => '123 Main Street, Quezon City, Metro Manila, Philippines',
                         ],
                     ],
                 ],
             ];
+            
+            // Flatten for Phase 2 variables
+            return $this->flattenKYCData($mockData);
         }
         
         // Real mode: This should not be called directly in real mode
@@ -127,6 +131,34 @@ class KYCHandler implements FormHandlerInterface
         return [
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+        ];
+    }
+    
+    /**
+     * Flatten KYC data for Phase 2 variables
+     * Extracts id_card details and returns flat array
+     */
+    protected function flattenKYCData(array $kycData): array
+    {
+        $idCardDetails = null;
+        
+        // Find id_card module
+        foreach ($kycData['modules'] ?? [] as $module) {
+            if ($module['module'] === 'id_card') {
+                $idCardDetails = $module['details'] ?? [];
+                break;
+            }
+        }
+        
+        return [
+            'transaction_id' => $kycData['transaction_id'] ?? null,
+            'status' => $kycData['status'] ?? null,
+            'name' => $idCardDetails['full_name'] ?? null,
+            'date_of_birth' => $idCardDetails['date_of_birth'] ?? null,
+            'address' => $idCardDetails['address'] ?? null,
+            'id_number' => $idCardDetails['id_number'] ?? null,
+            'id_type' => $idCardDetails['id_type'] ?? null,
+            'nationality' => $idCardDetails['nationality'] ?? null,
         ];
     }
 }
