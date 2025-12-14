@@ -4,6 +4,8 @@ use LBHurtado\FormFlowManager\Services\FormFlowService;
 use LBHurtado\FormFlowManager\Data\FormFlowInstructionsData;
 use LBHurtado\FormFlowManager\Data\FormFlowStepData;
 
+uses(Tests\TestCase::class);
+
 beforeEach(function () {
     $this->service = new FormFlowService();
 });
