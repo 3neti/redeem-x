@@ -17,37 +17,21 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Detect if this is a disburse flow (supports both /disburse and /disburse-yaml)
-const isDisburseFlow = computed(() => 
-    props.state.reference_id.startsWith('disburse-')
-);
+// Detect if this is a disburse flow
+const isDisburseFlow = computed(() => props.state.reference_id.startsWith('disburse-'));
 
-// Detect if using YAML driver variant
-const isYamlVariant = computed(() => 
-    props.state.reference_id.startsWith('disburse-yaml-')
-);
-
-// Extract voucher code from reference_id
+// Extract voucher code from reference_id (format: disburse-{CODE}-{timestamp})
 const voucherCode = computed(() => {
     if (!isDisburseFlow.value) return null;
-    const refId = props.state.reference_id;
-    
-    // Format: disburse-yaml-{CODE}-{timestamp} or disburse-{CODE}-{timestamp}
-    const prefix = isYamlVariant.value ? 'disburse-yaml-' : 'disburse-';
-    const withoutPrefix = refId.slice(prefix.length);
-    const parts = withoutPrefix.split('-');
-    
-    // Remove timestamp suffix
-    return parts.slice(0, -1).join('-');
+    const parts = props.state.reference_id.split('-');
+    // Remove 'disburse' prefix and timestamp suffix
+    return parts.slice(1, -1).join('-');
 });
-
-// Get correct route prefix
-const routePrefix = computed(() => isYamlVariant.value ? 'disburse-yaml' : 'disburse');
 
 function handleClose() {
     if (isDisburseFlow.value && voucherCode.value) {
         // POST to redeem endpoint with flow_id and reference_id
-        router.post(`/${routePrefix.value}/${voucherCode.value}/redeem`, {
+        router.post(`/disburse/${voucherCode.value}/redeem`, {
             flow_id: props.flow_id,
             reference_id: props.state.reference_id,
         });
