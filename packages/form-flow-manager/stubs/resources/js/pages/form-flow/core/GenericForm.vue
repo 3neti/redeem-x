@@ -104,8 +104,6 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
 if (props.auto_sync?.enabled) {
     const { source_field, target_field, condition_field, condition_values, debounce_ms = 1500 } = props.auto_sync;
     
-    console.log('[GenericForm] Auto-sync enabled:', { source_field, target_field, condition_field, condition_values });
-    
     // Track if user is currently editing target field
     let isAutoSyncing = false;
     
@@ -115,21 +113,17 @@ if (props.auto_sync?.enabled) {
         const conditionValue = formData.value[condition_field];
         const shouldSync = condition_values.includes(conditionValue);
         
-        console.log('[GenericForm] Sync check:', { conditionValue, shouldSync, override: manualOverrides.value[target_field], source: formData.value[source_field] });
-        
         // Only sync if not manually overridden and condition is met
         if (!manualOverrides.value[target_field] && shouldSync && formData.value[source_field]) {
             isAutoSyncing = true;
             formData.value[target_field] = formData.value[source_field];
-            console.log('[GenericForm] Auto-synced:', formData.value[target_field]);
             // Reset flag after Vue updates
             setTimeout(() => { isAutoSyncing = false; }, 0);
         }
     }, debounce_ms);
     
     // Watch source field changes
-    watch(() => formData.value[source_field], (newVal) => {
-        console.log('[GenericForm] Source field changed:', newVal);
+    watch(() => formData.value[source_field], () => {
         syncFields();
     });
     
@@ -142,7 +136,6 @@ if (props.auto_sync?.enabled) {
         
         // Set override if value was manually changed and differs from source
         if (oldVal !== undefined && newVal !== undefined && newVal !== formData.value[source_field]) {
-            console.log('[GenericForm] Manual override detected');
             manualOverrides.value[target_field] = true;
         }
     });
@@ -150,7 +143,6 @@ if (props.auto_sync?.enabled) {
     // Reset target field and override when condition changes
     watch(() => formData.value[condition_field], (newVal, oldVal) => {
         if (newVal !== oldVal && oldVal !== undefined) {
-            console.log('[GenericForm] Condition changed, resetting:', newVal);
             formData.value[target_field] = '';
             manualOverrides.value[target_field] = false;
         }

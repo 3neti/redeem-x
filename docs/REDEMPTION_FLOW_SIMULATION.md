@@ -185,56 +185,72 @@ const voucherData = {
 
 ## Testing the Flow
 
-### 1. Generate Test Voucher
+### 1. Enable KYC Fake Mode
+Add to `.env` to use mock KYC data:
 ```bash
-php artisan test:voucher-generate
+KYC_USE_FAKE=true
 ```
 
-Output example:
-```
-Voucher Code: REDEMPTION-YZYP
-Amount: ₱750
-Rail: PESONET
-Inputs Required: mobile, name, email, birth_date, address, selfie, location, signature, kyc
-```
+Mock KYC data returned:
+- **Name**: HURTADO LESTER BIADORA
+- **Birth Date**: 1970-04-21
+- **Address**: 123 Main Street, Quezon City, Metro Manila, Philippines
+- **ID Number**: N01-87-049586
+- **ID Type**: National ID
 
 ### 2. Start Simulation
 1. Open `http://redeem-x.test/form-flow-demo.html`
 2. Click "Simulate Redemption Flow" (indigo button)
-3. Complete each step in sequence
+3. Complete each step:
+   - **Step 0 (Wallet)**: Enter mobile (e.g., `09173011987`), change rail to INSTAPAY to test auto-sync
+   - **Step 1 (KYC)**: Click "Submit" (fake mode auto-approves)
+   - **Step 2 (Basic Info)**: Verify name/birthdate/address are pre-filled from KYC, add email
+   - **Steps 3-5**: Complete Selfie, Location, Signature
 
-### 3. Verify Output
+### 3. Test Auto-Sync
+1. In Step 0, change **Payment Method** to **INSTAPAY**
+2. Enter mobile number (e.g., `09173011987`)
+3. Wait 1.5 seconds → **Account Number** should auto-fill with same value
+4. Manually edit Account Number → auto-sync should stop
+5. Change Payment Method to **PESONET** → Account Number clears, auto-sync resets
+
+### 4. Verify Output
 Check browser console for final collected data:
 ```javascript
 {
   "reference_id": "redemption-REDEMPTION-YZYP-1765701225086",
-  "step_0": {
+  "step_0": {  // Wallet Information
     "amount": "750",
-    "settlement_rail": "PESONET",
+    "settlement_rail": "INSTAPAY",
     "mobile": "09173011987",
     "bank_code": "GXCHPHM2XXX",
-    "account_number": "1234567890"
+    "account_number": "09173011987"  // Auto-synced from mobile!
   },
-  "step_1": {
-    "full_name": "John Doe",
-    "email": "john@example.com",
-    "birth_date": "1990-01-01",
-    "address": "123 Main St, Manila"
+  "step_1": {  // KYC Verification
+    "transaction_id": "MOCK-KYC-1234567890",
+    "status": "approved",
+    "name": "HURTADO LESTER BIADORA",
+    "date_of_birth": "1970-04-21",
+    "address": "123 Main Street, Quezon City, Metro Manila, Philippines",
+    "id_number": "N01-87-049586",
+    "id_type": "National ID"
   },
-  "step_2": {
+  "step_2": {  // Basic Information (pre-filled from KYC)
+    "full_name": "HURTADO LESTER BIADORA",
+    "birth_date": "1970-04-21",
+    "address": "123 Main Street, Quezon City, Metro Manila, Philippines",
+    "email": "user@example.com"
+  },
+  "step_3": {  // Selfie
     "selfie_image": "data:image/jpeg;base64,..."
   },
-  "step_3": {
+  "step_4": {  // Location
     "latitude": "14.5995",
     "longitude": "120.9842",
     "address": "Quezon City, Metro Manila"
   },
-  "step_4": {
+  "step_5": {  // Signature
     "signature": "data:image/png;base64,..."
-  },
-  "step_5": {
-    "kyc_status": "approved",
-    "kyc_transaction_id": "hvt-123456"
   }
 }
 ```

@@ -204,11 +204,6 @@ class FormHandler implements FormHandlerInterface
     {
         $variables = $config['variables'] ?? [];
         
-        \Log::info('[FormHandler] resolveVariables called', [
-            'collected_data' => $collectedData,
-            'initial_variables' => $variables,
-        ]);
-        
         // Auto-populate variables from collected data (Phase 2)
         // Format: $step0_fieldname, $step1_fieldname
         foreach ($collectedData as $stepIndex => $stepData) {
@@ -218,10 +213,6 @@ class FormHandler implements FormHandlerInterface
                 }
             }
         }
-        
-        \Log::info('[FormHandler] Phase 2 variables populated', [
-            'variables' => $variables,
-        ]);
         
         // Resolve nested variable references (up to 10 levels to prevent infinite loops)
         $maxDepth = 10;
