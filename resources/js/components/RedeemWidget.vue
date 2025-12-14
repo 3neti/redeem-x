@@ -29,6 +29,7 @@ interface Props {
     buttonText?: string;
     buttonProcessingText?: string;
     initialCode?: string | null;
+    routePrefix?: 'redeem' | 'disburse'; // Support both /redeem and /disburse
 }
 
 const props = defineProps<Props>();
@@ -102,8 +103,12 @@ function submit() {
     const entered = code.value || form.code;
     form.code = (entered || '').trim().toUpperCase();
     
+    // Determine route based on routePrefix prop
+    const prefix = props.routePrefix || 'redeem';
+    const submitUrl = prefix === 'disburse' ? '/disburse' : start.url();
+    
     // Submit to start route which will validate and redirect
-    form.get(start.url(), {
+    form.get(submitUrl, {
         preserveState: (page) => {
             // Preserve state only if there are no errors
             const hasErrors = Object.keys(page.props.errors || {}).length > 0;

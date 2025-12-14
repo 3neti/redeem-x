@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             Route::middleware('web')->group(base_path('routes/vouchers.php'));
             Route::middleware('web')->group(base_path('routes/redeem.php'));
+            Route::middleware('web')->group(base_path('routes/disburse.php'));
             Route::middleware('web')->group(base_path('routes/auth.php'));
             Route::middleware('web')->group(base_path('routes/settings.php'));
             
