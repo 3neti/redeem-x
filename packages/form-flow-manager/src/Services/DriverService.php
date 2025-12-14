@@ -79,6 +79,8 @@ class DriverService
     
     /**
      * Transform using hardcoded PHP methods (legacy/fallback)
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function transformWithPhp(Voucher $voucher): FormFlowInstructionsData
     {
@@ -103,6 +105,8 @@ class DriverService
     
     /**
      * Build form flow steps from voucher
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildSteps(Voucher $voucher): array
     {
@@ -128,6 +132,8 @@ class DriverService
     
     /**
      * Build wallet collection step
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildWalletStep(Voucher $voucher): array
     {
@@ -175,6 +181,8 @@ class DriverService
     
     /**
      * Build step for specific input field
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildStepForField(string $field, Voucher $voucher): ?array
     {
@@ -191,6 +199,8 @@ class DriverService
     
     /**
      * Build combined text fields step
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildTextFieldsStep(Voucher $voucher): ?array
     {
@@ -239,6 +249,8 @@ class DriverService
     
     /**
      * Build selfie capture step
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildSelfieStep(): array
     {
@@ -256,6 +268,8 @@ class DriverService
     
     /**
      * Build location capture step
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildLocationStep(): array
     {
@@ -272,6 +286,8 @@ class DriverService
     
     /**
      * Build signature capture step
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildSignatureStep(): array
     {
@@ -290,6 +306,8 @@ class DriverService
     
     /**
      * Build KYC verification step
+     * 
+     * @deprecated 1.1.0 Use YAML driver instead. Will be removed in 2.0.0.
      */
     protected function buildKYCStep(): array
     {

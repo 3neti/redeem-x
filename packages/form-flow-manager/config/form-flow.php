@@ -29,11 +29,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Enable YAML-based driver configuration processing.
-    | When false, falls back to hardcoded PHP methods in DriverService.
-    | This allows gradual migration and A/B testing.
+    | YAML driver is now the default. Set to false to use legacy PHP methods.
+    | Note: PHP driver methods are deprecated and will be removed in v2.0.
     |
     */
-    'use_yaml_driver' => env('FORM_FLOW_USE_YAML_DRIVER', false),
+    'use_yaml_driver' => env('FORM_FLOW_USE_YAML_DRIVER', true),
 
     /*
     |--------------------------------------------------------------------------
