@@ -4,12 +4,13 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { BANKS, getPopularEMIs, getBanksByRail } from '@/data/banks';
 
 interface Props {
-    modelValue: string;
+    modelValue?: string;
     settlementRail?: string | null;
     disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    modelValue: undefined,
     settlementRail: null,
     disabled: false,
 });
@@ -19,7 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const localValue = computed({
-    get: () => props.modelValue,
+    get: () => props.modelValue || '',
     set: (value) => emit('update:modelValue', value),
 });
 

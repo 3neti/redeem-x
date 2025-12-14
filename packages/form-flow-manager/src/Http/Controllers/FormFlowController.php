@@ -159,6 +159,7 @@ class FormFlowController extends Controller
         return $handler->render($stepData, [
             'flow_id' => $flowId,
             'step_index' => $currentStepIndex,
+            'collected_data' => $state['collected_data'] ?? [],
         ]);
     }
     
@@ -199,6 +200,7 @@ class FormFlowController extends Controller
             $processedData = $handler->handle($request, $stepData, [
                 'flow_id' => $flowId,
                 'step_index' => $step,
+                'collected_data' => $state['collected_data'] ?? [],
             ]);
             
             // Update the flow state with processed data

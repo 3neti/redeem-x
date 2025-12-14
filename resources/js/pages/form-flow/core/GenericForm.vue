@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,12 @@ interface FieldDefinition {
     required?: boolean;
     options?: string[];
     validation?: string[];
+    default?: any;
+    min?: number;
+    max?: number;
+    step?: number;
+    readonly?: boolean;
+    disabled?: boolean;
 }
 
 interface Props {
@@ -41,20 +47,37 @@ const errors = ref<Record<string, string>>({});
 const submitting = ref(false);
 const apiError = ref<string | null>(null);
 
-// Initialize form data with default values
-props.fields.forEach((field) => {
-    if (field.type === 'checkbox') {
-        formData.value[field.name] = false;
-    } else if (field.type === 'recipient_country') {
-        formData.value[field.name] = 'PH';
-    } else if (field.type === 'settlement_rail') {
-        formData.value[field.name] = null;
-    } else if (field.type === 'bank_account') {
-        formData.value[field.name] = 'GXCHPHM2XXX';
-    } else {
-        formData.value[field.name] = '';
-    }
-});
+// Initialize form data - must happen synchronously for Vue reactivity
+const initializeFormData = () => {
+    // Clear existing data to avoid stale values from previous step
+    formData.value = {};
+    
+    props.fields.forEach((field) => {
+        // ALWAYS set a value to avoid undefined issues
+        if (field.default !== undefined && field.default !== null) {
+            // Use explicitly provided default value from backend
+            formData.value[field.name] = field.default;
+        } else if (field.type === 'checkbox') {
+            formData.value[field.name] = false;
+        } else if (field.type === 'recipient_country') {
+            formData.value[field.name] = 'PH'; // Fallback if backend didn't resolve
+        } else if (field.type === 'settlement_rail') {
+            formData.value[field.name] = null;
+        } else if (field.type === 'bank_account') {
+            formData.value[field.name] = 'GXCHPHM2XXX'; // Fallback if backend didn't resolve
+        } else {
+            formData.value[field.name] = '';
+        }
+    });
+};
+
+// Initialize immediately (props are available in setup)
+initializeFormData();
+
+// Re-initialize when fields change (Inertia navigation to next step)
+watch(() => props.fields, () => {
+    initializeFormData();
+}, { deep: true });
 
 // Computed properties
 const pageTitle = computed(() => props.title || 'Form');
@@ -156,6 +179,11 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 :type="field.type"
                                 :placeholder="getFieldPlaceholder(field)"
                                 :required="field.required"
+                                :min="field.min"
+                                :max="field.max"
+                                :step="field.step"
+                                :readonly="field.readonly"
+                                :disabled="field.disabled"
                                 :class="{ 'border-destructive': errors[field.name] }"
                             />
                             <p v-if="errors[field.name]" class="text-sm text-destructive">
@@ -174,6 +202,8 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 v-model="formData[field.name]"
                                 :placeholder="getFieldPlaceholder(field)"
                                 :required="field.required"
+                                :readonly="field.readonly"
+                                :disabled="field.disabled"
                                 :class="{ 'border-destructive': errors[field.name] }"
                                 rows="4"
                             />
@@ -188,7 +218,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 {{ getFieldLabel(field) }}
                                 <span v-if="field.required" class="text-destructive">*</span>
                             </Label>
-                            <Select v-model="formData[field.name]" :required="field.required">
+                            <Select v-model="formData[field.name]" :required="field.required" :disabled="field.disabled">
                                 <SelectTrigger :class="{ 'border-destructive': errors[field.name] }">
                                     <SelectValue :placeholder="`Select ${getFieldLabel(field).toLowerCase()}`" />
                                 </SelectTrigger>
@@ -218,6 +248,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                     console.log(`[GenericForm] formData['${field.name}'] is now:`, formData[field.name]);
                                 }"
                                 :required="field.required"
+                                :disabled="field.disabled"
                                 :class="{ 'border-destructive': errors[field.name] }"
                             />
                             <Label
@@ -262,6 +293,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                             </Label>
                             <CountrySelect
                                 v-model="formData[field.name]"
+                                :disabled="field.disabled || field.readonly"
                             />
                             <p v-if="errors[field.name]" class="text-sm text-destructive">
                                 {{ errors[field.name] }}
@@ -278,6 +310,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 v-model="formData[field.name]"
                                 :amount="formData.amount || 0"
                                 :bank-code="formData.bank_account || null"
+                                :disabled="field.disabled || field.readonly"
                             />
                             <p v-if="errors[field.name]" class="text-sm text-destructive">
                                 {{ errors[field.name] }}
@@ -293,6 +326,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                             <BankEMISelect
                                 v-model="formData[field.name]"
                                 :settlement-rail="formData.settlement_rail || null"
+                                :disabled="field.disabled || field.readonly"
                             />
                             <p v-if="errors[field.name]" class="text-sm text-destructive">
                                 {{ errors[field.name] }}
