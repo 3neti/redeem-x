@@ -448,7 +448,17 @@ POST /disburse/BW3P/complete
 
 ## Critical Dependencies
 
-### Step Order Matters!
+### Step Order Best Practices
+**With Named References (Recommended):**
+```yaml
+✅ Order-independent:
+0. Wallet (step_name: wallet_info)
+1. New Step (step_name: extra_step)  # Can insert anywhere
+2. KYC (step_name: kyc_verification)
+3. BIO (step_name: bio_fields)       # References: $kyc_verification.name
+```
+
+**With Index-based References (Legacy):**
 ```
 ✅ CORRECT:
 0. Wallet
@@ -457,18 +467,39 @@ POST /disburse/BW3P/complete
 
 ❌ WRONG:
 0. Wallet
-1. BIO        → References: $step5_name (doesn't exist yet!)
+1. BIO        → References: $step1_name (doesn't exist yet!)
 2. KYC        → Collects: name, date_of_birth
 ```
 
-**Solution (TODO):** Named step references instead of index-based
+**Migration Path:** Add `step_name` to each step, use `${step_name}.{field}` syntax
 
-### Variable Name Contracts
+### Variable Resolution: Dual Syntax Support
+**Index-based (legacy):** `$step1_name`
+- Uses step position: `$step{N}_{fieldname}`
+- Breaks when step order changes
+- Backward compatible
+
+**Name-based (recommended):** `$kyc_verification.name`
+- Uses semantic names: `${step_name}.{fieldname}`
+- Order-independent
+- Self-documenting
+
+**Example:**
+```yaml
+kyc:
+  step_name: "kyc_verification"
+bio:
+  step_name: "bio_fields"
+  config:
+    variables:
+      $name: "$kyc_verification.name"  # Recommended
+      # OR: $name: "$step1_name"  # Legacy, still works
+```
+
+**Variable Name Contracts:**
 - KYC Handler returns: `name`, `date_of_birth`, `address`
 - BIO Form expects: field name = `full_name` (for schema)
-- YAML maps: `default: "$kyc_name"` where `$kyc_name: "$step1_name"`
-
-**Mismatch = Literal string bug** (as experienced with BW3P)
+- YAML maps: `default: "$kyc_name"` where `$kyc_name: "$kyc_verification.name"`
 
 ---
 

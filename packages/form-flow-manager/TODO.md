@@ -3,7 +3,7 @@
 ## High Priority
 
 ### Configurable Step Ordering
-**Status:** Planned  
+**Status:** ✅ Completed (v1.2.0)  
 **Priority:** High  
 **Complexity:** Medium
 
@@ -123,6 +123,7 @@ steps:
 ✅ Template processor with filters and conditionals  
 ✅ Auto-sync functionality  
 ✅ KYC auto-population via collected_data  
+✅ Named step references (v1.2.0) - Order-independent variable resolution
 
 ---
 

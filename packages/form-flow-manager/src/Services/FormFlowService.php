@@ -77,9 +77,10 @@ class FormFlowService
      * @param string $flowId Flow identifier
      * @param int $stepIndex Step index
      * @param array $data Step data
+     * @param string|null $stepName Optional step name for named references
      * @return array Updated flow state
      */
-    public function updateStepData(string $flowId, int $stepIndex, array $data): array
+    public function updateStepData(string $flowId, int $stepIndex, array $data, ?string $stepName = null): array
     {
         $state = $this->getFlowState($flowId);
         
@@ -87,7 +88,10 @@ class FormFlowService
             throw new \RuntimeException("Flow not found: {$flowId}");
         }
         
-        // Store step data
+        // Store step data with optional step name
+        if ($stepName) {
+            $data['_step_name'] = $stepName;
+        }
         $state['collected_data'][$stepIndex] = $data;
         
         // Mark step as completed

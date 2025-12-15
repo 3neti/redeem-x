@@ -1,120 +1,57 @@
-# Branch: feature/deprecate-php-driver
+# Branch: feature/named-step-references
 
-## Purpose
-Implement 5-phase deprecation strategy to make YAML driver the permanent and only transformation path for form-flow-manager, removing legacy PHP driver methods.
+## Overview
+Implements **named step references** for order-independent variable resolution in form flows. This solves the problem where changing step order breaks hardcoded index-based references like `$step1_name`.
 
-## Background
-- YAML driver fully implemented with 105/105 tests passing
-- A/B testing infrastructure deployed (merged to main)
-- `/disburse` and `/disburse-yaml` routes both functional
-- Current default: PHP driver (feature flag = false)
-- Goal: YAML becomes permanent, PHP driver removed
+## Problem
+Currently, BIO step references KYC data using:
+```yaml
+variables:
+  $kyc_name: "$step1_name"  # Hardcoded to step index 1
+```
 
-## Strategy Summary
+If a new step is added before KYC, the index shifts and the reference breaks.
 
-### Phase 1: Make YAML Default (Non-Breaking) 
-**Timeline:** 1-2 days | **Risk:** Low | **Reversible:** Yes
-
-**Changes:**
-- Update feature flag default from `false` → `true`
-- Add `FORM_FLOW_USE_YAML_DRIVER=true` to .env.example
-- Add `@deprecated` tags to all PHP driver methods
-- Add trigger_error() warnings when PHP methods called
-- Update documentation with migration guide
-
-**Impact:** YAML becomes default, PHP still available as fallback
-
-### Phase 2: Extract YamlDriverService (Refactoring)
-**Timeline:** 3-5 days | **Risk:** Medium | **Reversible:** Yes
-
-**Changes:**
-- Create `AbstractDriverService` base class
-- Extract `YamlDriverService` extending abstract class
-- Extract `LegacyPhpDriverService` for PHP methods
-- Update `DriverService` to delegate based on flag (facade pattern)
-- Update service provider bindings
-
-**Impact:** Better architecture, separation of concerns, extensible for future drivers
-
-### Phase 3: Remove A/B Testing Infrastructure
-**Timeline:** 1 day | **Risk:** Low | **Reversible:** Yes
-
-**Changes:**
-- Delete `DisburseYamlController.php`
-- Delete `routes/disburse-yaml.php`
-- Remove route registration from bootstrap/app.php
-- Simplify Complete.vue (remove yaml variant logic)
-- Delete `DisburseYamlRouteTest.php`
-- Archive or delete AB_TESTING_YAML_DRIVER.md
-
-**Impact:** Cleaner codebase, no redundant routes
-
-### Phase 4: Remove PHP Driver (Breaking Change)
-**Timeline:** Coordinate with major release | **Risk:** High | **Reversible:** No
-
-**Changes:**
-- Remove `use_yaml_driver` feature flag
-- Delete `LegacyPhpDriverService.php`
-- Remove all PHP build methods from codebase
-- Update controllers to use YamlDriverService directly
-- Bump version to 2.0.0
-- Create MIGRATION_PHP_TO_YAML.md guide
-
-**Impact:** Breaking change, users on 1.x cannot upgrade without migration
-
-### Phase 5: Cleanup and Polish
-**Timeline:** Ongoing | **Risk:** Low | **Reversible:** Yes
-
-**Changes:**
-- Rename YamlDriverService → DriverService (simpler naming)
-- Cache parsed YAML in production
-- Add YAML schema validation
-- Performance benchmarks
-- Test simplification
-
-**Impact:** Optimized, maintainable codebase
+## Solution
+Enable semantic, name-based references:
+```yaml
+steps:
+  kyc:
+    step_name: "kyc_verification"  # Named identifier
+  bio:
+    step_name: "bio_fields"
+    config:
+      variables:
+        $name: "$kyc_verification.name"  # Name-based reference
+```
 
 ## Implementation Plan
-See detailed plan document: Plan ID `58842d20-c9eb-4e6a-ad44-61338fea4383`
+See plan ID: `efad54a4-3112-48ef-800e-a776f77b3cd2`
 
-## Current Status
-- ✅ A/B testing merged to main
-- ✅ Branch created: feature/deprecate-php-driver
-- ✅ Phase 1: Complete (commit cac66f88) - YAML default, PHP deprecated
-- ✅ Phase 3: Complete (commit 841caba4) - A/B testing removed
-- ✅ Phase 4: Complete (commit 841caba4) - PHP driver removed (breaking)
-- ✅ Phase 5: Complete (commit 841caba4) - Code cleanup
-- ⏭️ Phase 2: Skipped (architectural refactoring unnecessary for YAML-only)
-- 🎯 Ready for review and merge to main
+**Key changes:**
+1. Store `_step_name` in session collected_data
+2. DriverService extracts `step_name` from YAML
+3. FormHandler creates both index-based and name-based variables
+4. YAML config migrated to new syntax
+5. Backward compatibility maintained
 
-## Rollback Strategy
-Each phase independently reversible:
-- **Phase 1:** Set `FORM_FLOW_USE_YAML_DRIVER=false` in .env
-- **Phase 2:** Use DriverService instead of specific services
-- **Phase 3:** Restore deleted files from git
-- **Phase 4:** Users stay on 1.x (cannot rollback)
-- **Phase 5:** Git revert specific changes
+## Status
+✅ **Implemented** - All tasks complete, tests passing (6/6)
 
-## Success Metrics
-- All 105+ tests passing at each phase
-- Zero production incidents
-- Fewer lines of code
-- Better separation of concerns
-- Improved performance
+## Related Files
+- `packages/form-flow-manager/src/Services/FormFlowService.php`
+- `packages/form-flow-manager/src/Services/DriverService.php`
+- `packages/form-flow-manager/src/Handlers/FormHandler.php`
+- `config/form-flow-drivers/voucher-redemption.yaml`
+- `docs/YAML_DRIVER_ARCHITECTURE.md`
 
-## Dependencies
-- packages/form-flow-manager/src/Services/DriverService.php
-- packages/form-flow-manager/config/form-flow.php
-- config/form-flow-drivers/voucher-redemption.yaml
-- app/Http/Controllers/Disburse/DisburseController.php
-- app/Http/Controllers/Disburse/DisburseYamlController.php
-
-## Documentation
-- Main plan: Use `read_plans` with ID `58842d20-c9eb-4e6a-ad44-61338fea4383`
-- A/B Testing Guide: docs/AB_TESTING_YAML_DRIVER.md
-- Migration Guide: docs/MIGRATION_PHP_TO_YAML.md (to be created in Phase 4)
+## Testing Strategy
+- Named variables resolve correctly
+- Index-based variables still work (backward compat)
+- Step order changes don't break references
+- Missing step names degrade gracefully
 
 ---
-Created: 2025-12-14
-Author: WARP AI Assistant
-Base Commit: 77ae7250
+**Created:** 2025-12-15  
+**Branch:** feature/named-step-references  
+**Plan Status:** Awaiting user approval

@@ -156,6 +156,11 @@ class DriverService
                 'config' => [],
             ];
             
+            // Add step_name if present (for named references)
+            if (isset($stepConfig['step_name'])) {
+                $step['config']['step_name'] = $stepConfig['step_name'];
+            }
+            
             // Process title and description
             if (isset($stepConfig['title'])) {
                 $step['config']['title'] = $processor->process($stepConfig['title'], $context);

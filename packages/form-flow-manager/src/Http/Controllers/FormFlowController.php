@@ -203,8 +203,11 @@ class FormFlowController extends Controller
                 'collected_data' => $state['collected_data'] ?? [],
             ]);
             
+            // Inject step_name if present in config
+            $stepName = $stepData->config['step_name'] ?? null;
+            
             // Update the flow state with processed data
-            $state = $this->flowService->updateStepData($flowId, $step, $processedData);
+            $state = $this->flowService->updateStepData($flowId, $step, $processedData, $stepName);
             
             // Check if this is an Inertia request (has X-Inertia header)
             $isInertia = $request->header('X-Inertia');

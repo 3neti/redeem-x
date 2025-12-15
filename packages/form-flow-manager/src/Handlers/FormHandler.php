@@ -204,12 +204,25 @@ class FormHandler implements FormHandlerInterface
     {
         $variables = $config['variables'] ?? [];
         
-        // Auto-populate variables from collected data (Phase 2)
-        // Format: $step0_fieldname, $step1_fieldname
+        // Auto-populate variables from collected data
+        // Creates both index-based ($step0_fieldname) and name-based ($step_name.fieldname) variables
         foreach ($collectedData as $stepIndex => $stepData) {
             if (is_array($stepData)) {
+                $stepName = $stepData['_step_name'] ?? null;
+                
                 foreach ($stepData as $key => $value) {
+                    // Skip internal metadata
+                    if ($key === '_step_name') {
+                        continue;
+                    }
+                    
+                    // Index-based (backward compatibility)
                     $variables["\$step{$stepIndex}_{$key}"] = $value;
+                    
+                    // Name-based (new dot notation)
+                    if ($stepName) {
+                        $variables["\${$stepName}.{$key}"] = $value;
+                    }
                 }
             }
         }
