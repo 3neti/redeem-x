@@ -36,7 +36,12 @@ See plan ID: `efad54a4-3112-48ef-800e-a776f77b3cd2`
 5. Backward compatibility maintained
 
 ## Status
-✅ **Implemented** - All tasks complete, tests passing (6/6)
+✅ **Implemented & Tested** - All tasks complete, tests passing (6/6)
+✅ **Production Verified** - Real disbursement successful with named references
+
+## Bugfixes
+- Fixed missing amount on success page (commit 4578ae74)
+- Fixed amount formatting (pesos vs centavos) (commit b0cf15eb)
 
 ## Related Files
 - `packages/form-flow-manager/src/Services/FormFlowService.php`
