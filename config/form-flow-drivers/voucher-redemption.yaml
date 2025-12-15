@@ -69,6 +69,7 @@ steps:
         required: true
   
   # Step 2: Personal Information (bio fields)
+  # Note: These fields auto-populate from KYC if completed (uses $step5_* variables)
   bio:
     handler: "form"
     title: "Personal Information"
@@ -78,21 +79,25 @@ steps:
       - name: "full_name"
         type: "text"
         label: "Full Name"
+        default: "$step5_full_name"
         required: true
         condition: "{{ has_name }}"
       - name: "email"
         type: "email"
         label: "Email Address"
+        default: "$step5_email"
         required: true
         condition: "{{ has_email }}"
       - name: "birth_date"
         type: "date"
         label: "Birth Date"
+        default: "$step5_birth_date"
         required: true
         condition: "{{ has_birth_date }}"
       - name: "address"
         type: "textarea"
         label: "Address"
+        default: "$step5_address"
         required: false
         condition: "{{ has_address }}"
   
