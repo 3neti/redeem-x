@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -109,7 +109,11 @@ watch(
 // Auto-focus OTP input on mount
 const otpInputRef = ref<HTMLInputElement | null>(null);
 onMounted(() => {
-    otpInputRef.value?.focus();
+    // Use nextTick to ensure DOM is ready
+    nextTick(() => {
+        const input = document.getElementById('otp') as HTMLInputElement;
+        input?.focus();
+    });
 });
 </script>
 
@@ -147,7 +151,6 @@ onMounted(() => {
                         <Label for="otp">One-Time Password</Label>
                         <Input
                             id="otp"
-                            ref="otpInputRef"
                             v-model="form.otp_code"
                             type="text"
                             :maxlength="config.digits"
