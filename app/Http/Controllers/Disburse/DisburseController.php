@@ -179,12 +179,15 @@ class DisburseController extends Controller
      */
     public function success(Voucher $voucher): Response
     {
+        $amount = $voucher->instructions->cash->amount ?? 0;
+        $currency = $voucher->instructions->cash->currency ?? 'PHP';
+        
         return Inertia::render('disburse/Success', [
             'voucher' => [
                 'code' => $voucher->code,
-                'amount' => $voucher->amount,
-                'formatted_amount' => $voucher->formatted_amount,
-                'currency' => $voucher->currency,
+                'amount' => $amount,
+                'formatted_amount' => '₱' . number_format($amount / 100, 2),
+                'currency' => $currency,
             ],
         ]);
     }
