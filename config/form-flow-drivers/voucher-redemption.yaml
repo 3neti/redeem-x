@@ -19,8 +19,9 @@ callbacks:
   on_cancel: "{{ base_url }}/disburse"
 
 # Step definitions
+# IMPORTANT: KYC must come BEFORE BIO for auto-population to work
 steps:
-  # Step 1: Wallet information (always first)
+  # Step 0: Wallet information (always first)
   wallet:
     handler: "form"
     title: "Wallet Information"
@@ -68,36 +69,51 @@ steps:
         placeholder: "1234567890"
         required: true
   
+  # Step 1: KYC verification (MUST be before BIO for auto-population)
+  kyc:
+    handler: "kyc"
+    title: "Identity Verification"
+    description: "Complete identity verification to proceed"
+    condition: "{{ has_kyc }}"
+  
   # Step 2: Personal Information (bio fields)
-  # Note: These fields auto-populate from KYC if completed (uses $step5_* variables)
+  # Auto-populates from KYC if completed (variable names depend on actual step index)
   bio:
     handler: "form"
     title: "Personal Information"
     description: "Please provide your details"
     condition: "{{ has_name or has_email or has_birth_date or has_address }}"
+    config:
+      # Use variables from collected data - step index is dynamic
+      # If KYC is step 1, use $step1_*
+      variables:
+        $kyc_name: "$step1_full_name"
+        $kyc_email: "$step1_email"
+        $kyc_birth: "$step1_birth_date"
+        $kyc_addr: "$step1_address"
     fields:
       - name: "full_name"
         type: "text"
         label: "Full Name"
-        default: "$step5_full_name"
+        default: "$kyc_name"
         required: true
         condition: "{{ has_name }}"
       - name: "email"
         type: "email"
         label: "Email Address"
-        default: "$step5_email"
+        default: "$kyc_email"
         required: true
         condition: "{{ has_email }}"
       - name: "birth_date"
         type: "date"
         label: "Birth Date"
-        default: "$step5_birth_date"
+        default: "$kyc_birth"
         required: true
         condition: "{{ has_birth_date }}"
       - name: "address"
         type: "textarea"
         label: "Address"
-        default: "$step5_address"
+        default: "$kyc_addr"
         required: false
         condition: "{{ has_address }}"
   
@@ -133,10 +149,3 @@ steps:
       height: 256
       quality: 0.85
       line_width: 2
-  
-  # Step 6: KYC verification
-  kyc:
-    handler: "kyc"
-    title: "Identity Verification"
-    description: "Complete identity verification to proceed"
-    condition: "{{ has_kyc }}"
