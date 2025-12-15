@@ -186,7 +186,7 @@ class DisburseController extends Controller
             'voucher' => [
                 'code' => $voucher->code,
                 'amount' => $amount,
-                'formatted_amount' => '₱' . number_format($amount / 100, 2),
+                'formatted_amount' => '₱' . number_format($amount, 2),
                 'currency' => $currency,
             ],
         ]);
