@@ -25,6 +25,15 @@ steps:
     handler: "form"
     title: "Wallet Information"
     description: "Redeeming voucher {{ code }} - {{ amount | format_money }} from {{ owner_name }}"
+    config:
+      auto_sync:
+        enabled: true
+        source_field: "mobile"
+        target_field: "account_number"
+        condition_field: "settlement_rail"
+        condition_values:
+          - "INSTAPAY"
+        debounce_ms: 1500
     fields:
       - name: "amount"
         type: "number"
@@ -66,7 +75,7 @@ steps:
     description: "Please provide your details"
     condition: "{{ has_name or has_email or has_birth_date or has_address }}"
     fields:
-      - name: "name"
+      - name: "full_name"
         type: "text"
         label: "Full Name"
         required: true
