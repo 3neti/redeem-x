@@ -32,7 +32,11 @@ class GenerateOtp
         // Create TOTP instance using generate method
         $totp = TOTP::generate();
         
-        $totp->setLabel($mobile);
+        // Set label only if mobile is not empty
+        if (!empty($mobile)) {
+            $totp->setLabel($mobile);
+        }
+        
         $totp->setPeriod($this->period);
         $totp->setDigits($this->digits);
         

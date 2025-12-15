@@ -78,7 +78,16 @@ class OtpHandler implements FormHandlerInterface
     public function render(FormFlowStepData $step, array $context = [])
     {
         $referenceId = $context['flow_id'] ?? $context['reference_id'] ?? 'unknown';
+        
+        // Get mobile from context or from collected data
         $mobile = $context['mobile'] ?? '';
+        
+        // If not in context, try to get from session collected data (from wallet_info step)
+        if (empty($mobile) && isset($context['flow_id'])) {
+            $flowState = Session::get("form_flow.{$context['flow_id']}");
+            $mobile = $flowState['collected_data']['wallet_info']['mobile'] ?? 
+                      $flowState['collected_data']['mobile'] ?? '';
+        }
         
         // Generate OTP on first visit (if not already generated)
         $sessionKey = "otp_sent.{$referenceId}";
