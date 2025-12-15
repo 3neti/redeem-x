@@ -17,19 +17,23 @@ return [
     |--------------------------------------------------------------------------
     |
     | The SMS provider to use for sending OTP codes.
-    | Supported: 'engagespark', 'nexmo'
+    | Supported: 'txtcmdr', 'engagespark', 'nexmo'
     |
     */
     'sms_provider' => env('OTP_SMS_PROVIDER', 'engagespark'),
     
     /*
     |--------------------------------------------------------------------------
-    | EngageSpark Configuration
+    | SMS Provider Configuration
     |--------------------------------------------------------------------------
     |
-    | EngageSpark API credentials for SMS delivery.
+    | Configuration for different SMS providers.
     |
     */
+    'txtcmdr' => [
+        'sender_id' => env('TXTCMDR_DEFAULT_SENDER_ID', config('sms.txtcmdr.sender_id', 'cashless')),
+    ],
+    
     'engagespark' => [
         'api_key' => env('ENGAGESPARK_API_KEY', config('sms.engagespark.api_key')),
         'org_id' => env('ENGAGESPARK_ORG_ID', config('sms.engagespark.org_id')),

@@ -17,7 +17,8 @@ class SmsService
         protected string $provider = 'engagespark',
         protected ?string $senderId = null,
     ) {
-        $this->senderId = $senderId ?? config('otp-handler.engagespark.sender_id', 'cashless');
+        // Get sender ID from provider-specific config
+        $this->senderId = $senderId ?? config("otp-handler.{$provider}.sender_id", 'cashless');
     }
     
     /**
