@@ -29,10 +29,8 @@ class GenerateOtp
      */
     public function execute(string $referenceId, string $mobile): array
     {
-        // Create TOTP instance
-        $totp = TOTP::createFromSecret(
-            base32_encode(random_bytes(32))
-        );
+        // Create TOTP instance using generate method
+        $totp = TOTP::generate();
         
         $totp->setLabel($mobile);
         $totp->setPeriod($this->period);
@@ -52,25 +50,4 @@ class GenerateOtp
             'expires_at' => $ttl->toIso8601String(),
         ];
     }
-}
-
-/**
- * Helper function for base32 encoding
- */
-function base32_encode(string $data): string
-{
-    $base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    $bits = '';
-    
-    foreach (str_split($data) as $char) {
-        $bits .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
-    }
-    
-    $result = '';
-    foreach (str_split($bits, 5) as $chunk) {
-        $chunk = str_pad($chunk, 5, '0');
-        $result .= $base32chars[bindec($chunk)];
-    }
-    
-    return $result;
 }
