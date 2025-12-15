@@ -106,6 +106,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./packages/form-handler-otp",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -132,6 +139,7 @@
         "lbhurtado/form-handler-selfie": "@dev",
         "lbhurtado/form-handler-signature": "@dev",
         "lbhurtado/form-handler-kyc": "@dev",
+        "lbhurtado/form-handler-otp": "@dev",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",
         "php-http/discovery": "^1.14",
