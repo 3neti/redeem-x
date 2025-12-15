@@ -35,6 +35,13 @@ class OtpHandlerServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register console commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \LBHurtado\FormHandlerOtp\Console\TestOtpCommand::class,
+            ]);
+        }
+        
         // Register test routes (only in local/testing)
         if (!$this->app->isProduction()) {
             $this->loadRoutesFrom(__DIR__.'/../routes/test.php');
