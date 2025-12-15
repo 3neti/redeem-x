@@ -86,10 +86,11 @@ steps:
     config:
       # Use variables from collected data - step index is dynamic
       # If KYC is step 1, use $step1_*
+      # KYC handler returns: name, date_of_birth, address (see KYCHandler::flattenKYCData)
       variables:
-        $kyc_name: "$step1_full_name"
+        $kyc_name: "$step1_name"
         $kyc_email: "$step1_email"
-        $kyc_birth: "$step1_birth_date"
+        $kyc_birth: "$step1_date_of_birth"
         $kyc_addr: "$step1_address"
     fields:
       - name: "full_name"
