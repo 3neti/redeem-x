@@ -150,7 +150,13 @@ class FormFlowController extends Controller
         $handlerClass = $this->getHandlerClass($stepData->handler);
         
         if (!$handlerClass) {
-            abort(500, "Handler not found: {$stepData->handler}");
+            // Fallback to MissingHandler instead of crashing
+            $handlerClass = \LBHurtado\FormFlowManager\Handlers\MissingHandler::class;
+            \Log::warning('[FormFlow] Missing handler at runtime', [
+                'handler' => $stepData->handler,
+                'flow_id' => $flowId,
+                'step_index' => $currentStepIndex,
+            ]);
         }
         
         $handler = app($handlerClass);
@@ -190,7 +196,13 @@ class FormFlowController extends Controller
             $handlerClass = $this->getHandlerClass($stepData->handler);
             
             if (!$handlerClass) {
-                throw new \RuntimeException("Handler not found: {$stepData->handler}");
+                // Fallback to MissingHandler instead of throwing
+                $handlerClass = \LBHurtado\FormFlowManager\Handlers\MissingHandler::class;
+                \Log::warning('[FormFlow] Missing handler at runtime (updateStep)', [
+                    'handler' => $stepData->handler,
+                    'flow_id' => $flowId,
+                    'step_index' => $step,
+                ]);
             }
             
             $handler = app($handlerClass);

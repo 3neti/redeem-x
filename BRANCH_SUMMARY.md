@@ -1,62 +1,91 @@
-# Branch: feature/named-step-references
+# Branch: feature/handler-auto-discovery
 
 ## Overview
-Implements **named step references** for order-independent variable resolution in form flows. This solves the problem where changing step order breaks hardcoded index-based references like `$step1_name`.
+Implements **graceful fallbacks for missing handler plugins** to prevent 500 errors when optional handlers (like OTP, signature, selfie) are not installed.
 
 ## Problem
-Currently, BIO step references KYC data using:
-```yaml
-variables:
-  $kyc_name: "$step1_name"  # Hardcoded to step index 1
+Currently, if a handler is not installed, the app crashes with:
+```
+500 Server Error: Handler not found: otp
 ```
 
-If a new step is added before KYC, the index shifts and the reference breaks.
+This affects:
+- Development (testing without all dependencies)
+- Staging (partial feature rollout)
+- Production incidents (package conflicts)
 
 ## Solution
-Enable semantic, name-based references:
-```yaml
-steps:
-  kyc:
-    step_name: "kyc_verification"  # Named identifier
-  bio:
-    step_name: "bio_fields"
-    config:
-      variables:
-        $name: "$kyc_verification.name"  # Name-based reference
-```
+**Three-Layer Defense Strategy:**
+
+### Layer 1: Build-Time Validation
+DriverService checks handler availability during YAML transformation and creates fallback steps for missing handlers.
+
+### Layer 2: Runtime Graceful Degradation
+MissingHandler shows environment-aware fallback pages:
+- **Production:** User-friendly error with support contact
+- **Development:** Warning with installation hint + skip button
+
+### Layer 3: Logging & Monitoring
+All missing handler events are logged for alerting and monitoring.
 
 ## Implementation Plan
-See plan ID: `efad54a4-3112-48ef-800e-a776f77b3cd2`
+See plan ID: `48222eba-5f75-4d6d-ac95-fa79c438ca51`
 
 **Key changes:**
-1. Store `_step_name` in session collected_data
-2. DriverService extracts `step_name` from YAML
-3. FormHandler creates both index-based and name-based variables
-4. YAML config migrated to new syntax
-5. Backward compatibility maintained
+1. Create MissingHandler class
+2. Add handler validation to DriverService
+3. Update FormFlowController error handling
+4. Create MissingHandler.vue fallback page
+5. Add comprehensive tests
 
 ## Status
-✅ **Implemented & Tested** - All tasks complete, tests passing (6/6)
-✅ **Production Verified** - Real disbursement successful with named references
+🟡 **Awaiting Approval** - Plan created, not yet executed
 
-## Bugfixes
-- Fixed missing amount on success page (commit 4578ae74)
-- Fixed amount formatting (pesos vs centavos) (commit b0cf15eb)
+## UX Examples
+
+### Production (Missing OTP Handler)
+```
+⚠️ Phone Verification Unavailable
+
+This voucher requires phone verification,
+but the verification system is temporarily unavailable.
+
+Voucher Code: 2ZPH
+Reference: HANDLER-OTP-MISSING
+
+[Contact Support]
+```
+
+### Development (Missing OTP Handler)
+```
+🛠️ Handler Missing: otp
+
+The 'otp' handler is not installed.
+
+Install command:
+  composer require lbhurtado/form-handler-otp
+
+This step has been automatically skipped.
+
+[Continue Anyway] [View Docs]
+```
 
 ## Related Files
-- `packages/form-flow-manager/src/Services/FormFlowService.php`
+- `packages/form-flow-manager/src/Handlers/MissingHandler.php` (new)
 - `packages/form-flow-manager/src/Services/DriverService.php`
-- `packages/form-flow-manager/src/Handlers/FormHandler.php`
-- `config/form-flow-drivers/voucher-redemption.yaml`
-- `docs/YAML_DRIVER_ARCHITECTURE.md`
+- `packages/form-flow-manager/src/Http/Controllers/FormFlowController.php`
+- `resources/js/pages/form-flow/core/MissingHandler.vue` (new)
+- `tests/Feature/HandlerAutoDiscoveryTest.php` (new)
 
-## Testing Strategy
-- Named variables resolve correctly
-- Index-based variables still work (backward compat)
-- Step order changes don't break references
-- Missing step names degrade gracefully
+## Benefits
+- ✅ No more 500 errors for missing handlers
+- ✅ Development workflows without all dependencies
+- ✅ Clear installation instructions
+- ✅ Production users see helpful messages
+- ✅ Monitoring via logs
+- ✅ Zero breaking changes
 
 ---
 **Created:** 2025-12-15  
-**Branch:** feature/named-step-references  
+**Branch:** feature/handler-auto-discovery  
 **Plan Status:** Awaiting user approval

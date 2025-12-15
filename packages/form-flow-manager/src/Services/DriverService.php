@@ -95,6 +95,7 @@ class DriverService
             'has_selfie' => in_array('selfie', $fieldNames),
             'has_signature' => in_array('signature', $fieldNames),
             'has_kyc' => in_array('kyc', $fieldNames),
+            'has_otp' => in_array('otp', $fieldNames),
             
             // Full voucher data for advanced templates
             'voucher' => [
@@ -150,9 +151,23 @@ class DriverService
                 }
             }
             
+            $handlerName = $stepConfig['handler'] ?? 'form';
+            
+            // Check if handler is available
+            if (!$this->isHandlerAvailable($handlerName)) {
+                // Create fallback step for missing handler
+                $step = $this->createMissingHandlerStep(
+                    $handlerName,
+                    $stepConfig['title'] ?? 'Unknown Step',
+                    $stepConfig
+                );
+                $steps[] = $step;
+                continue;
+            }
+            
             // Process step configuration
             $step = [
-                'handler' => $stepConfig['handler'] ?? 'form',
+                'handler' => $handlerName,
                 'config' => [],
             ];
             
@@ -234,5 +249,72 @@ class DriverService
         
         // 'true' or any non-empty string = true
         return true;
+    }
+    
+    /**
+     * Check if handler is available
+     */
+    protected function isHandlerAvailable(string $handlerName): bool
+    {
+        $handlerClass = $this->getHandlerClass($handlerName);
+        return $handlerClass && class_exists($handlerClass);
+    }
+    
+    /**
+     * Get handler class from name
+     */
+    protected function getHandlerClass(string $handlerName): ?string
+    {
+        // Reuse FormFlowController's logic
+        $configHandlers = config('form-flow.handlers', []);
+        $builtInHandlers = [
+            'form' => \LBHurtado\FormFlowManager\Handlers\FormHandler::class,
+            'missing' => \LBHurtado\FormFlowManager\Handlers\MissingHandler::class,
+        ];
+        $handlers = array_merge($builtInHandlers, $configHandlers);
+        return $handlers[$handlerName] ?? null;
+    }
+    
+    /**
+     * Create fallback step for missing handler
+     */
+    protected function createMissingHandlerStep(
+        string $handlerName,
+        string $title,
+        array $originalConfig
+    ): array {
+        $config = [
+            'missing_handler_name' => $handlerName,
+            'missing_handler_title' => $title,
+            'original_config' => $originalConfig,
+            'install_hint' => $this->getInstallHint($handlerName),
+        ];
+        
+        // Preserve step_name if present
+        if (isset($originalConfig['step_name'])) {
+            $config['step_name'] = $originalConfig['step_name'];
+        }
+        
+        return [
+            'handler' => 'missing',
+            'config' => $config,
+        ];
+    }
+    
+    /**
+     * Get installation hint for handler
+     */
+    protected function getInstallHint(string $handlerName): string
+    {
+        $packageMap = [
+            'kyc' => 'lbhurtado/form-handler-kyc',
+            'location' => 'lbhurtado/form-handler-location',
+            'otp' => 'lbhurtado/form-handler-otp',
+            'signature' => 'lbhurtado/form-handler-signature',
+            'selfie' => 'lbhurtado/form-handler-selfie',
+        ];
+        
+        $package = $packageMap[$handlerName] ?? "lbhurtado/form-handler-{$handlerName}";
+        return "composer require {$package}";
     }
 }

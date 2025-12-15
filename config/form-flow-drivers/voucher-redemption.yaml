@@ -120,7 +120,18 @@ steps:
         required: false
         condition: "{{ has_address }}"
   
-  # Step 3: Location capture
+  # Step 3: OTP verification (not installed - will trigger error)
+  otp:
+    handler: "otp"
+    step_name: "otp_verification"
+    title: "Verify Phone Number"
+    description: "Enter the verification code sent to your phone"
+    condition: "{{ has_otp }}"
+    config:
+      code_length: 6
+      expiry_minutes: 5
+  
+  # Step 4: Location capture
   location:
     handler: "location"
     step_name: "location_capture"

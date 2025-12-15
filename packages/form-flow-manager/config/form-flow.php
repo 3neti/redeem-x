@@ -55,6 +55,7 @@ return [
     |
     */
     'handlers' => [
-        // Example: 'location' => \App\FormHandlers\LocationHandler::class,
+        'missing' => \LBHurtado\FormFlowManager\Handlers\MissingHandler::class,
+        // Plugin handlers register themselves via service providers
     ],
 ];
