@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace LBHurtado\FormHandlerOtp\Services;
 
-use LBHurtado\SMS\Facades\SMS;
+use Illuminate\Notifications\AnonymousNotifiable;
+use LBHurtado\FormHandlerOtp\Notifications\SendOtpNotification;
 
 /**
  * SMS Service
@@ -31,12 +32,9 @@ class SmsService
      */
     public function sendOtp(string $mobile, string $otp, string $appName): void
     {
-        $message = "{$otp} is your authentication code. Do not share.\n- {$appName}";
-        
-        SMS::channel($this->provider)
-            ->from($this->senderId)
-            ->to($mobile)
-            ->content($message)
-            ->send();
+        // Use Laravel Notifications with EngageSpark channel (like x-change)
+        (new AnonymousNotifiable)->notify(
+            new SendOtpNotification($mobile, $otp, $appName)
+        );
     }
 }
