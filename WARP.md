@@ -639,6 +639,62 @@ php artisan config:cache
 
 See `docs/OMNIPAY_INTEGRATION_PLAN.md` for detailed architecture and migration guide.
 
+### Disbursement Failure Alerting & Audit Trail
+**Comprehensive system for tracking and alerting on disbursement failures:**
+
+**Phase 1: Immediate Alerting** ✅
+- Real-time email notifications to admins/support when disbursements fail
+- Configurable via `DISBURSEMENT_ALERT_ENABLED` and `DISBURSEMENT_ALERT_EMAILS`
+- Email includes: voucher code, amount, redeemer mobile, error message, timestamp
+- Non-blocking queued delivery (doesn't impact redemption flow)
+
+**Phase 2: Audit Trail Database** ✅
+- Every disbursement attempt logged in `disbursement_attempts` table
+- Tracks: status (pending/success/failed), error details, request/response payloads
+- Stored in payment-gateway package for reusability across projects
+- Scopes for reporting: `failed()`, `success()`, `recent()`, `byGateway()`, `byErrorType()`
+
+**Configuration:**
+```bash
+# .env
+DISBURSEMENT_ALERT_ENABLED=true
+DISBURSEMENT_ALERT_EMAILS=support@example.com,ops@example.com
+```
+
+**Key Features:**
+- **Customer Service**: Immediate notification enables fast response to user issues
+- **Bank Reconciliation**: Complete audit trail with reference IDs matching bank reports
+- **Pattern Analysis**: Query failed attempts by error type, gateway, time period
+- **Accountability**: Immutable record of all disbursement attempts
+- **Package Architecture**: Audit infrastructure in payment-gateway package (reusable), notification logic in host app (customizable)
+
+**Database Schema:**
+```sql
+-- Stores in packages/payment-gateway/database/migrations/
+CREATE TABLE disbursement_attempts (
+    id, voucher_id, user_id, voucher_code, amount, currency, mobile,
+    bank_code, account_number, settlement_rail, gateway,
+    reference_id UNIQUE, gateway_transaction_id,
+    status, error_type, error_message, error_details (JSON),
+    request_payload (JSON), response_payload (JSON),
+    attempted_at, completed_at, timestamps
+);
+```
+
+**Usage Examples:**
+```php
+// Query failed disbursements
+$failures = DisbursementAttempt::failed()->recent(7)->get();
+
+// Get timeout errors
+$timeouts = DisbursementAttempt::byErrorType('network_timeout')->count();
+
+// Find by reference for bank reconciliation
+$attempt = DisbursementAttempt::where('reference_id', 'ABC-09171234567')->first();
+```
+
+See `docs/DISBURSEMENT_FAILURE_ALERTS.md` for complete documentation.
+
 ### Top-Up / Direct Checkout System
 **Hybrid Architecture** allows users to add funds to their wallet via NetBank Direct Checkout:
 
