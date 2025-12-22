@@ -17,8 +17,21 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
      */
     public function __construct(
         protected Voucher $voucher,
-        protected \Throwable $exception
+        protected string $errorMessage,
+        protected string $errorType
     ) {}
+    
+    /**
+     * Create from exception (convenience method)
+     */
+    public static function fromException(Voucher $voucher, \Throwable $exception): self
+    {
+        return new self(
+            $voucher,
+            $exception->getMessage(),
+            get_class($exception)
+        );
+    }
 
     /**
      * Get the notification's delivery channels.
@@ -47,7 +60,7 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
             ->line('**Voucher Code:** ' . $this->voucher->code)
             ->line('**Amount:** ' . $amount)
             ->line('**Redeemer Mobile:** ' . $mobile)
-            ->line('**Error:** ' . $this->exception->getMessage())
+            ->line('**Error:** ' . $this->errorMessage)
             ->line('**Time:** ' . now()->format('F j, Y g:i A'))
             ->action('View Voucher Details', url('/vouchers/' . $this->voucher->id))
             ->line('Please investigate and take appropriate action for customer support.');
@@ -64,8 +77,8 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
             'voucher_id' => $this->voucher->id,
             'voucher_code' => $this->voucher->code,
             'amount' => $this->voucher->cash?->amount,
-            'error_message' => $this->exception->getMessage(),
-            'error_type' => get_class($this->exception),
+            'error_message' => $this->errorMessage,
+            'error_type' => $this->errorType,
             'occurred_at' => now()->toIso8601String(),
         ];
     }

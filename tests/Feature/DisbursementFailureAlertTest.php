@@ -108,7 +108,7 @@ test('disbursement failed notification contains voucher details', function () {
     $code = $voucher->code; // Use actual generated code
     $exception = new \RuntimeException('Gateway error occurred');
     
-    $notification = new DisbursementFailedNotification($voucher, $exception);
+    $notification = DisbursementFailedNotification::fromException($voucher, $exception);
     
     // Check array representation (skip toMail since it requires contacts relationship)
     $array = $notification->toArray($user);

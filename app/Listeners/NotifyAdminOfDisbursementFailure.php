@@ -29,19 +29,24 @@ class NotifyAdminOfDisbursementFailure
 
         // Send notification to admins
         if ($admins->isNotEmpty()) {
-            Notification::send($admins, new DisbursementFailedNotification(
-                $event->voucher,
-                $event->exception
-            ));
+            Notification::send(
+                $admins,
+                DisbursementFailedNotification::fromException(
+                    $event->voucher,
+                    $event->exception
+                )
+            );
         }
 
         // Send to configured email addresses if no admin users found
         if ($admins->isEmpty() && !empty($emails)) {
             Notification::route('mail', $emails)
-                ->notify(new DisbursementFailedNotification(
-                    $event->voucher,
-                    $event->exception
-                ));
+                ->notify(
+                    DisbursementFailedNotification::fromException(
+                        $event->voucher,
+                        $event->exception
+                    )
+                );
         }
     }
 }
