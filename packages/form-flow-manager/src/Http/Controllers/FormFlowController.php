@@ -135,11 +135,38 @@ class FormFlowController extends Controller
                 ]);
             }
             
+            // Detect if this is a disburse flow and fetch rider data
+            $riderData = null;
+            $redirectTimeout = config('redeem.success.redirect.timeout', 10);
+            
+            if (isset($state['reference_id']) && str_starts_with($state['reference_id'], 'disburse-')) {
+                // Extract voucher code from reference_id (format: disburse-{CODE}-{timestamp})
+                $parts = explode('-', $state['reference_id']);
+                $voucherCode = implode('-', array_slice($parts, 1, -1));
+                
+                try {
+                    $voucher = \LBHurtado\Voucher\Models\Voucher::where('code', $voucherCode)->first();
+                    if ($voucher && $voucher->instructions->rider) {
+                        $riderData = [
+                            'message' => $voucher->instructions->rider->message ?? null,
+                            'url' => $voucher->instructions->rider->url ?? null,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('[FormFlowController] Failed to fetch rider data', [
+                        'voucher_code' => $voucherCode,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            
             // Render a completion page or redirect
             return inertia('form-flow/core/Complete', [
                 'flow_id' => $flowId,
                 'state' => $state,
                 'callback_triggered' => $callbackUrl !== null,
+                'rider' => $riderData,
+                'redirect_timeout' => $redirectTimeout,
             ]);
         }
         

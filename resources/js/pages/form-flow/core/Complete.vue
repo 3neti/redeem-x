@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
-import { CheckCircle2, Clock, AlertCircle } from 'lucide-vue-next';
-import { computed, ref, onUnmounted } from 'vue';
+import { CheckCircle2, Clock, AlertCircle, ExternalLink } from 'lucide-vue-next';
+import { computed, ref, onUnmounted, onMounted } from 'vue';
 
 interface Props {
     flow_id: string;
@@ -15,6 +15,11 @@ interface Props {
         completed_at: string;
     };
     callback_triggered: boolean;
+    rider?: {
+        message?: string;
+        url?: string;
+    } | null;
+    redirect_timeout?: number;
 }
 
 const props = defineProps<Props>();
@@ -38,6 +43,14 @@ const voucherCode = computed(() => {
     // Remove 'disburse' prefix and timestamp suffix
     return parts.slice(1, -1).join('-');
 });
+
+// Rider redirect logic
+const hasRiderUrl = computed(() => !!(props.rider?.url));
+const riderMessage = computed(() => props.rider?.message || 'Thank you! Your redemption is being processed.');
+const redirectTimeoutSecs = computed(() => props.redirect_timeout ?? 10);
+const countdown = ref(redirectTimeoutSecs.value);
+const isRedirecting = ref(false);
+let countdownInterval: number | null = null;
 
 // Progress percentage (0-100)
 const progress = computed(() => {
@@ -86,6 +99,12 @@ function handleClose() {
         errorMessage.value = '';
         startTimer();
         
+        // Stop countdown if running
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        
         // POST to redeem endpoint with flow_id and reference_id
         router.post(`/disburse/${voucherCode.value}/redeem`, {
             flow_id: props.flow_id,
@@ -103,9 +122,16 @@ function handleClose() {
                 }, 3000);
             },
             onSuccess: () => {
-                // Success - stop timer and allow immediate redirect
+                // Success - stop timer
                 stopTimer();
                 isProcessing.value = false;
+                
+                // If rider URL exists, redirect to it
+                if (hasRiderUrl.value && props.rider?.url) {
+                    isRedirecting.value = true;
+                    window.location.href = props.rider.url;
+                }
+                // Otherwise Inertia will handle navigation automatically
             },
         });
     } else {
@@ -114,11 +140,39 @@ function handleClose() {
     }
 }
 
+function startCountdown() {
+    countdown.value = redirectTimeoutSecs.value;
+    countdownInterval = window.setInterval(() => {
+        countdown.value--;
+        if (countdown.value <= 0) {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            handleClose();
+        }
+    }, 1000);
+}
+
+const countdownMessage = computed(() => {
+    return `Redirecting in ${countdown.value} second${countdown.value !== 1 ? 's' : ''}...`;
+});
+
+// Start countdown on mount if rider URL exists
+onMounted(() => {
+    if (hasRiderUrl.value && props.rider?.url && redirectTimeoutSecs.value > 0) {
+        startCountdown();
+    }
+});
+
 // Cleanup on unmount
 onUnmounted(() => {
     stopTimer();
     if (redirectTimeout) {
         clearTimeout(redirectTimeout);
+    }
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
     }
 });
 </script>
@@ -210,12 +264,40 @@ onUnmounted(() => {
                     <div class="flex justify-center mb-4">
                         <CheckCircle2 class="h-16 w-16 text-green-500" />
                     </div>
-                    <CardTitle class="text-2xl">Form Flow Completed!</CardTitle>
+                    <CardTitle class="text-2xl">
+                        {{ hasRiderUrl ? 'Redemption Complete!' : 'Form Flow Completed!' }}
+                    </CardTitle>
                     <CardDescription>
-                        Your submission has been received successfully.
+                        {{ hasRiderUrl ? riderMessage : 'Your submission has been received successfully.' }}
                     </CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-6">
+                    <!-- Rider Redirect Section -->
+                    <template v-if="hasRiderUrl && !isRedirecting">
+                        <div class="text-center space-y-4">
+                            <p class="text-sm text-muted-foreground">
+                                {{ countdownMessage }}
+                            </p>
+                            <Button 
+                                @click="handleClose" 
+                                variant="default"
+                                class="w-full"
+                            >
+                                Continue Now
+                                <ExternalLink :size="16" class="ml-2" />
+                            </Button>
+                        </div>
+                    </template>
+                    
+                    <!-- Redirecting State -->
+                    <template v-else-if="isRedirecting">
+                        <div class="text-center">
+                            <p class="text-sm text-muted-foreground">Redirecting...</p>
+                        </div>
+                    </template>
+                    
+                    <!-- Default Flow Complete View -->
+                    <template v-else-if="!hasRiderUrl">
                     <!-- Reference ID -->
                     <div class="bg-muted p-4 rounded-lg">
                         <p class="text-sm font-medium text-muted-foreground">Reference ID</p>
@@ -245,6 +327,7 @@ onUnmounted(() => {
                             {{ isDisburseFlow ? 'Confirm Redemption' : 'Back to Demo' }}
                         </Button>
                     </div>
+                    </template>
                 </CardContent>
             </template>
         </Card>
