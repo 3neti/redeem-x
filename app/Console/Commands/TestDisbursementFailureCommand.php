@@ -103,7 +103,7 @@ class TestDisbursementFailureCommand extends Command
         $this->newLine();
 
         // 5. Fire the DisbursementFailed event (triggers notification)
-        event(new DisbursementFailed($voucher, $exception));
+        event(new DisbursementFailed($voucher, $exception, $contact->mobile));
 
         $this->info('✓ Fired DisbursementFailed event');
         $this->newLine();

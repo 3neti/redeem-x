@@ -18,18 +18,20 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
     public function __construct(
         protected Voucher $voucher,
         protected string $errorMessage,
-        protected string $errorType
+        protected string $errorType,
+        protected ?string $mobile = null
     ) {}
     
     /**
      * Create from exception (convenience method)
      */
-    public static function fromException(Voucher $voucher, \Throwable $exception): self
+    public static function fromException(Voucher $voucher, \Throwable $exception, ?string $mobile = null): self
     {
         return new self(
             $voucher,
             $exception->getMessage(),
-            get_class($exception)
+            get_class($exception),
+            $mobile
         );
     }
 
@@ -48,8 +50,10 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $contact = $this->voucher->contacts->first();
-        $mobile = $contact?->mobile ?? 'Unknown';
+        // Refresh voucher to get latest cash entity in queued context
+        $this->voucher->refresh();
+        
+        $mobile = $this->mobile ?? 'Unknown';
         $amount = $this->voucher->cash?->formatted_amount ?? 'Unknown';
         
         return (new MailMessage)

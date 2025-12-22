@@ -13,6 +13,7 @@ class DisbursementFailed
 
     public function __construct(
         public Voucher $voucher,
-        public \Throwable $exception
+        public \Throwable $exception,
+        public ?string $mobile = null
     ) {}
 }
