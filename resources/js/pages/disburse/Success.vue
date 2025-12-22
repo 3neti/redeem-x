@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
+import { router, Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2 } from 'lucide-vue-next';
+import { CheckCircle2, ExternalLink } from 'lucide-vue-next';
 
 interface Props {
     voucher: {
@@ -11,9 +12,50 @@ interface Props {
         formatted_amount: string;
         currency: string;
     };
+    rider?: {
+        message?: string;
+        url?: string;
+    };
+    redirect_timeout?: number;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const countdown = ref(0);
+const isRedirecting = ref(false);
+
+const hasRiderUrl = computed(() => !!props.rider?.url);
+
+const displayMessage = computed(() => {
+    return props.rider?.message || 'The funds will be disbursed to your account shortly. You will receive a confirmation via SMS and email.';
+});
+
+const countdownMessage = computed(() => {
+    return `You will be redirected in ${countdown.value} second${countdown.value !== 1 ? 's' : ''}...`;
+});
+
+const handleRedirect = () => {
+    if (!props.rider?.url) return;
+    isRedirecting.value = true;
+    window.location.href = props.rider.url;
+};
+
+onMounted(() => {
+    // Start countdown if rider URL exists
+    if (hasRiderUrl.value && props.rider?.url) {
+        const timeout = (props.redirect_timeout ?? 10) * 1000; // Convert to milliseconds
+        countdown.value = Math.ceil(timeout / 1000);
+
+        const interval = setInterval(() => {
+            countdown.value--;
+            if (countdown.value <= 0) clearInterval(interval);
+        }, 1000);
+
+        setTimeout(() => {
+            handleRedirect();
+        }, timeout);
+    }
+});
 </script>
 
 <template>
@@ -43,14 +85,37 @@ defineProps<Props>();
                     </div>
                     
                     <p class="text-sm text-muted-foreground text-center">
-                        The funds will be disbursed to your account shortly. You will receive a confirmation via SMS and email.
+                        {{ displayMessage }}
                     </p>
                     
-                    <div class="flex gap-3">
-                        <Button variant="outline" class="flex-1" @click="$inertia.visit('/')">
+                    <!-- Redirect Section (with countdown) -->
+                    <div v-if="hasRiderUrl && !isRedirecting" class="space-y-3 pt-2">
+                        <div class="text-center">
+                            <p class="text-xs text-muted-foreground">
+                                {{ countdownMessage }}
+                            </p>
+                        </div>
+                        <Button 
+                            class="w-full" 
+                            @click="handleRedirect">
+                            Continue Now
+                            <ExternalLink :size="16" class="ml-2" />
+                        </Button>
+                    </div>
+
+                    <!-- Redirecting State -->
+                    <div v-else-if="hasRiderUrl && isRedirecting" class="text-center pt-2">
+                        <p class="text-sm text-muted-foreground">
+                            Redirecting...
+                        </p>
+                    </div>
+
+                    <!-- Default Actions (no rider URL) -->
+                    <div v-else class="flex gap-3">
+                        <Button variant="outline" class="flex-1" @click="router.visit('/')">
                             Go to Dashboard
                         </Button>
-                        <Button class="flex-1" @click="$inertia.visit('/disburse')">
+                        <Button class="flex-1" @click="router.visit('/disburse')">
                             Redeem Another
                         </Button>
                     </div>

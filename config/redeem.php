@@ -236,7 +236,7 @@ return [
         // Redirect/countdown (subtle, low priority)
         'show_redirect' => env('REDEEM_SUCCESS_SHOW_REDIRECT', true),
         'redirect' => [
-            'timeout' => env('REDEEM_SUCCESS_REDIRECT_TIMEOUT', 0), // seconds (0 = manual only, no auto-redirect)
+            'timeout' => env('REDEEM_SUCCESS_REDIRECT_TIMEOUT', 10), // seconds (0 = manual only, no auto-redirect)
             'style' => env('REDEEM_SUCCESS_REDIRECT_STYLE', 'subtle'), // 'subtle', 'normal', 'prominent'
 
             'show_countdown' => env('REDEEM_SUCCESS_SHOW_COUNTDOWN', true),

@@ -211,6 +211,11 @@ class DisburseController extends Controller
                 'formatted_amount' => '₱' . number_format($amount, 2),
                 'currency' => $currency,
             ],
+            'rider' => [
+                'message' => $voucher->instructions->rider->message ?? null,
+                'url' => $voucher->instructions->rider->url ?? null,
+            ],
+            'redirect_timeout' => config('redeem.success.redirect.timeout', 10),
         ]);
     }
     
