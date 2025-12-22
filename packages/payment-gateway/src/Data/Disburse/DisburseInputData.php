@@ -22,7 +22,11 @@ class DisburseInputData extends Data
         public int|float   $amount,
         public string      $account_number,
         public string      $bank,
-        public string      $via
+        public string      $via,
+        public ?int        $voucher_id = null,
+        public ?string     $voucher_code = null,
+        public ?int        $user_id = null,
+        public ?string     $mobile = null,
     ) {}
 
     public static function fromVoucher(
@@ -125,6 +129,10 @@ class DisburseInputData extends Data
             'account_number' => $account,
             'bank'           => $bank,
             'via'            => $via,
+            'voucher_id'     => $voucher->id,
+            'voucher_code'   => $voucher->code,
+            'user_id'        => $voucher->user_id,
+            'mobile'         => $contact->mobile,
         ]);
     }
 

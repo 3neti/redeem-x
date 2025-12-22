@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Listeners\NotifyAdminOfDisbursementFailure;
 use App\Models\InstructionItem;
 use App\Models\User;
 use App\Observers\InstructionItemObserver;
 use App\Observers\UserObserver;
 use App\Services\DataEnrichers\DataEnricherRegistry;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use LBHurtado\Wallet\Events\DisbursementFailed;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,5 +32,11 @@ class AppServiceProvider extends ServiceProvider
     {
         User::observe(UserObserver::class);
         InstructionItem::observe(InstructionItemObserver::class);
+
+        // Register disbursement failure listener
+        Event::listen(
+            DisbursementFailed::class,
+            NotifyAdminOfDisbursementFailure::class
+        );
     }
 }

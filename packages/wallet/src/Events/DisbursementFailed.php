@@ -12,6 +12,7 @@ class DisbursementFailed
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public Voucher $voucher
+        public Voucher $voucher,
+        public \Throwable $exception
     ) {}
 }

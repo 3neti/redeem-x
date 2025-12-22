@@ -3,6 +3,7 @@
 namespace LBHurtado\PaymentGateway\Gateways\Omnipay;
 
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
 use LBHurtado\PaymentGateway\Omnipay\Support\OmnipayFactory;
 use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData,
@@ -71,6 +72,24 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         $currency = config('disbursement.currency', 'PHP');
         $credits = Money::of($amount, $currency);
         
+        // Log disbursement attempt (for audit trail)
+        $attempt = DisbursementAttempt::create([
+            'voucher_id' => $data['voucher_id'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'voucher_code' => $data['voucher_code'] ?? null,
+            'amount' => $amount,
+            'currency' => $currency,
+            'mobile' => $data['mobile'] ?? null,
+            'bank_code' => $data['bank'],
+            'account_number' => $data['account_number'],
+            'settlement_rail' => $data['via'],
+            'gateway' => config('payment-gateway.default', 'netbank'),
+            'reference_id' => $data['reference'],
+            'status' => 'pending',
+            'request_payload' => $data,
+            'attempted_at' => now(),
+        ]);
+        
         // Validate settlement rail
         try {
             $rail = SettlementRail::from($data['via']);
@@ -118,6 +137,15 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 $errorType = $response->getData()['error_type'] ?? 'unknown';
                 $logLevel = $errorType === 'network_timeout' ? 'warning' : 'warning';
                 
+                // Update attempt record with failure
+                $attempt->update([
+                    'status' => 'failed',
+                    'error_type' => $errorType,
+                    'error_message' => $response->getMessage(),
+                    'response_payload' => $response->getData(),
+                    'completed_at' => now(),
+                ]);
+                
                 Log::$logLevel('[OmnipayPaymentGateway] Disbursement failed', [
                     'message' => $response->getMessage(),
                     'code' => $response->getCode(),
@@ -142,6 +170,14 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             ];
             $transaction->save();
             
+            // Update attempt record with success
+            $attempt->update([
+                'status' => 'success',
+                'gateway_transaction_id' => $response->getOperationId(),
+                'response_payload' => $response->getData(),
+                'completed_at' => now(),
+            ]);
+            
             DB::commit();
             
             Log::info('[OmnipayPaymentGateway] Disbursement initiated', [
@@ -161,6 +197,21 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             ]);
             
         } catch (\Throwable $e) {
+            // Update attempt record with error
+            if (isset($attempt)) {
+                $attempt->update([
+                    'status' => 'failed',
+                    'error_type' => class_basename($e),
+                    'error_message' => $e->getMessage(),
+                    'error_details' => [
+                        'exception' => get_class($e),
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ],
+                    'completed_at' => now(),
+                ]);
+            }
+            
             Log::error('[OmnipayPaymentGateway] Disbursement error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
