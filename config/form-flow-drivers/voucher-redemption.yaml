@@ -120,7 +120,7 @@ steps:
         required: false
         condition: "{{ has_address }}"
   
-  # Step 3: OTP verification (not installed - will trigger error)
+  # Step 3: OTP verification
   otp:
     handler: "otp"
     step_name: "otp_verification"

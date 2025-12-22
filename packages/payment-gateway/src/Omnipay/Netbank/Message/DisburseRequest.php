@@ -9,6 +9,9 @@ use LBHurtado\PaymentGateway\Omnipay\Netbank\Traits\{
     AppliesKycWorkaround
 };
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
+use Omnipay\Common\Http\Exception\NetworkException;
+use Omnipay\Common\Http\Exception\RequestException;
+use Illuminate\Support\Facades\Log;
 
 /**
  * NetBank Disburse Request
@@ -97,11 +100,54 @@ class DisburseRequest extends AbstractRequest
             
             return $this->response = new DisburseResponse($this, $responseData);
             
+        } catch (NetworkException $e) {
+            // Network errors: timeouts, connection failures, DNS issues
+            Log::error('[DisburseRequest] Network error during disbursement', [
+                'error' => $e->getMessage(),
+                'reference' => $data['reference_id'] ?? null,
+                'amount' => $data['amount']['num'] ?? null,
+                'type' => 'network_timeout',
+            ]);
+            
+            return $this->response = new DisburseResponse($this, [
+                'success' => false,
+                'message' => 'Network timeout or connection failure',
+                'error' => true,
+                'error_type' => 'network_timeout',
+                'error_details' => $e->getMessage(),
+            ]);
+            
+        } catch (RequestException $e) {
+            // Request errors: malformed requests, client/server errors
+            Log::error('[DisburseRequest] Request error during disbursement', [
+                'error' => $e->getMessage(),
+                'reference' => $data['reference_id'] ?? null,
+                'amount' => $data['amount']['num'] ?? null,
+                'type' => 'request_error',
+            ]);
+            
+            return $this->response = new DisburseResponse($this, [
+                'success' => false,
+                'message' => 'Invalid request or server error',
+                'error' => true,
+                'error_type' => 'request_error',
+                'error_details' => $e->getMessage(),
+            ]);
+            
         } catch (\Exception $e) {
+            // Catch-all for unexpected errors
+            Log::error('[DisburseRequest] Unexpected error during disbursement', [
+                'error' => $e->getMessage(),
+                'reference' => $data['reference_id'] ?? null,
+                'amount' => $data['amount']['num'] ?? null,
+                'type' => 'unknown_error',
+            ]);
+            
             return $this->response = new DisburseResponse($this, [
                 'success' => false,
                 'message' => $e->getMessage(),
                 'error' => true,
+                'error_type' => 'unknown_error',
             ]);
         }
     }

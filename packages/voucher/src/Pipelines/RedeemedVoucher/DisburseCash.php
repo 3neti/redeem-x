@@ -13,7 +13,9 @@ use LBHurtado\Voucher\Events\DisburseInputPrepared;
 use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
 use LBHurtado\Wallet\Actions\WithdrawCash;
 use Illuminate\Support\Facades\Log;
+use App\Support\GatewayErrorMapper;
 use Closure;
+use RuntimeException;
 
 
 class DisburseCash
@@ -69,20 +71,26 @@ class DisburseCash
         $response = $this->gateway->disburse($voucher->cash, $input);
 
         if ($response === false) {
-            Log::error('[DisburseCash] Gateway returned false', [
+            Log::error('[DisburseCash] Gateway returned false - disbursement failed', [
                 'voucher' => $voucher->code,
                 'redeemer'=> $voucher->contact->mobile,
                 'amount'  => $input->amount,
             ]);
-            return null;
+            
+            // Map to user-friendly error message
+            // Note: Gateway returns false, actual error message is in logs
+            $errorMessage = GatewayErrorMapper::toUserFriendly('failed to process transaction');
+            throw new RuntimeException($errorMessage);
         }
 
         if (! $response instanceof DisburseResponseData) {
-            Log::warning('[DisburseCash] Unexpected response type', [
+            Log::error('[DisburseCash] Unexpected response type - disbursement failed', [
                 'voucher' => $voucher->code,
                 'type'    => gettype($response),
             ]);
-            return null;
+            
+            $errorMessage = GatewayErrorMapper::toUserFriendly('Invalid gateway response');
+            throw new RuntimeException($errorMessage);
         }
 
         // Store disbursement details on voucher in new generic format

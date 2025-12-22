@@ -24,53 +24,17 @@ return [
     
     /*
     |--------------------------------------------------------------------------
-    | SMS Provider Configuration
+    | txtcmdr OTP API Configuration
     |--------------------------------------------------------------------------
     |
-    | Configuration for different SMS providers.
+    | Configuration for txtcmdr external OTP API.
     |
     */
     'txtcmdr' => [
-        'sender_id' => env('TXTCMDR_DEFAULT_SENDER_ID', config('sms.txtcmdr.sender_id', 'cashless')),
+        'base_url' => env('TXTCMDR_API_URL', 'http://txtcmdr.test'),
+        'api_token' => env('TXTCMDR_API_TOKEN'),
+        'timeout' => env('TXTCMDR_TIMEOUT', 30),
     ],
-    
-    'engagespark' => [
-        'api_key' => env('ENGAGESPARK_API_KEY', config('sms.engagespark.api_key')),
-        'org_id' => env('ENGAGESPARK_ORG_ID', config('sms.engagespark.org_id')),
-        'sender_id' => env('ENGAGESPARK_SENDER_ID', config('sms.engagespark.sender_id', 'cashless')),
-    ],
-    
-    /*
-    |--------------------------------------------------------------------------
-    | OTP Period (TTL)
-    |--------------------------------------------------------------------------
-    |
-    | How long the OTP is valid (in seconds).
-    | Default: 600 seconds (10 minutes)
-    |
-    */
-    'period' => env('OTP_PERIOD', 600),
-    
-    /*
-    |--------------------------------------------------------------------------
-    | OTP Digits
-    |--------------------------------------------------------------------------
-    |
-    | Number of digits in the OTP code.
-    | Default: 4 digits
-    |
-    */
-    'digits' => env('OTP_DIGITS', 4),
-    
-    /*
-    |--------------------------------------------------------------------------
-    | Cache Prefix
-    |--------------------------------------------------------------------------
-    |
-    | Prefix for OTP cache keys to avoid collisions.
-    |
-    */
-    'cache_prefix' => 'otp',
     
     /*
     |--------------------------------------------------------------------------

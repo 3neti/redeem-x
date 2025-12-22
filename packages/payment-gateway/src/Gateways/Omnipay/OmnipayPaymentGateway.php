@@ -115,12 +115,17 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             ])->send();
             
             if (!$response->isSuccessful()) {
-                Log::warning('[OmnipayPaymentGateway] Disbursement failed', [
+                $errorType = $response->getData()['error_type'] ?? 'unknown';
+                $logLevel = $errorType === 'network_timeout' ? 'warning' : 'warning';
+                
+                Log::$logLevel('[OmnipayPaymentGateway] Disbursement failed', [
                     'message' => $response->getMessage(),
                     'code' => $response->getCode(),
+                    'error_type' => $errorType,
                     'rail' => $rail->value,
                     'bank' => $data['bank'],
                     'reference' => $data['reference'],
+                    'is_timeout' => $errorType === 'network_timeout',
                 ]);
                 DB::rollBack();
                 return false;

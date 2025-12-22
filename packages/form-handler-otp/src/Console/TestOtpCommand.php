@@ -5,83 +5,64 @@ declare(strict_types=1);
 namespace LBHurtado\FormHandlerOtp\Console;
 
 use Illuminate\Console\Command;
-use LBHurtado\FormHandlerOtp\Actions\GenerateOtp;
-use LBHurtado\FormHandlerOtp\Actions\ValidateOtp;
-use LBHurtado\FormHandlerOtp\Services\SmsService;
+use LBHurtado\FormHandlerOtp\Services\TxtcmdrClient;
 
 class TestOtpCommand extends Command
 {
     protected $signature = 'test:otp 
                             {mobile=09173011987 : Mobile number to send OTP to}
-                            {--no-sms : Skip sending SMS (just generate OTP)}
-                            {--validate= : Validate a submitted OTP code}';
+                            {--verify= : Verify an OTP code with verification ID (format: verification_id:code)}';
 
-    protected $description = 'Test OTP generation, SMS sending, and validation';
+    protected $description = 'Test OTP request and verification via txtcmdr API';
 
     public function handle(): int
     {
         $mobile = $this->argument('mobile');
-        $validateCode = $this->option('validate');
-        $skipSms = $this->option('no-sms');
+        $verifyOption = $this->option('verify');
         
-        $referenceId = 'test-' . now()->format('YmdHis');
-        
-        $this->info("📱 Testing OTP Handler");
+        $this->info("📱 Testing OTP Handler (txtcmdr API)");
         $this->newLine();
         
         // Display configuration
         $this->line("Configuration:");
-        $this->line("  Mobile: {$mobile}");
-        $this->line("  Digits: " . config('otp-handler.digits', 4));
-        $this->line("  Period: " . config('otp-handler.period', 600) . " seconds");
-        $this->line("  Provider: " . config('otp-handler.sms_provider', 'engagespark'));
-        $this->line("  Sender ID: " . config('otp-handler.engagespark.sender_id', 'cashless'));
+        $this->line("  API URL: " . config('otp-handler.txtcmdr.base_url'));
+        $this->line("  Timeout: " . config('otp-handler.txtcmdr.timeout') . " seconds");
         $this->newLine();
         
-        // If validating
-        if ($validateCode) {
-            return $this->validateOtp($referenceId, $validateCode);
+        // If verifying
+        if ($verifyOption) {
+            [$verificationId, $code] = explode(':', $verifyOption, 2);
+            return $this->verifyOtp($verificationId, $code);
         }
         
-        // Generate OTP
-        $this->info("🔐 Generating OTP...");
+        // Request OTP
+        $this->info("📤 Requesting OTP for: {$mobile}");
         
         try {
-            $generator = new GenerateOtp(
-                cachePrefix: config('otp-handler.cache_prefix', 'otp'),
-                period: config('otp-handler.period', 600),
-                digits: config('otp-handler.digits', 4),
-            );
+            $client = new TxtcmdrClient();
+            $externalRef = 'test-' . now()->format('YmdHis');
             
-            $result = $generator->execute($referenceId, $mobile);
+            $result = $client->requestOtp($mobile, $externalRef);
             
-            $this->info("✅ OTP Generated: {$result['code']}");
-            $this->line("   Reference ID: {$referenceId}");
-            $this->line("   Expires at: {$result['expires_at']}");
-            $this->newLine();
+            $this->info("✅ OTP Requested Successfully");
+            $this->line("   Verification ID: {$result['verification_id']}");
+            $this->line("   Expires in: {$result['expires_in']} seconds");
             
-            // Send SMS
-            if (!$skipSms) {
-                $this->info("📤 Sending SMS...");
-                
-                $smsService = new SmsService(
-                    provider: config('otp-handler.sms_provider', 'engagespark'),
-                    senderId: config('otp-handler.engagespark.sender_id')
-                );
-                
-                $smsService->sendOtp($mobile, $result['code'], config('otp-handler.label', 'Your App'));
-                
-                $this->info("✅ SMS sent to {$mobile}");
-                $this->newLine();
+            if (isset($result['dev_code'])) {
+                $this->warn("   Dev Code: {$result['dev_code']} (testing only)");
             }
             
-            // Show validation instructions
-            $this->comment("To validate the OTP:");
-            $this->line("php artisan test:otp {$mobile} --validate={$result['code']}");
             $this->newLine();
             
-            $this->comment("Or test with wrong code:");
-            $this->line("php artisan test:otp {$mobile} --validate=9999");
+            // Show verification instructions
+            $this->comment("To verify the OTP:");
+            $this->line("php artisan test:otp {$mobile} --verify={$result['verification_id']}:YOUR_CODE");
+            $this->newLine();
+            
+            if (isset($result['dev_code'])) {
+                $this->comment("For testing, use the dev code:");
+                $this->line("php artisan test:otp {$mobile} --verify={$result['verification_id']}:{$result['dev_code']}");
+            }
             
             return self::SUCCESS;
             
@@ -98,29 +79,36 @@ class TestOtpCommand extends Command
         }
     }
     
-    protected function validateOtp(string $referenceId, string $code): int
+    protected function verifyOtp(string $verificationId, string $code): int
     {
-        $this->info("🔍 Validating OTP: {$code}");
+        $this->info("🔍 Verifying OTP: {$code}");
+        $this->line("   Verification ID: {$verificationId}");
+        $this->newLine();
         
         try {
-            $validator = new ValidateOtp(
-                cachePrefix: config('otp-handler.cache_prefix', 'otp'),
-                period: config('otp-handler.period', 600),
-                digits: config('otp-handler.digits', 4),
-            );
+            $client = new TxtcmdrClient();
+            $result = $client->verifyOtp($verificationId, $code);
             
-            $isValid = $validator->execute($referenceId, $code);
-            
-            if ($isValid) {
+            if ($result['ok']) {
                 $this->info("✅ OTP is valid!");
+                if (isset($result['status'])) {
+                    $this->line("   Status: {$result['status']}");
+                }
                 return self::SUCCESS;
             } else {
-                $this->error("❌ OTP is invalid or expired");
+                $this->error("❌ OTP verification failed");
+                $this->line("   Reason: {$result['reason']}");
+                if (isset($result['attempts'])) {
+                    $this->line("   Attempts: {$result['attempts']}");
+                }
+                if (isset($result['status'])) {
+                    $this->line("   Status: {$result['status']}");
+                }
                 return self::FAILURE;
             }
             
         } catch (\Exception $e) {
-            $this->error("❌ Validation failed: " . $e->getMessage());
+            $this->error("❌ Verification failed: " . $e->getMessage());
             return self::FAILURE;
         }
     }

@@ -12,9 +12,7 @@
     "require": {
         "php": "^8.2",
         "lbhurtado/form-flow-manager": "dev-main",
-        "lbhurtado/sms": "^2.4",
-        "spatie/laravel-data": "^4.0",
-        "spomky-labs/otphp": "^11.0"
+        "spatie/laravel-data": "^4.0"
     },
     "require-dev": {
         "orchestra/testbench": "^10.3",

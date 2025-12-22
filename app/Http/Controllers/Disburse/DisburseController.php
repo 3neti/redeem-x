@@ -8,6 +8,7 @@ use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\FormFlowManager\Services\{DriverService, FormFlowService};
@@ -155,14 +156,35 @@ class DisburseController extends Controller
             ->except(['mobile', 'recipient_country', 'bank_code', 'account_number', 'amount', 'settlement_rail'])
             ->toArray();
         
-        // Process redemption (marks voucher as redeemed, creates cash, disburses, sends notifications)
-        ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
-        
-        // Clear form flow session
-        $this->formFlowService->clearFlow($state['flow_id']);
-        
-        // Redirect to success page
-        return redirect()->route('disburse.success', ['voucher' => $voucher->code]);
+        try {
+            // Process redemption (marks voucher as redeemed, creates cash, disburses, sends notifications)
+            ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
+            
+            // Clear form flow session
+            $this->formFlowService->clearFlow($state['flow_id']);
+            
+            // Redirect to success page
+            return redirect()->route('disburse.success', ['voucher' => $voucher->code])
+                ->with('success', 'Voucher redeemed successfully!');
+                
+        } catch (\Throwable $e) {
+            Log::error('[DisburseController] Redemption failed', [
+                'voucher' => $voucher->code,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // Return JSON error for AJAX requests, redirect otherwise
+            if (request()->wantsJson() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to process redemption: ' . $e->getMessage(),
+                ], 422);
+            }
+            
+            return redirect()->route('disburse.start')
+                ->withErrors(['code' => 'Failed to process redemption: ' . $e->getMessage()]);
+        }
     }
     
     /**

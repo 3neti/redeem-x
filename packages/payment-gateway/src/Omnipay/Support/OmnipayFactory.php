@@ -4,6 +4,7 @@ namespace LBHurtado\PaymentGateway\Omnipay\Support;
 
 use Omnipay\Common\GatewayInterface;
 use Illuminate\Support\Facades\Config;
+use LBHurtado\PaymentGateway\Omnipay\Support\HttpClientFactory;
 
 /**
  * Factory for creating Omnipay gateway instances from configuration
@@ -35,7 +36,11 @@ class OmnipayFactory
             throw new \RuntimeException("Gateway class '{$gatewayClass}' does not exist");
         }
         
-        $gateway = new $gatewayClass();
+        // Create HTTP client with timeout configuration
+        $httpConfig = Config::get('omnipay.http', []);
+        $httpClient = HttpClientFactory::create($httpConfig);
+        
+        $gateway = new $gatewayClass($httpClient);
         
         if (!$gateway instanceof GatewayInterface) {
             throw new \RuntimeException("Gateway class '{$gatewayClass}' must implement GatewayInterface");

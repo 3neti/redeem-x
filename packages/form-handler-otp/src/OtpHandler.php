@@ -9,10 +9,8 @@ use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use LBHurtado\FormFlowManager\Contracts\FormHandlerInterface;
 use LBHurtado\FormFlowManager\Data\FormFlowStepData;
-use LBHurtado\FormHandlerOtp\Actions\GenerateOtp;
-use LBHurtado\FormHandlerOtp\Actions\ValidateOtp;
 use LBHurtado\FormHandlerOtp\Data\OtpData;
-use LBHurtado\FormHandlerOtp\Services\SmsService;
+use LBHurtado\FormHandlerOtp\Services\TxtcmdrClient;
 
 /**
  * OTP Handler
@@ -28,12 +26,23 @@ class OtpHandler implements FormHandlerInterface
     
     public function handle(Request $request, FormFlowStepData $step, array $context = []): array
     {
+        \Log::debug('[OtpHandler] handle() called', [
+            'request_all' => $request->all(),
+            'context' => $context,
+        ]);
+        
         // Extract data from 'data' key if present (from form submission)
         $inputData = $request->input('data', $request->all());
         
         // Get reference ID and mobile from context
         $referenceId = $context['flow_id'] ?? $context['reference_id'] ?? 'unknown';
-        $mobile = $context['mobile'] ?? $inputData['mobile'] ?? '';
+        $mobile = $this->getMobileFromSession($referenceId);
+        
+        \Log::debug('[OtpHandler] Extracted data', [
+            'input_data' => $inputData,
+            'mobile' => $mobile,
+            'reference_id' => $referenceId,
+        ]);
         
         // Check if this is a resend request
         if ($request->input('resend')) {
@@ -42,23 +51,40 @@ class OtpHandler implements FormHandlerInterface
         
         // Validate submitted OTP
         $validated = validator($inputData, [
-            'otp_code' => 'required|string|min:4|max:6',
+            'otp_code' => 'required|string|min:4|max:10',
         ])->validate();
         
-        // Validate OTP against cached value
-        $validator = new ValidateOtp(
-            cachePrefix: config('otp-handler.cache_prefix'),
-            period: config('otp-handler.period'),
-            digits: config('otp-handler.digits'),
-        );
+        // Get verification_id from session
+        $verificationId = Session::get("otp_verification.{$referenceId}");
         
-        $isValid = $validator->execute($referenceId, $validated['otp_code']);
-        
-        if (!$isValid) {
+        if (!$verificationId) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'otp_code' => ['The OTP code is invalid or has expired.'],
+                'otp_code' => ['Verification session expired. Please request a new OTP.'],
             ]);
         }
+        
+        // Verify OTP via txtcmdr API
+        $client = new TxtcmdrClient();
+        $result = $client->verifyOtp($verificationId, $validated['otp_code']);
+        
+        if (!$result['ok']) {
+            $errorMessages = [
+                'invalid_code' => 'The OTP code is incorrect.',
+                'expired' => 'The OTP code has expired.',
+                'locked' => 'Too many failed attempts. Please request a new OTP.',
+                'already_verified' => 'This OTP code has already been used.',
+                'not_found' => 'Verification session not found.',
+            ];
+            
+            $message = $errorMessages[$result['reason']] ?? 'OTP verification failed.';
+            
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'otp_code' => [$message],
+            ]);
+        }
+        
+        // Clear session
+        Session::forget("otp_verification.{$referenceId}");
         
         // Return validated data
         return OtpData::from([
@@ -79,38 +105,19 @@ class OtpHandler implements FormHandlerInterface
     {
         $referenceId = $context['flow_id'] ?? $context['reference_id'] ?? 'unknown';
         
-        // Get mobile from context or from collected data
-        $mobile = $context['mobile'] ?? '';
+        // Get mobile from collected data in session
+        $mobile = $this->getMobileFromSession($referenceId);
         
-        // If not in context, try to get from session collected data (from wallet_info step)
-        if (empty($mobile) && isset($context['flow_id'])) {
-            $flowState = Session::get("form_flow.{$context['flow_id']}");
-            $mobile = $flowState['collected_data']['wallet_info']['mobile'] ?? 
-                      $flowState['collected_data']['mobile'] ?? '';
-        }
-        
-        // Generate OTP on first visit (if not already generated)
-        $sessionKey = "otp_sent.{$referenceId}";
+        // Request OTP on first visit
+        $sessionKey = "otp_verification.{$referenceId}";
         
         if (!Session::has($sessionKey)) {
-            $generator = new GenerateOtp(
-                cachePrefix: config('otp-handler.cache_prefix'),
-                period: config('otp-handler.period'),
-                digits: config('otp-handler.digits'),
-            );
+            // Request OTP from txtcmdr API
+            $client = new TxtcmdrClient();
+            $result = $client->requestOtp($mobile, $referenceId);
             
-            $result = $generator->execute($referenceId, $mobile);
-            
-            // Send SMS via SmsService
-            $smsService = new SmsService(
-                provider: config('otp-handler.sms_provider', 'engagespark'),
-                senderId: config('otp-handler.engagespark.sender_id')
-            );
-            
-            $smsService->sendOtp($mobile, $result['code'], config('otp-handler.label'));
-            
-            // Mark as sent
-            Session::put($sessionKey, now()->timestamp);
+            // Store verification_id in session
+            Session::put($sessionKey, $result['verification_id']);
         }
         
         // Render OTP capture page
@@ -121,7 +128,7 @@ class OtpHandler implements FormHandlerInterface
             'config' => array_merge([
                 'max_resends' => config('otp-handler.max_resends', 3),
                 'resend_cooldown' => config('otp-handler.resend_cooldown', 30),
-                'digits' => config('otp-handler.digits', 4),
+                'digits' => 6, // txtcmdr uses 6 digits
             ], $step->config),
         ]);
     }
@@ -136,25 +143,39 @@ class OtpHandler implements FormHandlerInterface
     }
     
     /**
+     * Get mobile number from collected data in session
+     */
+    protected function getMobileFromSession(string $flowId): string
+    {
+        $flowState = Session::get("form_flow.{$flowId}");
+        
+        if (!$flowState || !isset($flowState['collected_data'])) {
+            return '';
+        }
+        
+        // Look for mobile in wallet_info step (or any step that has it)
+        $collectedData = $flowState['collected_data'];
+        
+        foreach ($collectedData as $stepData) {
+            if (isset($stepData['mobile'])) {
+                return $stepData['mobile'];
+            }
+        }
+        
+        return '';
+    }
+    
+    /**
      * Handle OTP resend request
      */
     protected function handleResend(string $referenceId, string $mobile): array
     {
-        $generator = new GenerateOtp(
-            cachePrefix: config('otp-handler.cache_prefix'),
-            period: config('otp-handler.period'),
-            digits: config('otp-handler.digits'),
-        );
+        // Request new OTP from txtcmdr API
+        $client = new TxtcmdrClient();
+        $result = $client->requestOtp($mobile, $referenceId);
         
-        $result = $generator->execute($referenceId, $mobile);
-        
-        // Send SMS via SmsService
-        $smsService = new SmsService(
-            provider: config('otp-handler.sms_provider', 'engagespark'),
-            senderId: config('otp-handler.engagespark.sender_id')
-        );
-        
-        $smsService->sendOtp($mobile, $result['code'], config('otp-handler.label'));
+        // Update verification_id in session
+        Session::put("otp_verification.{$referenceId}", $result['verification_id']);
         
         return ['resent' => true];
     }

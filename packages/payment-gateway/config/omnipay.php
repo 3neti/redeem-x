@@ -1,6 +1,12 @@
 <?php
 
 return [
+    // HTTP client configuration
+    'http' => [
+        'timeout' => env('GATEWAY_HTTP_TIMEOUT', 15), // Request timeout in seconds (must be < PHP max_execution_time)
+        'connect_timeout' => env('GATEWAY_HTTP_CONNECT_TIMEOUT', 5), // Connection timeout in seconds
+    ],
+    
     'gateways' => [
         'netbank' => [
             'class' => \LBHurtado\PaymentGateway\Omnipay\Netbank\Gateway::class,

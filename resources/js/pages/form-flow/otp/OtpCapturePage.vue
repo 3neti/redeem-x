@@ -34,11 +34,19 @@ const MAX_RESENDS = computed(() => props.config.max_resends);
 const COOLDOWN_SECONDS = computed(() => props.config.resend_cooldown);
 
 function submit() {
-    form.post(`/form-flow/${props.flow_id}/step/${props.step}`, {
+    // Send OTP wrapped in 'data' key as FormFlowController expects
+    form.transform((data) => ({
         data: {
-            otp_code: form.otp_code,
+            otp_code: data.otp_code,
         },
+    })).post(`/form-flow/${props.flow_id}/step/${props.step}`, {
         preserveScroll: true,
+        onError: (errors) => {
+            // Map nested errors back to form
+            if (errors['data.otp_code']) {
+                form.setError('otp_code', errors['data.otp_code']);
+            }
+        },
     });
 }
 
