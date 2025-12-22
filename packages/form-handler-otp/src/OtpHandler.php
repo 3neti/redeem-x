@@ -26,23 +26,12 @@ class OtpHandler implements FormHandlerInterface
     
     public function handle(Request $request, FormFlowStepData $step, array $context = []): array
     {
-        \Log::debug('[OtpHandler] handle() called', [
-            'request_all' => $request->all(),
-            'context' => $context,
-        ]);
-        
         // Extract data from 'data' key if present (from form submission)
         $inputData = $request->input('data', $request->all());
         
         // Get reference ID and mobile from context
         $referenceId = $context['flow_id'] ?? $context['reference_id'] ?? 'unknown';
         $mobile = $this->getMobileFromSession($referenceId);
-        
-        \Log::debug('[OtpHandler] Extracted data', [
-            'input_data' => $inputData,
-            'mobile' => $mobile,
-            'reference_id' => $referenceId,
-        ]);
         
         // Check if this is a resend request
         if ($request->input('resend')) {
