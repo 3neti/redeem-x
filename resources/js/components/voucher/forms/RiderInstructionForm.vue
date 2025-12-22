@@ -82,6 +82,24 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
                 </p>
             </div>
 
+            <div class="space-y-2">
+                <Label for="rider_redirect_timeout">Redirect Timeout (seconds)</Label>
+                <Input
+                    id="rider_redirect_timeout"
+                    v-model.number="localValue.redirect_timeout"
+                    type="number"
+                    placeholder="10"
+                    :readonly="readonly"
+                    :min="0"
+                    :max="300"
+                    @input="(e) => updateField('redirect_timeout', (e.target as HTMLInputElement).value ? Number((e.target as HTMLInputElement).value) : null)"
+                />
+                <InputError :message="validationErrors['rider.redirect_timeout']" />
+                <p class="text-xs text-muted-foreground">
+                    Time to wait before auto-redirect (0 = manual only, leave empty for default: 10s)
+                </p>
+            </div>
+
             <div class="rounded-lg bg-muted p-3 text-sm">
                 <p class="font-medium">ℹ️ About Rider Information:</p>
                 <p class="text-muted-foreground">

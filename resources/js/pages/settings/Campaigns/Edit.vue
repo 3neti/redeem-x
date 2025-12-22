@@ -51,6 +51,7 @@ const parseInstructions = (inst: any) => {
         feedbackWebhook: inst.feedback?.webhook || '',
         riderMessage: inst.rider?.message || '',
         riderUrl: inst.rider?.url || '',
+        riderRedirectTimeout: inst.rider?.redirect_timeout ?? null,
         locationValidation: inst.validation?.location || null,
         timeValidation: inst.validation?.time || null,
         settlementRail: inst.cash?.settlement_rail || null,
@@ -89,6 +90,7 @@ const form = useForm({
         rider: {
             message: instructionsFormData.value.riderMessage || null,
             url: instructionsFormData.value.riderUrl || null,
+            redirect_timeout: instructionsFormData.value.riderRedirectTimeout ?? null,
         },
         validation: {
             location: instructionsFormData.value.locationValidation || null,

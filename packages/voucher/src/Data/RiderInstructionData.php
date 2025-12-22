@@ -12,6 +12,7 @@ class RiderInstructionData extends Data
     public function __construct(
         public ?string $message,
         public ?string $url,
+        public ?int $redirect_timeout = null,
     ) { $this->applyRulesAndDefaults(); }
 
     protected function rulesAndDefaults(): array
@@ -24,6 +25,10 @@ class RiderInstructionData extends Data
             'url' => [
                 ['required', 'url', 'max:2048'],
                 config('instructions.rider.url')
+            ],
+            'redirect_timeout' => [
+                ['nullable', 'integer', 'min:0', 'max:300'],
+                config('instructions.rider.redirect_timeout')
             ]
         ];
     }

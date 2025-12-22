@@ -203,6 +203,7 @@ class DisburseController extends Controller
     {
         $amount = $voucher->instructions->cash->amount ?? 0;
         $currency = $voucher->instructions->cash->currency ?? 'PHP';
+        $riderTimeout = $voucher->instructions->rider->redirect_timeout ?? config('redeem.success.redirect.timeout', 10);
         
         return Inertia::render('disburse/Success', [
             'voucher' => [
@@ -215,7 +216,7 @@ class DisburseController extends Controller
                 'message' => $voucher->instructions->rider->message ?? null,
                 'url' => $voucher->instructions->rider->url ?? null,
             ],
-            'redirect_timeout' => config('redeem.success.redirect.timeout', 10),
+            'redirect_timeout' => $riderTimeout,
         ]);
     }
     

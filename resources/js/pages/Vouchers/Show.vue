@@ -149,6 +149,7 @@ const instructionsFormData = computed(() => {
             feedbackWebhook: '',
             riderMessage: '',
             riderUrl: '',
+            riderRedirectTimeout: null,
             locationValidation: null,
             timeValidation: null,
         };
@@ -175,6 +176,7 @@ const instructionsFormData = computed(() => {
         feedbackWebhook: inst.feedback?.webhook || '',
         riderMessage: inst.rider?.message || '',
         riderUrl: inst.rider?.url || '',
+        riderRedirectTimeout: inst.rider?.redirect_timeout ?? null,
         locationValidation: inst.validation?.location || null,
         timeValidation: inst.validation?.time || null,
     };

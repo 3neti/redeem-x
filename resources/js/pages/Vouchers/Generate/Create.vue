@@ -108,6 +108,7 @@ watch(selectedCampaignId, async (campaignId) => {
         if (inst.rider) {
             riderMessage.value = inst.rider.message || '';
             riderUrl.value = inst.rider.url || props.config.rider.url.default;
+            riderRedirectTimeout.value = inst.rider.redirect_timeout ?? null;
         }
         
         // Populate settlement rail and fee strategy from campaign
@@ -173,6 +174,7 @@ const feedbackWebhook = ref('');
 
 const riderMessage = ref('');
 const riderUrl = ref(props.config.rider.url.default);
+const riderRedirectTimeout = ref<number | null>(null);
 
 // Preview controls
 const previewEnabled = ref<boolean>(true);
@@ -257,6 +259,7 @@ const instructionsForPricing = computed(() => {
         rider: {
             message: riderMessage.value || null,
             url: riderUrl.value || null,
+            redirect_timeout: riderRedirectTimeout.value ?? null,
         },
         validation: {
             location: locationValidation.value || null,
@@ -369,6 +372,7 @@ const jsonPreview = computed(() => {
         rider: {
             message: riderMessage.value || null,
             url: riderUrl.value || null,
+            redirect_timeout: riderRedirectTimeout.value ?? null,
         },
         validation: {
             location: locationValidation.value || null,
@@ -429,6 +433,7 @@ const handleSubmit = async () => {
         feedback_webhook: feedbackWebhook.value || undefined,
         rider_message: riderMessage.value || undefined,
         rider_url: riderUrl.value || undefined,
+        rider_redirect_timeout: riderRedirectTimeout.value ?? undefined,
         campaign_id: selectedCampaignId.value || undefined,
         // Validation instructions
         validation_location: locationValidation.value || undefined,
@@ -810,6 +815,23 @@ const handleSubmit = async () => {
                                     :placeholder="config.rider.url.placeholder"
                                 />
                                 <InputError :message="validationErrors.rider_url" />
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="rider_redirect_timeout">Redirect Timeout (seconds)</Label>
+                                <Input
+                                    id="rider_redirect_timeout"
+                                    name="rider_redirect_timeout"
+                                    type="number"
+                                    v-model.number="riderRedirectTimeout"
+                                    placeholder="10"
+                                    :min="0"
+                                    :max="300"
+                                />
+                                <InputError :message="validationErrors.rider_redirect_timeout" />
+                                <p class="text-xs text-muted-foreground">
+                                    Time to wait before auto-redirect (0 = manual only, leave empty for default: 10s)
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

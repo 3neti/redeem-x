@@ -59,6 +59,7 @@ class VoucherInstructionsData extends Data
 
             'rider.message' => 'nullable|string|min:1',
             'rider.url'     => 'nullable|url',
+            'rider.redirect_timeout' => 'nullable|integer|min:0|max:300',
 
             'count'  => 'required|integer|min:1',
             'prefix' => 'nullable|string|min:1',
@@ -132,6 +133,7 @@ class VoucherInstructionsData extends Data
             'rider' => [
                 'message' => $validated['rider']['message'] ?? '',
                 'url'     => $validated['rider']['url'] ?? '',
+                'redirect_timeout' => $validated['rider']['redirect_timeout'] ?? null,
             ],
             'validation' => isset($validated['validation']) ? [
                 'location' => isset($validated['validation']['location']) ? [
@@ -189,6 +191,7 @@ class VoucherInstructionsData extends Data
             'rider' => [
                 'message' => null,
                 'url' => null,
+                'redirect_timeout' => null,
             ],
             'count' => 1, // New field for count
             'prefix' => null, // New field for prefix

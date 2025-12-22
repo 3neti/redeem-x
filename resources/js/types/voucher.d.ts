@@ -51,6 +51,7 @@ export interface FeedbackInstruction {
 export interface RiderInstruction {
     message?: string | null;
     url?: string | null;
+    redirect_timeout?: number | null;
 }
 
 export interface VoucherInstructions {

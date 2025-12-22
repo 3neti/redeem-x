@@ -72,6 +72,7 @@ interface Props {
         feedbackWebhook: string;
         riderMessage: string;
         riderUrl: string;
+        riderRedirectTimeout: number | null;
         locationValidation: LocationValidation | null;
         timeValidation: TimeValidation | null;
         settlementRail: string | null;
@@ -164,12 +165,14 @@ const riderInstruction = computed<RiderInstruction>({
     get: () => ({
         message: localValue.value.riderMessage || null,
         url: localValue.value.riderUrl || null,
+        redirect_timeout: localValue.value.riderRedirectTimeout ?? null,
     }),
     set: (value) => {
         localValue.value = {
             ...localValue.value,
             riderMessage: value.message || '',
             riderUrl: value.url || '',
+            riderRedirectTimeout: value.redirect_timeout ?? null,
         };
     },
 });
@@ -221,6 +224,7 @@ const jsonPreview = computed(() => {
         rider: {
             message: localValue.value.riderMessage || null,
             url: localValue.value.riderUrl || null,
+            redirect_timeout: localValue.value.riderRedirectTimeout ?? null,
         },
         validation: {
             location: localValue.value.locationValidation || null,
@@ -293,6 +297,7 @@ const instructionsForPricing = computed(() => {
         rider: {
             message: riderMessage || null,
             url: riderUrl || null,
+            redirect_timeout: localValue.value.riderRedirectTimeout ?? null,
         },
         validation: {
             location: locationValidationValue || null,

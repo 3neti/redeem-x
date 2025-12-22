@@ -143,6 +143,7 @@ class GenerateVouchers
 
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
+            'rider_redirect_timeout' => 'nullable|integer|min:0|max:300',
             
             // Settlement rail and fee strategy
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
@@ -249,6 +250,7 @@ class GenerateVouchers
             'rider' => [
                 'message' => $validated['rider_message'] ?? null,
                 'url' => $validated['rider_url'] ?? null,
+                'redirect_timeout' => $validated['rider_redirect_timeout'] ?? null,
             ],
             'count' => $validated['count'],
             'prefix' => $validated['prefix'] ?? '',
