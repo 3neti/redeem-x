@@ -258,7 +258,17 @@ class FormHandler implements FormHandlerInterface
                 if (isset($field[$property]) && is_string($field[$property]) && str_starts_with($field[$property], '$')) {
                     $varName = $field[$property];
                     if (isset($variables[$varName])) {
-                        $field[$property] = $variables[$varName];
+                        $resolvedValue = $variables[$varName];
+                        // Check if resolved value is still a variable reference
+                        if (is_string($resolvedValue) && str_starts_with($resolvedValue, '$')) {
+                            // Nested variable is unresolved, clear the property
+                            $field[$property] = null;
+                        } else {
+                            $field[$property] = $resolvedValue;
+                        }
+                    } else {
+                        // Clear the property if variable doesn't exist
+                        $field[$property] = null;
                     }
                 }
             }
