@@ -12,11 +12,13 @@ interface Props {
     title?: string;
     flow_id: string;
     step_index: number;
+    button_label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     title: undefined,
     timeout: 5,
+    button_label: 'Continue Now',
 });
 
 const remainingSeconds = ref(props.timeout);
@@ -142,7 +144,7 @@ async function handleContinue() {
                 <div 
                     v-if="contentType !== 'text'"
                     v-html="renderedContent"
-                    class="prose prose-sm max-w-none dark:prose-invert"
+                    class="prose prose-base max-w-none dark:prose-invert"
                 />
                 <div 
                     v-else
@@ -173,7 +175,7 @@ async function handleContinue() {
                         class="min-w-[200px]"
                     >
                         <span v-if="submitting">Please wait...</span>
-                        <span v-else>Continue Now</span>
+                        <span v-else>{{ button_label }}</span>
                     </Button>
                 </div>
             </CardContent>

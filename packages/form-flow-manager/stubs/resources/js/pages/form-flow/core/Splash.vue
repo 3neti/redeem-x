@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -13,11 +12,13 @@ interface Props {
     title?: string;
     content: string;
     timeout?: number;
+    button_label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     title: undefined,
     timeout: 5,
+    button_label: 'Continue Now',
 });
 
 const remainingSeconds = ref(props.timeout);
@@ -115,7 +116,9 @@ async function handleContinue() {
     
     router.post(
         `/form-flow/${props.flow_id}/step/${props.step_index}`,
-        {},
+        {
+            data: { confirmed: true },
+        },
         {
             preserveState: false,
             preserveScroll: false,
@@ -141,7 +144,7 @@ async function handleContinue() {
                 <div 
                     v-if="contentType !== 'text'"
                     v-html="renderedContent"
-                    class="prose prose-sm max-w-none dark:prose-invert"
+                    class="prose prose-base max-w-none dark:prose-invert"
                 />
                 <div 
                     v-else
@@ -152,7 +155,12 @@ async function handleContinue() {
                 
                 <!-- Countdown progress (only if timeout > 0) -->
                 <div v-if="timeout > 0" class="space-y-2">
-                    <Progress :model-value="progressPercentage" class="h-2" />
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div 
+                            class="bg-primary h-full transition-all duration-1000 ease-linear"
+                            :style="{ width: `${progressPercentage}%` }"
+                        />
+                    </div>
                     <p class="text-center text-sm text-gray-500 dark:text-gray-400">
                         Continuing in {{ remainingSeconds }} second{{ remainingSeconds !== 1 ? 's' : '' }}...
                     </p>
@@ -167,7 +175,7 @@ async function handleContinue() {
                         class="min-w-[200px]"
                     >
                         <span v-if="submitting">Please wait...</span>
-                        <span v-else>Continue Now</span>
+                        <span v-else>{{ button_label }}</span>
                     </Button>
                 </div>
             </CardContent>

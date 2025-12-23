@@ -21,13 +21,17 @@ callbacks:
 # Step definitions
 # IMPORTANT: KYC must come BEFORE BIO for auto-population to work
 steps:
-  # Step 0: Splash page (always shown first)
+  # Step 0: Splash page (shown by default unless disabled in config)
+  # To disable: Set SPLASH_ENABLED=false in .env
+  # To customize: Set splash/splash_timeout fields in voucher rider data
   splash:
     handler: "splash"
     step_name: "splash_page"
+    condition: "{{ splash_enabled | default('true') }}"
     config:
       content: "{{ rider.splash }}"
-      timeout: "{{ rider.splash_timeout | default(0) }}"
+      timeout: "{{ rider.splash_timeout | default(null) }}"
+      voucher_code: "{{ code }}"
   
   # Step 1: Wallet information (after splash if configured)
   wallet:

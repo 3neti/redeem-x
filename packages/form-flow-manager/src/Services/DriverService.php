@@ -86,6 +86,9 @@ class DriverService
             'base_url' => url(''),
             'timestamp' => time(),
             
+            // Splash configuration
+            'splash_enabled' => config('splash.enabled', true) ? 'true' : 'false',
+            
             // Field presence flags for conditional rendering
             'has_name' => in_array('name', $fieldNames),
             'has_email' => in_array('email', $fieldNames),
