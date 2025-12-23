@@ -375,6 +375,7 @@ class FormFlowController extends Controller
         // Built-in handlers
         $builtInHandlers = [
             'form' => \LBHurtado\FormFlowManager\Handlers\FormHandler::class,
+            'splash' => \LBHurtado\FormFlowManager\Handlers\SplashHandler::class,
         ];
         
         // Merge: config handlers override built-in if needed

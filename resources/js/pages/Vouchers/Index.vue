@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2, AlertCircle, Plus } from 'lucide-vue-next';
 import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
 import { VoucherCodeDisplay } from '@/components/voucher/views';
-import { create as voucherGenerate } from '@/actions/App/Http/Controllers/Vouchers/GenerateController';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { List } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
@@ -150,7 +149,7 @@ const viewVoucher = (code: string) => {
                         </Link>
                     </Button>
                     <Button as-child size="lg">
-                        <Link :href="voucherGenerate.url()">
+                        <Link href="/vouchers/generate">
                             <Plus class="mr-2 h-4 w-4" />
                             Generate Vouchers
                         </Link>

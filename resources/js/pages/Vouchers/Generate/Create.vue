@@ -109,6 +109,8 @@ watch(selectedCampaignId, async (campaignId) => {
             riderMessage.value = inst.rider.message || '';
             riderUrl.value = inst.rider.url || props.config.rider.url.default;
             riderRedirectTimeout.value = inst.rider.redirect_timeout ?? null;
+            riderSplash.value = inst.rider.splash || '';
+            riderSplashTimeout.value = inst.rider.splash_timeout ?? null;
         }
         
         // Populate settlement rail and fee strategy from campaign
@@ -175,6 +177,8 @@ const feedbackWebhook = ref('');
 const riderMessage = ref('');
 const riderUrl = ref(props.config.rider.url.default);
 const riderRedirectTimeout = ref<number | null>(null);
+const riderSplash = ref('');
+const riderSplashTimeout = ref<number | null>(null);
 
 // Preview controls
 const previewEnabled = ref<boolean>(true);
@@ -260,6 +264,8 @@ const instructionsForPricing = computed(() => {
             message: riderMessage.value || null,
             url: riderUrl.value || null,
             redirect_timeout: riderRedirectTimeout.value ?? null,
+            splash: riderSplash.value || null,
+            splash_timeout: riderSplashTimeout.value ?? null,
         },
         validation: {
             location: locationValidation.value || null,
@@ -334,6 +340,9 @@ const formData = computed(() => ({
     feedback_webhook: feedbackWebhook.value || undefined,
     rider_message: riderMessage.value || undefined,
     rider_url: riderUrl.value || undefined,
+    rider_redirect_timeout: riderRedirectTimeout.value ?? undefined,
+    rider_splash: riderSplash.value || undefined,
+    rider_splash_timeout: riderSplashTimeout.value ?? undefined,
 }));
 
 const toggleInputField = (fieldValue: string) => {
@@ -373,6 +382,8 @@ const jsonPreview = computed(() => {
             message: riderMessage.value || null,
             url: riderUrl.value || null,
             redirect_timeout: riderRedirectTimeout.value ?? null,
+            splash: riderSplash.value || null,
+            splash_timeout: riderSplashTimeout.value ?? null,
         },
         validation: {
             location: locationValidation.value || null,
@@ -416,8 +427,8 @@ const handleSubmit = async () => {
     if (insufficientFunds.value) return;
 
     validationErrors.value = {};
-
-    const result = await generateVouchers({
+    
+    const payload = {
         amount: amount.value,
         count: count.value,
         prefix: prefix.value || undefined,
@@ -431,9 +442,11 @@ const handleSubmit = async () => {
         feedback_email: feedbackEmail.value || undefined,
         feedback_mobile: feedbackMobile.value || undefined,
         feedback_webhook: feedbackWebhook.value || undefined,
-        rider_message: riderMessage.value || undefined,
-        rider_url: riderUrl.value || undefined,
-        rider_redirect_timeout: riderRedirectTimeout.value ?? undefined,
+        rider_message: riderMessage.value || null,
+        rider_url: riderUrl.value || null,
+        rider_redirect_timeout: riderRedirectTimeout.value ?? null,
+        rider_splash: riderSplash.value || null,
+        rider_splash_timeout: riderSplashTimeout.value ?? null,
         campaign_id: selectedCampaignId.value || undefined,
         // Validation instructions
         validation_location: locationValidation.value || undefined,
@@ -442,7 +455,9 @@ const handleSubmit = async () => {
         preview_enabled: previewEnabled.value,
         preview_scope: previewScope.value,
         preview_message: previewMessage.value || undefined,
-    });
+    };
+    
+    const result = await generateVouchers(payload);
 
     if (result) {
         // Success - redirect to success page
@@ -831,6 +846,39 @@ const handleSubmit = async () => {
                                 <InputError :message="validationErrors.rider_redirect_timeout" />
                                 <p class="text-xs text-muted-foreground">
                                     Time to wait before auto-redirect (0 = manual only, leave empty for default: 10s)
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="rider_splash">Splash Page Content</Label>
+                                <Textarea
+                                    id="rider_splash"
+                                    name="rider_splash"
+                                    v-model="riderSplash"
+                                    placeholder="Enter splash page content (supports markdown, HTML, or plain text)..."
+                                    rows="8"
+                                    :maxlength="51200"
+                                />
+                                <InputError :message="validationErrors.rider_splash" />
+                                <p class="text-xs text-muted-foreground">
+                                    Shown as first page before redemption flow (supports markdown, HTML, SVG, or URL). Maximum 50KB.
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="rider_splash_timeout">Splash Timeout (seconds)</Label>
+                                <Input
+                                    id="rider_splash_timeout"
+                                    name="rider_splash_timeout"
+                                    type="number"
+                                    v-model.number="riderSplashTimeout"
+                                    placeholder="5"
+                                    :min="0"
+                                    :max="60"
+                                />
+                                <InputError :message="validationErrors.rider_splash_timeout" />
+                                <p class="text-xs text-muted-foreground">
+                                    Time to wait before auto-advancing from splash page (0 = manual only, leave empty for default: 5s)
                                 </p>
                             </div>
                         </CardContent>

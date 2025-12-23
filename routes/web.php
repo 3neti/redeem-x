@@ -56,12 +56,42 @@ Route::middleware([
             ->name('index');
         
         // Voucher generation routes (must be before {voucher} catch-all)
-        Route::get('generate', [\App\Http\Controllers\Vouchers\GenerateController::class, 'create'])
-            ->name('generate.create');
-        Route::post('generate', [\App\Http\Controllers\Vouchers\GenerateController::class, 'store'])
-            ->name('generate.store');
-        Route::get('generate/success/{count}', [\App\Http\Controllers\Vouchers\GenerateController::class, 'success'])
-            ->name('generate.success');
+        // Note: Form submits to API endpoint (POST /api/v1/vouchers), not these routes
+        Route::get('generate', fn () => Inertia::render('vouchers/generate/Create', [
+            'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),
+            'config' => config('generate'),
+        ]))->name('generate.create');
+        
+        Route::get('generate/success/{count}', function (int $count) {
+            $vouchers = auth()->user()
+                ->vouchers()
+                ->latest()
+                ->take($count)
+                ->get();
+
+            if ($vouchers->isEmpty()) {
+                abort(404, 'No vouchers found');
+            }
+
+            return Inertia::render('vouchers/generate/Success', [
+                'vouchers' => $vouchers->map(function($voucher) {
+                    return [
+                        'id' => $voucher->id,
+                        'code' => $voucher->code,
+                        'amount' => $voucher->instructions->cash->amount ?? 0,
+                        'currency' => $voucher->instructions->cash->currency ?? 'PHP',
+                        'status' => $voucher->status ?? 'active',
+                        'expires_at' => $voucher->expires_at?->toIso8601String(),
+                        'created_at' => $voucher->created_at->toIso8601String(),
+                    ];
+                }),
+                'batch_id' => 'batch-' . now()->timestamp,
+                'count' => $vouchers->count(),
+                'total_value' => $vouchers->sum(function($v) {
+                    return $v->instructions->cash->amount ?? 0;
+                }),
+            ]);
+        })->name('generate.success');
         
         // Bulk voucher generation (SPA - no controller needed)
         Route::get('generate/bulk', fn () => Inertia::render('vouchers/generate/BulkCreate'))

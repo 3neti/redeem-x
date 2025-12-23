@@ -73,6 +73,8 @@ interface Props {
         riderMessage: string;
         riderUrl: string;
         riderRedirectTimeout: number | null;
+        riderSplash: string;
+        riderSplashTimeout: number | null;
         locationValidation: LocationValidation | null;
         timeValidation: TimeValidation | null;
         settlementRail: string | null;
@@ -166,6 +168,8 @@ const riderInstruction = computed<RiderInstruction>({
         message: localValue.value.riderMessage || null,
         url: localValue.value.riderUrl || null,
         redirect_timeout: localValue.value.riderRedirectTimeout ?? null,
+        splash: localValue.value.riderSplash || null,
+        splash_timeout: localValue.value.riderSplashTimeout ?? null,
     }),
     set: (value) => {
         localValue.value = {
@@ -173,6 +177,8 @@ const riderInstruction = computed<RiderInstruction>({
             riderMessage: value.message || '',
             riderUrl: value.url || '',
             riderRedirectTimeout: value.redirect_timeout ?? null,
+            riderSplash: value.splash || '',
+            riderSplashTimeout: value.splash_timeout ?? null,
         };
     },
 });

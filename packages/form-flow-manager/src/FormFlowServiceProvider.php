@@ -60,10 +60,29 @@ class FormFlowServiceProvider extends ServiceProvider
             __DIR__.'/../stubs/resources/js/pages/form-flow/core' => resource_path('js/pages/form-flow/core'),
         ], 'form-flow-views');
         
+        // Register built-in handlers
+        $this->registerBuiltInHandlers();
+        
         // Auto-discover drivers
         if ($this->app->runningInConsole() === false) {
             $this->app->make(DriverRegistry::class)->discover();
         }
+    }
+    
+    /**
+     * Register built-in handlers with form-flow-manager
+     */
+    protected function registerBuiltInHandlers(): void
+    {
+        // Get current handlers from config
+        $handlers = config('form-flow.handlers', []);
+        
+        // Add built-in handlers
+        $handlers['form'] = \LBHurtado\FormFlowManager\Handlers\FormHandler::class;
+        $handlers['splash'] = \LBHurtado\FormFlowManager\Handlers\SplashHandler::class;
+        
+        // Update config
+        config(['form-flow.handlers' => $handlers]);
     }
     
     /**

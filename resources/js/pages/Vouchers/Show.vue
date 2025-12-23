@@ -150,6 +150,8 @@ const instructionsFormData = computed(() => {
             riderMessage: '',
             riderUrl: '',
             riderRedirectTimeout: null,
+            riderSplash: '',
+            riderSplashTimeout: null,
             locationValidation: null,
             timeValidation: null,
         };
@@ -177,6 +179,8 @@ const instructionsFormData = computed(() => {
         riderMessage: inst.rider?.message || '',
         riderUrl: inst.rider?.url || '',
         riderRedirectTimeout: inst.rider?.redirect_timeout ?? null,
+        riderSplash: inst.rider?.splash || '',
+        riderSplashTimeout: inst.rider?.splash_timeout ?? null,
         locationValidation: inst.validation?.location || null,
         timeValidation: inst.validation?.time || null,
     };

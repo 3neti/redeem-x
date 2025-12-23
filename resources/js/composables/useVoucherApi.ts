@@ -51,6 +51,8 @@ export interface GenerateVouchersRequest {
     rider_message?: string;
     rider_url?: string;
     rider_redirect_timeout?: number;
+    rider_splash?: string;
+    rider_splash_timeout?: number;
     preview_enabled?: boolean;
     preview_scope?: string;
     preview_message?: string;

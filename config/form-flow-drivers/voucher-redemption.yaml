@@ -21,7 +21,15 @@ callbacks:
 # Step definitions
 # IMPORTANT: KYC must come BEFORE BIO for auto-population to work
 steps:
-  # Step 0: Wallet information (always first)
+  # Step 0: Splash page (always shown first)
+  splash:
+    handler: "splash"
+    step_name: "splash_page"
+    config:
+      content: "{{ rider.splash }}"
+      timeout: "{{ rider.splash_timeout | default(0) }}"
+  
+  # Step 1: Wallet information (after splash if configured)
   wallet:
     handler: "form"
     step_name: "wallet_info"

@@ -97,6 +97,15 @@ class DriverService
             'has_kyc' => in_array('kyc', $fieldNames),
             'has_otp' => in_array('otp', $fieldNames),
             
+            // Rider data for splash page and post-redemption behavior
+            'rider' => [
+                'message' => $instructions->rider->message ?? null,
+                'url' => $instructions->rider->url ?? null,
+                'redirect_timeout' => $instructions->rider->redirect_timeout ?? null,
+                'splash' => $instructions->rider->splash ?? null,
+                'splash_timeout' => $instructions->rider->splash_timeout ?? null,
+            ],
+            
             // Full voucher data for advanced templates
             'voucher' => [
                 'code' => $voucher->code,

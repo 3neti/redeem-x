@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -211,24 +211,6 @@ function getFieldLabel(field: FieldDefinition): string {
 function getFieldPlaceholder(field: FieldDefinition): string {
     return field.placeholder || `Enter ${getFieldLabel(field).toLowerCase()}`;
 }
-
-// Auto-focus first field on mount
-onMounted(() => {
-    // Use setTimeout to ensure Inertia has finished rendering
-    setTimeout(() => {
-        // Find first non-readonly, non-disabled input field
-        const firstField = props.fields.find(
-            (f) => !f.readonly && !f.disabled && f.type !== 'checkbox'
-        );
-        
-        if (firstField) {
-            const element = document.getElementById(firstField.name) as HTMLInputElement | HTMLTextAreaElement;
-            if (element) {
-                element.focus();
-            }
-        }
-    }, 100);
-});
 </script>
 
 <template>

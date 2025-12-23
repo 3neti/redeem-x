@@ -60,6 +60,8 @@ class VoucherInstructionsData extends Data
             'rider.message' => 'nullable|string|min:1',
             'rider.url'     => 'nullable|url',
             'rider.redirect_timeout' => 'nullable|integer|min:0|max:300',
+            'rider.splash' => 'nullable|string|max:51200',
+            'rider.splash_timeout' => 'nullable|integer|min:0|max:60',
 
             'count'  => 'required|integer|min:1',
             'prefix' => 'nullable|string|min:1',
@@ -131,9 +133,11 @@ class VoucherInstructionsData extends Data
                 'webhook' => $validated['feedback']['webhook'] ?? null,
             ],
             'rider' => [
-                'message' => $validated['rider']['message'] ?? '',
-                'url'     => $validated['rider']['url'] ?? '',
+                'message' => $validated['rider']['message'] ?? null,
+                'url'     => $validated['rider']['url'] ?? null,
                 'redirect_timeout' => $validated['rider']['redirect_timeout'] ?? null,
+                'splash' => $validated['rider']['splash'] ?? null,
+                'splash_timeout' => $validated['rider']['splash_timeout'] ?? null,
             ],
             'validation' => isset($validated['validation']) ? [
                 'location' => isset($validated['validation']['location']) ? [
@@ -192,6 +196,8 @@ class VoucherInstructionsData extends Data
                 'message' => null,
                 'url' => null,
                 'redirect_timeout' => null,
+                'splash' => null,
+                'splash_timeout' => null,
             ],
             'count' => 1, // New field for count
             'prefix' => null, // New field for prefix
@@ -237,20 +243,29 @@ class VoucherInstructionsData extends Data
         return self::cleanArray($array);
     }
 
-    protected static function cleanArray(array $array): array
+    protected static function cleanArray(array $array, string $parentKey = ''): array
     {
         return collect($array)
-            ->map(function ($value) {
+            ->map(function ($value, $key) use ($parentKey) {
+                $currentKey = $parentKey ? "{$parentKey}.{$key}" : $key;
+                
                 if (is_array($value)) {
                     // Recursively clean nested arrays
-                    $cleaned = self::cleanArray($value);
+                    $cleaned = self::cleanArray($value, $currentKey);
                     return $cleaned;
                 }
 
                 // Leave scalars intact if not empty
                 return $value;
             })
-            ->filter(function ($value) {
+            ->filter(function ($value, $key) use ($parentKey) {
+                $currentKey = $parentKey ? "{$parentKey}.{$key}" : $key;
+                
+                // NEVER filter out rider fields - keep all of them even if null
+                if ($parentKey === 'rider' || $currentKey === 'rider') {
+                    return true;
+                }
+                
                 // Filter out only nulls and empty strings — keep empty arrays
                 return !(is_null($value) || (is_string($value) && trim($value) === ''));
             })

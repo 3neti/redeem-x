@@ -4,6 +4,18 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+/**
+ * IMPORTANT: This is the PRIMARY voucher generation endpoint used by the Vue.js frontend.
+ * 
+ * The web form at /vouchers/generate uses this API endpoint (POST /api/v1/vouchers)
+ * via the useVoucherApi composable, NOT the web controller.
+ * 
+ * There is also a web controller (App\Http\Controllers\Vouchers\GenerateController)
+ * that is currently unused but exists for backward compatibility.
+ * 
+ * When adding new fields (like rider_splash), update BOTH controllers to avoid confusion.
+ */
+
 use App\Actions\Billing\CalculateCharge;
 use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
@@ -144,6 +156,8 @@ class GenerateVouchers
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
             'rider_redirect_timeout' => 'nullable|integer|min:0|max:300',
+            'rider_splash' => 'nullable|string|max:51200',
+            'rider_splash_timeout' => 'nullable|integer|min:0|max:60',
             
             // Settlement rail and fee strategy
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
@@ -251,6 +265,8 @@ class GenerateVouchers
                 'message' => $validated['rider_message'] ?? null,
                 'url' => $validated['rider_url'] ?? null,
                 'redirect_timeout' => $validated['rider_redirect_timeout'] ?? null,
+                'splash' => $validated['rider_splash'] ?? null,
+                'splash_timeout' => $validated['rider_splash_timeout'] ?? null,
             ],
             'count' => $validated['count'],
             'prefix' => $validated['prefix'] ?? '',

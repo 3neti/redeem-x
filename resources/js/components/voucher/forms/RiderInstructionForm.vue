@@ -100,6 +100,41 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
                 </p>
             </div>
 
+            <div class="space-y-2">
+                <Label for="rider_splash">Splash Page Content</Label>
+                <Textarea
+                    id="rider_splash"
+                    v-model="localValue.splash"
+                    placeholder="Enter splash page content (supports markdown, HTML, or plain text)..."
+                    rows="8"
+                    :readonly="readonly"
+                    :maxlength="51200"
+                    @input="(e) => updateField('splash', (e.target as HTMLTextAreaElement).value)"
+                />
+                <InputError :message="validationErrors['rider.splash']" />
+                <p class="text-xs text-muted-foreground">
+                    Shown as first page before redemption flow (supports markdown, HTML, SVG, or URL). Maximum 50KB.
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <Label for="rider_splash_timeout">Splash Timeout (seconds)</Label>
+                <Input
+                    id="rider_splash_timeout"
+                    v-model.number="localValue.splash_timeout"
+                    type="number"
+                    placeholder="5"
+                    :readonly="readonly"
+                    :min="0"
+                    :max="60"
+                    @input="(e) => updateField('splash_timeout', (e.target as HTMLInputElement).value ? Number((e.target as HTMLInputElement).value) : null)"
+                />
+                <InputError :message="validationErrors['rider.splash_timeout']" />
+                <p class="text-xs text-muted-foreground">
+                    Time to wait before auto-advancing from splash page (0 = manual only, leave empty for default: 5s)
+                </p>
+            </div>
+
             <div class="rounded-lg bg-muted p-3 text-sm">
                 <p class="font-medium">ℹ️ About Rider Information:</p>
                 <p class="text-muted-foreground">

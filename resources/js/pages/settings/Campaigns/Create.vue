@@ -32,6 +32,8 @@ const instructionsFormData = ref({
     riderMessage: '',
     riderUrl: '',
     riderRedirectTimeout: null as number | null,
+    riderSplash: '',
+    riderSplashTimeout: null as number | null,
     locationValidation: null as any,
     timeValidation: null as any,
     settlementRail: null as string | null,
@@ -68,6 +70,8 @@ const form = useForm({
             message: instructionsFormData.value.riderMessage || null,
             url: instructionsFormData.value.riderUrl || null,
             redirect_timeout: instructionsFormData.value.riderRedirectTimeout ?? null,
+            splash: instructionsFormData.value.riderSplash || null,
+            splash_timeout: instructionsFormData.value.riderSplashTimeout ?? null,
         },
         validation: {
             location: instructionsFormData.value.locationValidation || null,
