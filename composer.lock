@@ -4,8 +4,65 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1dc028ca7aeb545a50a83e32e9a2f077",
+    "content-hash": "731d9dbc8656cd5c73e1c5c7d558c7d6",
     "packages": [
+        {
+            "name": "3neti/form-flow",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../packages/form-flow-manager",
+                "reference": "cee7050a6e84dd1ef2972fb212e098595c2f61c9"
+            },
+            "require": {
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0",
+                "symfony/yaml": "^7.4"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormFlowManager\\FormFlowServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormFlowManager\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormFlowManager\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/pest"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Driver-based form flow orchestration system with DirXML-style mapping",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
         {
             "name": "3neti/hyperverge",
             "version": "v1.0.1",
@@ -2097,16 +2154,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v12.42.0",
+            "version": "v12.43.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "509b33095564c5165366d81bbaa0afaac28abe75"
+                "reference": "195b893593a9298edee177c0844132ebaa02102f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/509b33095564c5165366d81bbaa0afaac28abe75",
-                "reference": "509b33095564c5165366d81bbaa0afaac28abe75",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/195b893593a9298edee177c0844132ebaa02102f",
+                "reference": "195b893593a9298edee177c0844132ebaa02102f",
                 "shasum": ""
             },
             "require": {
@@ -2315,7 +2372,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2025-12-09T15:51:23+00:00"
+            "time": "2025-12-16T18:53:08+00:00"
         },
         {
             "name": "laravel/prompts",
@@ -2945,73 +3002,16 @@
             "time": "2025-06-08T23:24:07+00:00"
         },
         {
-            "name": "lbhurtado/form-flow-manager",
+            "name": "lbhurtado/form-handler-kyc",
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/form-flow-manager",
-                "reference": "627b8cd69595a50e0211ebf6ad94a9fa38b8e976"
-            },
-            "require": {
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0",
-                "symfony/yaml": "^7.4"
-            },
-            "require-dev": {
-                "inertiajs/inertia-laravel": "^2.0",
-                "lbhurtado/form-handler-location": "dev-main",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\FormFlowManager\\FormFlowServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\FormFlowManager\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormFlowManager\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Driver-based form flow orchestration system with DirXML-style mapping",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/form-handler-kyc",
-            "version": "dev-feature/otp-handler-plugin",
-            "dist": {
-                "type": "path",
                 "url": "./packages/form-handler-kyc",
-                "reference": "65974f94cb5ace202f6209ccc513b6a5d4538b58"
+                "reference": "ccb6b7fd4ab10bb00490ee7d8fdffa8f5b9c9bf7"
             },
             "require": {
+                "3neti/form-flow": "dev-main",
                 "3neti/hyperverge": "^1.0",
-                "lbhurtado/form-flow-manager": "dev-main",
                 "lorisleiva/laravel-actions": "^2.9",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
@@ -3062,14 +3062,14 @@
         },
         {
             "name": "lbhurtado/form-handler-location",
-            "version": "dev-feature/otp-handler-plugin",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-location",
-                "reference": "8a3a8b13ab6ac9b5a004cfa1339f75e355e7b2b8"
+                "reference": "c6e416cf8acd9ac72785abe6c448769f52255f9a"
             },
             "require": {
-                "lbhurtado/form-flow-manager": "dev-main",
+                "3neti/form-flow": "dev-main",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -3119,17 +3119,16 @@
         },
         {
             "name": "lbhurtado/form-handler-otp",
-            "version": "dev-feature/otp-handler-plugin",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-otp",
-                "reference": "5afe3dcddbf36765a04ab4631dd198bd867eb722"
+                "reference": "08506222a1649497e3f4aeae757041cdfced915e"
             },
             "require": {
-                "lbhurtado/form-flow-manager": "dev-main",
+                "3neti/form-flow": "dev-main",
                 "php": "^8.2",
-                "spatie/laravel-data": "^4.0",
-                "spomky-labs/otphp": "^11.0"
+                "spatie/laravel-data": "^4.0"
             },
             "require-dev": {
                 "inertiajs/inertia-laravel": "^2.0",
@@ -3177,14 +3176,14 @@
         },
         {
             "name": "lbhurtado/form-handler-selfie",
-            "version": "dev-feature/otp-handler-plugin",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-selfie",
-                "reference": "f7399d60f799b5d718f2140cb37c33adedbb80c7"
+                "reference": "1d238c789e1e8046a17d0ee7ee431e658f0e84df"
             },
             "require": {
-                "lbhurtado/form-flow-manager": "dev-main",
+                "3neti/form-flow": "dev-main",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -3234,14 +3233,14 @@
         },
         {
             "name": "lbhurtado/form-handler-signature",
-            "version": "dev-feature/otp-handler-plugin",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-signature",
-                "reference": "7869a2a58b79dcaffad5b7df5f92250a42e0ea58"
+                "reference": "03b107d3a2d1dc106aee01ad64008734e5aa098e"
             },
             "require": {
-                "lbhurtado/form-flow-manager": "dev-main",
+                "3neti/form-flow": "dev-main",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -3459,7 +3458,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/otp-handler-plugin",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3643,7 +3642,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/otp-handler-plugin",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
@@ -4975,16 +4974,16 @@
         },
         {
             "name": "nette/utils",
-            "version": "v4.1.0",
+            "version": "v4.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/utils.git",
-                "reference": "fa1f0b8261ed150447979eb22e373b7b7ad5a8e0"
+                "reference": "c99059c0315591f1a0db7ad6002000288ab8dc72"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/utils/zipball/fa1f0b8261ed150447979eb22e373b7b7ad5a8e0",
-                "reference": "fa1f0b8261ed150447979eb22e373b7b7ad5a8e0",
+                "url": "https://api.github.com/repos/nette/utils/zipball/c99059c0315591f1a0db7ad6002000288ab8dc72",
+                "reference": "c99059c0315591f1a0db7ad6002000288ab8dc72",
                 "shasum": ""
             },
             "require": {
@@ -5058,9 +5057,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/utils/issues",
-                "source": "https://github.com/nette/utils/tree/v4.1.0"
+                "source": "https://github.com/nette/utils/tree/v4.1.1"
             },
-            "time": "2025-12-01T17:49:23+00:00"
+            "time": "2025-12-22T12:14:32+00:00"
         },
         {
             "name": "nikic/php-parser",
@@ -6014,16 +6013,16 @@
         },
         {
             "name": "phpdocumentor/reflection-docblock",
-            "version": "5.6.5",
+            "version": "5.6.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpDocumentor/ReflectionDocBlock.git",
-                "reference": "90614c73d3800e187615e2dd236ad0e2a01bf761"
+                "reference": "5cee1d3dfc2d2aa6599834520911d246f656bcb8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpDocumentor/ReflectionDocBlock/zipball/90614c73d3800e187615e2dd236ad0e2a01bf761",
-                "reference": "90614c73d3800e187615e2dd236ad0e2a01bf761",
+                "url": "https://api.github.com/repos/phpDocumentor/ReflectionDocBlock/zipball/5cee1d3dfc2d2aa6599834520911d246f656bcb8",
+                "reference": "5cee1d3dfc2d2aa6599834520911d246f656bcb8",
                 "shasum": ""
             },
             "require": {
@@ -6033,7 +6032,7 @@
                 "phpdocumentor/reflection-common": "^2.2",
                 "phpdocumentor/type-resolver": "^1.7",
                 "phpstan/phpdoc-parser": "^1.7|^2.0",
-                "webmozart/assert": "^1.9.1"
+                "webmozart/assert": "^1.9.1 || ^2"
             },
             "require-dev": {
                 "mockery/mockery": "~1.3.5 || ~1.6.0",
@@ -6072,9 +6071,9 @@
             "description": "With this component, a library can provide support for annotations via DocBlocks or otherwise retrieve information that is embedded in a DocBlock.",
             "support": {
                 "issues": "https://github.com/phpDocumentor/ReflectionDocBlock/issues",
-                "source": "https://github.com/phpDocumentor/ReflectionDocBlock/tree/5.6.5"
+                "source": "https://github.com/phpDocumentor/ReflectionDocBlock/tree/5.6.6"
             },
-            "time": "2025-11-27T19:50:05+00:00"
+            "time": "2025-12-22T21:13:58+00:00"
         },
         {
             "name": "phpdocumentor/type-resolver",
@@ -8426,88 +8425,6 @@
                 }
             ],
             "time": "2025-01-13T13:04:43+00:00"
-        },
-        {
-            "name": "spomky-labs/otphp",
-            "version": "11.3.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Spomky-Labs/otphp.git",
-                "reference": "2d8ccb5fc992b9cc65ef321fa4f00fefdb3f4b33"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Spomky-Labs/otphp/zipball/2d8ccb5fc992b9cc65ef321fa4f00fefdb3f4b33",
-                "reference": "2d8ccb5fc992b9cc65ef321fa4f00fefdb3f4b33",
-                "shasum": ""
-            },
-            "require": {
-                "ext-mbstring": "*",
-                "paragonie/constant_time_encoding": "^2.0 || ^3.0",
-                "php": ">=8.1",
-                "psr/clock": "^1.0",
-                "symfony/deprecation-contracts": "^3.2"
-            },
-            "require-dev": {
-                "ekino/phpstan-banned-code": "^1.0",
-                "infection/infection": "^0.26|^0.27|^0.28|^0.29",
-                "php-parallel-lint/php-parallel-lint": "^1.3",
-                "phpstan/phpstan": "^1.0",
-                "phpstan/phpstan-deprecation-rules": "^1.0",
-                "phpstan/phpstan-phpunit": "^1.0",
-                "phpstan/phpstan-strict-rules": "^1.0",
-                "phpunit/phpunit": "^9.5.26|^10.0|^11.0",
-                "qossmic/deptrac-shim": "^1.0",
-                "rector/rector": "^1.0",
-                "symfony/phpunit-bridge": "^6.1|^7.0",
-                "symplify/easy-coding-standard": "^12.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OTPHP\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Florent Morselli",
-                    "homepage": "https://github.com/Spomky"
-                },
-                {
-                    "name": "All contributors",
-                    "homepage": "https://github.com/Spomky-Labs/otphp/contributors"
-                }
-            ],
-            "description": "A PHP library for generating one time passwords according to RFC 4226 (HOTP Algorithm) and the RFC 6238 (TOTP Algorithm) and compatible with Google Authenticator",
-            "homepage": "https://github.com/Spomky-Labs/otphp",
-            "keywords": [
-                "FreeOTP",
-                "RFC 4226",
-                "RFC 6238",
-                "google authenticator",
-                "hotp",
-                "otp",
-                "totp"
-            ],
-            "support": {
-                "issues": "https://github.com/Spomky-Labs/otphp/issues",
-                "source": "https://github.com/Spomky-Labs/otphp/tree/11.3.0"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/Spomky",
-                    "type": "github"
-                },
-                {
-                    "url": "https://www.patreon.com/FlorentMorselli",
-                    "type": "patreon"
-                }
-            ],
-            "time": "2024-06-12T11:22:32+00:00"
         },
         {
             "name": "symfony/clock",
@@ -14597,9 +14514,9 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "3neti/form-flow": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
-        "lbhurtado/form-flow-manager": 20,
         "lbhurtado/form-handler-kyc": 20,
         "lbhurtado/form-handler-location": 20,
         "lbhurtado/form-handler-otp": 20,

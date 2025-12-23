@@ -30,11 +30,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-        
-        // Exclude form-flow/start from CSRF (server-to-server endpoint)
-        $middleware->validateCsrfTokens(except: [
-            'form-flow/start',
-        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,

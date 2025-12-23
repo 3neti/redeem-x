@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "lbhurtado/form-flow-manager": "dev-main",
+        "3neti/form-flow": "dev-main",
         "spatie/laravel-data": "^4.0"
     },
     "require-dev": {
@@ -33,7 +33,7 @@
     "repositories": [
         {
             "type": "path",
-            "url": "../form-flow-manager"
+            "url": "../../../packages/form-flow-manager"
         }
     ],
     "extra": {
