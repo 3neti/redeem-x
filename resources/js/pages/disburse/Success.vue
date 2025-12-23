@@ -4,6 +4,8 @@ import { router, Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, ExternalLink } from 'lucide-vue-next';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface Props {
     voucher: {
@@ -14,9 +16,21 @@ interface Props {
     };
     rider?: {
         message?: string;
+        processed_content?: {
+            type: 'html' | 'markdown' | 'svg' | 'url' | 'text';
+            content: string;
+            raw: string;
+        };
         url?: string;
     };
     redirect_timeout?: number;
+    config?: {
+        button_labels?: {
+            continue?: string;
+            dashboard?: string;
+            redeem_another?: string;
+        };
+    };
 }
 
 const props = defineProps<Props>();
@@ -25,6 +39,27 @@ const countdown = ref(0);
 const isRedirecting = ref(false);
 
 const hasRiderUrl = computed(() => !!props.rider?.url);
+
+const hasCustomContent = computed(() => !!props.rider?.processed_content);
+
+const renderedContent = computed(() => {
+    if (!hasCustomContent.value) return null;
+    
+    const { type, content } = props.rider!.processed_content!;
+    
+    switch (type) {
+        case 'markdown':
+            return DOMPurify.sanitize(marked.parse(content) as string);
+        case 'html':
+        case 'svg':
+            return DOMPurify.sanitize(content);
+        case 'url':
+            return `<iframe src="${content}" class="w-full h-96 border-0" />`;
+        case 'text':
+        default:
+            return content.replace(/\n/g, '<br>');
+    }
+});
 
 const displayMessage = computed(() => {
     return props.rider?.message || 'The funds will be disbursed to your account shortly. You will receive a confirmation via SMS and email.';
@@ -84,7 +119,14 @@ onMounted(() => {
                         </div>
                     </div>
                     
-                    <p class="text-sm text-muted-foreground text-center">
+                    <!-- Message section -->
+                    <div v-if="hasCustomContent">
+                        <div 
+                            v-html="renderedContent"
+                            class="prose prose-sm max-w-none dark:prose-invert text-center"
+                        />
+                    </div>
+                    <p v-else class="text-sm text-muted-foreground text-center">
                         {{ displayMessage }}
                     </p>
                     
@@ -98,7 +140,7 @@ onMounted(() => {
                         <Button 
                             class="w-full" 
                             @click="handleRedirect">
-                            Continue Now
+                            {{ config?.button_labels?.continue || 'Continue Now' }}
                             <ExternalLink :size="16" class="ml-2" />
                         </Button>
                     </div>
@@ -113,10 +155,10 @@ onMounted(() => {
                     <!-- Default Actions (no rider URL) -->
                     <div v-else class="flex gap-3">
                         <Button variant="outline" class="flex-1" @click="router.visit('/')">
-                            Go to Dashboard
+                            {{ config?.button_labels?.dashboard || 'Go to Dashboard' }}
                         </Button>
                         <Button class="flex-1" @click="router.visit('/disburse')">
-                            Redeem Another
+                            {{ config?.button_labels?.redeem_another || 'Redeem Another' }}
                         </Button>
                     </div>
                 </CardContent>

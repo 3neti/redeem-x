@@ -204,19 +204,41 @@ class DisburseController extends Controller
         $amount = $voucher->instructions->cash->amount ?? 0;
         $currency = $voucher->instructions->cash->currency ?? 'PHP';
         $riderTimeout = $voucher->instructions->rider->redirect_timeout ?? config('redeem.success.redirect.timeout', 10);
+        $formattedAmount = '₱' . number_format($amount, 2);
+        
+        // Process rider message with SuccessContentService
+        $successService = app(\App\Services\SuccessContentService::class);
+        
+        $context = [
+            'voucher_code' => $voucher->code,
+            'amount' => $formattedAmount,
+            'currency' => $currency,
+            'mobile' => null, // TODO: Get from redemption if available
+        ];
+        
+        $message = $voucher->instructions->rider->message ?? config('success.default_content');
+        $processedContent = $successService->processContent($message, $context);
         
         return Inertia::render('disburse/Success', [
             'voucher' => [
                 'code' => $voucher->code,
                 'amount' => $amount,
-                'formatted_amount' => '₱' . number_format($amount, 2),
+                'formatted_amount' => $formattedAmount,
                 'currency' => $currency,
             ],
             'rider' => [
-                'message' => $voucher->instructions->rider->message ?? null,
+                'message' => $message,
+                'processed_content' => $processedContent,
                 'url' => $voucher->instructions->rider->url ?? null,
             ],
             'redirect_timeout' => $riderTimeout,
+            'config' => [
+                'button_labels' => [
+                    'continue' => config('success.button_label', 'Continue Now'),
+                    'dashboard' => config('success.dashboard_button_label', 'Go to Dashboard'),
+                    'redeem_another' => config('success.redeem_another_label', 'Redeem Another'),
+                ],
+            ],
         ]);
     }
     
