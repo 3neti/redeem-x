@@ -71,41 +71,6 @@
             "options": {
                 "symlink": true
             }
-        },
-        {
-            "type": "path",
-            "url": "../packages/form-handler-location",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../packages/form-handler-selfie",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../packages/form-handler-signature",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../packages/form-handler-kyc",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../packages/form-handler-otp",
-            "options": {
-                "symlink": true
-            }
         }
     ],
     "require": {
@@ -128,11 +93,11 @@
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
         "3neti/form-flow": "^1.0",
-        "3neti/form-handler-location": "@dev",
-        "3neti/form-handler-selfie": "@dev",
-        "3neti/form-handler-signature": "@dev",
-        "3neti/form-handler-kyc": "@dev",
-        "3neti/form-handler-otp": "@dev",
+        "3neti/form-handler-location": "^1.1",
+        "3neti/form-handler-selfie": "^1.0",
+        "3neti/form-handler-signature": "^1.1",
+        "3neti/form-handler-kyc": "^1.0",
+        "3neti/form-handler-otp": "^1.0",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",
         "php-http/discovery": "^1.14",
