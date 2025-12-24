@@ -81,7 +81,7 @@
         },
         {
             "type": "path",
-            "url": "./packages/form-handler-selfie",
+            "url": "../packages/form-handler-selfie",
             "options": {
                 "symlink": true
             }
@@ -129,7 +129,7 @@
         "lbhurtado/wallet": "@dev",
         "3neti/form-flow": "^1.0",
         "3neti/form-handler-location": "@dev",
-        "lbhurtado/form-handler-selfie": "@dev",
+        "3neti/form-handler-selfie": "@dev",
         "3neti/form-handler-signature": "@dev",
         "lbhurtado/form-handler-kyc": "@dev",
         "lbhurtado/form-handler-otp": "@dev",

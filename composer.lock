@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "da3b1e6d3f807b7ab0e5d4937c3ddcef",
+    "content-hash": "3800eb4fb20748485090fdf4cecb9cc2",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -127,6 +127,64 @@
                 }
             ],
             "description": "Location capture handler for form flow system",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "3neti/form-handler-selfie",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../packages/form-handler-selfie",
+                "reference": "2fc7f832b94b4a787d5230d3302e44650f031fd2"
+            },
+            "require": {
+                "3neti/form-flow": "^1.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerSelfie\\SelfieHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSelfie\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSelfie\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "3neti",
+                    "email": "info@3neti.com"
+                }
+            ],
+            "description": "Selfie capture handler for form flow system",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -3130,7 +3188,7 @@
         },
         {
             "name": "lbhurtado/form-handler-kyc",
-            "version": "dev-feature/publish-phase1-plugins",
+            "version": "dev-feature/publish-phase2-selfie",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-kyc",
@@ -3189,7 +3247,7 @@
         },
         {
             "name": "lbhurtado/form-handler-otp",
-            "version": "dev-feature/publish-phase1-plugins",
+            "version": "dev-feature/publish-phase2-selfie",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-otp",
@@ -3239,63 +3297,6 @@
                 }
             ],
             "description": "OTP verification handler for form flow system",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/form-handler-selfie",
-            "version": "dev-feature/publish-phase1-plugins",
-            "dist": {
-                "type": "path",
-                "url": "./packages/form-handler-selfie",
-                "reference": "72b7f65a684b9d68a76367010fc5f0c792bfee41"
-            },
-            "require": {
-                "3neti/form-flow": "^1.0",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0"
-            },
-            "require-dev": {
-                "inertiajs/inertia-laravel": "^2.0",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8",
-                "pestphp/pest-plugin-laravel": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\FormHandlerSelfie\\SelfieHandlerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerSelfie\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerSelfie\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Selfie capture handler for form flow system",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -3471,7 +3472,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/publish-phase1-plugins",
+            "version": "dev-feature/publish-phase2-selfie",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3655,7 +3656,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/publish-phase1-plugins",
+            "version": "dev-feature/publish-phase2-selfie",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
@@ -14528,12 +14529,12 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "3neti/form-handler-location": 20,
+        "3neti/form-handler-selfie": 20,
         "3neti/form-handler-signature": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
         "lbhurtado/form-handler-kyc": 20,
         "lbhurtado/form-handler-otp": 20,
-        "lbhurtado/form-handler-selfie": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/money-issuer": 20,
