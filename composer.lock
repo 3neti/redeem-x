@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3800eb4fb20748485090fdf4cecb9cc2",
+    "content-hash": "e8e5d4c694d6ed734979ffd6671ae55b",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -75,6 +75,72 @@
             "time": "2025-12-24T00:34:10+00:00"
         },
         {
+            "name": "3neti/form-handler-kyc",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../packages/form-handler-kyc",
+                "reference": "236932c5f1677f000989990d5d4182a7fa164b0b"
+            },
+            "require": {
+                "3neti/form-flow": "^1.0",
+                "3neti/hyperverge": "^1.0",
+                "illuminate/support": "^12.0",
+                "lorisleiva/laravel-actions": "^2.9",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerKYC\\KYCHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerKYC\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerKYC\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "post-install-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan kyc-handler:install --no-interaction 2>/dev/null || true');\""
+                ],
+                "post-update-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan kyc-handler:install --no-interaction 2>/dev/null || true');\""
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "3neti",
+                    "email": "info@3neti.com"
+                }
+            ],
+            "description": "KYC/identity verification handler for form flow system using HyperVerge",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "3neti/form-handler-location",
             "version": "dev-main",
             "dist": {
@@ -133,12 +199,76 @@
             }
         },
         {
+            "name": "3neti/form-handler-otp",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../packages/form-handler-otp",
+                "reference": "feaf7f26a13ab2f562985f1f4a296c8581968af4"
+            },
+            "require": {
+                "3neti/form-flow": "^1.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerOtp\\OtpHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerOtp\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerOtp\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "post-install-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan otp-handler:install --no-interaction 2>/dev/null || true');\""
+                ],
+                "post-update-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan otp-handler:install --no-interaction 2>/dev/null || true');\""
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "3neti",
+                    "email": "info@3neti.com"
+                }
+            ],
+            "description": "OTP verification handler for form flow system",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "3neti/form-handler-selfie",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "../packages/form-handler-selfie",
-                "reference": "2fc7f832b94b4a787d5230d3302e44650f031fd2"
+                "reference": "d133399ef6f85dee1348ea502997f3adb126d7dc"
             },
             "require": {
                 "3neti/form-flow": "^1.0",
@@ -173,6 +303,12 @@
             "scripts": {
                 "test": [
                     "pest"
+                ],
+                "post-install-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan selfie-handler:install --no-interaction 2>/dev/null || true');\""
+                ],
+                "post-update-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan selfie-handler:install --no-interaction 2>/dev/null || true');\""
                 ]
             },
             "license": [
@@ -3187,122 +3323,6 @@
             "time": "2025-06-08T23:24:07+00:00"
         },
         {
-            "name": "lbhurtado/form-handler-kyc",
-            "version": "dev-feature/publish-phase2-selfie",
-            "dist": {
-                "type": "path",
-                "url": "./packages/form-handler-kyc",
-                "reference": "c4a3e4ab9a66fd01e3749ded6f319b609c186a66"
-            },
-            "require": {
-                "3neti/form-flow": "^1.0",
-                "3neti/hyperverge": "^1.0",
-                "lorisleiva/laravel-actions": "^2.9",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0"
-            },
-            "require-dev": {
-                "inertiajs/inertia-laravel": "^2.0",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8",
-                "pestphp/pest-plugin-laravel": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\FormHandlerKYC\\KYCHandlerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerKYC\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerKYC\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "KYC/identity verification handler for form flow system using HyperVerge",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/form-handler-otp",
-            "version": "dev-feature/publish-phase2-selfie",
-            "dist": {
-                "type": "path",
-                "url": "./packages/form-handler-otp",
-                "reference": "bdd06e467a944c0314f74e3ba59f5d44061f464a"
-            },
-            "require": {
-                "3neti/form-flow": "^1.0",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0"
-            },
-            "require-dev": {
-                "inertiajs/inertia-laravel": "^2.0",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8",
-                "pestphp/pest-plugin-laravel": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\FormHandlerOtp\\OtpHandlerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerOtp\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerOtp\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "OTP verification handler for form flow system",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "lbhurtado/laravel-model-channel",
             "version": "dev-main",
             "dist": {
@@ -3472,7 +3492,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/publish-phase2-selfie",
+            "version": "dev-feature/publish-phase3-kyc-otp",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3656,7 +3676,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/publish-phase2-selfie",
+            "version": "dev-feature/publish-phase3-kyc-otp",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
@@ -14528,13 +14548,13 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "3neti/form-handler-kyc": 20,
         "3neti/form-handler-location": 20,
+        "3neti/form-handler-otp": 20,
         "3neti/form-handler-selfie": 20,
         "3neti/form-handler-signature": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
-        "lbhurtado/form-handler-kyc": 20,
-        "lbhurtado/form-handler-otp": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/money-issuer": 20,

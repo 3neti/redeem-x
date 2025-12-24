@@ -95,14 +95,14 @@
         },
         {
             "type": "path",
-            "url": "./packages/form-handler-kyc",
+            "url": "../packages/form-handler-kyc",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/form-handler-otp",
+            "url": "../packages/form-handler-otp",
             "options": {
                 "symlink": true
             }
@@ -131,8 +131,8 @@
         "3neti/form-handler-location": "@dev",
         "3neti/form-handler-selfie": "@dev",
         "3neti/form-handler-signature": "@dev",
-        "lbhurtado/form-handler-kyc": "@dev",
-        "lbhurtado/form-handler-otp": "@dev",
+        "3neti/form-handler-kyc": "@dev",
+        "3neti/form-handler-otp": "@dev",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",
         "php-http/discovery": "^1.14",
