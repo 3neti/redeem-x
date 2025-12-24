@@ -74,7 +74,7 @@
         },
         {
             "type": "path",
-            "url": "./packages/form-handler-location",
+            "url": "../packages/form-handler-location",
             "options": {
                 "symlink": true
             }
@@ -88,7 +88,7 @@
         },
         {
             "type": "path",
-            "url": "./packages/form-handler-signature",
+            "url": "../packages/form-handler-signature",
             "options": {
                 "symlink": true
             }
@@ -128,9 +128,9 @@
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
         "3neti/form-flow": "^1.0",
-        "lbhurtado/form-handler-location": "@dev",
+        "3neti/form-handler-location": "@dev",
         "lbhurtado/form-handler-selfie": "@dev",
-        "lbhurtado/form-handler-signature": "@dev",
+        "3neti/form-handler-signature": "@dev",
         "lbhurtado/form-handler-kyc": "@dev",
         "lbhurtado/form-handler-otp": "@dev",
         "league/omnipay": "^3.2",

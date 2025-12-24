@@ -78,19 +78,12 @@ const staticMapUrl = computed(() => {
     const zoom = 16;
     const size = 600;
     
-    console.log('[LocationCapture] Mapbox token present?', !!mapboxToken.value);
-    console.log('[LocationCapture] Token value:', mapboxToken.value ? mapboxToken.value.substring(0, 20) + '...' : 'none');
-    console.log('[LocationCapture] Map provider:', mapProvider.value);
-    
     if (mapProvider.value === 'mapbox' && mapboxToken.value && mapboxToken.value !== 'your_actual_token_here') {
-        const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${longitude},${latitude})/${longitude},${latitude},${zoom},0/${size}x300@2x?access_token=${mapboxToken.value}`;
-        console.log('[LocationCapture] Using Mapbox URL:', url.substring(0, 100) + '...');
-        return url;
+        return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${longitude},${latitude})/${longitude},${latitude},${zoom},0/${size}x300@2x?access_token=${mapboxToken.value}`;
     }
     
     // Fallback: Google Maps static
     const url = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}x300&markers=color:red%7C${latitude},${longitude}`;
-    console.log('[LocationCapture] Using Google Maps URL (no key):', url.substring(0, 100) + '...');
     if (googleMapsKey.value) {
         return `${url}&key=${googleMapsKey.value}`;
     }
@@ -146,41 +139,18 @@ async function captureMapSnapshot(): Promise<string | null> {
     }
 }
 
-async function handleMapImageLoad(event: Event) {
+async function handleMapImageLoad() {
     if (!captureSnapshot.value) return;
     
-    console.log('[LocationCapture] Map image loaded, capturing snapshot...');
+    mapSnapshot.value = await captureMapSnapshot();
     
-    const img = event.target as HTMLImageElement;
-    
-    try {
-        // Use canvas to convert the already-loaded image to base64
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error('[LocationCapture] Could not get canvas context');
-            return;
-        }
-        
-        ctx.drawImage(img, 0, 0);
-        mapSnapshot.value = canvas.toDataURL('image/png');
-        
-        console.log('[LocationCapture] Map snapshot captured:', mapSnapshot.value ? 'SUCCESS' : 'FAILED');
-        
-        // Update the location with snapshot
-        if (mapSnapshot.value && location.value) {
-            const locationWithSnapshot = {
-                ...location.value,
-                snapshot: mapSnapshot.value,
-            };
-            emit('update:modelValue', locationWithSnapshot);
-            console.log('[LocationCapture] Location updated with snapshot');
-        }
-    } catch (err) {
-        console.error('[LocationCapture] Failed to capture map snapshot:', err);
+    // Update the location with snapshot
+    if (mapSnapshot.value && location.value) {
+        const locationWithSnapshot = {
+            ...location.value,
+            snapshot: mapSnapshot.value,
+        };
+        emit('update:modelValue', locationWithSnapshot);
     }
 }
 
@@ -261,15 +231,13 @@ onMounted(() => {
                     <!-- Static Map & Location Info (when location captured) -->
                     <div v-if="parsedLocation" class="space-y-4">
                         <!-- Map Image -->
-                        <div class="rounded-lg border overflow-hidden">
+                        <div v-if="staticMapUrl" class="rounded-lg border overflow-hidden">
                             <img
                                 :src="staticMapUrl"
                                 alt="Map showing your location"
                                 class="w-full h-64 object-cover"
-                                crossorigin="anonymous"
                                 loading="lazy"
                                 @load="handleMapImageLoad"
-                                @error="(e) => console.error('[LocationCapture] Map image failed to load:', e)"
                             />
                         </div>
 

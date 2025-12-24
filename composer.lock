@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e1e8d7796c9e2a9b13df017ee5150460",
+    "content-hash": "da3b1e6d3f807b7ab0e5d4937c3ddcef",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -73,6 +73,122 @@
                 "source": "https://github.com/3neti/form-flow/tree/v1.0.0"
             },
             "time": "2025-12-24T00:34:10+00:00"
+        },
+        {
+            "name": "3neti/form-handler-location",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../packages/form-handler-location",
+                "reference": "1dc199bcfec87d7ad80455b0bfecee260142d033"
+            },
+            "require": {
+                "3neti/form-flow": "^1.0",
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerLocation\\LocationHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerLocation\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerLocation\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "3neti",
+                    "email": "info@3neti.com"
+                }
+            ],
+            "description": "Location capture handler for form flow system",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "3neti/form-handler-signature",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../packages/form-handler-signature",
+                "reference": "f44dfdae9d8a4a1dcbc36b5f01bdce9d7a89eadc"
+            },
+            "require": {
+                "3neti/form-flow": "^1.0",
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "inertiajs/inertia-laravel": "^2.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\FormHandlerSignature\\SignatureHandlerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSignature\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSignature\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "3neti",
+                    "email": "info@3neti.com"
+                }
+            ],
+            "description": "Signature capture handler for form flow system",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "3neti/hyperverge",
@@ -3014,7 +3130,7 @@
         },
         {
             "name": "lbhurtado/form-handler-kyc",
-            "version": "dev-main",
+            "version": "dev-feature/publish-phase1-plugins",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-kyc",
@@ -3072,65 +3188,8 @@
             }
         },
         {
-            "name": "lbhurtado/form-handler-location",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./packages/form-handler-location",
-                "reference": "4e8b6a1b1a33775653cb92984debecc7dd08f66b"
-            },
-            "require": {
-                "3neti/form-flow": "^1.0",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0"
-            },
-            "require-dev": {
-                "inertiajs/inertia-laravel": "^2.0",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8",
-                "pestphp/pest-plugin-laravel": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\FormHandlerLocation\\LocationHandlerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerLocation\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerLocation\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Location capture handler for form flow system",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "lbhurtado/form-handler-otp",
-            "version": "dev-main",
+            "version": "dev-feature/publish-phase1-plugins",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-otp",
@@ -3187,7 +3246,7 @@
         },
         {
             "name": "lbhurtado/form-handler-selfie",
-            "version": "dev-main",
+            "version": "dev-feature/publish-phase1-plugins",
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-selfie",
@@ -3237,63 +3296,6 @@
                 }
             ],
             "description": "Selfie capture handler for form flow system",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/form-handler-signature",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./packages/form-handler-signature",
-                "reference": "bce6dec4e6db1b3fa4f5a0d956d663767192b630"
-            },
-            "require": {
-                "3neti/form-flow": "^1.0",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0"
-            },
-            "require-dev": {
-                "inertiajs/inertia-laravel": "^2.0",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8",
-                "pestphp/pest-plugin-laravel": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\FormHandlerSignature\\SignatureHandlerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerSignature\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormHandlerSignature\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Signature capture handler for form flow system",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -3469,7 +3471,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
+            "version": "dev-feature/publish-phase1-plugins",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3653,7 +3655,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-main",
+            "version": "dev-feature/publish-phase1-plugins",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
@@ -14525,13 +14527,13 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "3neti/form-handler-location": 20,
+        "3neti/form-handler-signature": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
         "lbhurtado/form-handler-kyc": 20,
-        "lbhurtado/form-handler-location": 20,
         "lbhurtado/form-handler-otp": 20,
         "lbhurtado/form-handler-selfie": 20,
-        "lbhurtado/form-handler-signature": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/money-issuer": 20,
