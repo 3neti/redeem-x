@@ -6,6 +6,7 @@ import { toUrl, urlIsActive } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { index as campaignsIndex } from '@/actions/App/Http/Controllers/Settings/CampaignController';
+import { index as apiTokensIndex } from '@/actions/App/Http/Controllers/Settings/ApiTokenController';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 
@@ -13,6 +14,10 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
         href: editProfile(),
+    },
+    {
+        title: 'API Tokens',
+        href: apiTokensIndex.url(),
     },
     {
         title: 'Appearance',
