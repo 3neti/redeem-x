@@ -1,9 +1,29 @@
 <script setup lang="ts">
+import { ref, onMounted, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+import {
+    useDashboardApi,
+    type DashboardStats,
+    type RecentActivity as RecentActivityData,
+} from '@/composables/useDashboardApi';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import QuickActions from '@/components/dashboard/QuickActions.vue';
+import RecentActivityComponent from '@/components/dashboard/RecentActivity.vue';
+import Heading from '@/components/Heading.vue';
+import {
+    Ticket,
+    Clock,
+    TicketCheck,
+    XCircle,
+    DollarSign,
+    ArrowDownLeft,
+    Wallet,
+    CreditCard,
+    TrendingUp,
+} from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,37 +31,125 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: dashboard().url,
     },
 ];
+
+const { loading, getStats, getActivity } = useDashboardApi();
+const stats = ref<DashboardStats | null>(null);
+const activity = ref<RecentActivityData | null>(null);
+
+const formatAmount = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: currency || 'PHP',
+    }).format(amount);
+};
+
+const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-PH').format(num);
+};
+
+const loadDashboardData = async () => {
+    const [statsData, activityData] = await Promise.all([
+        getStats(),
+        getActivity(),
+    ]);
+
+    stats.value = statsData;
+    activity.value = activityData;
+};
+
+onMounted(() => {
+    loadDashboardData();
+});
 </script>
 
 <template>
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
-            <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
+        <div class="mx-auto max-w-7xl space-y-6 p-6">
+            <Heading
+                title="Dashboard"
+                description="Overview of your voucher operations"
+            />
+
+            <!-- Stats Cards -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    title="Total Vouchers"
+                    :value="formatNumber(stats?.vouchers.total || 0)"
+                    :icon="Ticket"
+                    :loading="loading"
+                    href="/vouchers"
+                />
+                <StatCard
+                    title="Active Vouchers"
+                    :value="formatNumber(stats?.vouchers.active || 0)"
+                    :icon="Clock"
+                    :loading="loading"
+                    href="/vouchers"
+                />
+                <StatCard
+                    title="Redeemed"
+                    :value="formatNumber(stats?.vouchers.redeemed || 0)"
+                    subtitle="Total redemptions"
+                    :icon="TicketCheck"
+                    :loading="loading"
+                    href="/transactions"
+                />
+                <StatCard
+                    title="Wallet Balance"
+                    :value="
+                        formatAmount(
+                            stats?.wallet.balance || 0,
+                            stats?.wallet.currency || 'PHP',
+                        )
+                    "
+                    :icon="Wallet"
+                    :loading="loading"
+                    href="/wallet"
+                />
             </div>
-            <div
-                class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
-            >
-                <PlaceholderPattern />
+
+            <!-- Secondary Stats -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                    title="This Month (Disbursements)"
+                    :value="
+                        formatAmount(
+                            stats?.transactions.total_amount || 0,
+                            stats?.transactions.currency || 'PHP',
+                        )
+                    "
+                    :subtitle="`${stats?.transactions.this_month || 0} transactions`"
+                    :icon="DollarSign"
+                    :loading="loading"
+                />
+                <StatCard
+                    title="This Month (Deposits)"
+                    :value="
+                        formatAmount(
+                            stats?.deposits.total_amount || 0,
+                            stats?.deposits.currency || 'PHP',
+                        )
+                    "
+                    :subtitle="`${stats?.deposits.unique_senders || 0} unique senders`"
+                    :icon="ArrowDownLeft"
+                    :loading="loading"
+                />
+                <StatCard
+                    title="Success Rate"
+                    :value="`${stats?.disbursements.success_rate || 0}%`"
+                    :subtitle="`${stats?.disbursements.successful || 0} of ${stats?.disbursements.total_attempts || 0} attempts`"
+                    :icon="TrendingUp"
+                    :loading="loading"
+                />
             </div>
+
+            <!-- Quick Actions -->
+            <QuickActions />
+
+            <!-- Recent Activity -->
+            <RecentActivityComponent :activity="activity" :loading="loading" />
         </div>
     </AppLayout>
 </template>

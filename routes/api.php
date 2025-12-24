@@ -60,6 +60,9 @@ Route::prefix('v1')
         // Contact management API
         require base_path('routes/api/contacts.php');
 
+        // Dashboard API
+        require base_path('routes/api/dashboard.php');
+
         // Campaigns API (for Generate Vouchers dropdown)
         Route::get('/campaigns', function (\Illuminate\Http\Request $request) {
             return Campaign::where('user_id', $request->user()->id)
