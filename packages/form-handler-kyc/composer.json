@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "3neti/form-flow": "dev-main",
+        "3neti/form-flow": "^1.0",
         "3neti/hyperverge": "^1.0",
         "spatie/laravel-data": "^4.0",
         "lorisleiva/laravel-actions": "^2.9"
@@ -32,12 +32,6 @@
             "LBHurtado\\FormHandlerKYC\\Tests\\": "tests/"
         }
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../../../packages/form-flow-manager"
-        }
-    ],
     "extra": {
         "laravel": {
             "providers": [

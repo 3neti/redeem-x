@@ -4,15 +4,21 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "731d9dbc8656cd5c73e1c5c7d558c7d6",
+    "content-hash": "e1e8d7796c9e2a9b13df017ee5150460",
     "packages": [
         {
             "name": "3neti/form-flow",
-            "version": "dev-main",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/form-flow.git",
+                "reference": "e04b87a80a0da446d6d874a59216da912f7a1ce0"
+            },
             "dist": {
-                "type": "path",
-                "url": "../packages/form-flow-manager",
-                "reference": "cee7050a6e84dd1ef2972fb212e098595c2f61c9"
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/form-flow/zipball/e04b87a80a0da446d6d874a59216da912f7a1ce0",
+                "reference": "e04b87a80a0da446d6d874a59216da912f7a1ce0",
+                "shasum": ""
             },
             "require": {
                 "illuminate/support": "^11.0 || ^12.0",
@@ -38,30 +44,35 @@
                     "LBHurtado\\FormFlowManager\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\FormFlowManager\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "authors": [
                 {
                     "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
+                    "email": "lester@hurtado.ph",
+                    "homepage": "https://github.com/lbhurtado"
                 }
             ],
-            "description": "Driver-based form flow orchestration system with DirXML-style mapping",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "description": "Driver-based form flow orchestration system with DirXML-style mapping for Laravel applications",
+            "homepage": "https://github.com/3neti/form-flow",
+            "keywords": [
+                "dirxml",
+                "driver",
+                "form-flow",
+                "inertia",
+                "laravel",
+                "mapper",
+                "multi-step-form",
+                "vue",
+                "wizard"
+            ],
+            "support": {
+                "issues": "https://github.com/3neti/form-flow/issues",
+                "source": "https://github.com/3neti/form-flow/tree/v1.0.0"
+            },
+            "time": "2025-12-24T00:34:10+00:00"
         },
         {
             "name": "3neti/hyperverge",
@@ -2154,16 +2165,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v12.43.1",
+            "version": "v12.44.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "195b893593a9298edee177c0844132ebaa02102f"
+                "reference": "592bbf1c036042958332eb98e3e8131b29102f33"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/195b893593a9298edee177c0844132ebaa02102f",
-                "reference": "195b893593a9298edee177c0844132ebaa02102f",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/592bbf1c036042958332eb98e3e8131b29102f33",
+                "reference": "592bbf1c036042958332eb98e3e8131b29102f33",
                 "shasum": ""
             },
             "require": {
@@ -2372,7 +2383,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2025-12-16T18:53:08+00:00"
+            "time": "2025-12-23T15:29:43+00:00"
         },
         {
             "name": "laravel/prompts",
@@ -3007,10 +3018,10 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-kyc",
-                "reference": "ccb6b7fd4ab10bb00490ee7d8fdffa8f5b9c9bf7"
+                "reference": "c4a3e4ab9a66fd01e3749ded6f319b609c186a66"
             },
             "require": {
-                "3neti/form-flow": "dev-main",
+                "3neti/form-flow": "^1.0",
                 "3neti/hyperverge": "^1.0",
                 "lorisleiva/laravel-actions": "^2.9",
                 "php": "^8.2",
@@ -3066,10 +3077,10 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-location",
-                "reference": "c6e416cf8acd9ac72785abe6c448769f52255f9a"
+                "reference": "4e8b6a1b1a33775653cb92984debecc7dd08f66b"
             },
             "require": {
-                "3neti/form-flow": "dev-main",
+                "3neti/form-flow": "^1.0",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -3123,10 +3134,10 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-otp",
-                "reference": "08506222a1649497e3f4aeae757041cdfced915e"
+                "reference": "bdd06e467a944c0314f74e3ba59f5d44061f464a"
             },
             "require": {
-                "3neti/form-flow": "dev-main",
+                "3neti/form-flow": "^1.0",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -3180,10 +3191,10 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-selfie",
-                "reference": "1d238c789e1e8046a17d0ee7ee431e658f0e84df"
+                "reference": "72b7f65a684b9d68a76367010fc5f0c792bfee41"
             },
             "require": {
-                "3neti/form-flow": "dev-main",
+                "3neti/form-flow": "^1.0",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -3237,10 +3248,10 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/form-handler-signature",
-                "reference": "03b107d3a2d1dc106aee01ad64008734e5aa098e"
+                "reference": "bce6dec4e6db1b3fa4f5a0d956d663767192b630"
             },
             "require": {
-                "3neti/form-flow": "dev-main",
+                "3neti/form-flow": "^1.0",
                 "php": "^8.2",
                 "spatie/laravel-data": "^4.0"
             },
@@ -14514,7 +14525,6 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "3neti/form-flow": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
         "lbhurtado/form-handler-kyc": 20,

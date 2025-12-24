@@ -74,13 +74,6 @@
         },
         {
             "type": "path",
-            "url": "../packages/form-flow-manager",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
             "url": "./packages/form-handler-location",
             "options": {
                 "symlink": true
@@ -134,7 +127,7 @@
         "lbhurtado/sms": "^2.4",
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
-        "3neti/form-flow": "@dev",
+        "3neti/form-flow": "^1.0",
         "lbhurtado/form-handler-location": "@dev",
         "lbhurtado/form-handler-selfie": "@dev",
         "lbhurtado/form-handler-signature": "@dev",
