@@ -48,6 +48,9 @@ Route::prefix('v1')
         // Authentication & Token management API
         require base_path('routes/api/auth.php');
 
+        // Wallet & Top-Up API
+        require base_path('routes/api/wallet.php');
+
         // Voucher management API
         require base_path('routes/api/vouchers.php');
 
