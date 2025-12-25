@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Api\Settings;
 
 use App\Http\Responses\ApiResponse;
-use App\Settings\VoucherSettings;
+use App\Settings\UserPreferencesSettings;
 use Illuminate\Http\JsonResponse;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,24 +19,37 @@ class UpdatePreferences
 {
     use AsAction;
 
-    public function asController(ActionRequest $request, VoucherSettings $settings): JsonResponse
+    public function asController(ActionRequest $request, UserPreferencesSettings $settings): JsonResponse
     {
         $validated = $request->validated();
 
-        $settings->default_amount = (int) $validated['default_amount'];
-        $settings->default_expiry_days = $validated['default_expiry_days'];
-        $settings->default_rider_url = $validated['default_rider_url'] ?? config('app.url');
-        $settings->default_success_message = $validated['default_success_message'] ?? 'Thank you for redeeming your voucher! The cash will be transferred shortly.';
-        
+        // Update user preferences
+        if (isset($validated['notifications'])) {
+            $settings->notifications = $validated['notifications'];
+        }
+        if (isset($validated['timezone'])) {
+            $settings->timezone = $validated['timezone'];
+        }
+        if (isset($validated['language'])) {
+            $settings->language = $validated['language'];
+        }
+        if (isset($validated['currency'])) {
+            $settings->currency = $validated['currency'];
+        }
+        if (isset($validated['date_format'])) {
+            $settings->date_format = $validated['date_format'];
+        }
+
         $settings->save();
 
         return ApiResponse::success([
             'message' => 'Preferences updated successfully.',
             'preferences' => [
-                'default_amount' => $settings->default_amount,
-                'default_expiry_days' => $settings->default_expiry_days,
-                'default_rider_url' => $settings->default_rider_url,
-                'default_success_message' => $settings->default_success_message,
+                'notifications' => $settings->notifications,
+                'timezone' => $settings->timezone,
+                'language' => $settings->language,
+                'currency' => $settings->currency,
+                'date_format' => $settings->date_format,
             ],
         ]);
     }
@@ -44,10 +57,14 @@ class UpdatePreferences
     public function rules(): array
     {
         return [
-            'default_amount' => ['required', 'numeric', 'min:1', 'max:100000'],
-            'default_expiry_days' => ['nullable', 'integer', 'min:1', 'max:365'],
-            'default_rider_url' => ['nullable', 'url', 'max:500'],
-            'default_success_message' => ['nullable', 'string', 'max:1000'],
+            'notifications' => ['sometimes', 'array'],
+            'notifications.email' => ['sometimes', 'boolean'],
+            'notifications.sms' => ['sometimes', 'boolean'],
+            'notifications.push' => ['sometimes', 'boolean'],
+            'timezone' => ['sometimes', 'string', 'timezone'],
+            'language' => ['sometimes', 'string', 'in:en,tl,fil'],
+            'currency' => ['sometimes', 'string', 'in:PHP,USD,EUR'],
+            'date_format' => ['sometimes', 'string', 'in:Y-m-d,m/d/Y,d/m/Y'],
         ];
     }
 }
