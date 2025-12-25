@@ -21,7 +21,7 @@ class VoucherPolicy
      */
     public function view(User $user, Voucher $voucher): bool
     {
-        return $voucher->owner_id === $user->id;
+        return $voucher->owner_type === User::class && $voucher->owner_id === $user->id;
     }
 
     /**
@@ -33,7 +33,7 @@ class VoucherPolicy
      */
     public function update(User $user, Voucher $voucher): bool
     {
-        return $voucher->owner_id === $user->id;
+        return $voucher->owner_type === User::class && $voucher->owner_id === $user->id;
     }
 
     /**
@@ -45,6 +45,8 @@ class VoucherPolicy
      */
     public function delete(User $user, Voucher $voucher): bool
     {
-        return $voucher->owner_id === $user->id && ! $voucher->isRedeemed();
+        return $voucher->owner_type === User::class 
+            && $voucher->owner_id === $user->id 
+            && ! $voucher->isRedeemed();
     }
 }

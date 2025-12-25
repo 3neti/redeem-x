@@ -18,6 +18,10 @@ beforeEach(function () {
     
     // Set mobile via HasChannels trait
     $this->user->setChannel('mobile', '09171234567');
+    
+    // Create real token instead of using Sanctum::actingAs mock
+    $token = $this->user->createToken('test-token');
+    $this->withToken($token->plainTextToken);
 });
 
 // ============================================================================
@@ -28,15 +32,9 @@ test('authenticated user can generate qr code for their voucher', function () {
     // Fund wallet first
     $this->user->deposit(10000);
     
-    // Create voucher BEFORE Sanctum::actingAs to avoid serialization issues
+    // VoucherTestHelper automatically sets ownership via GenerateVouchers
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
-    // Ensure owner_id is set (VoucherPolicy checks this)
-    $voucher->owner_id = $this->user->id;
-    $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
 
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}/qr");
 
@@ -67,16 +65,13 @@ test('qr code includes voucher details', function () {
     // Fund wallet first
     $this->user->deposit(10000);
     
-    // Create voucher first
+    // Create voucher (ownership automatically set)
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'DETAIL');
     $voucher = $vouchers->first();
     
-    // Ensure owner_id is set and set expiration
-    $voucher->owner_id = $this->user->id;
+    // Set expiration
     $voucher->expires_at = now()->addDays(30);
     $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
 
     $response = $this->getJson("/api/v1/vouchers/VOUCHER-WITH-DETAILS/qr");
 
@@ -99,14 +94,11 @@ test('cannot generate qr code for another users voucher', function () {
     $otherUser = User::factory()->create();
     $otherUser->deposit(10000);
     
+    // Voucher owned by otherUser (ownership automatically set)
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($otherUser, 1, 'OTHER');
     $voucher = $vouchers->first();
     
-    // Ensure owner_id is set to other user
-    $voucher->owner_id = $otherUser->id;
-    $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
+    // Already authenticated as $this->user via beforeEach
 
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}/qr");
 
@@ -116,12 +108,12 @@ test('cannot generate qr code for another users voucher', function () {
 test('unauthenticated user cannot generate qr code', function () {
     $this->user->deposit(10000);
     
+    // Voucher owned by user (ownership automatically set)
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'UNAUTH');
     $voucher = $vouchers->first();
     
-    // Ensure owner_id is set
-    $voucher->owner_id = $this->user->id;
-    $voucher->save();
+    // Remove auth token for this test
+    $this->withToken(null);
 
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}/qr");
 
@@ -136,12 +128,9 @@ test('qr code can be generated for redeemed voucher', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'REDEEM');
     $voucher = $vouchers->first();
     
-    // Ensure owner_id is set and mark as redeemed
-    $voucher->owner_id = $this->user->id;
+    // Mark as redeemed
     $voucher->redeemed_at = now();
     $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
 
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}/qr");
 
@@ -156,12 +145,9 @@ test('qr code can be generated for expired voucher', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'EXPIRE');
     $voucher = $vouchers->first();
     
-    // Ensure owner_id is set and set as expired
-    $voucher->owner_id = $this->user->id;
+    // Set as expired
     $voucher->expires_at = now()->subDay();
     $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
 
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}/qr");
 
@@ -174,10 +160,7 @@ test('qr code can be generated for expired voucher', function () {
 // ============================================================================
 
 test('authenticated user can generate wallet qr code', function () {
-    Sanctum::actingAs($this->user, ['*']);
-    
-    // Ensure user has mobile number
-    $this->user->setChannel('mobile', '09171234567');
+    // User already authenticated via beforeEach
 
     $response = $this->postJson('/api/v1/wallet/generate-qr', [
         'amount' => 100.00,
@@ -201,8 +184,6 @@ test('authenticated user can generate wallet qr code', function () {
 });
 
 test('wallet qr code requires mobile number', function () {
-    Sanctum::actingAs($this->user, ['*']);
-    
     // Remove mobile number
     $this->user->channels()->delete();
 
@@ -213,8 +194,6 @@ test('wallet qr code requires mobile number', function () {
 });
 
 test('wallet qr code can be generated with dynamic amount', function () {
-    Sanctum::actingAs($this->user, ['*']);
-    $this->user->setChannel('mobile', '09171234567');
 
     $response = $this->postJson('/api/v1/wallet/generate-qr', [
         'amount' => 0, // Dynamic amount
@@ -226,8 +205,6 @@ test('wallet qr code can be generated with dynamic amount', function () {
 });
 
 test('wallet qr code validates amount format', function () {
-    Sanctum::actingAs($this->user, ['*']);
-    $this->user->setChannel('mobile', '09171234567');
 
     $response = $this->postJson('/api/v1/wallet/generate-qr', [
         'amount' => 'invalid',
@@ -238,8 +215,6 @@ test('wallet qr code validates amount format', function () {
 });
 
 test('wallet qr code can be force regenerated', function () {
-    Sanctum::actingAs($this->user, ['*']);
-    $this->user->setChannel('mobile', '09171234567');
 
     // First generation
     $response1 = $this->postJson('/api/v1/wallet/generate-qr', [
@@ -268,6 +243,9 @@ test('wallet qr code can be force regenerated', function () {
 });
 
 test('unauthenticated user cannot generate wallet qr code', function () {
+    // Remove auth token
+    $this->withToken(null);
+    
     $response = $this->postJson('/api/v1/wallet/generate-qr', [
         'amount' => 100,
     ]);
@@ -285,12 +263,6 @@ test('qr code endpoints respect rate limiting', function () {
     
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'RATE');
     $voucher = $vouchers->first();
-    
-    // Ensure owner_id is set
-    $voucher->owner_id = $this->user->id;
-    $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
 
     // Attempt 61 requests (limit is 60 per minute)
     for ($i = 0; $i < 61; $i++) {
@@ -312,15 +284,9 @@ test('qr codes work in complete user flow', function () {
     // Fund wallet first
     $this->user->deposit(10000);
     
-    // 1. Generate a voucher
+    // 1. Generate a voucher (ownership automatically set)
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'FLOW');
     $voucher = $vouchers->first();
-    
-    // Ensure owner_id is set
-    $voucher->owner_id = $this->user->id;
-    $voucher->save();
-    
-    Sanctum::actingAs($this->user, ['*']);
 
     // 2. Generate QR code for the voucher
     $qrResponse = $this->getJson("/api/v1/vouchers/{$voucher->code}/qr");
