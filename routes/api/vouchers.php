@@ -46,6 +46,11 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     Route::get('/{voucher:code}', [\App\Actions\Api\Vouchers\ShowVoucher::class, 'asController'])
         ->name('show');
 
+    // Generate QR code for voucher redemption
+    // GET /api/v1/vouchers/{code}/qr
+    Route::get('/{code}/qr', [\App\Actions\Api\Vouchers\GenerateVoucherQr::class, 'asController'])
+        ->name('qr');
+
     // Set external metadata
     // POST /api/v1/vouchers/{voucher}/external
     Route::post('/{voucher:code}/external', [\App\Actions\Api\Vouchers\SetExternalMetadata::class, 'asController'])
