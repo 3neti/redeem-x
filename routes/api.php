@@ -45,6 +45,9 @@ Route::prefix('v1')->group(function () {
 Route::prefix('v1')
     ->middleware(['auth:sanctum', 'throttle:60,1'])
     ->group(function () {
+        // Authentication & Token management API
+        require base_path('routes/api/auth.php');
+
         // Voucher management API
         require base_path('routes/api/vouchers.php');
 
