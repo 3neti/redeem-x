@@ -7,9 +7,12 @@ use App\Models\InstructionItem;
 use App\Models\User;
 use App\Observers\InstructionItemObserver;
 use App\Observers\UserObserver;
+use App\Policies\VoucherPolicy;
 use App\Services\DataEnrichers\DataEnricherRegistry;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Events\DisbursementFailed;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
     {
         User::observe(UserObserver::class);
         InstructionItem::observe(InstructionItemObserver::class);
+
+        // Register voucher policy (package model doesn't auto-discover)
+        Gate::policy(Voucher::class, VoucherPolicy::class);
 
         // Register disbursement failure listener
         Event::listen(

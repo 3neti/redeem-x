@@ -83,6 +83,9 @@ class GenerateVouchers
             'charge_per_voucher' => ($breakdown->total / $vouchers->count()) / 100,
             'generated_at' => now(),
         ]);
+        
+        // Escrow is handled automatically by the pipeline via pay() on Cash entities
+        // ChargeInstructions pipeline charges any fees (now runs synchronously)
 
         // Attach vouchers to campaign if campaign_id provided
         if (!empty($validated['campaign_id'])) {

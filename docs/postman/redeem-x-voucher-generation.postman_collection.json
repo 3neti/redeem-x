@@ -1,0 +1,914 @@
+{
+  "info": {
+    "name": "Redeem-X API - Voucher Generation",
+    "_postman_id": "redeem-x-voucher-gen-v1",
+    "description": "Voucher generation and management APIs for apps that create and manage vouchers.\n\n## Authentication\nAll requests require Bearer token authentication.\n\n## Prerequisites\n- User must have sufficient wallet balance to generate vouchers\n- Wallet balance is deducted when vouchers are created\n- **IMPORTANT**: If you get 403 errors, top up your wallet first using the Management APIs collection\n\n## Notes\n- Amounts are reduced (₱50-100) to avoid wallet balance issues during testing\n- Bulk create requires a campaign_id from your campaigns (use campaign #1 or adjust as needed)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://redeem-x.test",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "voucher_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Generate Vouchers",
+      "item": [
+        {
+          "name": "Generate Simple Vouchers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has vouchers\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.count).to.equal(5);",
+                  "    pm.expect(jsonData.data.total_amount).to.equal(500);",
+                  "    pm.expect(jsonData.data.vouchers).to.be.an('array');",
+                  "    if (jsonData.data.vouchers.length > 0) {",
+                  "        const code = jsonData.data.vouchers[0].code;",
+                  "        pm.collectionVariables.set(\"voucher_code\", code);",
+                  "        console.log('✓ Saved voucher_code for current user:', code);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"count\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate simple vouchers with just amount and count"
+          }
+        },
+        {
+          "name": "Generate with Custom Prefix",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50,\n  \"count\": 2,\n  \"prefix\": \"PROMO\",\n  \"mask\": \"****\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate vouchers with custom prefix and mask"
+          }
+        },
+        {
+          "name": "Generate with Validation Rules",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50,\n  \"count\": 1,\n  \"cash\": {\n    \"validation\": {\n      \"secret\": \"1234\",\n      \"mobile\": \"+639171234567\",\n      \"location\": \"14.5547,121.0244\",\n      \"radius\": 1000\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate vouchers with validation rules (secret, mobile, location)"
+          }
+        },
+        {
+          "name": "Generate with Input Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50,\n  \"count\": 1,\n  \"inputs\": {\n    \"fields\": [\n      {\n        \"name\": \"location\",\n        \"required\": true\n      },\n      {\n        \"name\": \"selfie\",\n        \"required\": true\n      },\n      {\n        \"name\": \"signature\",\n        \"required\": false\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate vouchers requiring input fields during redemption"
+          }
+        },
+        {
+          "name": "Get My Campaigns (Pre-requisite)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Save first campaign ID for bulk create",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.length > 0) {",
+                  "    pm.collectionVariables.set(\"campaign_id\", jsonData[0].id);",
+                  "    console.log(\"Campaign ID saved: \" + jsonData[0].id);",
+                  "    console.log(\"Campaign name: \" + jsonData[0].name);",
+                  "} else {",
+                  "    console.log(\"No campaigns found. Create a campaign first.\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "campaigns"]
+            },
+            "description": "Get your campaigns to use for bulk create. Saves first campaign ID to collection variable."
+          }
+        },
+        {
+          "name": "Bulk Create with External Metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaign_id\": {{campaign_id}},\n  \"vouchers\": [\n    {\n      \"mobile\": \"09171234567\",\n      \"external_metadata\": {\n        \"external_id\": \"CUST-001\",\n        \"custom\": {\n          \"beneficiary_name\": \"Juan Dela Cruz\",\n          \"program\": \"DSWD-Ayuda\",\n          \"batch_id\": \"BATCH-2025-001\"\n        }\n      }\n    },\n    {\n      \"mobile\": \"09181234567\",\n      \"external_metadata\": {\n        \"external_id\": \"CUST-002\",\n        \"custom\": {\n          \"beneficiary_name\": \"Maria Santos\",\n          \"program\": \"DSWD-Ayuda\",\n          \"batch_id\": \"BATCH-2025-001\"\n        }\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/bulk-create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "bulk-create"]
+            },
+            "description": "Bulk create vouchers from a campaign template. Run 'Get My Campaigns' first to set campaign_id variable."
+          }
+        }
+      ],
+      "description": "Generate vouchers with various configurations"
+    },
+    {
+      "name": "02 - List & Query Vouchers",
+      "item": [
+        {
+          "name": "List All Vouchers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has pagination\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.pagination).to.exist;",
+                  "    // Save first voucher code if available",
+                  "    if (jsonData.data.data && jsonData.data.data.length > 0) {",
+                  "        pm.collectionVariables.set(\"voucher_code\", jsonData.data.data[0].code);",
+                  "        console.log(\"Voucher code saved: \" + jsonData.data.data[0].code);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all user's vouchers with pagination"
+          }
+        },
+        {
+          "name": "Filter by Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers?status=redeemed",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "redeemed",
+                  "description": "Options: active, redeemed, expired, cancelled"
+                }
+              ]
+            },
+            "description": "Filter vouchers by status"
+          }
+        },
+        {
+          "name": "Search by Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers?search=PROMO",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "PROMO"
+                }
+              ]
+            },
+            "description": "Search vouchers by code prefix"
+          }
+        },
+        {
+          "name": "Query Vouchers (Advanced)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/query?external_id=CUST-001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "query"],
+              "query": [
+                {
+                  "key": "external_id",
+                  "value": "CUST-001"
+                },
+                {
+                  "key": "batch_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "program",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Query vouchers by external metadata"
+          }
+        }
+      ],
+      "description": "List and search vouchers"
+    },
+    {
+      "name": "03 - Voucher Details",
+      "item": [
+        {
+          "name": "Get Voucher Details",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Check if voucher_code is set, if not fetch from API",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.log('voucher_code not set, fetching from API...');",
+                  "    ",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/api/v1/vouchers?per_page=1',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Accept': 'application/json',",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('access_token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (err) {",
+                  "            console.error('Error fetching vouchers:', err);",
+                  "            return;",
+                  "        }",
+                  "        ",
+                  "        const jsonData = response.json();",
+                  "        if (jsonData.data.data && jsonData.data.data.length > 0) {",
+                  "            voucherCode = jsonData.data.data[0].code;",
+                  "            pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "            console.log('Auto-fetched voucher code:', voucherCode);",
+                  "        } else {",
+                  "            console.error('No vouchers found in API response');",
+                  "        }",
+                  "    });",
+                  "} else {",
+                  "    console.log('Using existing voucher_code:', voucherCode);",
+                  "}",
+                  "",
+                  "// Force URL rebuild with voucher code",
+                  "if (voucherCode) {",
+                  "    const baseUrl = pm.collectionVariables.get('base_url');",
+                  "    pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode;",
+                  "    console.log('Built URL:', pm.request.url.toString());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has voucher data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    // Check if it's a list response (data.data[]) or single voucher (data.voucher)",
+                  "    if (jsonData.data.data && Array.isArray(jsonData.data.data)) {",
+                  "        pm.expect(jsonData.data.data.length).to.be.above(0);",
+                  "        // Re-save first voucher code as fallback",
+                  "        if (jsonData.data.data[0].code) {",
+                  "            pm.collectionVariables.set(\"voucher_code\", jsonData.data.data[0].code);",
+                  "            console.log(\"Voucher code saved: \" + jsonData.data.data[0].code);",
+                  "        }",
+                  "    } else if (jsonData.data.voucher) {",
+                  "        pm.expect(jsonData.data.voucher.code).to.exist;",
+                  "        // Re-save voucher code",
+                  "        pm.collectionVariables.set(\"voucher_code\", jsonData.data.voucher.code);",
+                  "        console.log(\"Voucher code saved: \" + jsonData.data.voucher.code);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}"]
+            },
+            "description": "Get detailed information about a specific voucher. NOTE: Run 'Generate Simple Vouchers' first to populate {{voucher_code}} variable."
+          }
+        },
+        {
+          "name": "Inspect Voucher (Public)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Check if voucher_code is set, if not fetch from API",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.log('voucher_code not set, fetching from API...');",
+                  "    ",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/api/v1/vouchers?per_page=1',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Accept': 'application/json',",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('access_token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (err) {",
+                  "            console.error('Error fetching vouchers:', err);",
+                  "            return;",
+                  "        }",
+                  "        ",
+                  "        const jsonData = response.json();",
+                  "        if (jsonData.data.data && jsonData.data.data.length > 0) {",
+                  "            voucherCode = jsonData.data.data[0].code;",
+                  "            pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "            console.log('Auto-fetched voucher code:', voucherCode);",
+                  "        } else {",
+                  "            console.error('No vouchers found in API response');",
+                  "        }",
+                  "    });",
+                  "} else {",
+                  "    console.log('Using existing voucher_code:', voucherCode);",
+                  "}",
+                  "",
+                  "// Force URL rebuild with voucher code",
+                  "if (voucherCode) {",
+                  "    const baseUrl = pm.collectionVariables.get('base_url');",
+                  "    pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode + '/inspect';",
+                  "    console.log('Built URL:', pm.request.url.toString());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/inspect",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "inspect"]
+            },
+            "description": "Public endpoint to inspect voucher metadata (no auth required). NOTE: Run 'Generate Simple Vouchers' first to populate {{voucher_code}} variable."
+          }
+        },
+        {
+          "name": "Generate Voucher QR Code",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Check if voucher_code is set, if not fetch from API",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.log('voucher_code not set, fetching from API...');",
+                  "    ",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/api/v1/vouchers?per_page=1',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Accept': 'application/json',",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('access_token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (err) {",
+                  "            console.error('Error fetching vouchers:', err);",
+                  "            return;",
+                  "        }",
+                  "        ",
+                  "        const jsonData = response.json();",
+                  "        if (jsonData.data.data && jsonData.data.data.length > 0) {",
+                  "            voucherCode = jsonData.data.data[0].code;",
+                  "            pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "            console.log('Auto-fetched voucher code:', voucherCode);",
+                  "        } else {",
+                  "            console.error('No vouchers found in API response');",
+                  "        }",
+                  "    });",
+                  "} else {",
+                  "    console.log('Using existing voucher_code:', voucherCode);",
+                  "}",
+                  "",
+                  "// Force URL rebuild with voucher code",
+                  "if (voucherCode) {",
+                  "    const baseUrl = pm.collectionVariables.get('base_url');",
+                  "    pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode + '/qr';",
+                  "    console.log('Built URL:', pm.request.url.toString());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has QR data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.qr_code).to.exist;",
+                  "    pm.expect(jsonData.data.redemption_url).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/qr",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "qr"]
+            },
+            "description": "Generate QR code for voucher redemption. NOTE: Run 'Generate Simple Vouchers' first to populate {{voucher_code}} variable."
+          }
+        }
+      ],
+      "description": "View voucher details and metadata"
+    },
+    {
+      "name": "04 - Manage Vouchers",
+      "item": [
+        {
+          "name": "Set External Metadata",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Check if voucher_code is set, if not fetch from API",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.log('voucher_code not set, fetching from API...');",
+                  "    ",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/api/v1/vouchers?per_page=1',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Accept': 'application/json',",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('access_token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (err) {",
+                  "            console.error('Error fetching vouchers:', err);",
+                  "            return;",
+                  "        }",
+                  "        ",
+                  "        const jsonData = response.json();",
+                  "        if (jsonData.data.data && jsonData.data.data.length > 0) {",
+                  "            voucherCode = jsonData.data.data[0].code;",
+                  "            pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "            console.log('Auto-fetched voucher code:', voucherCode);",
+                  "        } else {",
+                  "            console.error('No vouchers found in API response');",
+                  "        }",
+                  "    });",
+                  "} else {",
+                  "    console.log('Using existing voucher_code:', voucherCode);",
+                  "}",
+                  "",
+                  "// Force URL rebuild with voucher code",
+                  "if (voucherCode) {",
+                  "    const baseUrl = pm.collectionVariables.get('base_url');",
+                  "    pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode + '/external';",
+                  "    console.log('Built URL:', pm.request.url.toString());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"CUST-123\",\n  \"beneficiary_name\": \"Juan Dela Cruz\",\n  \"beneficiary_mobile\": \"09171234567\",\n  \"program\": \"Relief Program 2025\",\n  \"batch_id\": \"BATCH-001\",\n  \"distribution_date\": \"2025-12-25\",\n  \"notes\": \"Distributed via mobile app\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/external",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "external"]
+            },
+            "description": "Add/update external metadata for a voucher"
+          }
+        },
+        {
+          "name": "Cancel Voucher",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Check if voucher_code is set, if not fetch from API",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.log('voucher_code not set, fetching from API...');",
+                  "    ",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/api/v1/vouchers?per_page=1',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Accept': 'application/json',",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('access_token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (err) {",
+                  "            console.error('Error fetching vouchers:', err);",
+                  "            return;",
+                  "        }",
+                  "        ",
+                  "        const jsonData = response.json();",
+                  "        if (jsonData.data.data && jsonData.data.data.length > 0) {",
+                  "            voucherCode = jsonData.data.data[0].code;",
+                  "            pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "            console.log('Auto-fetched voucher code:', voucherCode);",
+                  "        } else {",
+                  "            console.error('No vouchers found in API response');",
+                  "        }",
+                  "    });",
+                  "} else {",
+                  "    console.log('Using existing voucher_code:', voucherCode);",
+                  "}",
+                  "",
+                  "// Force URL rebuild with voucher code",
+                  "if (voucherCode) {",
+                  "    const baseUrl = pm.collectionVariables.get('base_url');",
+                  "    pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode;",
+                  "    console.log('Built URL:', pm.request.url.toString());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}"]
+            },
+            "description": "Cancel an unredeemed voucher (refunds wallet balance)"
+          }
+        }
+      ],
+      "description": "Manage voucher metadata and lifecycle"
+    }
+  ]
+}

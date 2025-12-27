@@ -1,0 +1,874 @@
+{
+  "info": {
+    "name": "Redeem-X API - Redemption Flow",
+    "_postman_id": "redeem-x-redemption-v1",
+    "description": "Public redemption flow APIs for apps that allow users to redeem vouchers.\n\n## Prerequisites\n1. **Get a voucher code** - Use the Voucher Generation collection to create a voucher first\n2. **Set voucher_code variable** - Either:\n   - Run 'Validate Redeemable Voucher' first (auto-saves code)\n   - Manually set {{voucher_code}} in collection variables\n\n## Authentication\nNo authentication required - these are public endpoints.\nUses signed tokens for state management during the redemption flow.\n\n## Complete Redemption Flow\n1. **Validate** - Check if voucher code is valid and redeemable\n2. **Start** - Begin redemption session with mobile number\n3. **Wallet** - Submit bank account/wallet details\n4. **Plugin** - Submit additional data (location, selfie, signature, etc.)\n5. **Finalize** - Preview redemption summary\n6. **Confirm** - Execute the redemption and trigger disbursement\n7. **Status** - Check redemption status\n8. **Timing** - Track user behavior for analytics\n\n## Use Cases\n- Mobile apps for voucher redemption\n- Web apps for beneficiaries\n- Kiosks for voucher distribution\n- Third-party integration for redemption",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://redeem-x.test",
+      "type": "string"
+    },
+    {
+      "key": "voucher_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mobile",
+      "value": "09171234567",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Validate Voucher",
+      "item": [
+        {
+          "name": "Validate Redeemable Voucher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher is valid\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.can_redeem).to.equal(true);",
+                  "    pm.expect(jsonData.data.voucher).to.exist;",
+                  "    // Save voucher code for use in later requests",
+                  "    if (jsonData.data.voucher.code) {",
+                  "        pm.collectionVariables.set('voucher_code', jsonData.data.voucher.code);",
+                  "        console.log('Saved voucher_code:', jsonData.data.voucher.code);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{voucher_code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/validate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "validate"]
+            },
+            "description": "Validate if a voucher code is valid and can be redeemed. Returns voucher details and required validation steps."
+          }
+        },
+        {
+          "name": "Validate with Secret Required",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Note: This test expects a voucher with secret validation",
+                  "// To create one: Use Voucher Generation > Generate with Validation Rules",
+                  "// Then manually update the code in the body below",
+                  "pm.test(\"Secret required (if voucher has validation)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    // Only check if required_validation exists and has secret field",
+                  "    if (jsonData.data.required_validation && jsonData.data.required_validation.secret !== undefined) {",
+                  "        pm.expect(jsonData.data.required_validation.secret).to.equal(true);",
+                  "        console.log('✓ Voucher requires secret validation');",
+                  "    } else {",
+                  "        console.log('⚠ Voucher does not require secret (create one with validation rules first)');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SECRET-VOUCHER-CODE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/validate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "validate"]
+            },
+            "description": "Example of voucher requiring secret code for redemption. NOTE: Replace 'SECRET-VOUCHER-CODE' with a code from a voucher generated with validation rules."
+          }
+        },
+        {
+          "name": "Validate Expired Voucher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Cannot redeem\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.can_redeem).to.equal(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"EXPIRED123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/validate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "validate"]
+            },
+            "description": "Example of expired or already redeemed voucher"
+          }
+        }
+      ],
+      "description": "Step 1: Validate voucher code before starting redemption"
+    },
+    {
+      "name": "02 - Start Redemption",
+      "item": [
+        {
+          "name": "Start with Mobile Number",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Session started\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.session_token).to.exist;",
+                  "    pm.collectionVariables.set(\"session_token\", jsonData.data.session_token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{voucher_code}}\",\n  \"mobile\": \"{{mobile}}\",\n  \"country\": \"PH\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "start"]
+            },
+            "description": "Start redemption session with mobile number. Returns session token for subsequent requests."
+          }
+        }
+      ],
+      "description": "Step 2: Start redemption session"
+    },
+    {
+      "name": "03 - Submit Wallet",
+      "item": [
+        {
+          "name": "Simple Redemption (Mobile Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Redemption successful\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.message).to.include('successfully');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{voucher_code}}\",\n  \"mobile\": \"{{mobile}}\",\n  \"country\": \"PH\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/wallet",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "wallet"]
+            },
+            "description": "Simple redemption with just mobile number (auto-detects GCash/Maya)"
+          }
+        },
+        {
+          "name": "With Secret Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{voucher_code}}\",\n  \"mobile\": \"{{mobile}}\",\n  \"country\": \"PH\",\n  \"secret\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/wallet",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "wallet"]
+            },
+            "description": "Redemption with secret code validation"
+          }
+        },
+        {
+          "name": "With Custom Bank Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{voucher_code}}\",\n  \"mobile\": \"{{mobile}}\",\n  \"country\": \"PH\",\n  \"bank_code\": \"BDORPHM2XXX\",\n  \"account_number\": \"0123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/wallet",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "wallet"]
+            },
+            "description": "Redemption with specific bank account (non-GCash/Maya)"
+          }
+        },
+        {
+          "name": "With Input Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{voucher_code}}\",\n  \"mobile\": \"{{mobile}}\",\n  \"country\": \"PH\",\n  \"inputs\": {\n    \"name\": \"Juan Dela Cruz\",\n    \"email\": \"juan@example.com\",\n    \"address\": \"Manila, Philippines\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/wallet",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "wallet"]
+            },
+            "description": "Redemption with custom input fields defined by voucher"
+          }
+        }
+      ],
+      "description": "Step 3: Submit wallet/bank account information"
+    },
+    {
+      "name": "04 - Submit Plugin Data",
+      "item": [
+        {
+          "name": "Submit Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plugin\": \"location\",\n  \"data\": {\n    \"latitude\": 14.5547,\n    \"longitude\": 121.0244,\n    \"accuracy\": 10,\n    \"address\": \"Manila, Philippines\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/plugin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "plugin"]
+            },
+            "description": "Submit location data captured via GPS"
+          }
+        },
+        {
+          "name": "Submit Selfie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plugin\": \"selfie\",\n  \"data\": {\n    \"image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...\",\n    \"captured_at\": \"2025-12-25T15:00:00+08:00\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/plugin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "plugin"]
+            },
+            "description": "Submit selfie photo (base64 encoded)"
+          }
+        },
+        {
+          "name": "Submit Signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plugin\": \"signature\",\n  \"data\": {\n    \"signature\": \"data:image/png;base64,iVBORw0KGgo...\",\n    \"signed_at\": \"2025-12-25T15:00:00+08:00\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/plugin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "plugin"]
+            },
+            "description": "Submit digital signature"
+          }
+        }
+      ],
+      "description": "Step 4: Submit plugin-specific data (location, selfie, signature, KYC, etc.)"
+    },
+    {
+      "name": "05 - Finalize",
+      "item": [
+        {
+          "name": "Get Redemption Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has summary\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.voucher).to.exist;",
+                  "    pm.expect(jsonData.data.contact).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/finalize?session={{session_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "finalize"],
+              "query": [
+                {
+                  "key": "session",
+                  "value": "{{session_token}}"
+                }
+              ]
+            },
+            "description": "Get redemption summary before final confirmation"
+          }
+        }
+      ],
+      "description": "Step 5: Preview redemption summary"
+    },
+    {
+      "name": "06 - Confirm",
+      "item": [
+        {
+          "name": "Confirm and Execute Redemption",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Redemption completed\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.success).to.equal(true);",
+                  "    pm.expect(jsonData.data.voucher.redeemed_at).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session\": \"{{session_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "confirm"]
+            },
+            "description": "Execute the redemption and trigger disbursement. This is the final step."
+          }
+        }
+      ],
+      "description": "Step 6: Execute redemption"
+    },
+    {
+      "name": "07 - Check Status",
+      "item": [
+        {
+          "name": "Get Redemption Status",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure voucher_code is set, otherwise use a default",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.warn('voucher_code not set, using default. Run Validate first!');",
+                  "    voucherCode = 'TESTCODE';",
+                  "    pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "}",
+                  "",
+                  "// Build URL programmatically",
+                  "const baseUrl = pm.collectionVariables.get('base_url');",
+                  "pm.request.url = baseUrl + '/api/v1/redeem/status/' + voucherCode;",
+                  "console.log('Built URL:', pm.request.url.toString());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has status\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.voucher.status).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/redeem/status/{{voucher_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "redeem", "status", "{{voucher_code}}"]
+            },
+            "description": "Check redemption status of a voucher"
+          }
+        }
+      ],
+      "description": "Step 7: Check redemption status"
+    },
+    {
+      "name": "08 - Timing Tracking",
+      "item": [
+        {
+          "name": "Track Click",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure voucher_code is set",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.warn('voucher_code not set, using default. Run Validate first!');",
+                  "    voucherCode = 'TESTCODE';",
+                  "    pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "}",
+                  "",
+                  "// Build URL programmatically",
+                  "const baseUrl = pm.collectionVariables.get('base_url');",
+                  "pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode + '/timing/click';",
+                  "console.log('Built URL:', pm.request.url.toString());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timestamp\": \"2025-12-25T15:00:00+08:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/timing/click",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "timing", "click"]
+            },
+            "description": "Track when user clicks on redemption link"
+          }
+        },
+        {
+          "name": "Track Redemption Start",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure voucher_code is set",
+                  "let voucherCode = pm.collectionVariables.get('voucher_code');",
+                  "",
+                  "if (!voucherCode) {",
+                  "    console.warn('voucher_code not set, using default. Run Validate first!');",
+                  "    voucherCode = 'TESTCODE';",
+                  "    pm.collectionVariables.set('voucher_code', voucherCode);",
+                  "}",
+                  "",
+                  "// Build URL programmatically",
+                  "const baseUrl = pm.collectionVariables.get('base_url');",
+                  "pm.request.url = baseUrl + '/api/v1/vouchers/' + voucherCode + '/timing/start';",
+                  "console.log('Built URL:', pm.request.url.toString());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timestamp\": \"2025-12-25T15:01:00+08:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/timing/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "timing", "start"]
+            },
+            "description": "Track when user starts redemption process"
+          }
+        }
+      ],
+      "description": "Optional: Track user timing for analytics"
+    }
+  ]
+}

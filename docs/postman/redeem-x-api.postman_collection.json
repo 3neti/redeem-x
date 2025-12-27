@@ -1,0 +1,856 @@
+{
+  "info": {
+    "name": "Redeem-X API - Complete User Journey",
+    "_postman_id": "redeem-x-api-v1",
+    "description": "Complete E2E API collection for redeem-x voucher management system. Mirrors the validated integration test flow.\n\n## Usage\n1. Set environment variables: `base_url`, `user_email`, `user_password`\n2. Run the collection in order - each request builds on the previous\n3. Tests validate responses and extract variables automatically\n\n## Authentication\nAll requests use Bearer token auth, automatically set after login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://redeem-x.test",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "voucher_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "contact_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Create API Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.token).to.exist;",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.data.token.plain_text_token);",
+                  "    pm.collectionVariables.set(\"token_id\", jsonData.data.token.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mobile-app\",\n  \"abilities\": [\"*\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "tokens"]
+            },
+            "description": "Creates an API token. Note: In real usage, you'll need to be authenticated first. This request assumes you've already logged in via the web interface."
+          }
+        },
+        {
+          "name": "Get Authenticated User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User email exists\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.user.email).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Get authenticated user information"
+          }
+        },
+        {
+          "name": "List All Tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has tokens array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.tokens).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "tokens"]
+            },
+            "description": "List all API tokens for the authenticated user"
+          }
+        }
+      ],
+      "description": "Authentication and token management endpoints"
+    },
+    {
+      "name": "02 - Wallet Management",
+      "item": [
+        {
+          "name": "Get Wallet Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Balance structure exists\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.balance).to.exist;",
+                  "    pm.expect(jsonData.data.currency).to.equal('PHP');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallet/balance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallet", "balance"]
+            },
+            "description": "Get current wallet balance"
+          }
+        },
+        {
+          "name": "Get Wallet Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallet/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallet", "transactions"]
+            },
+            "description": "List wallet transactions"
+          }
+        },
+        {
+          "name": "Initiate Top-Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"gateway\": \"netbank\",\n  \"institution\": \"GCASH\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallet/topup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallet", "topup"]
+            },
+            "description": "Initiate a wallet top-up"
+          }
+        },
+        {
+          "name": "List Top-Ups",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallet/topup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallet", "topup"]
+            },
+            "description": "List all top-up attempts"
+          }
+        }
+      ],
+      "description": "Wallet balance and top-up management"
+    },
+    {
+      "name": "03 - Settings",
+      "item": [
+        {
+          "name": "Get Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Profile has email\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.profile.email).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/settings/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "settings", "profile"]
+            },
+            "description": "Get user profile settings"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Profile updated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.profile.name).to.equal('Updated Merchant Name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Merchant Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/settings/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "settings", "profile"]
+            },
+            "description": "Update user profile"
+          }
+        },
+        {
+          "name": "Get Wallet Config",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/settings/wallet",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "settings", "wallet"]
+            },
+            "description": "Get wallet configuration"
+          }
+        },
+        {
+          "name": "Get Preferences",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/settings/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "settings", "preferences"]
+            },
+            "description": "Get user preferences"
+          }
+        }
+      ],
+      "description": "User settings and preferences"
+    },
+    {
+      "name": "04 - Transactions",
+      "item": [
+        {
+          "name": "List Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has pagination\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.pagination).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "date_from",
+                  "value": "2024-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all transactions with optional filters"
+          }
+        },
+        {
+          "name": "Get Transaction Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has stats\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.stats.total).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "stats"]
+            },
+            "description": "Get transaction statistics"
+          }
+        },
+        {
+          "name": "Show Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/{{voucher_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "{{voucher_code}}"]
+            },
+            "description": "Get single transaction details (requires voucher_code variable)"
+          }
+        },
+        {
+          "name": "Export Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Is CSV\", function () {",
+                  "    pm.response.to.have.header('Content-Type');",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/export",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "export"]
+            },
+            "description": "Export transactions as CSV"
+          }
+        }
+      ],
+      "description": "Transaction history and reporting"
+    },
+    {
+      "name": "05 - Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "stats"]
+            },
+            "description": "Get dashboard statistics"
+          }
+        },
+        {
+          "name": "Get Recent Activity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/activity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "activity"]
+            },
+            "description": "Get recent activity"
+          }
+        }
+      ],
+      "description": "Dashboard statistics and activity"
+    },
+    {
+      "name": "06 - Contacts",
+      "item": [
+        {
+          "name": "List Contacts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has contacts data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data.pagination.total > 0) {",
+                  "        pm.collectionVariables.set(\"contact_id\", jsonData.data.data[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/contacts?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contacts"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "15"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all contacts"
+          }
+        },
+        {
+          "name": "Show Contact",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/contacts/{{contact_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contacts", "{{contact_id}}"]
+            },
+            "description": "Get contact details (requires contact_id variable)"
+          }
+        }
+      ],
+      "description": "Contact management"
+    },
+    {
+      "name": "07 - Campaigns",
+      "item": [
+        {
+          "name": "List Campaigns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "campaigns"]
+            },
+            "description": "List all active campaigns"
+          }
+        }
+      ],
+      "description": "Campaign templates"
+    },
+    {
+      "name": "08 - Token Cleanup",
+      "item": [
+        {
+          "name": "Revoke Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/tokens/{{token_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "tokens", "{{token_id}}"]
+            },
+            "description": "Revoke specific token (cleanup step)"
+          }
+        }
+      ],
+      "description": "Token cleanup and management"
+    }
+  ]
+}

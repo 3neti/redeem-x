@@ -18,6 +18,7 @@ class InstructionCostEvaluator
         'ttl',
         'starts_at',
         'expires_at',
+        'cash.amount', // Face value is escrow, not a fee
     ];
 
     public function __construct(

@@ -94,6 +94,10 @@ Route::prefix('v1')
             Route::get('/{accountNumber}/history', [\App\Http\Controllers\Api\BalanceController::class, 'history']);
         });
         
+        // System balances API (internal wallets)
+        Route::get('/system/balances', \App\Actions\Api\System\GetBalances::class)
+            ->name('api.system.balances');
+        
         // Wallet QR code generation API
         Route::post('/wallet/generate-qr', \App\Actions\Api\Wallet\GenerateQrCode::class)
             ->name('api.wallet.generate-qr');

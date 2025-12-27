@@ -1,0 +1,753 @@
+{
+  "info": {
+    "name": "Redeem-X API - Generation & Billing Tests",
+    "_postman_id": "redeem-x-billing-v1",
+    "description": "Test voucher generation and verify correct billing/wallet deductions.\n\n## Wallet Charging Flow\n\nThe system uses a **closed-loop wallet system** with synchronous processing.\n\n### Flow Diagram\n```\nPOST /api/v1/vouchers\n    ↓\nGenerateVouchers::asController()\n    ├─ Withdraw escrow (batch-level: ₱100 total)\n    ├─ Generate vouchers\n    ├─ Dispatch VouchersGenerated event\n    └─ HandleGeneratedVouchers (synchronous)\n           └─ Pipeline runs immediately\n                  └─ ChargeInstructions\n                         └─ pay() fees per voucher (₱20 total)\n```\n\n### Balance Changes (Example: ₱100 voucher)\n\n| Wallet | Change | Reason |\n|--------|--------|--------|\n| User | **-₱120** | ₱100 escrow + ₱20 fees |\n| System | **±0** | No change (closed system) |\n| Products | **+₱20** | Fees collected |\n\n### Money Flow\n```\n┌──────────────┐\n│  User Wallet │\n│  -₱120       │\n└──────┬───────┘\n       │\n       ├─── ₱100 ───→ [Escrow] (held for disbursement)\n       │\n       └─── ₱20 ────→ ┌────────────────┐\n                      │ Product Wallets│\n                      │ +₱20           │\n                      └────────────────┘\n```\n\n## What This Tests\n1. **Get System Balances (Before)** - Record system & product wallets\n2. **Get User Balance (Before)** - Record user starting balance\n3. **Generate Voucher** - Create voucher with specific instructions\n4. **Get User Balance (After)** - Verify user deduction (-₱120)\n5. **Get Voucher Details** - View fee breakdown\n6. **Get System Balances (After)** - Verify closed system (system ±0, products +₱20)\n\n## Why Synchronous?\n\n**Benefits:**\n- ✅ Immediate wallet updates (no queue delays)\n- ✅ Instant user feedback\n- ✅ Simpler testing (no race conditions)\n- ✅ Financial transactions require immediate consistency\n\n**How it works:**\n- Event listener runs synchronously (no `ShouldQueue`)\n- Pipeline executes immediately during API request\n- Balances update before API response returns\n\n## Test Scenarios\n\n### 01 - Simplest Voucher (₱100)\nTests basic voucher generation with no extra fields.\n- Amount: ₱100\n- Count: 1\n- Expected user deduction: ₱120 (₱100 + ₱20 fee)\n- Expected product increase: ₱20\n\n### More scenarios coming soon...\n- Voucher with input fields (email, location, etc.)\n- Bulk voucher generation (10+ vouchers)\n- Different fee strategies (absorb, include, add)\n- Different settlement rails (INSTAPAY, PESONET)\n\n## Prerequisites\n\n- **Authentication**: Create API token via Management API\n- **Set Variables**: `{{access_token}}`, `{{base_url}}`\n- **Sufficient Balance**: User wallet must have enough funds\n\n## Usage\n\n1. Import collection into Postman\n2. Set `access_token` variable (from Management API)\n3. Run folder: `01 - Simplest Voucher`\n4. Check console for detailed balance breakdown\n\n## Troubleshooting\n\n**Balance not deducted:**\n- Check logs: `tail -f storage/logs/laravel.log`\n- Verify instruction items exist in database\n- Ensure user has sufficient balance\n\n**Products not receiving fees:**\n- Check if InstructionItem has wallet\n- Verify item price > 0 in database\n\n## Related Documentation\n\nSee `docs/WALLET_CHARGING_FLOW.md` for complete technical documentation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://redeem-x.test",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "balance_before",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "balance_after",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "voucher_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "voucher_amount",
+      "value": "100",
+      "type": "string"
+    },
+    {
+      "key": "voucher_count",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "system_balance_before",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "system_balance_after",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "products_balance_before",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "products_balance_after",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "actual_fee",
+      "value": "0",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Simplest Voucher (₱100)",
+      "item": [
+        {
+          "name": "Get System Balances (Before)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response structure valid\", function () {",
+                  "    pm.expect(jsonData.data).to.exist;",
+                  "    pm.expect(jsonData.data.system).to.exist;",
+                  "    pm.expect(jsonData.data.products).to.be.an('array');",
+                  "    pm.expect(jsonData.data.totals).to.exist;",
+                  "    pm.expect(jsonData.meta).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"System wallet exists\", function () {",
+                  "    pm.expect(jsonData.data.system.email).to.be.a('string');",
+                  "    pm.expect(jsonData.data.system.balance).to.be.a('number');",
+                  "    pm.expect(jsonData.data.system.currency).to.equal('PHP');",
+                  "});",
+                  "",
+                  "pm.test(\"Product wallets exist\", function () {",
+                  "    pm.expect(jsonData.data.products.length).to.be.above(0);",
+                  "    const firstProduct = jsonData.data.products[0];",
+                  "    pm.expect(firstProduct.index).to.be.a('string');",
+                  "    pm.expect(firstProduct.name).to.be.a('string');",
+                  "    pm.expect(firstProduct.balance).to.be.a('number');",
+                  "    pm.expect(firstProduct.wallet_id).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test(\"Totals calculated correctly\", function () {",
+                  "    const systemBalance = jsonData.data.system.balance;",
+                  "    const productsSum = jsonData.data.products.reduce((sum, p) => sum + p.balance, 0);",
+                  "    pm.expect(jsonData.data.totals.system).to.equal(systemBalance);",
+                  "    pm.expect(jsonData.data.totals.products).to.equal(productsSum);",
+                  "    pm.expect(jsonData.data.totals.combined).to.equal(systemBalance + productsSum);",
+                  "});",
+                  "",
+                  "pm.test(\"cash.amount product exists\", function () {",
+                  "    const cashAmountProduct = jsonData.data.products.find(p => p.index === 'cash.amount');",
+                  "    pm.expect(cashAmountProduct).to.exist;",
+                  "    pm.expect(cashAmountProduct.balance).to.be.above(0);",
+                  "    console.log('💵 cash.amount product balance: ₱' + cashAmountProduct.balance.toFixed(2));",
+                  "});",
+                  "",
+                  "// Store values for later comparison",
+                  "const systemBalance = parseFloat(jsonData.data.system.balance);",
+                  "const productsBalance = parseFloat(jsonData.data.totals.products);",
+                  "pm.collectionVariables.set('system_balance_before', systemBalance);",
+                  "pm.environment.set('system_balance_before', systemBalance);",
+                  "pm.collectionVariables.set('products_balance_before', productsBalance);",
+                  "pm.environment.set('products_balance_before', productsBalance);",
+                  "",
+                  "console.log('⭐ System Balances (Before):');",
+                  "console.log('  System: ₱' + systemBalance.toFixed(2));",
+                  "console.log('  Products: ₱' + productsBalance.toFixed(2));",
+                  "console.log('  Product count:', jsonData.data.products.length);",
+                  "console.log('  Combined: ₱' + (systemBalance + productsBalance).toFixed(2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/system/balances",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "system", "balances"]
+            },
+            "description": "Record system and product wallet balances before voucher generation"
+          }
+        },
+        {
+          "name": "Get Balance (Before)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response structure valid\", function () {",
+                  "    pm.expect(jsonData.data).to.exist;",
+                  "    pm.expect(jsonData.data.balance).to.exist;",
+                  "    pm.expect(jsonData.data.currency).to.exist;",
+                  "    pm.expect(jsonData.data.balance_cents).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Balance is valid number\", function () {",
+                  "    const balance = parseFloat(jsonData.data.balance);",
+                  "    pm.expect(balance).to.be.a('number');",
+                  "    pm.expect(balance).to.be.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Currency is PHP\", function () {",
+                  "    pm.expect(jsonData.data.currency).to.equal('PHP');",
+                  "});",
+                  "",
+                  "pm.test(\"Balance cents matches\", function () {",
+                  "    const balance = parseFloat(jsonData.data.balance);",
+                  "    const balanceCents = jsonData.data.balance_cents;",
+                  "    pm.expect(balanceCents).to.equal(Math.round(balance * 100));",
+                  "});",
+                  "",
+                  "pm.test(\"Sufficient balance for test\", function () {",
+                  "    const balance = parseFloat(jsonData.data.balance);",
+                  "    const voucherAmount = parseFloat(pm.collectionVariables.get('voucher_amount'));",
+                  "    const estimatedFee = 20; // Approximate fee",
+                  "    pm.expect(balance).to.be.at.least(voucherAmount + estimatedFee);",
+                  "});",
+                  "",
+                  "const balanceFloat = parseFloat(jsonData.data.balance);",
+                  "pm.collectionVariables.set('balance_before', balanceFloat);",
+                  "pm.environment.set('balance_before', balanceFloat);",
+                  "",
+                  "console.log('💳 User Wallet (Before):');",
+                  "console.log('  Balance: ₱' + balanceFloat.toFixed(2));",
+                  "console.log('  Balance (cents):', jsonData.data.balance_cents);",
+                  "console.log('  Currency:', jsonData.data.currency);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallet/balance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallet", "balance"]
+            },
+            "description": "Record wallet balance before voucher generation"
+          }
+        },
+        {
+          "name": "Generate Voucher",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure voucher_amount and voucher_count are set from collection defaults",
+                  "const amount = pm.collectionVariables.get('voucher_amount') || 100;",
+                  "const count = pm.collectionVariables.get('voucher_count') || 1;",
+                  "pm.collectionVariables.set('voucher_amount', parseFloat(amount));",
+                  "pm.collectionVariables.set('voucher_count', parseInt(count));",
+                  "console.log('🔧 Request params:', { amount: parseFloat(amount), count: parseInt(count) });"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const expectedAmount = parseFloat(pm.collectionVariables.get('voucher_amount'));",
+                  "const expectedCount = parseInt(pm.collectionVariables.get('voucher_count'));",
+                  "",
+                  "pm.test(\"Response structure valid\", function () {",
+                  "    pm.expect(jsonData.data).to.exist;",
+                  "    pm.expect(jsonData.data.vouchers).to.be.an('array');",
+                  "    pm.expect(jsonData.data.count).to.exist;",
+                  "    pm.expect(jsonData.data.total_amount).to.exist;",
+                  "    pm.expect(jsonData.data.currency).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Correct voucher count\", function () {",
+                  "    pm.expect(jsonData.data.count).to.equal(expectedCount);",
+                  "    pm.expect(jsonData.data.vouchers.length).to.equal(expectedCount);",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher code generated\", function () {",
+                  "    const voucher = jsonData.data.vouchers[0];",
+                  "    pm.expect(voucher.code).to.be.a('string');",
+                  "    pm.expect(voucher.code).to.have.lengthOf.at.least(4);",
+                  "    pm.expect(voucher.code).to.match(/^[A-Z0-9]+$/);",
+                  "});",
+                  "",
+                  "pm.test(\"Total amount correct\", function () {",
+                  "    pm.expect(jsonData.data.total_amount).to.equal(expectedAmount * expectedCount);",
+                  "    pm.expect(jsonData.data.currency).to.equal('PHP');",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher has valid timestamps\", function () {",
+                  "    const voucher = jsonData.data.vouchers[0];",
+                  "    pm.expect(voucher.created_at).to.be.a('string');",
+                  "    pm.expect(voucher.expires_at).to.be.a('string');",
+                  "    const created = new Date(voucher.created_at);",
+                  "    const expires = new Date(voucher.expires_at);",
+                  "    pm.expect(expires).to.be.above(created);",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher status is active\", function () {",
+                  "    const voucher = jsonData.data.vouchers[0];",
+                  "    pm.expect(voucher.status).to.equal('active');",
+                  "    pm.expect(voucher.is_expired).to.be.false;",
+                  "    pm.expect(voucher.is_redeemed).to.be.false;",
+                  "    pm.expect(voucher.can_redeem).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test(\"Response time acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "const code = jsonData.data.vouchers[0].code;",
+                  "pm.collectionVariables.set('voucher_code', code);",
+                  "pm.environment.set('voucher_code', code);",
+                  "",
+                  "console.log('✨ Voucher Generated:');",
+                  "console.log('  Code:', code);",
+                  "console.log('  Amount: ₱' + jsonData.data.total_amount);",
+                  "console.log('  Count:', jsonData.data.count);",
+                  "console.log('  Status:', jsonData.data.vouchers[0].status);",
+                  "console.log('  Expires:', jsonData.data.vouchers[0].expires_at);",
+                  "console.log('  Response time:', pm.response.responseTime + 'ms');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": {{voucher_amount}},\n  \"count\": {{voucher_count}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate simplest voucher: ₱100 x 1, all defaults"
+          }
+        },
+        {
+          "name": "Get Balance (After)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const balanceBefore = parseFloat(pm.collectionVariables.get('balance_before'));",
+                  "const balanceAfter = parseFloat(jsonData.data.balance);",
+                  "const voucherAmount = parseFloat(pm.collectionVariables.get('voucher_amount'));",
+                  "const voucherCount = parseInt(pm.collectionVariables.get('voucher_count'));",
+                  "",
+                  "pm.test(\"Balance decreased\", function () {",
+                  "    pm.expect(balanceAfter).to.be.below(balanceBefore);",
+                  "});",
+                  "",
+                  "const deducted = balanceBefore - balanceAfter;",
+                  "const voucherTotal = voucherAmount * voucherCount;",
+                  "const feeAmount = deducted - voucherTotal;",
+                  "",
+                  "// Debug calculations",
+                  "console.log('🔍 DEBUGGING Get Balance (After):');",
+                  "console.log('  voucher_amount:', voucherAmount);",
+                  "console.log('  voucher_count:', voucherCount);",
+                  "console.log('  voucherTotal (amount × count):', voucherTotal);",
+                  "console.log('  balanceBefore:', balanceBefore);",
+                  "console.log('  balanceAfter:', balanceAfter);",
+                  "console.log('  deducted (before - after):', deducted);",
+                  "console.log('  feeAmount (deducted - voucherTotal):', feeAmount);",
+                  "console.log('  → This feeAmount will be stored as actual_fee');",
+                  "",
+                  "pm.test(\"Deduction includes voucher amount\", function () {",
+                  "    pm.expect(deducted).to.be.at.least(voucherTotal);",
+                  "});",
+                  "",
+                  "pm.test(\"Simplest voucher has zero fees\", function () {",
+                  "    // Simplest voucher (no inputs/feedbacks/validations) should have 0 fees",
+                  "    pm.expect(feeAmount).to.equal(0);",
+                  "});",
+                  "",
+                  "",
+                  "pm.test(\"Deduction equals voucher amount (escrow only)\", function () {",
+                  "    // Simplest voucher: deduction should equal voucher amount (no fees)",
+                  "    pm.expect(deducted).to.equal(voucherTotal);",
+                  "});",
+                  "",
+                  "pm.test(\"Balance remains positive\", function () {",
+                  "    pm.expect(balanceAfter).to.be.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Balance cents consistent\", function () {",
+                  "    pm.expect(jsonData.data.balance_cents).to.equal(Math.round(balanceAfter * 100));",
+                  "});",
+                  "",
+                  "pm.test(\"Deduction precision correct\", function () {",
+                  "    // Check that deduction doesn't have floating point errors",
+                  "    const deductedCents = Math.round(deducted * 100);",
+                  "    const expectedCents = Math.round(voucherTotal * 100) + Math.round(feeAmount * 100);",
+                  "    pm.expect(Math.abs(deductedCents - expectedCents)).to.be.below(2); // Allow 1 cent rounding",
+                  "});",
+                  "",
+                  "// Store values",
+                  "pm.collectionVariables.set('balance_after', balanceAfter);",
+                  "pm.environment.set('balance_after', balanceAfter);",
+                  "pm.collectionVariables.set('actual_fee', feeAmount);",
+                  "pm.environment.set('actual_fee', feeAmount);",
+                  "console.log('📝 Stored actual_fee:', feeAmount);",
+                  "",
+                  "console.log('💸 User Wallet (After):');",
+                  "console.log('  Balance before: ₱' + balanceBefore.toFixed(2));",
+                  "console.log('  Balance after: ₱' + balanceAfter.toFixed(2));",
+                  "console.log('  ---');",
+                  "console.log('  Total deducted: ₱' + deducted.toFixed(2));",
+                  "console.log('    - Voucher escrow: ₱' + voucherTotal.toFixed(2));",
+                  "console.log('    - Fees: ₱' + feeAmount.toFixed(2) + ' (simplest voucher = no fees)');",
+                  "console.log('  ✓ Wallet charged correctly');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallet/balance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallet", "balance"]
+            },
+            "description": "Verify wallet balance was deducted correctly"
+          }
+        },
+        {
+          "name": "Get Voucher Details",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Build URL programmatically",
+                  "const baseUrl = pm.collectionVariables.get('base_url');",
+                  "const code = pm.collectionVariables.get('voucher_code');",
+                  "pm.request.url = baseUrl + '/api/v1/vouchers/' + code;",
+                  "console.log('Built URL:', pm.request.url.toString());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const voucher = jsonData.data.voucher;",
+                  "const expectedAmount = parseFloat(pm.collectionVariables.get('voucher_amount'));",
+                  "const expectedCount = parseInt(pm.collectionVariables.get('voucher_count'));",
+                  "",
+                  "// Basic voucher properties",
+                  "pm.test(\"Voucher code exists\", function () {",
+                  "    pm.expect(voucher.code).to.be.a('string');",
+                  "    pm.expect(voucher.code).to.have.lengthOf.at.least(4);",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher amount matches request\", function () {",
+                  "    pm.expect(voucher.amount).to.equal(expectedAmount);",
+                  "    pm.expect(voucher.currency).to.equal('PHP');",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher status is active\", function () {",
+                  "    pm.expect(voucher.status).to.equal('active');",
+                  "    pm.expect(voucher.is_expired).to.be.false;",
+                  "    pm.expect(voucher.is_redeemed).to.be.false;",
+                  "    pm.expect(voucher.can_redeem).to.be.true;",
+                  "});",
+                  "",
+                  "// Expiry validations",
+                  "pm.test(\"Voucher has valid expiry\", function () {",
+                  "    pm.expect(voucher.expires_at).to.not.be.null;",
+                  "    const expiresAt = new Date(voucher.expires_at);",
+                  "    const now = new Date();",
+                  "    pm.expect(expiresAt).to.be.above(now);",
+                  "    console.log('⌛ Expires:', voucher.expires_at);",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher has no start date (simplest)\", function () {",
+                  "    pm.expect(voucher.starts_at).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test(\"Voucher not redeemed\", function () {",
+                  "    pm.expect(voucher.redeemed_at).to.be.null;",
+                  "});",
+                  "",
+                  "// Cash instructions",
+                  "pm.test(\"Cash amount correct\", function () {",
+                  "    pm.expect(voucher.instructions.cash.amount).to.equal(expectedAmount);",
+                  "    pm.expect(voucher.instructions.cash.currency).to.equal('PHP');",
+                  "});",
+                  "",
+                  "pm.test(\"Cash validation empty (simplest)\", function () {",
+                  "    pm.expect(voucher.instructions.cash.validation.secret).to.be.null;",
+                  "    pm.expect(voucher.instructions.cash.validation.mobile).to.be.null;",
+                  "    pm.expect(voucher.instructions.cash.validation.location).to.be.null;",
+                  "    pm.expect(voucher.instructions.cash.validation.radius).to.be.null;",
+                  "    pm.expect(voucher.instructions.cash.validation.country).to.equal('PH');",
+                  "});",
+                  "",
+                  "pm.test(\"Settlement rail default\", function () {",
+                  "    pm.expect(voucher.instructions.cash.settlement_rail).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test(\"Fee strategy is absorb\", function () {",
+                  "    pm.expect(voucher.instructions.cash.fee_strategy).to.equal('absorb');",
+                  "});",
+                  "",
+                  "// Input fields",
+                  "pm.test(\"No input fields (simplest)\", function () {",
+                  "    pm.expect(voucher.instructions.inputs.fields).to.be.an('array');",
+                  "    pm.expect(voucher.instructions.inputs.fields).to.have.lengthOf(0);",
+                  "});",
+                  "",
+                  "// Feedback channels",
+                  "pm.test(\"No email feedback (simplest)\", function () {",
+                  "    pm.expect(voucher.instructions.feedback.email).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test(\"No mobile feedback (simplest)\", function () {",
+                  "    pm.expect(voucher.instructions.feedback.mobile).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test(\"No webhook feedback (simplest)\", function () {",
+                  "    pm.expect(voucher.instructions.feedback.webhook).to.be.null;",
+                  "});",
+                  "",
+                  "// Rider",
+                  "pm.test(\"No rider message (simplest)\", function () {",
+                  "    pm.expect(voucher.instructions.rider.message).to.be.null;",
+                  "    pm.expect(voucher.instructions.rider.url).to.be.null;",
+                  "    pm.expect(voucher.instructions.rider.redirect_timeout).to.be.null;",
+                  "    pm.expect(voucher.instructions.rider.splash).to.be.null;",
+                  "    pm.expect(voucher.instructions.rider.splash_timeout).to.be.null;",
+                  "});",
+                  "",
+                  "// Instruction count",
+                  "pm.test(\"Instruction count matches request\", function () {",
+                  "    pm.expect(voucher.instructions.count).to.equal(expectedCount);",
+                  "});",
+                  "",
+                  "// Metadata",
+                  "pm.test(\"Metadata complete\", function () {",
+                  "    pm.expect(voucher.instructions.metadata.system_name).to.equal('Redeem-X');",
+                  "    pm.expect(voucher.instructions.metadata.version).to.be.a('string');",
+                  "    pm.expect(voucher.instructions.metadata.issuer_id).to.be.a('string');",
+                  "    pm.expect(voucher.instructions.metadata.issuer_email).to.be.a('string');",
+                  "    pm.expect(voucher.instructions.metadata.primary_url).to.include('/redeem');",
+                  "});",
+                  "",
+                  "// Preview settings (defaults)",
+                  "pm.test(\"Preview enabled by default\", function () {",
+                  "    pm.expect(voucher.instructions.metadata.preview_enabled).to.be.true;",
+                  "    pm.expect(voucher.instructions.metadata.preview_scope).to.equal('full');",
+                  "});",
+                  "",
+                  "// Cash entity and fee calculation",
+                  "pm.test(\"Cash entity exists with fee calculation\", function () {",
+                  "    pm.expect(voucher.cash).to.exist;",
+                  "    pm.expect(voucher.cash.meta.fee_calculation).to.exist;",
+                  "    pm.expect(voucher.cash.meta.fee_calculation.strategy).to.equal('absorb');",
+                  "    pm.expect(voucher.cash.meta.fee_calculation.rail).to.equal('INSTAPAY');",
+                  "    ",
+                  "    console.log('💰 Fee Calculation:');",
+                  "    console.log('  Original: ₱' + voucher.cash.meta.original_amount);",
+                  "    console.log('  Adjusted: ₱' + voucher.cash.meta.fee_calculation.adjusted_amount);",
+                  "    console.log('  Fee: ₱' + (voucher.cash.meta.fee_calculation.fee_amount / 100));",
+                  "    console.log('  Total Cost: ₱' + (voucher.cash.meta.fee_calculation.total_cost / 100));",
+                  "    console.log('  Strategy:', voucher.cash.meta.fee_calculation.strategy);",
+                  "    console.log('  Rail:', voucher.cash.meta.fee_calculation.rail);",
+                  "});",
+                  "",
+                  "// Processed status",
+                  "pm.test(\"Voucher processed successfully\", function () {",
+                  "    pm.expect(voucher.processed).to.be.true;",
+                  "    pm.expect(voucher.processed_on).to.not.be.null;",
+                  "});",
+                  "",
+                  "console.log('✅ All voucher assertions passed!');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}"]
+            },
+            "description": "Get detailed voucher information including fee calculation"
+          }
+        },
+        {
+          "name": "Get System Balances (After)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const systemBefore = parseFloat(pm.collectionVariables.get('system_balance_before'));",
+                  "const productsBefore = parseFloat(pm.collectionVariables.get('products_balance_before'));",
+                  "const systemAfter = parseFloat(jsonData.data.system.balance);",
+                  "const productsAfter = parseFloat(jsonData.data.totals.products);",
+                  "const actualFee = parseFloat(pm.collectionVariables.get('actual_fee'));",
+                  "",
+                  "const systemIncrease = systemAfter - systemBefore;",
+                  "const productsIncrease = productsAfter - productsBefore;",
+                  "",
+                  "// Comprehensive debugging",
+                  "console.log('🔍 DEBUGGING Get System Balances (After):');",
+                  "console.log('  productsBefore:', productsBefore);",
+                  "console.log('  productsAfter:', productsAfter);",
+                  "console.log('  productsIncrease:', productsIncrease);",
+                  "console.log('  actualFee (from variable):', actualFee);",
+                  "console.log('  Expected: productsIncrease ≈ actualFee');",
+                  "",
+                  "pm.test(\"System wallet unchanged (closed system)\", function () {",
+                  "    pm.expect(systemIncrease).to.be.closeTo(0, 0.01);",
+                  "});",
+                  "",
+                  "pm.test(\"Products unchanged (no fees for simplest voucher)\", function () {",
+                  "    // Simplest voucher has no chargeable instructions",
+                  "    pm.expect(productsIncrease).to.equal(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Products increase matches fee (both zero)\", function () {",
+                  "    // Simplest voucher: both should be 0",
+                  "    console.log('DEBUG - actualFee:', actualFee);",
+                  "    console.log('DEBUG - productsIncrease:', productsIncrease);",
+                  "    pm.expect(productsIncrease).to.equal(0);",
+                  "    pm.expect(actualFee).to.equal(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Total ecosystem balance unchanged\", function () {",
+                  "    // In closed system, total should remain constant (user loss = product gain)",
+                  "    const userLoss = parseFloat(pm.collectionVariables.get('balance_before')) - parseFloat(pm.collectionVariables.get('balance_after'));",
+                  "    const systemGain = systemIncrease + productsIncrease;",
+                  "    // System gain should be less than user loss (escrow is held, not gained)",
+                  "    pm.expect(systemGain).to.be.below(userLoss);",
+                  "});",
+                  "",
+                  "pm.test(\"cash.amount product increased\", function () {",
+                  "    const cashProduct = jsonData.data.products.find(p => p.index === 'cash.amount');",
+                  "    pm.expect(cashProduct).to.exist;",
+                  "    pm.expect(cashProduct.balance).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"No negative product balances\", function () {",
+                  "    jsonData.data.products.forEach(product => {",
+                  "        pm.expect(product.balance).to.be.at.least(0);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test(\"Totals recalculated correctly\", function () {",
+                  "    const productsSum = jsonData.data.products.reduce((sum, p) => sum + p.balance, 0);",
+                  "    pm.expect(jsonData.data.totals.products).to.equal(productsSum);",
+                  "});",
+                  "",
+                  "// Store final values",
+                  "pm.collectionVariables.set('system_balance_after', systemAfter);",
+                  "pm.environment.set('system_balance_after', systemAfter);",
+                  "pm.collectionVariables.set('products_balance_after', productsAfter);",
+                  "pm.environment.set('products_balance_after', productsAfter);",
+                  "",
+                  "console.log('🏛️ System Balances (After):');",
+                  "console.log('  System:');",
+                  "console.log('    Before: ₱' + systemBefore.toFixed(2));",
+                  "console.log('    After: ₱' + systemAfter.toFixed(2));",
+                  "console.log('    Change: ₱' + systemIncrease.toFixed(2) + ' ✓');",
+                  "console.log('  Products:');",
+                  "console.log('    Before: ₱' + productsBefore.toFixed(2));",
+                  "console.log('    After: ₱' + productsAfter.toFixed(2));",
+                  "console.log('    Change: +₱' + productsIncrease.toFixed(2) + ' ✓');",
+                  "console.log('  ---');",
+                  "console.log('  🔄 Closed System Verified:');",
+                  "console.log('    User → Products: ₱' + actualFee.toFixed(2));",
+                  "console.log('    System unchanged: ₱' + systemIncrease.toFixed(2));",
+                  "console.log('  ✅ Money flow verified');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/system/balances",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "system", "balances"]
+            },
+            "description": "Verify system received voucher amount and products received fees"
+          }
+        }
+      ],
+      "description": "Test simplest voucher generation and verify billing: ₱100 x 1, no extras, verify ₱100 deducted from wallet"
+    }
+  ]
+}

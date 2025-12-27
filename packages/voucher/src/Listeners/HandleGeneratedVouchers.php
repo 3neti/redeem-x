@@ -3,11 +3,10 @@
 namespace LBHurtado\Voucher\Listeners;
 
 use LBHurtado\Voucher\Events\VouchersGenerated;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\{DB, Log};
 use Illuminate\Pipeline\Pipeline;
 
-class HandleGeneratedVouchers implements ShouldQueue
+class HandleGeneratedVouchers
 {
     private const DEBUG = false;
     
