@@ -98,6 +98,10 @@ Route::prefix('v1')
         Route::get('/system/balances', \App\Actions\Api\System\GetBalances::class)
             ->name('api.system.balances');
         
+        // Health check API (detailed, authenticated)
+        Route::get('/health', [\App\Actions\Api\System\GetHealth::class, 'asController'])
+            ->name('api.health');
+        
         // Wallet QR code generation API
         Route::post('/wallet/generate-qr', \App\Actions\Api\Wallet\GenerateQrCode::class)
             ->name('api.wallet.generate-qr');

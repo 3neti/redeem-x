@@ -6,6 +6,11 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 
 Route::get('/', fn () => Inertia::render('Welcome'));
 
+// Public health check (no authentication for uptime monitoring)
+Route::get('/health', function () {
+    return app(\App\Actions\Api\System\GetHealth::class)->simple();
+})->name('health.simple');
+
 // Public QR load page (no authentication required)
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');
