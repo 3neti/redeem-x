@@ -8,6 +8,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\InstructionItem;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use LBHurtado\Cash\Models\Cash;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -40,17 +41,47 @@ class GetBalances
                 'wallet_id' => $item->wallet->id,
             ]);
         
+        // Get cash entities with wallets (escrow wallets)
+        $cashWallets = Cash::whereHas('wallet')
+            ->with('wallet')
+            ->get()
+            ->map(fn($cash) => [
+                'index' => 'cash.amount',
+                'name' => 'Amount',
+                'balance' => $cash->balanceFloatNum,
+                'currency' => $cash->currency,
+                'wallet_id' => $cash->wallet->id,
+            ]);
+        
+        // Sum all cash wallets into a single product
+        $cashProduct = null;
+        if ($cashWallets->isNotEmpty()) {
+            $cashProduct = [
+                'index' => 'cash.amount',
+                'name' => 'Amount',
+                'balance' => $cashWallets->sum('balance'),
+                'currency' => 'PHP',
+                'wallet_id' => $cashWallets->first()['wallet_id'],
+            ];
+        }
+        
+        // Merge products
+        $products = $instructionItems;
+        if ($cashProduct) {
+            $products = $products->prepend($cashProduct);
+        }
+        
         return ApiResponse::success([
             'system' => [
                 'email' => $systemEmail,
                 'balance' => $systemUser?->balanceFloatNum ?? 0,
                 'currency' => 'PHP',
             ],
-            'products' => $instructionItems,
+            'products' => $products,
             'totals' => [
                 'system' => $systemUser?->balanceFloatNum ?? 0,
-                'products' => $instructionItems->sum('balance'),
-                'combined' => ($systemUser?->balanceFloatNum ?? 0) + $instructionItems->sum('balance'),
+                'products' => $products->sum('balance'),
+                'combined' => ($systemUser?->balanceFloatNum ?? 0) + $products->sum('balance'),
             ],
         ]);
     }

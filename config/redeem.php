@@ -505,6 +505,12 @@ return [
             'description' => 'Redirect URL after redemption',
             'category' => 'rider',
         ],
+        'rider.splash' => [
+            'price' => 220, // ₱2.20
+            'label' => 'Rider Splash Screen',
+            'description' => 'Custom splash screen shown after redemption',
+            'category' => 'rider',
+        ],
     ],
 
 ];
