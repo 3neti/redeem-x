@@ -55,6 +55,18 @@ Route::prefix('v1')
         // Transaction history API
         require base_path('routes/api/transactions.php');
 
+        // Reconciliation & Reports API
+        Route::prefix('reports')->name('api.reports.')->group(function () {
+            Route::get('disbursements', \App\Actions\Api\Reports\GetDisbursementReport::class)
+                ->name('disbursements');
+            Route::get('disbursements/failed', \App\Actions\Api\Reports\GetFailedDisbursements::class)
+                ->name('disbursements.failed');
+            Route::get('disbursements/summary', \App\Actions\Api\Reports\GetDisbursementSummary::class)
+                ->name('disbursements.summary');
+            Route::get('settlements', \App\Actions\Api\Reports\GetSettlementReport::class)
+                ->name('settlements');
+        });
+
         // Deposits & Senders API
         require base_path('routes/api/deposits.php');
 
