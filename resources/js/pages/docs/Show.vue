@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
@@ -29,18 +29,26 @@ marked.setOptions({
 });
 
 // Parse and sanitize markdown
-const htmlContent = computed(() => {
-    const rawHtml = marked.parse(props.content) as string;
-    return DOMPurify.sanitize(rawHtml, {
-        ALLOWED_TAGS: [
-            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'p', 'a', 'ul', 'ol', 'li',
-            'strong', 'em', 'code', 'pre',
-            'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-            'div', 'span', 'br', 'hr',
-        ],
-        ALLOWED_ATTR: ['href', 'class', 'id'],
-    });
+const htmlContent = ref('');
+
+// Parse markdown on mount
+onMounted(() => {
+    try {
+        const rawHtml = marked.parse(props.content, { async: false }) as string;
+        htmlContent.value = DOMPurify.sanitize(rawHtml, {
+            ALLOWED_TAGS: [
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'p', 'a', 'ul', 'ol', 'li',
+                'strong', 'em', 'code', 'pre',
+                'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                'div', 'span', 'br', 'hr',
+            ],
+            ALLOWED_ATTR: ['href', 'class', 'id'],
+        });
+    } catch (error) {
+        console.error('Markdown parsing error:', error);
+        htmlContent.value = '<p>Error rendering documentation</p>';
+    }
 });
 
 // Extract table of contents from markdown
@@ -62,15 +70,20 @@ const scrollToSection = (id: string) => {
     }
 };
 
-onMounted(() => {
-    // Add IDs to headings for anchor links
-    const contentEl = document.querySelector('.markdown-content');
-    if (contentEl) {
-        const headings = contentEl.querySelectorAll('h2, h3');
-        headings.forEach((heading) => {
-            const text = heading.textContent || '';
-            const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            heading.id = id;
+// Add IDs to headings after content is rendered
+watch(htmlContent, () => {
+    if (htmlContent.value) {
+        // Use nextTick to ensure DOM is updated
+        nextTick(() => {
+            const contentEl = document.querySelector('.markdown-content');
+            if (contentEl) {
+                const headings = contentEl.querySelectorAll('h2, h3');
+                headings.forEach((heading) => {
+                    const text = heading.textContent || '';
+                    const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                    heading.id = id;
+                });
+            }
         });
     }
 });
