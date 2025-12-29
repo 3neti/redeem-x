@@ -20,7 +20,7 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { BookOpen, LayoutGrid, Ticket, Users, Receipt, CreditCard, Wallet, TicketX, HelpCircle, DollarSign, Settings2 } from 'lucide-vue-next';
+import { BookOpen, LayoutGrid, Ticket, Users, Receipt, CreditCard, Wallet, TicketX, HelpCircle, DollarSign, Settings2, Code2, FileJson } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 // Debug flag
@@ -119,14 +119,19 @@ const footerNavItems: NavItem[] = [
         icon: TicketX,
     },
     {
+        title: 'API Docs',
+        href: '/docs/api',
+        icon: Code2,
+    },
+    {
+        title: 'OpenAPI Spec',
+        href: '/api.json',
+        icon: FileJson,
+    },
+    {
         title: 'Help',
         href: '/help',
         icon: HelpCircle,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
     },
 ];
 </script>
