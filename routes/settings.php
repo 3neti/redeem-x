@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Controllers\Settings\CampaignController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use App\Http\Controllers\Settings\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,11 @@ Route::middleware([
 
     Route::get('settings/wallet', [WalletController::class, 'edit'])->name('wallet.edit');
     Route::post('settings/wallet', [WalletController::class, 'store'])->name('wallet.store');
+
+    Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
+    Route::post('settings/security/ip-whitelist', [SecurityController::class, 'updateIpWhitelist'])->name('security.ip-whitelist.update');
+    Route::post('settings/security/signature/generate', [SecurityController::class, 'generateSignatureSecret'])->name('security.signature.generate');
+    Route::post('settings/security/signature', [SecurityController::class, 'updateSignature'])->name('security.signature.update');
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::resource('campaigns', CampaignController::class);
