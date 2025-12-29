@@ -196,14 +196,14 @@ watch(htmlContent, () => {
 </template>
 
 <style>
-.markdown-content :deep(h1) {
+.markdown-content h1 {
     font-size: 1.875rem;
     font-weight: 700;
     margin-top: 2rem;
     margin-bottom: 1rem;
 }
 
-.markdown-content :deep(h2) {
+.markdown-content h2 {
     font-size: 1.5rem;
     font-weight: 600;
     margin-top: 2rem;
@@ -211,7 +211,7 @@ watch(htmlContent, () => {
     scroll-margin-top: 2rem;
 }
 
-.markdown-content :deep(h3) {
+.markdown-content h3 {
     font-size: 1.25rem;
     font-weight: 600;
     margin-top: 1.5rem;
@@ -219,29 +219,29 @@ watch(htmlContent, () => {
     scroll-margin-top: 2rem;
 }
 
-.markdown-content :deep(h4) {
+.markdown-content h4 {
     font-size: 1.125rem;
     font-weight: 600;
     margin-top: 1rem;
     margin-bottom: 0.5rem;
 }
 
-.markdown-content :deep(p) {
+.markdown-content p {
     margin-bottom: 1rem;
     line-height: 1.75;
 }
 
-.markdown-content :deep(ul),
-.markdown-content :deep(ol) {
+.markdown-content ul,
+.markdown-content ol {
     margin-bottom: 1rem;
     margin-left: 1.5rem;
 }
 
-.markdown-content :deep(li) {
+.markdown-content li {
     margin-bottom: 0.5rem;
 }
 
-.markdown-content :deep(code) {
+.markdown-content code {
     background-color: hsl(var(--muted));
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
@@ -249,7 +249,7 @@ watch(htmlContent, () => {
     font-family: ui-monospace, monospace;
 }
 
-.markdown-content :deep(pre) {
+.markdown-content pre {
     background-color: hsl(var(--muted));
     padding: 1rem;
     border-radius: 0.5rem;
@@ -257,18 +257,18 @@ watch(htmlContent, () => {
     margin-bottom: 1rem;
 }
 
-.markdown-content :deep(pre code) {
+.markdown-content pre code {
     background-color: transparent;
     padding: 0;
 }
 
-.markdown-content :deep(table) {
+.markdown-content table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 1rem;
 }
 
-.markdown-content :deep(th) {
+.markdown-content th {
     border: 1px solid hsl(var(--border));
     background-color: hsl(var(--muted));
     padding: 0.5rem 1rem;
@@ -276,12 +276,12 @@ watch(htmlContent, () => {
     font-weight: 600;
 }
 
-.markdown-content :deep(td) {
+.markdown-content td {
     border: 1px solid hsl(var(--border));
     padding: 0.5rem 1rem;
 }
 
-.markdown-content :deep(blockquote) {
+.markdown-content blockquote {
     border-left: 4px solid hsl(var(--primary));
     padding-left: 1rem;
     font-style: italic;
@@ -289,21 +289,21 @@ watch(htmlContent, () => {
     color: hsl(var(--muted-foreground));
 }
 
-.markdown-content :deep(a) {
+.markdown-content a {
     color: hsl(var(--primary));
     text-decoration: none;
 }
 
-.markdown-content :deep(a:hover) {
+.markdown-content a:hover {
     text-decoration: underline;
 }
 
-.markdown-content :deep(hr) {
+.markdown-content hr {
     margin: 2rem 0;
     border-color: hsl(var(--border));
 }
 
-.markdown-content :deep(strong) {
+.markdown-content strong {
     font-weight: 600;
 }
 </style>
