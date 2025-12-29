@@ -12,20 +12,18 @@ use Inertia\Response;
 
 class SecurityController extends Controller
 {
-    public function __construct()
+    /**
+     * Check if user is authorized to access security settings.
+     */
+    protected function authorize(Request $request): void
     {
-        $this->middleware(function ($request, $next) {
-            // Only allow system user or admin override emails
-            $user = $request->user();
-            $systemUserId = config('account.system_user_id');
-            $adminEmails = config('admin.override_emails', []);
+        $user = $request->user();
+        $systemUserId = config('account.system_user_id');
+        $adminEmails = config('admin.override_emails', []);
 
-            if ($user->id !== $systemUserId && !in_array($user->email, $adminEmails)) {
-                abort(403, 'Only system administrators can access security settings.');
-            }
-
-            return $next($request);
-        });
+        if ($user->id !== $systemUserId && !in_array($user->email, $adminEmails)) {
+            abort(403, 'Only system administrators can access security settings.');
+        }
     }
 
     /**
@@ -33,6 +31,8 @@ class SecurityController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $this->authorize($request);
+        
         $settings = app(SecuritySettings::class);
 
         return Inertia::render('settings/Security', [
@@ -51,6 +51,8 @@ class SecurityController extends Controller
      */
     public function updateIpWhitelist(Request $request)
     {
+        $this->authorize($request);
+        
         $validated = $request->validate([
             'enabled' => 'required|boolean',
             'whitelist' => 'nullable|array',
@@ -74,6 +76,8 @@ class SecurityController extends Controller
      */
     public function generateSignatureSecret(Request $request)
     {
+        $this->authorize($request);
+        
         $settings = app(SecuritySettings::class);
         $secret = bin2hex(random_bytes(32)); // 64-char hex string
 
@@ -91,6 +95,8 @@ class SecurityController extends Controller
      */
     public function updateSignature(Request $request)
     {
+        $this->authorize($request);
+        
         $validated = $request->validate([
             'enabled' => 'required|boolean',
         ]);
