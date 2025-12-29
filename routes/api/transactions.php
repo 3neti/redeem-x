@@ -17,26 +17,26 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('transactions')->name('api.transactions.')->group(function () {
     // List user's transactions (paginated)
     // GET /api/v1/transactions
-    Route::get('', [\App\Actions\Api\Transactions\ListTransactions::class, 'asController'])
+    Route::get('', \App\Actions\Api\Transactions\ListTransactions::class)
         ->name('index');
 
     // Get transaction statistics
     // GET /api/v1/transactions/stats
-    Route::get('stats', [\App\Actions\Api\Transactions\GetTransactionStats::class, 'asController'])
+    Route::get('stats', \App\Actions\Api\Transactions\GetTransactionStats::class)
         ->name('stats');
 
     // Export transactions
     // GET /api/v1/transactions/export
-    Route::get('export', [\App\Actions\Api\Transactions\ExportTransactions::class, 'asController'])
+    Route::get('export', \App\Actions\Api\Transactions\ExportTransactions::class)
         ->name('export');
 
     // Get transaction details
     // GET /api/v1/transactions/{voucher}
-    Route::get('{voucher:code}', [\App\Actions\Api\Transactions\ShowTransaction::class, 'asController'])
+    Route::get('{voucher:code}', \App\Actions\Api\Transactions\ShowTransaction::class)
         ->name('show');
     
     // Refresh disbursement status
     // POST /api/v1/transactions/{code}/refresh-status
-    Route::post('{code}/refresh-status', [\App\Actions\Api\Transactions\RefreshDisbursementStatus::class, 'asController'])
+    Route::post('{code}/refresh-status', \App\Actions\Api\Transactions\RefreshDisbursementStatus::class)
         ->name('refresh-status');
 });

@@ -6,23 +6,65 @@ namespace App\Actions\Api\Transactions;
 
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Lorisleiva\Actions\ActionRequest;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Illuminate\Http\Request;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Spatie\LaravelData\DataCollection;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
- * List user transactions via API.
+ * List Voucher Redemption Transactions
  *
- * Endpoint: GET /api/v1/transactions
+ * Retrieve paginated history of all redeemed vouchers with disbursement details.
+ * 
+ * This endpoint shows completed voucher redemptions with their disbursement status,
+ * bank information, settlement rail, and amounts. Essential for transaction monitoring,
+ * reconciliation, and financial reporting.
+ * 
+ * **Transaction Data Includes:**
+ * - Voucher code and redemption timestamp
+ * - Disbursement amount, bank, and account
+ * - Settlement rail (INSTAPAY/PESONET)
+ * - Disbursement status (success, pending, failed)
+ * - Operation IDs for bank reconciliation
+ * 
+ * **Use Cases:**
+ * - Transaction history dashboard
+ * - Financial reconciliation with bank statements
+ * - Monitoring disbursement success rates
+ * - Auditing and compliance reporting
+ *
+ * @group Transactions
+ * @authenticated
  */
+#[Group('Transactions')]
 class ListTransactions
 {
-    use AsAction;
-
-    public function asController(ActionRequest $request): JsonResponse
+    /**
+     * List voucher redemption transactions.
+     *
+     * Retrieve paginated list of redeemed vouchers with comprehensive disbursement details and filtering options.
+     */
+    #[QueryParameter('per_page', description: '*optional* - Results per page (1-100). Use for controlling pagination size. Default: 20', type: 'integer', example: 20)]
+    #[QueryParameter('date_from', description: '*optional* - Filter transactions from this date (YYYY-MM-DD format). Filters by redemption date. Example: 2024-01-01', type: 'string', example: '2024-01-01')]
+    #[QueryParameter('date_to', description: '*optional* - Filter transactions until this date (YYYY-MM-DD format). Must be after or equal to date_from. Example: 2024-12-31', type: 'string', example: '2024-12-31')]
+    #[QueryParameter('search', description: '*optional* - Search by voucher code. Supports partial matching. Example: "PROMO-AB12"', type: 'string', example: 'PROMO')]
+    #[QueryParameter('bank', description: '*optional* - Filter by disbursement bank code. Valid codes: GXCHPHM2XXX (GCash), MBTCPHM2XXX (Maya), BOPIPHMM (BPI), etc. Example: "GXCHPHM2XXX"', type: 'string', example: 'GXCHPHM2XXX')]
+    #[QueryParameter('rail', description: '*optional* - Filter by settlement rail. Valid values: "INSTAPAY" (real-time, ≤₱50k), "PESONET" (next day, ≤₱1M). Example: "INSTAPAY"', type: 'string', example: 'INSTAPAY')]
+    #[QueryParameter('status', description: '*optional* - Filter by disbursement status. Common values: "success", "pending", "failed". Status values depend on payment gateway responses.', type: 'string', example: 'success')]
+    public function __invoke(Request $request): JsonResponse
     {
+        $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'bank' => ['nullable', 'string', 'max:50'],
+            'rail' => ['nullable', 'string', 'in:INSTAPAY,PESONET'],
+            'status' => ['nullable', 'string', 'max:50'],
+        ]);
+        
         $perPage = min($request->integer('per_page', 20), 100);
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
@@ -88,18 +130,5 @@ class ListTransactions
                 'status' => $status,
             ],
         ]);
-    }
-
-    public function rules(): array
-    {
-        return [
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
-            'search' => ['nullable', 'string', 'max:255'],
-            'bank' => ['nullable', 'string', 'max:50'],
-            'rail' => ['nullable', 'string', 'in:INSTAPAY,PESONET'],
-            'status' => ['nullable', 'string', 'max:50'],
-        ];
     }
 }
