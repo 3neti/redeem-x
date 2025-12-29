@@ -196,6 +196,325 @@ To disable:
 
 **Note**: Disabling does **not** delete your configured IPs. You can re-enable anytime without reconfiguring.
 
+## Request Signing (HMAC-SHA256)
+
+### Overview
+
+For banks requiring **cryptographic verification**, Redeem-X offers HMAC-SHA256 request signing. This provides:
+
+- **Request Integrity**: Detect tampered requests
+- **Replay Attack Prevention**: Timestamp validation with 5-minute tolerance
+- **Non-Repudiation**: Prove origin of requests
+- **Per-User Opt-In**: Disabled by default, enable when needed
+
+### How It Works
+
+1. **Client**: Generate HMAC-SHA256 signature using signing algorithm
+2. **Client**: Include signature in `X-Signature` and timestamp in `X-Timestamp` headers
+3. **Server**: Verify signature matches expected value using shared secret
+4. **Server**: Check timestamp is within 5-minute tolerance
+5. **Server**: Proceed if valid, reject with 401 if invalid
+
+### Signature Algorithm
+
+**Signing String Format**:
+```
+METHOD\nURI\nTIMESTAMP\nBODY
+```
+
+**Example**:
+```
+POST
+/api/v1/vouchers
+1767020100
+{"count":10,"amount":500}
+```
+
+**Generate Signature** (HMAC-SHA256):
+```bash
+Signature = HMAC-SHA256(SigningString, SecretKey)
+```
+
+### Implementation Examples
+
+#### PHP
+```php
+use Illuminate\Support\Facades\Http;
+
+// Your signing secret (from dashboard)
+$secret = 'c544747f99e3a882abcd...';
+
+// Request details
+$method = 'POST';
+$uri = '/api/v1/vouchers';
+$timestamp = time();
+$body = json_encode(['count' => 10, 'amount' => 500]);
+
+// Build signing string
+$signingString = implode("\n", [
+    strtoupper($method),
+    $uri,
+    $timestamp,
+    $body,
+]);
+
+// Generate signature
+$signature = hash_hmac('sha256', $signingString, $secret);
+
+// Make request
+$response = Http::withHeaders([
+    'Authorization' => 'Bearer ' . $apiToken,
+    'X-Signature' => $signature,
+    'X-Timestamp' => (string) $timestamp,
+    'Content-Type' => 'application/json',
+])->post('https://api.redeem-x.com/api/v1/vouchers', json_decode($body, true));
+```
+
+#### Python
+```python
+import hmac
+import hashlib
+import time
+import requests
+import json
+
+# Your signing secret
+secret = 'c544747f99e3a882abcd...'
+
+# Request details
+method = 'POST'
+uri = '/api/v1/vouchers'
+timestamp = int(time.time())
+body = json.dumps({'count': 10, 'amount': 500})
+
+# Build signing string
+signing_string = f"{method.upper()}\n{uri}\n{timestamp}\n{body}"
+
+# Generate signature
+signature = hmac.new(
+    secret.encode('utf-8'),
+    signing_string.encode('utf-8'),
+    hashlib.sha256
+).hexdigest()
+
+# Make request
+response = requests.post(
+    'https://api.redeem-x.com/api/v1/vouchers',
+    headers={
+        'Authorization': f'Bearer {api_token}',
+        'X-Signature': signature,
+        'X-Timestamp': str(timestamp),
+        'Content-Type': 'application/json',
+    },
+    data=body
+)
+```
+
+#### Node.js
+```javascript
+const crypto = require('crypto');
+const axios = require('axios');
+
+// Your signing secret
+const secret = 'c544747f99e3a882abcd...';
+
+// Request details
+const method = 'POST';
+const uri = '/api/v1/vouchers';
+const timestamp = Math.floor(Date.now() / 1000);
+const body = JSON.stringify({ count: 10, amount: 500 });
+
+// Build signing string
+const signingString = `${method.toUpperCase()}\n${uri}\n${timestamp}\n${body}`;
+
+// Generate signature
+const signature = crypto
+  .createHmac('sha256', secret)
+  .update(signingString)
+  .digest('hex');
+
+// Make request
+const response = await axios.post(
+  'https://api.redeem-x.com/api/v1/vouchers',
+  JSON.parse(body),
+  {
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'X-Signature': signature,
+      'X-Timestamp': timestamp.toString(),
+      'Content-Type': 'application/json',
+    },
+  }
+);
+```
+
+### Configuration
+
+**Enable Request Signing** via Settings Dashboard:
+```
+1. Login to Redeem-X dashboard
+2. Navigate to Settings → Security → Request Signing
+3. Click "Generate Signing Secret"
+4. Copy the secret (shown only once) - store securely!
+5. Toggle "Enable Request Signing"
+6. Save changes
+```
+
+**Your signing secret is a 64-character hex string**:
+```
+c544747f99e3a882abcd1234567890abcdef1234567890abcdef1234567890ab
+```
+
+⚠️ **Security Warning**: Treat your signing secret like a password. Never commit to version control or log in plain text.
+
+### Error Responses
+
+**Missing Signature**:
+```json
+{
+  "error": "signature_verification_failed",
+  "message": "Request signature is required. Include X-Signature header.",
+  "details": {
+    "error_code": "missing_signature"
+  }
+}
+```
+
+**Invalid Signature**:
+```json
+{
+  "error": "signature_verification_failed",
+  "message": "Request signature is invalid. Verify signing algorithm and secret.",
+  "details": {
+    "error_code": "invalid_signature"
+  }
+}
+```
+
+**Expired Timestamp** (replay attack):
+```json
+{
+  "error": "signature_verification_failed",
+  "message": "Request timestamp is too old. Ensure clocks are synchronized.",
+  "details": {
+    "error_code": "timestamp_expired",
+    "age": 600,
+    "tolerance": 300
+  }
+}
+```
+
+### Best Practices
+
+**1. Clock Synchronization**
+```bash
+# Ensure server clocks are synchronized with NTP
+sudo ntpdate -u pool.ntp.org
+
+# Or use systemd-timesyncd
+sudo timedatectl set-ntp true
+```
+
+**2. Secret Rotation**
+```
+# Rotate signing secrets every 90 days
+1. Generate new secret in dashboard
+2. Update clients with new secret
+3. Test with new secret
+4. Revoke old secret
+```
+
+**3. Error Handling**
+```python
+def make_signed_request(url, method, body):
+    try:
+        response = make_request_with_signature(url, method, body)
+        return response
+    except SignatureError as e:
+        if e.error_code == 'timestamp_expired':
+            # Regenerate signature with fresh timestamp
+            return make_signed_request(url, method, body)
+        elif e.error_code == 'invalid_signature':
+            # Log for investigation
+            logger.error(f"Signature mismatch: {e}")
+            raise
+        else:
+            raise
+```
+
+**4. Testing**
+```bash
+# Test signature generation locally before deploying
+php artisan tinker
+
+$service = new \App\Services\Security\RequestSignatureService();
+$signature = $service->generateSignature(
+    'POST',
+    '/api/v1/vouchers',
+    '{"count":1}',
+    time(),
+    'your-secret-here'
+);
+echo $signature;
+```
+
+**5. Debugging**
+
+If signatures fail, verify:
+
+- ✅ **Method**: Uppercase (GET, POST, PUT, DELETE)
+- ✅ **URI**: Leading slash included (/api/v1/vouchers)
+- ✅ **Timestamp**: Unix timestamp (integer, not string)
+- ✅ **Body**: Exact raw body (no pretty-printing or whitespace changes)
+- ✅ **Secret**: Correct 64-char hex string
+- ✅ **Newlines**: Use `\n` (LF), not `\r\n` (CRLF)
+
+**Debug Example**:
+```php
+// Log signing string for debugging
+Logger::debug('Signing String', [
+    'string' => $signingString,
+    'method' => $method,
+    'uri' => $uri,
+    'timestamp' => $timestamp,
+    'body_length' => strlen($body),
+]);
+```
+
+### Disabling Request Signing
+
+To disable:
+
+```
+1. Login to dashboard
+2. Settings → Security → Request Signing
+3. Toggle off "Enable Request Signing"
+4. Secret is preserved (not deleted)
+```
+
+**Note**: Disabling does **not** delete your secret. You can re-enable anytime without regenerating.
+
+### Security Considerations
+
+**✅ Provides**:
+- Request integrity (tamper detection)
+- Replay attack prevention (timestamp validation)
+- Origin authentication (secret possession)
+
+**❌ Does NOT Provide**:
+- Request body encryption (use HTTPS for confidentiality)
+- Protection against compromised secrets (rotate regularly)
+- Defense against stolen tokens (use IP whitelist additionally)
+
+**Recommended Layered Security**:
+```
+1. HTTPS (transport encryption)
+2. Bearer Token (authentication)
+3. IP Whitelist (network-level access control)
+4. Request Signing (integrity + replay prevention)
+5. Rate Limiting (abuse prevention)
+```
+
 ## API Endpoints
 
 ### Core Operations
