@@ -32,9 +32,25 @@ marked.setOptions({
 const htmlContent = ref('');
 
 // Parse markdown on mount
-onMounted(() => {
+onMounted(async () => {
     try {
-        const rawHtml = marked.parse(props.content, { async: false }) as string;
+        console.log('Content length:', props.content.length);
+        console.log('Content preview:', props.content.substring(0, 200));
+        
+        // Try using marked without options first
+        let rawHtml: string;
+        try {
+            // marked.parse can be sync or async depending on version
+            const result = marked.parse(props.content);
+            rawHtml = typeof result === 'string' ? result : await result;
+        } catch (e) {
+            console.error('Initial parse failed, trying sync:', e);
+            rawHtml = marked(props.content); // Fallback to old API
+        }
+        
+        console.log('Raw HTML length:', rawHtml.length);
+        console.log('Raw HTML preview:', rawHtml.substring(0, 200));
+        
         htmlContent.value = DOMPurify.sanitize(rawHtml, {
             ALLOWED_TAGS: [
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -45,6 +61,8 @@ onMounted(() => {
             ],
             ALLOWED_ATTR: ['href', 'class', 'id'],
         });
+        
+        console.log('Sanitized HTML length:', htmlContent.value.length);
     } catch (error) {
         console.error('Markdown parsing error:', error);
         htmlContent.value = '<p>Error rendering documentation</p>';
