@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import { update } from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import { edit } from '@/routes/profile';
-import { Form, Head, usePage } from '@inertiajs/vue3';
+import { useForm, Head, usePage } from '@inertiajs/vue3';
 import axios from '@/lib/axios';
 
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -44,6 +44,26 @@ const page = usePage();
 const user = page.props.auth.user;
 
 const { toast } = useToast();
+
+// Profile form
+const profileForm = useForm({
+    name: user.name,
+    email: user.email,
+    mobile: user.mobile,
+    webhook: user.webhook,
+});
+
+const saveProfile = () => {
+    profileForm.patch(update.url(), {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast({
+                title: 'Saved',
+                description: 'Profile updated successfully',
+            });
+        },
+    });
+};
 
 // Merchant profile data
 const loadingMerchant = ref(true);
@@ -135,23 +155,19 @@ onMounted(() => {
                     description="Update your name and email address"
                 />
 
-                <Form
-                    v-bind="ProfileController.update.form()"
-                    class="space-y-6"
-                    v-slot="{ errors, processing, recentlySuccessful }"
-                >
+                <form @submit.prevent="saveProfile" class="space-y-6">
                     <div class="grid gap-2">
                         <Label for="name">Name</Label>
                         <Input
                             id="name"
                             class="mt-1 block w-full"
                             name="name"
-                            :default-value="user.name"
+                            v-model="profileForm.name"
                             required
                             autocomplete="name"
                             placeholder="Full name"
                         />
-                        <InputError class="mt-2" :message="errors.name" />
+                        <InputError class="mt-2" :message="profileForm.errors.name" />
                     </div>
 
                     <div class="grid gap-2">
@@ -161,13 +177,13 @@ onMounted(() => {
                             type="email"
                             class="mt-1 block w-full"
                             name="email"
-                            :default-value="user.email"
+                            v-model="profileForm.email"
                             required
                             autocomplete="username"
                             placeholder="Email address"
                             disabled
                         />
-                        <InputError class="mt-2" :message="errors.email" />
+                        <InputError class="mt-2" :message="profileForm.errors.email" />
                     </div>
 
                     <div class="grid gap-2">
@@ -177,7 +193,7 @@ onMounted(() => {
                             type="tel"
                             class="mt-1 block w-full"
                             name="mobile"
-                            :default-value="user.mobile"
+                            v-model="profileForm.mobile"
                             required
                             autocomplete="tel"
                             placeholder="09171234567"
@@ -185,7 +201,7 @@ onMounted(() => {
                         <p class="text-sm text-muted-foreground">
                             Philippine mobile number (required for QR code generation)
                         </p>
-                        <InputError class="mt-2" :message="errors.mobile" />
+                        <InputError class="mt-2" :message="profileForm.errors.mobile" />
                     </div>
 
                     <div class="grid gap-2">
@@ -195,19 +211,20 @@ onMounted(() => {
                             type="url"
                             class="mt-1 block w-full"
                             name="webhook"
-                            :default-value="user.webhook"
+                            v-model="profileForm.webhook"
                             autocomplete="url"
                             placeholder="https://example.com/webhook"
                         />
                         <p class="text-sm text-muted-foreground">
                             Optional: Receive notifications when your QR code is scanned
                         </p>
-                        <InputError class="mt-2" :message="errors.webhook" />
+                        <InputError class="mt-2" :message="profileForm.errors.webhook" />
                     </div>
 
                     <div class="flex items-center gap-4">
                         <Button
-                            :disabled="processing"
+                            type="submit"
+                            :disabled="profileForm.processing"
                             data-test="update-profile-button"
                             >Save</Button
                         >
@@ -219,14 +236,14 @@ onMounted(() => {
                             leave-to-class="opacity-0"
                         >
                             <p
-                                v-show="recentlySuccessful"
+                                v-show="profileForm.recentlySuccessful"
                                 class="text-sm text-neutral-600"
                             >
                                 Saved.
                             </p>
                         </Transition>
                     </div>
-                </Form>
+                </form>
             </div>
 
             <!-- Merchant Profile Section -->
