@@ -73,7 +73,7 @@ const mainNavItems = computed<NavItem[]>(() => {
         },
         {
             title: 'Reports',
-            href: '/docs/api#tag/Reports',
+            href: '/reports',
             icon: BarChart3,
         },
         {

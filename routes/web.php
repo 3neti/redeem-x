@@ -46,6 +46,12 @@ Route::middleware([
             ->name('export');
     });
     
+    // Reports routes
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Reports\ReportsController::class, 'index'])
+            ->name('index');
+    });
+    
     // Contact management routes
     Route::prefix('contacts')->name('contacts.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Contacts\ContactController::class, 'index'])
