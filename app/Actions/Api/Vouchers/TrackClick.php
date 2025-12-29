@@ -11,6 +11,8 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
+ * @group Vouchers
+ *
  * Track voucher click event via API.
  *
  * Endpoint: POST /api/v1/vouchers/{voucher}/timing/click

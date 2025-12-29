@@ -19,6 +19,8 @@ use Propaganistas\LaravelPhone\Rules\Phone;
 use Spatie\LaravelData\DataCollection;
 
 /**
+ * @group Vouchers
+ *
  * Bulk create vouchers with external metadata via API.
  *
  * Endpoint: POST /api/v1/vouchers/bulk-create

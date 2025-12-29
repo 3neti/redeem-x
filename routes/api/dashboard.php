@@ -17,11 +17,11 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('dashboard')->name('api.dashboard.')->group(function () {
     // Get dashboard statistics
     // GET /api/v1/dashboard/stats
-    Route::get('/stats', [\App\Actions\Api\Dashboard\GetDashboardStats::class, 'asController'])
+    Route::get('stats', [\App\Actions\Api\Dashboard\GetDashboardStats::class, 'asController'])
         ->name('stats');
 
     // Get recent activity
     // GET /api/v1/dashboard/activity
-    Route::get('/activity', [\App\Actions\Api\Dashboard\GetRecentActivity::class, 'asController'])
+    Route::get('activity', [\App\Actions\Api\Dashboard\GetRecentActivity::class, 'asController'])
         ->name('activity');
 });

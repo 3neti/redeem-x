@@ -13,6 +13,8 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
+ * @group Vouchers
+ *
  * Show voucher details via API.
  *
  * Endpoint: GET /api/v1/vouchers/{voucher}

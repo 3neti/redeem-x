@@ -11,6 +11,8 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
+ * @group Vouchers
+ *
  * Cancel (soft delete) a voucher via API.
  *
  * Endpoint: DELETE /api/v1/vouchers/{voucher}

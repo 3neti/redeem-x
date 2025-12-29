@@ -13,6 +13,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\LaravelData\DataCollection;
 
 /**
+ * @group Vouchers
+ *
  * List user's vouchers via API.
  *
  * Endpoint: GET /api/v1/vouchers

@@ -23,15 +23,15 @@ use Illuminate\Support\Facades\Route;
 // from routes/api.php, so we only need to add the 'wallet' prefix here.
 Route::prefix('wallet')->group(function () {
     // Wallet Balance
-    Route::get('/balance', GetBalance::class)->name('api.wallet.balance');
+    Route::get('balance', GetBalance::class)->name('api.wallet.balance');
 
     // Top-Up Management
-    Route::post('/topup', InitiateTopUp::class)
+    Route::post('topup', InitiateTopUp::class)
         ->middleware('idempotent')
         ->name('api.wallet.topup.initiate');
-    Route::get('/topup', ListTopUps::class)->name('api.wallet.topup.list');
-    Route::get('/topup/{referenceNo}', GetTopUpStatus::class)->name('api.wallet.topup.status');
+    Route::get('topup', ListTopUps::class)->name('api.wallet.topup.list');
+    Route::get('topup/{referenceNo}', GetTopUpStatus::class)->name('api.wallet.topup.status');
 
     // Transaction History
-    Route::get('/transactions', ListTransactions::class)->name('api.wallet.transactions');
+    Route::get('transactions', ListTransactions::class)->name('api.wallet.transactions');
 });

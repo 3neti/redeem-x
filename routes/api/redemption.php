@@ -26,36 +26,36 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('redeem')->name('api.redeem.')->group(function () {
     // Validate voucher code
     // POST /api/v1/redeem/validate
-    Route::post('/validate', [\App\Actions\Api\Redemption\ValidateRedemptionCode::class, 'asController'])
+    Route::post('validate', [\App\Actions\Api\Redemption\ValidateRedemptionCode::class, 'asController'])
         ->name('validate');
 
     // Start redemption session
     // POST /api/v1/redeem/start
-    Route::post('/start', [\App\Actions\Api\Redemption\StartRedemption::class, 'asController'])
+    Route::post('start', [\App\Actions\Api\Redemption\StartRedemption::class, 'asController'])
         ->name('start');
 
     // Submit wallet information
     // POST /api/v1/redeem/wallet
-    Route::post('/wallet', [\App\Actions\Api\Redemption\SubmitWallet::class, 'asController'])
+    Route::post('wallet', [\App\Actions\Api\Redemption\SubmitWallet::class, 'asController'])
         ->name('wallet');
 
     // Submit plugin data
     // POST /api/v1/redeem/plugin
-    Route::post('/plugin', [\App\Actions\Api\Redemption\SubmitPlugin::class, 'asController'])
+    Route::post('plugin', [\App\Actions\Api\Redemption\SubmitPlugin::class, 'asController'])
         ->name('plugin');
 
     // Get finalization summary
     // GET /api/v1/redeem/finalize
-    Route::get('/finalize', [\App\Actions\Api\Redemption\FinalizeRedemption::class, 'asController'])
+    Route::get('finalize', [\App\Actions\Api\Redemption\FinalizeRedemption::class, 'asController'])
         ->name('finalize');
 
     // Confirm and execute redemption
     // POST /api/v1/redeem/confirm
-    Route::post('/confirm', [\App\Actions\Api\Redemption\ConfirmRedemption::class, 'asController'])
+    Route::post('confirm', [\App\Actions\Api\Redemption\ConfirmRedemption::class, 'asController'])
         ->name('confirm');
 
     // Check redemption status
     // GET /api/v1/redeem/status/{code}
-    Route::get('/status/{code}', [\App\Actions\Api\Redemption\GetRedemptionStatus::class, 'asController'])
+    Route::get('status/{code}', [\App\Actions\Api\Redemption\GetRedemptionStatus::class, 'asController'])
         ->name('status');
 });

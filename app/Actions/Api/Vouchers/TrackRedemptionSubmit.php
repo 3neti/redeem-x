@@ -11,6 +11,8 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
+ * @group Vouchers
+ *
  * Track voucher redemption submit event via API.
  *
  * Endpoint: POST /api/v1/vouchers/{voucher}/timing/submit

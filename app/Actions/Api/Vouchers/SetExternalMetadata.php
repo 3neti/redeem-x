@@ -12,6 +12,8 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
+ * @group Vouchers
+ *
  * Set external metadata for a voucher via API.
  *
  * Endpoint: POST /api/v1/vouchers/{voucher}/external

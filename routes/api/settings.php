@@ -19,12 +19,12 @@ Route::prefix('settings')->name('api.settings.')->group(function () {
     Route::prefix('profile')->name('profile.')->group(function () {
         // Get profile settings
         // GET /api/v1/settings/profile
-        Route::get('/', [\App\Actions\Api\Settings\GetProfile::class, 'asController'])
+        Route::get('', [\App\Actions\Api\Settings\GetProfile::class, 'asController'])
             ->name('show');
 
         // Update profile settings
         // PATCH /api/v1/settings/profile
-        Route::patch('/', [\App\Actions\Api\Settings\UpdateProfile::class, 'asController'])
+        Route::patch('', [\App\Actions\Api\Settings\UpdateProfile::class, 'asController'])
             ->name('update');
     });
 
@@ -32,12 +32,12 @@ Route::prefix('settings')->name('api.settings.')->group(function () {
     Route::prefix('wallet')->name('wallet.')->group(function () {
         // Get wallet configuration
         // GET /api/v1/settings/wallet
-        Route::get('/', [\App\Actions\Api\Settings\GetWalletConfig::class, 'asController'])
+        Route::get('', [\App\Actions\Api\Settings\GetWalletConfig::class, 'asController'])
             ->name('show');
 
         // Update wallet configuration
         // PATCH /api/v1/settings/wallet
-        Route::patch('/', [\App\Actions\Api\Settings\UpdateWalletConfig::class, 'asController'])
+        Route::patch('', [\App\Actions\Api\Settings\UpdateWalletConfig::class, 'asController'])
             ->name('update');
     });
 
@@ -45,12 +45,12 @@ Route::prefix('settings')->name('api.settings.')->group(function () {
     Route::prefix('preferences')->name('preferences.')->group(function () {
         // Get preferences
         // GET /api/v1/settings/preferences
-        Route::get('/', [\App\Actions\Api\Settings\GetPreferences::class, 'asController'])
+        Route::get('', [\App\Actions\Api\Settings\GetPreferences::class, 'asController'])
             ->name('show');
 
         // Update preferences
         // PATCH /api/v1/settings/preferences
-        Route::patch('/', [\App\Actions\Api\Settings\UpdatePreferences::class, 'asController'])
+        Route::patch('', [\App\Actions\Api\Settings\UpdatePreferences::class, 'asController'])
             ->name('update');
     });
 });

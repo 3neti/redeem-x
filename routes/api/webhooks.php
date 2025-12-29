@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\Route;
 
 // Payment gateway webhooks
 // POST /api/v1/webhooks/payment
-Route::post('/payment', [\App\Actions\Api\Webhooks\HandlePaymentWebhook::class, 'asController'])
+Route::post('payment', [\App\Actions\Api\Webhooks\HandlePaymentWebhook::class, 'asController'])
     ->name('api.webhooks.payment');
 
 // SMS delivery status webhooks
 // POST /api/v1/webhooks/sms
-Route::post('/sms', [\App\Actions\Api\Webhooks\HandleSmsWebhook::class, 'asController'])
+Route::post('sms', [\App\Actions\Api\Webhooks\HandleSmsWebhook::class, 'asController'])
     ->name('api.webhooks.sms');

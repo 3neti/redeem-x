@@ -12,6 +12,8 @@ use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 
 /**
+ * @group Vouchers
+ *
  * Inspect voucher metadata ("x-ray" endpoint).
  * 
  * Public endpoint (no auth) that returns voucher metadata and instructions for transparency.
