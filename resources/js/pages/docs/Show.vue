@@ -164,74 +164,115 @@ onMounted(() => {
     </div>
 </template>
 
-<style scoped>
-@reference;
-
+<style>
 .markdown-content :deep(h1) {
-    @apply text-3xl font-bold mt-8 mb-4;
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
 }
 
 .markdown-content :deep(h2) {
-    @apply text-2xl font-semibold mt-8 mb-4 scroll-mt-8;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    scroll-margin-top: 2rem;
 }
 
 .markdown-content :deep(h3) {
-    @apply text-xl font-semibold mt-6 mb-3 scroll-mt-8;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    scroll-margin-top: 2rem;
 }
 
 .markdown-content :deep(h4) {
-    @apply text-lg font-semibold mt-4 mb-2;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .markdown-content :deep(p) {
-    @apply mb-4 leading-7;
+    margin-bottom: 1rem;
+    line-height: 1.75;
 }
 
-.markdown-content :deep(ul), .markdown-content :deep(ol) {
-    @apply mb-4 ml-6;
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+    margin-bottom: 1rem;
+    margin-left: 1.5rem;
 }
 
 .markdown-content :deep(li) {
-    @apply mb-2;
+    margin-bottom: 0.5rem;
 }
 
 .markdown-content :deep(code) {
-    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+    background-color: hsl(var(--muted));
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-family: ui-monospace, monospace;
 }
 
 .markdown-content :deep(pre) {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto mb-4;
+    background-color: hsl(var(--muted));
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
 }
 
 .markdown-content :deep(pre code) {
-    @apply bg-transparent p-0;
+    background-color: transparent;
+    padding: 0;
 }
 
 .markdown-content :deep(table) {
-    @apply w-full border-collapse mb-4;
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
 }
 
 .markdown-content :deep(th) {
-    @apply border border-border bg-muted px-4 py-2 text-left font-semibold;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--muted));
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-weight: 600;
 }
 
 .markdown-content :deep(td) {
-    @apply border border-border px-4 py-2;
+    border: 1px solid hsl(var(--border));
+    padding: 0.5rem 1rem;
 }
 
 .markdown-content :deep(blockquote) {
-    @apply border-l-4 border-primary pl-4 italic my-4 text-muted-foreground;
+    border-left: 4px solid hsl(var(--primary));
+    padding-left: 1rem;
+    font-style: italic;
+    margin: 1rem 0;
+    color: hsl(var(--muted-foreground));
 }
 
 .markdown-content :deep(a) {
-    @apply text-primary hover:underline;
+    color: hsl(var(--primary));
+    text-decoration: none;
+}
+
+.markdown-content :deep(a:hover) {
+    text-decoration: underline;
 }
 
 .markdown-content :deep(hr) {
-    @apply my-8 border-border;
+    margin: 2rem 0;
+    border-color: hsl(var(--border));
 }
 
 .markdown-content :deep(strong) {
-    @apply font-semibold;
+    font-weight: 600;
 }
 </style>
