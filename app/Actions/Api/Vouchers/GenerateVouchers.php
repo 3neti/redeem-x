@@ -37,16 +37,32 @@ use Propaganistas\LaravelPhone\Rules\Phone;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Generate vouchers via API.
+ * Generate Vouchers
  *
- * Endpoint: POST /api/v1/vouchers
+ * Create one or more vouchers for disbursement. Each voucher can be redeemed once and will
+ * trigger automated disbursement via INSTAPAY or PESONET settlement rails.
+ *
+ * **Idempotency**: This endpoint requires an `Idempotency-Key` header (UUID recommended).
+ * Duplicate requests with the same key will return the cached response.
+ *
+ * **Financial Safety**: Voucher generation is atomic - all vouchers are created in a single
+ * database transaction. If generation fails, no charges are applied to your wallet.
+ *
+ * @group Vouchers
+ * @authenticated
  */
 class GenerateVouchers
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Generate Vouchers
+ *
+     * @operationId generateVouchers
+     * @response 201 {"count":2,"vouchers":[{"code":"ABC-1234","amount":100}],"total_amount":200,"currency":"PHP"}
+     * @response 400 {"message":"Idempotency-Key header is required for this request."}
+     * @response 403 {"message":"Insufficient wallet balance to generate vouchers."}
+     * @response 422 {"message":"The given data was invalid.","errors":{"amount":["The amount field is required."]}}
      */
     public function asController(ActionRequest $request): JsonResponse
     {
