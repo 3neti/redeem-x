@@ -45,6 +45,18 @@ class InitiateTopUp
                 $validated['gateway'] ?? 'netbank',
                 $validated['institution_code'] ?? null
             );
+            
+            // Store idempotency key in the top-up record
+            $idempotencyKey = request()->header('Idempotency-Key');
+            if ($idempotencyKey && $result->reference_no) {
+                $topUp = $user->topUps()->where('reference_no', $result->reference_no)->first();
+                if ($topUp) {
+                    $topUp->update([
+                        'idempotency_key' => $idempotencyKey,
+                        'idempotency_created_at' => now(),
+                    ]);
+                }
+            }
 
             return [
                 'data' => $result,

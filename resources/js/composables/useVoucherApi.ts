@@ -140,7 +140,14 @@ export function useVoucherApi() {
         error.value = null;
 
         try {
-            const response = await axios.post('/api/v1/vouchers', data);
+            // Generate idempotency key for this request
+            const idempotencyKey = crypto.randomUUID();
+            
+            const response = await axios.post('/api/v1/vouchers', data, {
+                headers: {
+                    'Idempotency-Key': idempotencyKey,
+                },
+            });
             return response.data.data;
         } catch (err) {
             error.value = handleError(err);
@@ -172,7 +179,14 @@ export function useVoucherApi() {
         error.value = null;
 
         try {
-            const response = await axios.post('/api/v1/vouchers/bulk-create', data);
+            // Generate idempotency key for this request
+            const idempotencyKey = crypto.randomUUID();
+            
+            const response = await axios.post('/api/v1/vouchers/bulk-create', data, {
+                headers: {
+                    'Idempotency-Key': idempotencyKey,
+                },
+            });
             return response.data.data;
         } catch (err) {
             error.value = handleError(err);

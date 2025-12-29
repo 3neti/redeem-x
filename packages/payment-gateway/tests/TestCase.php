@@ -74,6 +74,10 @@ abstract class TestCase extends BaseTestCase
         $cashMigration->up();
         $topUpMigration = include __DIR__ . '/../database/migrations/test/2025_11_16_000000_create_top_ups_table.php';
         $topUpMigration->up();
+        
+        // Run the idempotency migration for top_ups
+        $idempotencyTopUpMigration = include __DIR__ . '/../database/migrations/test/2025_12_28_155100_add_idempotency_key_to_top_ups_table.php';
+        $idempotencyTopUpMigration->up();
 
         // Dynamically include and run all migrations from vendor/bavix/laravel-wallet/database
 //        $migrationPath = base_path('vendor/bavix/laravel-wallet/database/migrations');

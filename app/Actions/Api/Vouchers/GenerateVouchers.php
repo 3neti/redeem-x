@@ -68,6 +68,17 @@ class GenerateVouchers
         // Generate vouchers using package action
         $vouchers = BaseGenerateVouchers::run($instructions);
         
+        // Store idempotency key in vouchers (if provided by middleware)
+        $idempotencyKey = $request->header('Idempotency-Key');
+        if ($idempotencyKey) {
+            foreach ($vouchers as $voucher) {
+                $voucher->update([
+                    'idempotency_key' => $idempotencyKey,
+                    'idempotency_created_at' => now(),
+                ]);
+            }
+        }
+        
         // Calculate and create billing record
         $calculateCharge = app(CalculateCharge::class);
         $breakdown = $calculateCharge->handle($request->user(), $instructions);

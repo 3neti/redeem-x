@@ -30,7 +30,10 @@ Route::prefix('disburse')->name('disburse.')->group(function () {
     Route::post('/{voucher:code}/complete', [DisburseController::class, 'complete'])->name('complete');
     
     // Redeem voucher after user confirmation
-    Route::post('/{voucher:code}/redeem', [DisburseController::class, 'redeem'])->name('redeem');
+    // Note: Idempotency not enforced on web route (browser prevents double-submit)
+    // API equivalent should use idempotency middleware
+    Route::post('/{voucher:code}/redeem', [DisburseController::class, 'redeem'])
+        ->name('redeem');
     
     // Cancel callback
     Route::get('/cancel', [DisburseController::class, 'cancel'])->name('cancel');

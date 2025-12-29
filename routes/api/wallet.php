@@ -26,7 +26,9 @@ Route::prefix('wallet')->group(function () {
     Route::get('/balance', GetBalance::class)->name('api.wallet.balance');
 
     // Top-Up Management
-    Route::post('/topup', InitiateTopUp::class)->name('api.wallet.topup.initiate');
+    Route::post('/topup', InitiateTopUp::class)
+        ->middleware('idempotent')
+        ->name('api.wallet.topup.initiate');
     Route::get('/topup', ListTopUps::class)->name('api.wallet.topup.list');
     Route::get('/topup/{referenceNo}', GetTopUpStatus::class)->name('api.wallet.topup.status');
 

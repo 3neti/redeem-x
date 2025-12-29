@@ -24,11 +24,13 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     // Generate vouchers
     // POST /api/v1/vouchers
     Route::post('/', [\App\Actions\Api\Vouchers\GenerateVouchers::class, 'asController'])
+        ->middleware('idempotent')
         ->name('generate');
 
     // Bulk create vouchers with external metadata
     // POST /api/v1/vouchers/bulk-create
     Route::post('/bulk-create', [\App\Actions\Api\Vouchers\BulkCreateVouchers::class, 'asController'])
+        ->middleware('idempotent')
         ->name('bulk-create');
 
     // Query vouchers with filters

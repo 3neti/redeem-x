@@ -157,6 +157,15 @@ class DisburseController extends Controller
             ->toArray();
         
         try {
+            // Store idempotency key for redemption tracking
+            $idempotencyKey = request()->header('Idempotency-Key');
+            if ($idempotencyKey) {
+                $voucher->update([
+                    'idempotency_key' => $idempotencyKey,
+                    'idempotency_created_at' => now(),
+                ]);
+            }
+            
             // Process redemption (marks voucher as redeemed, creates cash, disburses, sends notifications)
             ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
             

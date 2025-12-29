@@ -86,6 +86,10 @@ abstract class TestCase extends BaseTestCase
         // Run the published voucher migration from the vendor
         $baseVoucherMigration = include 'vendor/frittenkeez/laravel-vouchers/publishes/migrations/2018_06_12_000000_create_voucher_tables.php';
         $baseVoucherMigration->up();
+        
+        // Run the idempotency migration for vouchers
+        $idempotencyVoucherMigration = include __DIR__ . '/../database/migrations/test/2025_12_28_155100_add_idempotency_key_to_vouchers_table.php';
+        $idempotencyVoucherMigration->up();
 
         // Run the cash migration from the local package
         $userMigration = include __DIR__ . '/../database/migrations/test/0001_01_01_000000_create_users_table.php';
