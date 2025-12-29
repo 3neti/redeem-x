@@ -165,6 +165,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@reference;
+
 .markdown-content :deep(h1) {
     @apply text-3xl font-bold mt-8 mb-4;
 }
