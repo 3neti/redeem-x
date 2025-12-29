@@ -11,6 +11,7 @@ use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -19,12 +20,15 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * Endpoint: GET /api/v1/vouchers/{voucher}
  */
+#[Group('Vouchers')]
 class ShowVoucher
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Get voucher details
+     * 
+     * Retrieve complete voucher information including redemption status, inputs, and metadata.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
     {

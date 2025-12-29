@@ -11,6 +11,7 @@ use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\LaravelData\DataCollection;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -19,12 +20,15 @@ use Spatie\LaravelData\DataCollection;
  *
  * Endpoint: GET /api/v1/vouchers
  */
+#[Group('Vouchers')]
 class ListVouchers
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * List user's vouchers
+     * 
+     * Get a paginated list of vouchers with optional filtering by status and search.
      */
     public function asController(ActionRequest $request): JsonResponse
     {

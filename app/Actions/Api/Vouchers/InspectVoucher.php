@@ -10,6 +10,7 @@ use Illuminate\Support\Number;
 use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -19,6 +20,7 @@ use LBHurtado\Voucher\Enums\VoucherInputField;
  * Public endpoint (no auth) that returns voucher metadata and instructions for transparency.
  * Useful for users to verify voucher origin, issuer, licenses, redemption options, and requirements.
  */
+#[Group('Vouchers')]
 class InspectVoucher
 {
     use AsAction;
@@ -307,7 +309,10 @@ class InspectVoucher
     }
 
     /**
-     * Handle as controller (for route binding).
+     * Inspect voucher metadata and instructions
+     * 
+     * Public endpoint that reveals voucher origin, issuer, requirements, and redemption options.
+     * Useful for transparency and verification before redemption.
      */
     public function asController(string $code): JsonResponse
     {

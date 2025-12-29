@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -17,14 +18,16 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * Endpoint: POST /api/v1/vouchers/{voucher}/timing/start
  */
+#[Group('Vouchers')]
 class TrackRedemptionStart
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Track redemption start event
      * 
-     * Public endpoint - no authentication required since vouchers can be redeemed publicly.
+     * Record when a user begins the redemption process.
+     * Public endpoint - no authentication required.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
     {

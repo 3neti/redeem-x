@@ -17,6 +17,7 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Propaganistas\LaravelPhone\Rules\Phone;
 use Spatie\LaravelData\DataCollection;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -25,12 +26,15 @@ use Spatie\LaravelData\DataCollection;
  *
  * Endpoint: POST /api/v1/vouchers/bulk-create
  */
+#[Group('Vouchers')]
 class BulkCreateVouchers
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Bulk create vouchers from campaign
+     * 
+     * Generate multiple vouchers at once using a campaign template with external metadata.
      */
     public function asController(ActionRequest $request): JsonResponse
     {

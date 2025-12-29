@@ -6,7 +6,9 @@ use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpKernel\Exception\{AccessDeniedHttpException, NotFoundHttpException};
+use Dedoc\Scramble\Attributes\Group;
 
+#[Group('Vouchers')]
 class GenerateVoucherQr
 {
     use AsAction;
@@ -49,7 +51,9 @@ class GenerateVoucherQr
     }
 
     /**
-     * Handle as controller action.
+     * Generate QR code for voucher
+     * 
+     * Create a QR code image and redemption URL for the specified voucher.
      */
     public function asController(string $code): array
     {

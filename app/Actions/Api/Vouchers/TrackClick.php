@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -17,14 +18,16 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * Endpoint: POST /api/v1/vouchers/{voucher}/timing/click
  */
+#[Group('Vouchers')]
 class TrackClick
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Track voucher click event
      * 
-     * Public endpoint - no authentication required since vouchers can be redeemed publicly.
+     * Record when a user clicks on a voucher link (first click only, idempotent).
+     * Public endpoint - no authentication required.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
     {

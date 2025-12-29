@@ -10,6 +10,7 @@ use LBHurtado\Voucher\Data\ExternalMetadataData;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -18,12 +19,15 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * Endpoint: POST /api/v1/vouchers/{voucher}/external
  */
+#[Group('Vouchers')]
 class SetExternalMetadata
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Set external metadata
+     * 
+     * Attach custom external metadata to a voucher for integration purposes.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
     {

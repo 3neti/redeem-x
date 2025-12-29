@@ -35,6 +35,8 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Propaganistas\LaravelPhone\Rules\Phone;
 use Spatie\LaravelData\DataCollection;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
  * Generate Vouchers
@@ -51,19 +53,44 @@ use Spatie\LaravelData\DataCollection;
  * @group Vouchers
  * @authenticated
  */
+#[Group('Vouchers')]
 class GenerateVouchers
 {
     use AsAction;
 
     /**
      * Generate Vouchers
- *
+     * 
+     * Create one or more vouchers with customizable instructions for disbursement.
+     *
      * @operationId generateVouchers
      * @response 201 {"count":2,"vouchers":[{"code":"ABC-1234","amount":100}],"total_amount":200,"currency":"PHP"}
      * @response 400 {"message":"Idempotency-Key header is required for this request."}
      * @response 403 {"message":"Insufficient wallet balance to generate vouchers."}
      * @response 422 {"message":"The given data was invalid.","errors":{"amount":["The amount field is required."]}}
      */
+    #[BodyParameter('amount', description: '**REQUIRED**. Voucher amount in major units (whole PHP). Minimum: 0. This is the exact amount that will be disbursed to the redeemer. Example: 500 = ₱500.00', type: 'number', example: 500)]
+    #[BodyParameter('count', description: '**REQUIRED**. Number of vouchers to generate. Range: 1-1000. Cannot be 0 (minimum is 1 for production use).', type: 'integer', example: 10)]
+    #[BodyParameter('prefix', description: '*optional* - Prefix for voucher codes (1-10 characters). Will be prepended to generated codes. Example: "PROMO" generates "PROMO-AB12CD34".', type: 'string', example: 'PROMO')]
+    #[BodyParameter('mask', description: '*optional* - Voucher code pattern. Must contain only asterisks (*) and hyphens (-). Asterisks: 4-6 required (each becomes a random alphanumeric char). Hyphens: used as separators. Example: "****-****" generates "AB12-CD34".', type: 'string', example: '****-****')]
+    #[BodyParameter('ttl_days', description: '*optional* - Voucher expiration in days from creation (minimum: 1 day). Omit this field for vouchers that never expire.', type: 'integer', example: 30)]
+    #[BodyParameter('input_fields', description: '*optional* - Array of required input fields for redemption. Valid values: "email", "mobile", "name", "address", "birth_date", "gross_monthly_income", "location", "reference_code", "signature", "selfie", "otp", "kyc". Leave empty or omit for no required inputs.', type: 'array', example: ['mobile', 'location', 'selfie'])]
+    #[BodyParameter('validation_secret', description: '*optional* - Secret PIN required for redemption. Useful for restricting access.', type: 'string', example: '1234')]
+    #[BodyParameter('validation_mobile', description: '*optional* - Assign voucher to specific Philippine mobile number (+639XXXXXXXXX format).', type: 'string', example: '+639171234567')]
+    #[BodyParameter('feedback_email', description: '*optional* - Email address to receive redemption notifications.', type: 'string', example: 'notify@example.com')]
+    #[BodyParameter('feedback_mobile', description: '*optional* - Philippine mobile number to receive SMS notifications upon redemption.', type: 'string', example: '+639171234567')]
+    #[BodyParameter('feedback_webhook', description: '*optional* - Webhook URL to POST redemption data to your system.', type: 'string', example: 'https://api.example.com/webhooks/voucher-redeemed')]
+    #[BodyParameter('rider_message', description: '*optional* - Plain text or HTML message to display after successful redemption. Supports basic HTML tags (<p>, <strong>, <em>, <br>). Minimum 1 character if provided.', type: 'string', example: 'Thank you for participating!')]
+    #[BodyParameter('rider_url', description: '*optional* - URL to redirect user to after redemption.', type: 'string', example: 'https://example.com/thank-you')]
+    #[BodyParameter('rider_redirect_timeout', description: '*optional* - Seconds to wait before auto-redirecting (0-300). 0 = no auto-redirect.', type: 'integer', example: 5)]
+    #[BodyParameter('rider_splash', description: '*optional* - Base64-encoded data URI image to display after redemption. Max size: 51,200 characters (~50KB). Supported formats: PNG, JPEG, GIF, WebP. Format: "data:image/png;base64,iVBORw0KG..." Must include full data URI prefix.', type: 'string', example: 'data:image/png;base64,iVBORw0KG...')]
+    #[BodyParameter('rider_splash_timeout', description: '*optional* - Seconds to display splash image before continuing (0-60).', type: 'integer', example: 3)]
+    #[BodyParameter('settlement_rail', description: '*optional* - Disbursement method: INSTAPAY (real-time, ≤₱50k) or PESONET (next day, ≤₱1M). Auto-selects if not specified.', type: 'string', example: 'INSTAPAY')]
+    #[BodyParameter('fee_strategy', description: '*optional* - How disbursement fees are handled: "absorb" = Issuer pays fee (redeemer gets full amount), "include" = Fee deducted from voucher amount (redeemer gets amount minus fee), "add" = Fee added to disbursement (redeemer gets amount plus fee). Default: "absorb".', type: 'string', example: 'absorb')]
+    #[BodyParameter('campaign_id', description: '*optional* - Campaign ID to associate vouchers with for tracking purposes.', type: 'integer', example: 1)]
+    #[BodyParameter('preview_enabled', description: '*optional* - Allow voucher preview via inspect endpoint before redemption.', type: 'boolean', example: true)]
+    #[BodyParameter('preview_scope', description: '*optional* - Preview data scope: "full" (all details), "requirements_only" (inputs needed), "none" (no preview).', type: 'string', example: 'full')]
+    #[BodyParameter('preview_message', description: '*optional* - Custom message to display in voucher inspection/preview.', type: 'string', example: 'This voucher is for event attendees only.')]
     public function asController(ActionRequest $request): JsonResponse
     {
         // Get validated data (ActionRequest auto-validates with rules() method)

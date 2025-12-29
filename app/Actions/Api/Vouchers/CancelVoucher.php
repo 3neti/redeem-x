@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -19,12 +20,15 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * Note: Can only cancel vouchers that haven't been redeemed yet.
  */
+#[Group('Vouchers')]
 class CancelVoucher
 {
     use AsAction;
 
     /**
-     * Handle API request.
+     * Cancel a voucher
+     * 
+     * Soft delete an unredeemed voucher to prevent future redemption.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
     {
