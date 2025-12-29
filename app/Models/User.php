@@ -176,41 +176,6 @@ class User extends Authenticatable implements Wallet, Customer
     }
     
     /**
-     * Generate a new signature secret for this user.
-     *
-     * @return string The generated secret (64-char hex string)
-     */
-    public function generateSignatureSecret(): string
-    {
-        $secret = bin2hex(random_bytes(32));
-        $this->update(['signature_secret' => $secret]);
-        return $secret;
-    }
-
-    /**
-     * Enable request signature verification for this user.
-     *
-     * @return void
-     */
-    public function enableSignatureVerification(): void
-    {
-        if (!$this->signature_secret) {
-            $this->generateSignatureSecret();
-        }
-        $this->update(['signature_enabled' => true]);
-    }
-
-    /**
-     * Disable request signature verification for this user.
-     *
-     * @return void
-     */
-    public function disableSignatureVerification(): void
-    {
-        $this->update(['signature_enabled' => false]);
-    }
-
-    /**
      * Contacts who sent money to this user
      */
     public function senders(): BelongsToMany

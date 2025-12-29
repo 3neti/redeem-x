@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Settings\SecuritySettings;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,8 +16,10 @@ class CheckIpWhitelist
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $settings = app(SecuritySettings::class);
+
         // Skip if IP whitelisting is globally disabled
-        if (!config('api.ip_whitelist.enabled', false)) {
+        if (!$settings->ip_whitelist_enabled) {
             return $next($request);
         }
 
@@ -25,20 +28,8 @@ class CheckIpWhitelist
             return $next($request);
         }
 
-        $user = $request->user();
-
-        // Skip if user not authenticated
-        if (!$user) {
-            return $next($request);
-        }
-
-        // Skip if user hasn't enabled IP whitelist
-        if (!$user->ip_whitelist_enabled) {
-            return $next($request);
-        }
-
-        // Get user's IP whitelist
-        $whitelist = $user->ip_whitelist ?? [];
+        // Get global IP whitelist
+        $whitelist = $settings->ip_whitelist;
 
         // If whitelist is empty, allow all (safety fallback)
         if (empty($whitelist)) {
@@ -51,7 +42,7 @@ class CheckIpWhitelist
         // Check if IP is whitelisted (supports CIDR notation)
         if (!$this->isIpWhitelisted($clientIp, $whitelist)) {
             Log::warning('IP whitelist violation', [
-                'user_id' => $user->id,
+                'user_id' => $request->user()?->id,
                 'client_ip' => $clientIp,
                 'whitelist' => $whitelist,
                 'uri' => $request->getRequestUri(),

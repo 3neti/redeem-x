@@ -142,9 +142,16 @@ const tierInfo = computed(() => {
         <SettingsLayout>
             <div class="space-y-6">
                 <HeadingSmall
-                    title="Security Settings"
-                    description="Manage API security features including IP whitelisting, request signing, and rate limiting"
+                    title="Security Settings (Global)"
+                    description="Manage global API security features for all users. Changes affect the entire application."
                 />
+
+                <Alert>
+                    <AlertCircle class="h-4 w-4" />
+                    <AlertDescription>
+                        <strong>Admin Only:</strong> These are application-wide security settings. Changes will affect all API requests.
+                    </AlertDescription>
+                </Alert>
 
                 <!-- IP Whitelisting -->
                 <Card>

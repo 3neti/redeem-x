@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Security\RequestSignatureService;
+use App\Settings\SecuritySettings;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,20 +23,10 @@ class VerifyRequestSignature
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $settings = app(SecuritySettings::class);
+
         // Skip if signature verification is disabled globally
-        if (!config('api.signature.enabled', false)) {
-            return $next($request);
-        }
-
-        $user = $request->user();
-
-        // Skip if user not authenticated (signature only applies to authenticated requests)
-        if (!$user) {
-            return $next($request);
-        }
-
-        // Skip if user hasn't enabled signature verification
-        if (!$user->signature_enabled || !$user->signature_secret) {
+        if (!$settings->signature_enabled || !$settings->signature_secret) {
             return $next($request);
         }
 
@@ -45,14 +36,14 @@ class VerifyRequestSignature
         // Verify signature
         $result = $this->signatureService->verifySignature(
             $request,
-            $user->signature_secret,
+            $settings->signature_secret,
             $tolerance
         );
 
         if (!$result['valid']) {
             // Log signature verification failure
             Log::warning('[SignatureVerification] Request signature validation failed', [
-                'user_id' => $user->id,
+                'user_id' => $request->user()?->id,
                 'error' => $result['error'],
                 'method' => $request->method(),
                 'uri' => $request->path(),

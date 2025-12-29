@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\RateLimiter\TokenBucketRateLimiter;
+use App\Settings\SecuritySettings;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,15 +27,9 @@ class AdvancedRateLimiting
             return $next($request);
         }
 
-        $user = $request->user();
-
-        // Skip if user not authenticated (rely on basic Laravel rate limiting for public)
-        if (!$user) {
-            return $next($request);
-        }
-
-        // Get user's rate limit tier
-        $tier = $user->rate_limit_tier ?? 'basic';
+        // Get global rate limit tier
+        $settings = app(SecuritySettings::class);
+        $tier = $settings->rate_limit_tier;
         $tierConfig = config("api.rate_limiting.tiers.{$tier}", config('api.rate_limiting.tiers.basic'));
 
         // Calculate token bucket parameters
@@ -43,8 +38,8 @@ class AdvancedRateLimiting
         $maxTokens = $burstAllowance;
         $refillRate = $requestsPerMinute / 60; // Tokens per second
 
-        // Create unique key for this user
-        $key = "user:{$user->id}";
+        // Create unique key (global for all users since tier is global)
+        $key = "global";
 
         // Attempt to consume a token
         $result = $this->limiter->attempt($key, $maxTokens, $refillRate);
