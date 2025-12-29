@@ -172,6 +172,305 @@
                 }
             }
         },
+        "/transactions/export": {
+            "get": {
+                "operationId": "transactions.export",
+                "description": "Generate and download a CSV file containing filtered transaction data with all disbursement details.",
+                "summary": "Export transactions to CSV file",
+                "tags": [
+                    "Transactions"
+                ],
+                "parameters": [
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "description": "*optional* - Export transactions from this date (YYYY-MM-DD format). Filters by redemption date.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2024-01-01"
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "description": "*optional* - Export transactions until this date (YYYY-MM-DD format). Must be after or equal to date_from.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2024-12-31"
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "*optional* - Filter by voucher code. Supports partial matching.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "PROMO"
+                    },
+                    {
+                        "name": "bank",
+                        "in": "query",
+                        "description": "*optional* - Filter by disbursement bank code (e.g., GXCHPHM2XXX for GCash).",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "GXCHPHM2XXX"
+                    },
+                    {
+                        "name": "rail",
+                        "in": "query",
+                        "description": "*optional* - Filter by settlement rail: INSTAPAY or PESONET.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "INSTAPAY"
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "*optional* - Filter by disbursement status (e.g., \"success\", \"pending\", \"failed\").",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "success"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "text/csv": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Transfer-Encoding": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string",
+                                    "enum": [
+                                        "chunked"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/transactions/{voucher}": {
+            "get": {
+                "operationId": "transactions.show",
+                "description": "Retrieve complete details of a specific voucher redemption transaction including disbursement status.",
+                "summary": "Get transaction details",
+                "tags": [
+                    "Transactions"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "Voucher code to retrieve transaction for. Must be a redeemed voucher. Example: \"PROMO-AB12CD34\"",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "PROMO-AB12CD34"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Voucher has not been redeemed yet."
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/transactions/{code}/refresh-status": {
+            "post": {
+                "operationId": "transactions.refresh-status",
+                "description": "Query payment gateway for latest status and update transaction record. Returns status comparison.",
+                "summary": "Refresh disbursement status",
+                "tags": [
+                    "Transactions"
+                ],
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "description": "Voucher code to refresh disbursement status for. Must have existing disbursement data. Example: \"PROMO-AB12CD34\"",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "PROMO-AB12CD34"
+                    }
+                ],
+                "responses": {
+                    "500": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "updated": {
+                                                    "type": "boolean"
+                                                },
+                                                "current_status": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "new_status": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "voucher_code": {
+                                                    "type": "string"
+                                                },
+                                                "disbursement": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "updated",
+                                                "current_status",
+                                                "new_status",
+                                                "voucher_code",
+                                                "disbursement"
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Status updated successfully",
+                                                "Status unchanged"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "data",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "This transaction has no disbursement data"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/vouchers/{voucher}/timing/click": {
             "post": {
                 "operationId": "vouchers.timing.click",
@@ -2873,27 +3172,6 @@
                 }
             }
         },
-        "/transactions/export": {
-            "get": {
-                "operationId": "transactions.export",
-                "tags": [
-                    "ExportTransactions"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/redeem/finalize": {
             "get": {
                 "operationId": "redeem.finalize",
@@ -3994,75 +4272,6 @@
                 }
             }
         },
-        "/transactions/{arguments}/refresh-status": {
-            "post": {
-                "operationId": "transactions.refresh-status",
-                "tags": [
-                    "RefreshDisbursementStatus"
-                ],
-                "parameters": [
-                    {
-                        "name": "arguments",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "updated": {
-                                            "type": "boolean"
-                                        },
-                                        "current_status": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
-                                        },
-                                        "new_status": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
-                                        },
-                                        "voucher_code": {
-                                            "type": "string"
-                                        },
-                                        "disbursement": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "updated",
-                                        "current_status",
-                                        "new_status",
-                                        "voucher_code",
-                                        "disbursement"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/auth/tokens/{tokenId}": {
             "delete": {
                 "operationId": "auth.tokens.destroy",
@@ -4199,40 +4408,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/transactions/{arguments}": {
-            "get": {
-                "operationId": "transactions.show",
-                "tags": [
-                    "ShowTransaction"
-                ],
-                "parameters": [
-                    {
-                        "name": "arguments",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }

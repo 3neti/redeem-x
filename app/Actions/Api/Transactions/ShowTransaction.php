@@ -6,21 +6,48 @@ namespace App\Actions\Api\Transactions;
 
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Lorisleiva\Actions\ActionRequest;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Illuminate\Http\Request;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 
 /**
- * Show single transaction details via API.
+ * Show Transaction Details
  *
- * Endpoint: GET /api/v1/transactions/{voucher}
+ * Retrieve detailed information about a specific voucher redemption transaction.
+ * 
+ * Returns complete transaction data including voucher details, redemption information,
+ * disbursement status, and redeemer details. Essential for transaction lookups,
+ * customer support, and detailed auditing.
+ * 
+ * **Transaction Details Include:**
+ * - Voucher code, amount, and currency
+ * - Redemption timestamp and location
+ * - Disbursement bank, account, and status
+ * - Settlement rail and operation IDs
+ * - Redeemer information (if available)
+ * - Input data collected during redemption
+ * 
+ * **Use Cases:**
+ * - Customer support inquiries
+ * - Transaction dispute resolution
+ * - Detailed audit trails
+ * - Debugging disbursement issues
+ *
+ * @group Transactions
+ * @authenticated
  */
+#[Group('Transactions')]
 class ShowTransaction
 {
-    use AsAction;
-
-    public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
+    /**
+     * Get transaction details.
+     *
+     * Retrieve complete details of a specific voucher redemption transaction including disbursement status.
+     */
+    #[PathParameter('voucher', description: 'Voucher code to retrieve transaction for. Must be a redeemed voucher. Example: "PROMO-AB12CD34"', type: 'string', example: 'PROMO-AB12CD34')]
+    public function __invoke(Request $request, Voucher $voucher): JsonResponse
     {
         // Load relationships
         $voucher->load(['owner', 'redeemers']);

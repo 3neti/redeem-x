@@ -5,17 +5,44 @@ namespace App\Actions\Api\Transactions;
 use App\Services\DisbursementStatusService;
 use LBHurtado\Voucher\Models\Voucher;
 use Illuminate\Http\JsonResponse;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Illuminate\Http\Request;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 
 /**
- * Refresh disbursement status for a transaction
+ * Refresh Disbursement Status
+ *
+ * Manually query the payment gateway to update a transaction's disbursement status.
  * 
- * Queries the payment gateway for the latest status and updates the voucher.
+ * This endpoint contacts the payment gateway (NetBank, etc.) to fetch the latest disbursement
+ * status and updates the local transaction record. Useful when automatic status updates fail
+ * or when manual verification is needed.
+ * 
+ * **When to Use:**
+ * - Disbursement status appears stuck or outdated
+ * - Customer reports payment not received but shows "pending"
+ * - Troubleshooting disbursement issues
+ * - Manual reconciliation with bank statements
+ * 
+ * **What Happens:**
+ * 1. Queries payment gateway API for current status
+ * 2. Updates voucher metadata with latest disbursement data
+ * 3. Returns old vs. new status comparison
+ * 4. Preserves operation IDs for audit trail
+ * 
+ * **Possible Status Changes:**
+ * - pending → success (payment completed)
+ * - pending → failed (payment rejected by bank)
+ * - success → unchanged (already completed)
+ * 
+ * **Important:** This does NOT retry failed disbursements, only updates the status.
+ *
+ * @group Transactions
+ * @authenticated
  */
+#[Group('Transactions')]
 class RefreshDisbursementStatus
 {
-    use AsAction;
-
     public function handle(Voucher $voucher, DisbursementStatusService $service): array
     {
         // Get current status
@@ -38,9 +65,13 @@ class RefreshDisbursementStatus
     }
 
     /**
-     * Handle as controller
+     * Refresh disbursement status.
+     *
+     * Query payment gateway for latest status and update transaction record. Returns status comparison.
      */
-    public function asController(
+    #[PathParameter('code', description: 'Voucher code to refresh disbursement status for. Must have existing disbursement data. Example: "PROMO-AB12CD34"', type: 'string', example: 'PROMO-AB12CD34')]
+    public function __invoke(
+        Request $request,
         string $code,
         DisbursementStatusService $service
     ): JsonResponse {
