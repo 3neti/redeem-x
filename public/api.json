@@ -20,64 +20,6 @@
         }
     ],
     "paths": {
-        "/v1/campaigns": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Campaign"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/v1/campaigns/{campaign}": {
-            "get": {
-                "parameters": [
-                    {
-                        "name": "campaign",
-                        "in": "path",
-                        "required": true,
-                        "description": "The campaign ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/v1/balances": {
             "get": {
                 "operationId": "balance.index",
@@ -512,6 +454,79 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/campaigns": {
+            "get": {
+                "operationId": "listCampaigns",
+                "description": "Get all active campaigns for the authenticated user. Campaigns are used as templates\nwhen generating vouchers via the dashboard or API.",
+                "summary": "List Campaigns",
+                "tags": [
+                    "Campaign"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "integer",
+                                    "enum": [
+                                        200
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/campaigns/{campaign}": {
+            "get": {
+                "operationId": "showCampaign",
+                "description": "Get details of a specific campaign by ID. Includes complete voucher instructions\nconfiguration stored in the campaign template.",
+                "summary": "Show Campaign",
+                "tags": [
+                    "Campaign"
+                ],
+                "parameters": [
+                    {
+                        "name": "campaign",
+                        "in": "path",
+                        "required": true,
+                        "description": "The campaign ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "integer",
+                                    "enum": [
+                                        200
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -4682,61 +4697,6 @@
                 "type": "object",
                 "additionalProperties": {},
                 "title": "BalanceData"
-            },
-            "Campaign": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "user_id": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "slug": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "instructions": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "id",
-                    "user_id",
-                    "name",
-                    "slug",
-                    "description",
-                    "status",
-                    "instructions",
-                    "created_at",
-                    "updated_at"
-                ],
-                "title": "Campaign"
             },
             "DisburseResponseData": {
                 "type": "object",

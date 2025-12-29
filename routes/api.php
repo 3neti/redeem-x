@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\Campaign;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,17 +68,10 @@ Route::prefix('v1')
         require base_path('routes/api/dashboard.php');
 
         // Campaigns API (for Generate Vouchers dropdown)
-        Route::get('/campaigns', function (\Illuminate\Http\Request $request) {
-            return Campaign::where('user_id', $request->user()->id)
-                ->where('status', 'active')
-                ->select('id', 'name', 'slug', 'instructions')
-                ->get();
-        });
-
-        Route::get('/campaigns/{campaign}', function (Campaign $campaign) {
-            Gate::authorize('view', $campaign);
-            return $campaign;
-        });
+        Route::get('campaigns', [\App\Http\Controllers\Api\CampaignController::class, 'index'])
+            ->name('api.campaigns.index');
+        Route::get('campaigns/{campaign}', [\App\Http\Controllers\Api\CampaignController::class, 'show'])
+            ->name('api.campaigns.show');
         
         // Charge calculation API (for real-time pricing preview)
         Route::post('/calculate-charges', \App\Http\Controllers\Api\ChargeCalculationController::class)
