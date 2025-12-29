@@ -7,14 +7,15 @@
 ## Table of Contents
 1. [Overview](#overview)
 2. [Authentication](#authentication)
-3. [API Endpoints](#api-endpoints)
-4. [Rate Limiting](#rate-limiting)
-5. [Idempotency](#idempotency)
-6. [Error Handling](#error-handling)
-7. [Webhooks](#webhooks)
-8. [Reconciliation](#reconciliation)
-9. [Testing & Sandbox](#testing--sandbox)
-10. [Production Checklist](#production-checklist)
+3. [IP Whitelisting](#ip-whitelisting)
+4. [API Endpoints](#api-endpoints)
+5. [Rate Limiting](#rate-limiting)
+6. [Idempotency](#idempotency)
+7. [Error Handling](#error-handling)
+8. [Webhooks](#webhooks)
+9. [Reconciliation](#reconciliation)
+10. [Testing & Sandbox](#testing--sandbox)
+11. [Production Checklist](#production-checklist)
 
 ## Overview
 
@@ -92,6 +93,108 @@ Tokens can be scoped to specific actions:
 - `vouchers:redeem` - Redeem vouchers
 - `transactions:read` - View transactions
 - `reports:read` - Access reconciliation reports
+
+## IP Whitelisting
+
+### Overview
+
+For banks with **fixed IP addresses**, Redeem-X offers optional IP whitelisting to restrict API access to known IP addresses only. This adds an additional security layer beyond token-based authentication.
+
+**Features**:
+- Per-user opt-in (disabled by default)
+- Supports individual IPs and CIDR ranges
+- Handles proxy/load balancer scenarios
+- Returns 403 for non-whitelisted IPs
+
+### Configuration
+
+**Enable IP Whitelisting** via Settings Dashboard:
+```
+1. Login to Redeem-X dashboard
+2. Navigate to Settings → Security → IP Whitelist
+3. Toggle "Enable IP Whitelist"
+4. Add your IP addresses or CIDR ranges
+5. Save changes
+```
+
+**Example IP Whitelist**:
+```json
+[
+  "203.0.113.50",           // Single IP address
+  "198.51.100.0/24",        // CIDR range (198.51.100.0 - 198.51.100.255)
+  "2001:db8::/32"           // IPv6 CIDR range
+]
+```
+
+### Supported Formats
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| IPv4 | `203.0.113.50` | Single IPv4 address |
+| IPv4 CIDR | `198.51.100.0/24` | IPv4 range (256 addresses) |
+| IPv6 | `2001:db8::1` | Single IPv6 address |
+| IPv6 CIDR | `2001:db8::/32` | IPv6 range |
+
+### Error Response
+
+When accessing from a non-whitelisted IP:
+
+```bash
+GET /api/v1/vouchers
+Authorization: Bearer {token}
+
+Response: 403 Forbidden
+{
+  "error": "ip_not_whitelisted",
+  "message": "Your IP address is not authorized to access this resource."
+}
+```
+
+### Best Practices
+
+1. **Always include your current IP** before enabling whitelist (prevents lockout)
+2. **Use CIDR ranges** for offices with dynamic IPs within a range
+3. **Document all whitelisted IPs** for security audits
+4. **Test thoroughly** before enabling in production
+5. **Monitor logs** for blocked IP attempts
+
+### Proxy Considerations
+
+If your requests go through a **reverse proxy or load balancer**, ensure the proxy forwards the original client IP via standard headers:
+
+- `X-Forwarded-For` (most common)
+- `X-Real-IP` (nginx)
+
+Redeem-X automatically extracts the original client IP from these headers.
+
+### Security Logging
+
+All blocked IP attempts are logged for security monitoring:
+
+```json
+{
+  "level": "warning",
+  "message": "IP whitelist violation",
+  "user_id": 123,
+  "client_ip": "10.0.0.1",
+  "whitelist": ["203.0.113.50", "198.51.100.0/24"],
+  "uri": "/api/v1/vouchers",
+  "timestamp": "2025-12-29T15:00:00Z"
+}
+```
+
+### Disabling IP Whitelist
+
+To disable:
+
+```
+1. Login to dashboard
+2. Settings → Security → IP Whitelist
+3. Toggle off "Enable IP Whitelist"
+4. Whitelist configuration is preserved (not deleted)
+```
+
+**Note**: Disabling does **not** delete your configured IPs. You can re-enable anytime without reconfiguring.
 
 ## API Endpoints
 
