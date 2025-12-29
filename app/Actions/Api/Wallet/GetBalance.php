@@ -4,7 +4,7 @@ namespace App\Actions\Api\Wallet;
 
 use App\Data\Api\Wallet\BalanceData;
 use App\Models\User;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Illuminate\Http\Request;
 use Dedoc\Scramble\Attributes\Group;
 
 /**
@@ -19,23 +19,16 @@ use Dedoc\Scramble\Attributes\Group;
 #[Group('Wallet')]
 class GetBalance
 {
-    use AsAction;
-
-    public function handle(User $user): BalanceData
-    {
-        return BalanceData::fromWallet($user->wallet);
-    }
-
     /**
      * Get wallet balance.
      *
      * Retrieve your current wallet balance including available funds, pending amounts, and currency details.
      * Use this to verify sufficient funds before generating vouchers or making withdrawals.
      */
-    public function asController(): array
+    public function __invoke(Request $request): array
     {
-        $user = auth()->user();
-        $balance = $this->handle($user);
+        $user = $request->user();
+        $balance = BalanceData::fromWallet($user->wallet);
 
         return [
             'data' => $balance,

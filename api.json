@@ -1245,16 +1245,45 @@
         "/wallet/balance": {
             "get": {
                 "operationId": "wallet.balance",
+                "description": "Retrieve your current wallet balance including available funds, pending amounts, and currency details.\nUse this to verify sufficient funds before generating vouchers or making withdrawals.",
+                "summary": "Get wallet balance",
                 "tags": [
                     "Wallet"
                 ],
                 "responses": {
                     "200": {
-                        "description": "`BalanceData`",
+                        "description": "",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/BalanceData"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BalanceData"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "v1"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "timestamp",
+                                                "version"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
                                 }
                             }
                         }
@@ -1268,19 +1297,81 @@
         "/wallet/topup": {
             "post": {
                 "operationId": "wallet.topup.initiate",
+                "description": "Begin a top-up transaction to add funds to your wallet. Returns a payment URL where the user completes payment.\n\n**Response includes:**\n- `payment_url`: URL to redirect user for payment (GCash, Maya, bank, etc.)\n- `reference_no`: Unique transaction reference (e.g., \"TOPUP-ABC123\")\n- `amount`: Requested top-up amount\n- `status`: Initial status (usually \"PENDING\")\n- `expires_at`: Payment link expiration time\n\n**Important:**\n- Save the `reference_no` to check payment status later\n- Redirect user to `payment_url` immediately\n- Payment expires after 30 minutes (configurable)\n- Use webhooks or polling to detect successful payment",
+                "summary": "Initiate wallet top-up",
                 "tags": [
                     "Wallet"
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "amount": {
+                                        "type": "object",
+                                        "description": "**REQUIRED**. Top-up amount in major units (whole PHP). Range: \u20b11 - \u20b150,000 per transaction. This amount will be credited to your wallet after successful payment. Example: 1000 = \u20b11,000.00",
+                                        "example": 1000
+                                    },
+                                    "gateway": {
+                                        "type": "string",
+                                        "description": "*optional* - Payment gateway provider. Currently only \"netbank\" (NetBank Direct Checkout) is supported. This gateway supports GCash, Maya, InstaPay banks, and OTC channels. Default: \"netbank\"",
+                                        "example": "netbank"
+                                    },
+                                    "institution_code": {
+                                        "type": "string",
+                                        "description": "*optional* - Pre-select payment method for user convenience. Valid codes: \"GCASH\", \"MAYA\", \"BDO\", \"BPI\", \"UBP\" (UnionBank), etc. If specified, user will be directed to this payment option first. Useful for deep-linking.",
+                                        "example": "GCASH"
+                                    }
+                                },
+                                "required": [
+                                    "amount"
+                                ]
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "`TopUpResultData`",
+                        "description": "",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/TopUpResultData"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TopUpResultData"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "v1"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "timestamp",
+                                                "version"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
                                 }
                             }
                         }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -1289,8 +1380,21 @@
             },
             "get": {
                 "operationId": "wallet.topup.list",
+                "description": "Retrieve your complete top-up transaction history, optionally filtered by payment status.\n\n**Response includes** (for each top-up):\n- `reference_no`: Unique transaction reference\n- `amount`: Top-up amount requested\n- `payment_status`: Current status (PENDING, PAID, FAILED, EXPIRED)\n- `gateway`: Payment gateway used (e.g., \"netbank\")\n- `institution_code`: Payment method chosen (GCASH, MAYA, etc.)\n- `created_at`: When top-up was initiated\n- `paid_at`: When payment was completed (null if not paid)\n- `expires_at`: Payment link expiration time\n\nResults are sorted by creation date (newest first). Use status filter to show only pending payments or payment history.",
+                "summary": "List wallet top-ups",
                 "tags": [
                     "Wallet"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "*optional* - Filter results by payment status. Valid values: \"pending\" (awaiting payment), \"paid\" (successful), \"failed\" (declined/error), \"expired\" (payment link expired). Omit to retrieve all top-ups regardless of status. Case-insensitive.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "paid"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -1298,10 +1402,41 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/TopUpData"
-                                    }
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TopUpData"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "v1"
+                                                    ]
+                                                },
+                                                "count": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "timestamp",
+                                                "version",
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
                                 }
                             }
                         }
@@ -1312,32 +1447,60 @@
                 }
             }
         },
-        "/wallet/topup/{arguments}": {
+        "/wallet/topup/{referenceNo}": {
             "get": {
                 "operationId": "wallet.topup.status",
+                "description": "Retrieve the current payment status and details of a specific top-up transaction.\n\n**Response includes:**\n- `reference_no`: Transaction reference number\n- `amount`: Top-up amount\n- `payment_status`: Current status (PENDING, PAID, FAILED, EXPIRED)\n- `payment_url`: Original payment URL (null if expired)\n- `gateway`: Payment gateway used\n- `institution_code`: Payment method selected\n- `created_at`: When top-up was initiated\n- `paid_at`: Payment completion timestamp (null if not paid)\n- `expires_at`: Payment link expiration\n- `error_message`: Error details if status is FAILED\n\n**Common Use Cases:**\n- Callback page: Poll this endpoint after user returns from payment gateway\n- Status page: Display real-time payment status to user\n- Admin panel: Check customer payment issues",
+                "summary": "Get top-up status",
                 "tags": [
                     "Wallet"
                 ],
                 "parameters": [
                     {
-                        "name": "arguments",
+                        "name": "referenceNo",
                         "in": "path",
                         "required": true,
+                        "description": "Unique top-up reference number returned by InitiateTopUp endpoint. Format: \"TOPUP-{ID}\" (e.g., \"TOPUP-ABC123\"). Case-sensitive.",
                         "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
+                            "type": "string"
+                        },
+                        "example": "TOPUP-ABC123"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "`TopUpData`",
+                        "description": "",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/TopUpData"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TopUpData"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "v1"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "timestamp",
+                                                "version"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
                                 }
                             }
                         }
@@ -1351,8 +1514,21 @@
         "/wallet/transactions": {
             "get": {
                 "operationId": "wallet.transactions",
+                "description": "Retrieve your complete wallet transaction history with optional filtering by transaction type.\n\n**Response includes** (for each transaction):\n- `id`: Unique transaction ID\n- `type`: Transaction type (deposit or withdraw)\n- `amount`: Transaction amount (positive for deposits, negative for withdrawals)\n- `balance_after`: Wallet balance after this transaction\n- `description`: Human-readable transaction description\n- `meta`: Additional metadata (e.g., voucher code, top-up reference)\n- `created_at`: Transaction timestamp\n- `confirmed`: Whether transaction is confirmed (true for most transactions)\n\n**Example Transactions:**\n- Deposit: \"Top-up via GCash - TOPUP-ABC123\"\n- Withdraw: \"Voucher generation - CODE-XYZ789\"\n- Deposit: \"Voucher cancellation refund - CODE-OLD123\"\n\nResults are paginated and sorted newest first. Use type filter to show only deposits or withdrawals.",
+                "summary": "List wallet transactions",
                 "tags": [
                     "Wallet"
+                ],
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "*optional* - Filter by transaction type. \"deposit\" shows only money added to wallet (top-ups, refunds, credits). \"withdraw\" shows only money deducted (voucher generation, fees). Omit to view all transaction types. Case-sensitive.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "deposit"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -1360,7 +1536,38 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "v1"
+                                                    ]
+                                                },
+                                                "count": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "timestamp",
+                                                "version",
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
                                 }
                             }
                         }

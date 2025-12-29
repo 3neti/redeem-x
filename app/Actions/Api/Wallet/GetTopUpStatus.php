@@ -3,9 +3,8 @@
 namespace App\Actions\Api\Wallet;
 
 use App\Data\Api\Wallet\TopUpData;
-use App\Models\User;
+use Illuminate\Http\Request;
 use LBHurtado\PaymentGateway\Exceptions\TopUpException;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
@@ -31,20 +30,6 @@ use Dedoc\Scramble\Attributes\PathParameter;
 #[Group('Wallet')]
 class GetTopUpStatus
 {
-    use AsAction;
-
-    /**
-     * Get status of a specific top-up by reference number.
-     *
-     * @throws TopUpException
-     */
-    public function handle(User $user, string $referenceNo): TopUpData
-    {
-        $topUp = $user->getTopUpByReference($referenceNo);
-
-        return TopUpData::fromModel($topUp);
-    }
-
     /**
      * Get top-up status
      * 
@@ -68,14 +53,15 @@ class GetTopUpStatus
      * - Admin panel: Check customer payment issues
      */
     #[PathParameter('referenceNo', description: 'Unique top-up reference number returned by InitiateTopUp endpoint. Format: "TOPUP-{ID}" (e.g., "TOPUP-ABC123"). Case-sensitive.', type: 'string', example: 'TOPUP-ABC123')]
-    public function asController(string $referenceNo): array
+    public function __invoke(Request $request, string $referenceNo): array
     {
         try {
-            $user = auth()->user();
-            $topUp = $this->handle($user, $referenceNo);
+            $user = $request->user();
+            $topUp = $user->getTopUpByReference($referenceNo);
+            $topUpData = TopUpData::fromModel($topUp);
 
             return [
-                'data' => $topUp,
+                'data' => $topUpData,
                 'meta' => [
                     'timestamp' => now()->toIso8601String(),
                     'version' => 'v1',

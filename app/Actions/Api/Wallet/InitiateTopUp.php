@@ -3,10 +3,10 @@
 namespace App\Actions\Api\Wallet;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use LBHurtado\PaymentGateway\Data\TopUp\TopUpResultData;
 use LBHurtado\PaymentGateway\Exceptions\TopUpException;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\BodyParameter;
 
@@ -36,22 +36,6 @@ use Dedoc\Scramble\Attributes\BodyParameter;
 #[Group('Wallet')]
 class InitiateTopUp
 {
-    use AsAction;
-
-    /**
-     * Initiate a top-up for the user.
-     *
-     * @throws TopUpException
-     */
-    public function handle(
-        User $user,
-        float $amount,
-        string $gateway = 'netbank',
-        ?string $institutionCode = null
-    ): TopUpResultData {
-        return $user->initiateTopUp($amount, $gateway, $institutionCode);
-    }
-
     /**
      * Initiate wallet top-up
      * 
@@ -73,25 +57,24 @@ class InitiateTopUp
     #[BodyParameter('amount', description: '**REQUIRED**. Top-up amount in major units (whole PHP). Range: ₱1 - ₱50,000 per transaction. This amount will be credited to your wallet after successful payment. Example: 1000 = ₱1,000.00', type: 'number', example: 1000)]
     #[BodyParameter('gateway', description: '*optional* - Payment gateway provider. Currently only "netbank" (NetBank Direct Checkout) is supported. This gateway supports GCash, Maya, InstaPay banks, and OTC channels. Default: "netbank"', type: 'string', example: 'netbank')]
     #[BodyParameter('institution_code', description: '*optional* - Pre-select payment method for user convenience. Valid codes: "GCASH", "MAYA", "BDO", "BPI", "UBP" (UnionBank), etc. If specified, user will be directed to this payment option first. Useful for deep-linking.', type: 'string', example: 'GCASH')]
-    public function asController(): array
+    public function __invoke(Request $request): array
     {
-        $validated = request()->validate([
+        $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:1', 'max:50000'],
             'gateway' => ['sometimes', 'string', 'in:netbank'],
             'institution_code' => ['nullable', 'string'],
         ]);
 
         try {
-            $user = auth()->user();
-            $result = $this->handle(
-                $user,
+            $user = $request->user();
+            $result = $user->initiateTopUp(
                 $validated['amount'],
                 $validated['gateway'] ?? 'netbank',
                 $validated['institution_code'] ?? null
             );
             
             // Store idempotency key in the top-up record
-            $idempotencyKey = request()->header('Idempotency-Key');
+            $idempotencyKey = $request->header('Idempotency-Key');
             if ($idempotencyKey && $result->reference_no) {
                 $topUp = $user->topUps()->where('reference_no', $result->reference_no)->first();
                 if ($topUp) {

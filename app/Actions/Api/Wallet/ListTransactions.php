@@ -3,10 +3,8 @@
 namespace App\Actions\Api\Wallet;
 
 use App\Data\Api\Wallet\TransactionData;
-use App\Models\User;
-use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
 
@@ -33,22 +31,6 @@ use Dedoc\Scramble\Attributes\QueryParameter;
 #[Group('Wallet')]
 class ListTransactions
 {
-    use AsAction;
-
-    /**
-     * Get wallet transactions for the user.
-     */
-    public function handle(User $user, ?string $type = null): Collection
-    {
-        $query = $user->wallet->transactions()->latest();
-
-        if ($type) {
-            $query->where('type', $type);
-        }
-
-        return $query->get()->map(fn ($transaction) => TransactionData::fromModel($transaction));
-    }
-
     /**
      * List wallet transactions
      * 
@@ -72,9 +54,9 @@ class ListTransactions
      * Results are paginated and sorted newest first. Use type filter to show only deposits or withdrawals.
      */
     #[QueryParameter('type', description: '*optional* - Filter by transaction type. "deposit" shows only money added to wallet (top-ups, refunds, credits). "withdraw" shows only money deducted (voucher generation, fees). Omit to view all transaction types. Case-sensitive.', type: 'string', example: 'deposit')]
-    public function asController(): array
+    public function __invoke(Request $request): array
     {
-        $type = request()->query('type');
+        $type = $request->query('type');
 
         if ($type && !in_array($type, ['deposit', 'withdraw'])) {
             throw ValidationException::withMessages([
@@ -82,8 +64,14 @@ class ListTransactions
             ]);
         }
 
-        $user = auth()->user();
-        $transactions = $this->handle($user, $type);
+        $user = $request->user();
+        $query = $user->wallet->transactions()->latest();
+        
+        if ($type) {
+            $query->where('type', $type);
+        }
+        
+        $transactions = $query->get()->map(fn ($transaction) => TransactionData::fromModel($transaction));
 
         return [
             'data' => $transactions,

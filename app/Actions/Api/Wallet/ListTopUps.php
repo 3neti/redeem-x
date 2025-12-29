@@ -3,10 +3,8 @@
 namespace App\Actions\Api\Wallet;
 
 use App\Data\Api\Wallet\TopUpData;
-use App\Models\User;
-use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
 
@@ -30,22 +28,6 @@ use Dedoc\Scramble\Attributes\QueryParameter;
 #[Group('Wallet')]
 class ListTopUps
 {
-    use AsAction;
-
-    /**
-     * Get all top-ups for the user.
-     */
-    public function handle(User $user, ?string $status = null): Collection
-    {
-        $query = $user->topUps()->latest();
-
-        if ($status) {
-            $query->where('payment_status', strtoupper($status));
-        }
-
-        return $query->get()->map(fn ($topUp) => TopUpData::fromModel($topUp));
-    }
-
     /**
      * List wallet top-ups
      * 
@@ -64,9 +46,9 @@ class ListTopUps
      * Results are sorted by creation date (newest first). Use status filter to show only pending payments or payment history.
      */
     #[QueryParameter('status', description: '*optional* - Filter results by payment status. Valid values: "pending" (awaiting payment), "paid" (successful), "failed" (declined/error), "expired" (payment link expired). Omit to retrieve all top-ups regardless of status. Case-insensitive.', type: 'string', example: 'paid')]
-    public function asController(): array
+    public function __invoke(Request $request): array
     {
-        $status = request()->query('status');
+        $status = $request->query('status');
 
         if ($status && !in_array(strtoupper($status), ['PENDING', 'PAID', 'FAILED', 'EXPIRED'])) {
             throw ValidationException::withMessages([
@@ -74,8 +56,14 @@ class ListTopUps
             ]);
         }
 
-        $user = auth()->user();
-        $topUps = $this->handle($user, $status);
+        $user = $request->user();
+        $query = $user->topUps()->latest();
+        
+        if ($status) {
+            $query->where('payment_status', strtoupper($status));
+        }
+        
+        $topUps = $query->get()->map(fn ($topUp) => TopUpData::fromModel($topUp));
 
         return [
             'data' => $topUps,
