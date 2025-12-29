@@ -19,7 +19,1556 @@
             "description": "Production"
         }
     ],
+    "tags": [
+        {
+            "name": "Vouchers"
+        },
+        {
+            "name": "Wallet"
+        }
+    ],
     "paths": {
+        "/vouchers/{voucher}/timing/click": {
+            "post": {
+                "operationId": "vouchers.timing.click",
+                "description": "Record when a user clicks on a voucher link (first click only, idempotent).\nPublic endpoint - no authentication required.",
+                "summary": "Track voucher click event",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "The voucher code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/{voucher}/timing/start": {
+            "post": {
+                "operationId": "vouchers.timing.start",
+                "description": "Record when a user begins the redemption process.\nPublic endpoint - no authentication required.",
+                "summary": "Track redemption start event",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "The voucher code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/{code}/inspect": {
+            "get": {
+                "operationId": "vouchers.inspect",
+                "description": "Public endpoint that reveals voucher origin, issuer, requirements, and redemption options.\nUseful for transparency and verification before redemption.",
+                "summary": "Inspect voucher metadata and instructions",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "active",
+                                                "scheduled",
+                                                "expired",
+                                                "redeemed"
+                                            ]
+                                        },
+                                        "metadata": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "info": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "This voucher was created before metadata tracking was implemented."
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        },
+                                        "preview": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "string"
+                                                },
+                                                "scope": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "full",
+                                                                "none"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "enabled",
+                                                "scope",
+                                                "message"
+                                            ]
+                                        },
+                                        "instructions": {
+                                            "type": "object",
+                                            "properties": {
+                                                "amount": {
+                                                    "type": "number"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "formatted_amount": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "boolean"
+                                                        }
+                                                    ]
+                                                },
+                                                "required_inputs": {
+                                                    "type": "array",
+                                                    "prefixItems": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "string"
+                                                                },
+                                                                "label": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "value",
+                                                                "label"
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "minItems": 1,
+                                                    "maxItems": 1,
+                                                    "additionalItems": false
+                                                },
+                                                "expires_at": {
+                                                    "type": "string"
+                                                },
+                                                "starts_at": {
+                                                    "type": "string"
+                                                },
+                                                "validation": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "has_secret": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "is_assigned": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "assigned_mobile_masked": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "has_secret",
+                                                        "is_assigned",
+                                                        "assigned_mobile_masked"
+                                                    ]
+                                                },
+                                                "location_validation": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "required": {
+                                                            "type": "string"
+                                                        },
+                                                        "target_lat": {
+                                                            "type": "string"
+                                                        },
+                                                        "target_lng": {
+                                                            "type": "string"
+                                                        },
+                                                        "radius_meters": {
+                                                            "type": "string"
+                                                        },
+                                                        "on_failure": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "required",
+                                                        "target_lat",
+                                                        "target_lng",
+                                                        "radius_meters",
+                                                        "on_failure",
+                                                        "description"
+                                                    ]
+                                                },
+                                                "time_validation": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "window": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "properties": {
+                                                                "start_time": {
+                                                                    "type": "string"
+                                                                },
+                                                                "end_time": {
+                                                                    "type": "string"
+                                                                },
+                                                                "timezone": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "start_time",
+                                                                "end_time",
+                                                                "timezone"
+                                                            ]
+                                                        },
+                                                        "limit_minutes": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "window",
+                                                        "limit_minutes",
+                                                        "description"
+                                                    ]
+                                                },
+                                                "rider": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "message": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "message",
+                                                        "url"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "amount",
+                                                "currency",
+                                                "formatted_amount",
+                                                "required_inputs",
+                                                "expires_at",
+                                                "starts_at",
+                                                "validation",
+                                                "location_validation",
+                                                "time_validation",
+                                                "rider"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "code",
+                                        "status",
+                                        "metadata",
+                                        "info",
+                                        "preview",
+                                        "instructions"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Voucher not found"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/vouchers": {
+            "post": {
+                "operationId": "generateVouchers",
+                "description": "Create one or more vouchers with customizable instructions for disbursement.",
+                "summary": "Generate Vouchers",
+                "tags": [
+                    "Vouchers"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/ActionRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "amount": {
+                                                "type": "object",
+                                                "description": "**REQUIRED**. Voucher amount in major units (whole PHP). Minimum: 0. This is the exact amount that will be disbursed to the redeemer. Example: 500 = \u20b1500.00",
+                                                "example": 500
+                                            },
+                                            "count": {
+                                                "type": "integer",
+                                                "description": "**REQUIRED**. Number of vouchers to generate. Range: 1-1000. Cannot be 0 (minimum is 1 for production use).",
+                                                "example": 10
+                                            },
+                                            "prefix": {
+                                                "type": "string",
+                                                "description": "*optional* - Prefix for voucher codes (1-10 characters). Will be prepended to generated codes. Example: \"PROMO\" generates \"PROMO-AB12CD34\".",
+                                                "example": "PROMO"
+                                            },
+                                            "mask": {
+                                                "type": "string",
+                                                "description": "*optional* - Voucher code pattern. Must contain only asterisks (*) and hyphens (-). Asterisks: 4-6 required (each becomes a random alphanumeric char). Hyphens: used as separators. Example: \"****-****\" generates \"AB12-CD34\".",
+                                                "example": "****-****"
+                                            },
+                                            "ttl_days": {
+                                                "type": "integer",
+                                                "description": "*optional* - Voucher expiration in days from creation (minimum: 1 day). Omit this field for vouchers that never expire.",
+                                                "example": 30
+                                            },
+                                            "input_fields": {
+                                                "type": "array",
+                                                "description": "*optional* - Array of required input fields for redemption. Valid values: \"email\", \"mobile\", \"name\", \"address\", \"birth_date\", \"gross_monthly_income\", \"location\", \"reference_code\", \"signature\", \"selfie\", \"otp\", \"kyc\". Leave empty or omit for no required inputs.",
+                                                "example": [
+                                                    "mobile",
+                                                    "location",
+                                                    "selfie"
+                                                ],
+                                                "items": {}
+                                            },
+                                            "validation_secret": {
+                                                "type": "string",
+                                                "description": "*optional* - Secret PIN required for redemption. Useful for restricting access.",
+                                                "example": "1234"
+                                            },
+                                            "validation_mobile": {
+                                                "type": "string",
+                                                "description": "*optional* - Assign voucher to specific Philippine mobile number (+639XXXXXXXXX format).",
+                                                "example": "+639171234567"
+                                            },
+                                            "feedback_email": {
+                                                "type": "string",
+                                                "description": "*optional* - Email address to receive redemption notifications.",
+                                                "example": "notify@example.com"
+                                            },
+                                            "feedback_mobile": {
+                                                "type": "string",
+                                                "description": "*optional* - Philippine mobile number to receive SMS notifications upon redemption.",
+                                                "example": "+639171234567"
+                                            },
+                                            "feedback_webhook": {
+                                                "type": "string",
+                                                "description": "*optional* - Webhook URL to POST redemption data to your system.",
+                                                "example": "https://api.example.com/webhooks/voucher-redeemed"
+                                            },
+                                            "rider_message": {
+                                                "type": "string",
+                                                "description": "*optional* - Plain text or HTML message to display after successful redemption. Supports basic HTML tags (<p>, <strong>, <em>, <br>). Minimum 1 character if provided.",
+                                                "example": "Thank you for participating!"
+                                            },
+                                            "rider_url": {
+                                                "type": "string",
+                                                "description": "*optional* - URL to redirect user to after redemption.",
+                                                "example": "https://example.com/thank-you"
+                                            },
+                                            "rider_redirect_timeout": {
+                                                "type": "integer",
+                                                "description": "*optional* - Seconds to wait before auto-redirecting (0-300). 0 = no auto-redirect.",
+                                                "example": 5
+                                            },
+                                            "rider_splash": {
+                                                "type": "string",
+                                                "description": "*optional* - Base64-encoded data URI image to display after redemption. Max size: 51,200 characters (~50KB). Supported formats: PNG, JPEG, GIF, WebP. Format: \"data:image/png;base64,iVBORw0KG...\" Must include full data URI prefix.",
+                                                "example": "data:image/png;base64,iVBORw0KG..."
+                                            },
+                                            "rider_splash_timeout": {
+                                                "type": "integer",
+                                                "description": "*optional* - Seconds to display splash image before continuing (0-60).",
+                                                "example": 3
+                                            },
+                                            "settlement_rail": {
+                                                "type": "string",
+                                                "description": "*optional* - Disbursement method: INSTAPAY (real-time, \u2264\u20b150k) or PESONET (next day, \u2264\u20b11M). Auto-selects if not specified.",
+                                                "example": "INSTAPAY"
+                                            },
+                                            "fee_strategy": {
+                                                "type": "string",
+                                                "description": "*optional* - How disbursement fees are handled: \"absorb\" = Issuer pays fee (redeemer gets full amount), \"include\" = Fee deducted from voucher amount (redeemer gets amount minus fee), \"add\" = Fee added to disbursement (redeemer gets amount plus fee). Default: \"absorb\".",
+                                                "example": "absorb"
+                                            },
+                                            "campaign_id": {
+                                                "type": "integer",
+                                                "description": "*optional* - Campaign ID to associate vouchers with for tracking purposes.",
+                                                "example": 1
+                                            },
+                                            "preview_enabled": {
+                                                "type": "boolean",
+                                                "description": "*optional* - Allow voucher preview via inspect endpoint before redemption.",
+                                                "example": true
+                                            },
+                                            "preview_scope": {
+                                                "type": "string",
+                                                "description": "*optional* - Preview data scope: \"full\" (all details), \"requirements_only\" (inputs needed), \"none\" (no preview).",
+                                                "example": "full"
+                                            },
+                                            "preview_message": {
+                                                "type": "string",
+                                                "description": "*optional* - Custom message to display in voucher inspection/preview.",
+                                                "example": "This voucher is for event attendees only."
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "integer",
+                                    "enum": [
+                                        201
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "get": {
+                "operationId": "vouchers.index",
+                "description": "Get a paginated list of vouchers with optional filtering by status and search.",
+                "summary": "List user's vouchers",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "'active', 'redeemed', 'expired'",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/bulk-create": {
+            "post": {
+                "operationId": "vouchers.bulk-create",
+                "description": "Generate multiple vouchers at once using a campaign template with external metadata.",
+                "summary": "Bulk create vouchers from campaign",
+                "tags": [
+                    "Vouchers"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Insufficient wallet balance to generate vouchers."
+                                                    ]
+                                                },
+                                                "errors": {
+                                                    "type": "string"
+                                                },
+                                                "meta": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors",
+                                                "meta"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "You do not have permission to use this campaign."
+                                                    ]
+                                                },
+                                                "errors": {
+                                                    "type": "string"
+                                                },
+                                                "meta": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors",
+                                                "meta"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/query": {
+            "get": {
+                "operationId": "vouchers.query",
+                "description": "Search vouchers using external metadata, status, and validation status filters.",
+                "summary": "Query vouchers with advanced filters",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "external_type",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "external_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "reference_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "description": "Order by",
+                        "schema": {
+                            "type": "string",
+                            "default": "created_at"
+                        }
+                    },
+                    {
+                        "name": "order_direction",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "default": "desc"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/{voucher}": {
+            "get": {
+                "operationId": "vouchers.show",
+                "description": "Retrieve complete voucher information including redemption status, inputs, and metadata.",
+                "summary": "Get voucher details",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "The voucher code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "You do not have permission to view this voucher."
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "vouchers.cancel",
+                "description": "Soft delete an unredeemed voucher to prevent future redemption.",
+                "summary": "Cancel a voucher",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "The voucher code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Cannot cancel a voucher that has already been redeemed."
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "You do not have permission to cancel this voucher."
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/{code}/qr": {
+            "get": {
+                "operationId": "vouchers.qr",
+                "description": "Create a QR code image and redemption URL for the specified voucher.",
+                "summary": "Generate QR code for voucher",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "qr_code": {
+                                                    "type": "string"
+                                                },
+                                                "redemption_url": {
+                                                    "type": "string"
+                                                },
+                                                "voucher_code": {
+                                                    "type": "string"
+                                                },
+                                                "amount": {
+                                                    "type": "string"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "expires_at": {
+                                                    "type": "string"
+                                                },
+                                                "is_redeemed": {
+                                                    "type": "boolean"
+                                                },
+                                                "is_expired": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "qr_code",
+                                                "redemption_url",
+                                                "voucher_code",
+                                                "amount",
+                                                "currency",
+                                                "expires_at",
+                                                "is_redeemed",
+                                                "is_expired"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "v1"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "timestamp",
+                                                "version"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/{voucher}/external": {
+            "post": {
+                "operationId": "vouchers.external.set",
+                "description": "Attach custom external metadata to a voucher for integration purposes.",
+                "summary": "Set external metadata",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "The voucher code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "You do not have permission to modify this voucher."
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vouchers/{voucher}/timing/submit": {
+            "post": {
+                "operationId": "vouchers.timing.submit",
+                "description": "Record when a user completes and submits the redemption form.",
+                "summary": "Track redemption submission",
+                "tags": [
+                    "Vouchers"
+                ],
+                "parameters": [
+                    {
+                        "name": "voucher",
+                        "in": "path",
+                        "required": true,
+                        "description": "The voucher code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "You do not have permission to modify this voucher."
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/wallet/balance": {
+            "get": {
+                "operationId": "wallet.balance",
+                "tags": [
+                    "Wallet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`BalanceData`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BalanceData"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/wallet/topup": {
+            "post": {
+                "operationId": "wallet.topup.initiate",
+                "tags": [
+                    "Wallet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`TopUpResultData`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TopUpResultData"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "get": {
+                "operationId": "wallet.topup.list",
+                "tags": [
+                    "Wallet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TopUpData"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/wallet/topup/{arguments}": {
+            "get": {
+                "operationId": "wallet.topup.status",
+                "tags": [
+                    "Wallet"
+                ],
+                "parameters": [
+                    {
+                        "name": "arguments",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`TopUpData`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TopUpData"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/wallet/transactions": {
+            "get": {
+                "operationId": "wallet.transactions",
+                "tags": [
+                    "Wallet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/wallet/generate-qr": {
+            "post": {
+                "operationId": "wallet.generate-qr",
+                "description": "Create a scannable QR Ph code for receiving payments into your wallet.\n\n**QR Code Types:**\n- **Dynamic QR** (amount = 0 or omitted): Payer enters any amount when scanning\n- **Fixed QR** (amount > 0): Pre-set amount, payer cannot change it\n\n**Response includes:**\n- `qr_code`: Base64-encoded PNG image as data URI (ready for <img> tag)\n- `shareable_url`: Public URL to view/share the QR code\n- `account`: Your payment account number\n- `merchant`: Your merchant profile details\n- `expires_at`: QR code expiration (null = does not expire)\n\n**Caching:** QR codes are cached for 1 hour. Use `force=true` to bypass cache and generate fresh QR.",
+                "summary": "Generate wallet QR code",
+                "tags": [
+                    "Wallet"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "amount": {
+                                        "type": "object",
+                                        "description": "*optional* - Payment amount in major units (whole PHP). Set to 0 or omit for dynamic QR that accepts any amount. Fixed amount QR codes are useful for specific payments. Example: 500 = \u20b1500.00",
+                                        "example": 500
+                                    },
+                                    "force": {
+                                        "type": "boolean",
+                                        "description": "*optional* - Force regenerate QR code, bypassing the 1-hour cache. Set to true when you need an immediate fresh QR (e.g., after updating merchant settings). Default: false",
+                                        "example": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "500": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "qr_code": {
+                                                            "type": "string"
+                                                        },
+                                                        "qr_url": {
+                                                            "type": "null"
+                                                        },
+                                                        "qr_id": {
+                                                            "type": "string",
+                                                            "description": "NetBank gateway might not return URL"
+                                                        },
+                                                        "expires_at": {
+                                                            "type": "null"
+                                                        },
+                                                        "account": {
+                                                            "type": "string",
+                                                            "description": "Add if gateway provides expiration"
+                                                        },
+                                                        "amount": {
+                                                            "type": [
+                                                                "number",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "shareable_url": {
+                                                            "type": "string"
+                                                        },
+                                                        "merchant": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "name": {
+                                                                    "type": "string"
+                                                                },
+                                                                "city": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "description": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "category": {
+                                                                    "type": "string"
+                                                                },
+                                                                "display_name": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "name",
+                                                                "city",
+                                                                "description",
+                                                                "category",
+                                                                "display_name"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "qr_code",
+                                                        "qr_url",
+                                                        "qr_id",
+                                                        "expires_at",
+                                                        "account",
+                                                        "amount",
+                                                        "shareable_url",
+                                                        "merchant"
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "QR code generated successfully"
+                                                    ]
+                                                },
+                                                "cached": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "data",
+                                                "message",
+                                                "cached"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "data": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "QR code generated successfully"
+                                                    ]
+                                                },
+                                                "cached": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "data",
+                                                "message",
+                                                "cached"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/balances": {
             "get": {
                 "operationId": "balance.index",
@@ -374,90 +1923,6 @@
                 }
             }
         },
-        "/vouchers/bulk-create": {
-            "post": {
-                "operationId": "vouchers.bulk-create",
-                "summary": "Handle API request",
-                "tags": [
-                    "BulkCreateVouchers"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "Insufficient wallet balance to generate vouchers."
-                                                    ]
-                                                },
-                                                "errors": {
-                                                    "type": "string"
-                                                },
-                                                "meta": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                }
-                                            },
-                                            "required": [
-                                                "message",
-                                                "errors",
-                                                "meta"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "You do not have permission to use this campaign."
-                                                    ]
-                                                },
-                                                "errors": {
-                                                    "type": "string"
-                                                },
-                                                "meta": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                }
-                                            },
-                                            "required": [
-                                                "message",
-                                                "errors",
-                                                "meta"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
         "/campaigns": {
             "get": {
                 "operationId": "listCampaigns",
@@ -527,176 +1992,6 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{voucher}": {
-            "delete": {
-                "operationId": "vouchers.cancel",
-                "summary": "Handle API request",
-                "tags": [
-                    "CancelVoucher"
-                ],
-                "parameters": [
-                    {
-                        "name": "voucher",
-                        "in": "path",
-                        "required": true,
-                        "description": "The voucher code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "enum": [
-                                                "Cannot cancel a voucher that has already been redeemed."
-                                            ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
-                                        },
-                                        "meta": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "message",
-                                        "errors",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "enum": [
-                                                "You do not have permission to cancel this voucher."
-                                            ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
-                                        },
-                                        "meta": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "message",
-                                        "errors",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            },
-            "get": {
-                "operationId": "vouchers.show",
-                "summary": "Handle API request",
-                "tags": [
-                    "ShowVoucher"
-                ],
-                "parameters": [
-                    {
-                        "name": "voucher",
-                        "in": "path",
-                        "required": true,
-                        "description": "The voucher code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "enum": [
-                                                "You do not have permission to view this voucher."
-                                            ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
-                                        },
-                                        "meta": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "message",
-                                        "errors",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -1521,402 +2816,6 @@
                 }
             }
         },
-        "/wallet/generate-qr": {
-            "post": {
-                "operationId": "wallet.generate-qr",
-                "summary": "Generate QR code",
-                "tags": [
-                    "GenerateQrCode"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "amount": {
-                                        "type": [
-                                            "number",
-                                            "null"
-                                        ],
-                                        "minimum": 0
-                                    },
-                                    "force": {
-                                        "type": [
-                                            "boolean",
-                                            "null"
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "500": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "data": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "qr_code": {
-                                                            "type": "string"
-                                                        },
-                                                        "qr_url": {
-                                                            "type": "null"
-                                                        },
-                                                        "qr_id": {
-                                                            "type": "string",
-                                                            "description": "NetBank gateway might not return URL"
-                                                        },
-                                                        "expires_at": {
-                                                            "type": "null"
-                                                        },
-                                                        "account": {
-                                                            "type": "string",
-                                                            "description": "Add if gateway provides expiration"
-                                                        },
-                                                        "amount": {
-                                                            "type": [
-                                                                "number",
-                                                                "null"
-                                                            ]
-                                                        },
-                                                        "shareable_url": {
-                                                            "type": "string"
-                                                        },
-                                                        "merchant": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "name": {
-                                                                    "type": "string"
-                                                                },
-                                                                "city": {
-                                                                    "type": [
-                                                                        "string",
-                                                                        "null"
-                                                                    ]
-                                                                },
-                                                                "description": {
-                                                                    "type": [
-                                                                        "string",
-                                                                        "null"
-                                                                    ]
-                                                                },
-                                                                "category": {
-                                                                    "type": "string"
-                                                                },
-                                                                "display_name": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "name",
-                                                                "city",
-                                                                "description",
-                                                                "category",
-                                                                "display_name"
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "qr_code",
-                                                        "qr_url",
-                                                        "qr_id",
-                                                        "expires_at",
-                                                        "account",
-                                                        "amount",
-                                                        "shareable_url",
-                                                        "merchant"
-                                                    ]
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "QR code generated successfully"
-                                                    ]
-                                                },
-                                                "cached": {
-                                                    "type": "boolean"
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "data",
-                                                "message",
-                                                "cached"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "data": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "QR code generated successfully"
-                                                    ]
-                                                },
-                                                "cached": {
-                                                    "type": "boolean"
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "data",
-                                                "message",
-                                                "cached"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{code}/qr": {
-            "get": {
-                "operationId": "vouchers.qr",
-                "summary": "Handle as controller action",
-                "tags": [
-                    "GenerateVoucherQr"
-                ],
-                "parameters": [
-                    {
-                        "name": "code",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "qr_code": {
-                                                    "type": "string"
-                                                },
-                                                "redemption_url": {
-                                                    "type": "string"
-                                                },
-                                                "voucher_code": {
-                                                    "type": "string"
-                                                },
-                                                "amount": {
-                                                    "type": "string"
-                                                },
-                                                "currency": {
-                                                    "type": "string"
-                                                },
-                                                "expires_at": {
-                                                    "type": "string"
-                                                },
-                                                "is_redeemed": {
-                                                    "type": "boolean"
-                                                },
-                                                "is_expired": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "qr_code",
-                                                "redemption_url",
-                                                "voucher_code",
-                                                "amount",
-                                                "currency",
-                                                "expires_at",
-                                                "is_redeemed",
-                                                "is_expired"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "timestamp": {
-                                                    "type": "string"
-                                                },
-                                                "version": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "v1"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "timestamp",
-                                                "version"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Access denied",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview."
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/vouchers": {
-            "post": {
-                "operationId": "generateVouchers",
-                "summary": "Generate Vouchers",
-                "tags": [
-                    "GenerateVouchers"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "integer",
-                                    "enum": [
-                                        201
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            },
-            "get": {
-                "operationId": "vouchers.index",
-                "summary": "Handle API request",
-                "tags": [
-                    "ListVouchers"
-                ],
-                "parameters": [
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "default": 15
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "description": "'active', 'redeemed', 'expired'",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
         "/auth/me": {
             "get": {
                 "operationId": "auth.me",
@@ -1940,29 +2839,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/wallet/balance": {
-            "get": {
-                "operationId": "wallet.balance",
-                "tags": [
-                    "GetBalance"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`BalanceData`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/BalanceData"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -2301,42 +3177,6 @@
                 }
             }
         },
-        "/wallet/topup/{arguments}": {
-            "get": {
-                "operationId": "wallet.topup.status",
-                "tags": [
-                    "GetTopUpStatus"
-                ],
-                "parameters": [
-                    {
-                        "name": "arguments",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`TopUpData`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TopUpData"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/transactions/stats": {
             "get": {
                 "operationId": "transactions.stats",
@@ -2505,365 +3345,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/wallet/topup": {
-            "post": {
-                "operationId": "wallet.topup.initiate",
-                "tags": [
-                    "InitiateTopUp"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`TopUpResultData`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TopUpResultData"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            },
-            "get": {
-                "operationId": "wallet.topup.list",
-                "tags": [
-                    "ListTopUps"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/TopUpData"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{code}/inspect": {
-            "get": {
-                "operationId": "vouchers.inspect",
-                "summary": "Handle as controller (for route binding)",
-                "tags": [
-                    "InspectVoucher"
-                ],
-                "parameters": [
-                    {
-                        "name": "code",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "status": {
-                                            "type": "string",
-                                            "enum": [
-                                                "active",
-                                                "scheduled",
-                                                "expired",
-                                                "redeemed"
-                                            ]
-                                        },
-                                        "metadata": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
-                                        },
-                                        "info": {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "This voucher was created before metadata tracking was implemented."
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "message"
-                                            ]
-                                        },
-                                        "preview": {
-                                            "type": "object",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "string"
-                                                },
-                                                "scope": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "string",
-                                                            "enum": [
-                                                                "full",
-                                                                "none"
-                                                            ]
-                                                        }
-                                                    ]
-                                                },
-                                                "message": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "enabled",
-                                                "scope",
-                                                "message"
-                                            ]
-                                        },
-                                        "instructions": {
-                                            "type": "object",
-                                            "properties": {
-                                                "amount": {
-                                                    "type": "number"
-                                                },
-                                                "currency": {
-                                                    "type": "string"
-                                                },
-                                                "formatted_amount": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "boolean"
-                                                        }
-                                                    ]
-                                                },
-                                                "required_inputs": {
-                                                    "type": "array",
-                                                    "prefixItems": [
-                                                        {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "value": {
-                                                                    "type": "string"
-                                                                },
-                                                                "label": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "value",
-                                                                "label"
-                                                            ]
-                                                        }
-                                                    ],
-                                                    "minItems": 1,
-                                                    "maxItems": 1,
-                                                    "additionalItems": false
-                                                },
-                                                "expires_at": {
-                                                    "type": "string"
-                                                },
-                                                "starts_at": {
-                                                    "type": "string"
-                                                },
-                                                "validation": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "has_secret": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "is_assigned": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "assigned_mobile_masked": {
-                                                            "type": [
-                                                                "string",
-                                                                "null"
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "has_secret",
-                                                        "is_assigned",
-                                                        "assigned_mobile_masked"
-                                                    ]
-                                                },
-                                                "location_validation": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "required": {
-                                                            "type": "string"
-                                                        },
-                                                        "target_lat": {
-                                                            "type": "string"
-                                                        },
-                                                        "target_lng": {
-                                                            "type": "string"
-                                                        },
-                                                        "radius_meters": {
-                                                            "type": "string"
-                                                        },
-                                                        "on_failure": {
-                                                            "type": "string"
-                                                        },
-                                                        "description": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "required",
-                                                        "target_lat",
-                                                        "target_lng",
-                                                        "radius_meters",
-                                                        "on_failure",
-                                                        "description"
-                                                    ]
-                                                },
-                                                "time_validation": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "window": {
-                                                            "type": [
-                                                                "object",
-                                                                "null"
-                                                            ],
-                                                            "properties": {
-                                                                "start_time": {
-                                                                    "type": "string"
-                                                                },
-                                                                "end_time": {
-                                                                    "type": "string"
-                                                                },
-                                                                "timezone": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "start_time",
-                                                                "end_time",
-                                                                "timezone"
-                                                            ]
-                                                        },
-                                                        "limit_minutes": {
-                                                            "type": "string"
-                                                        },
-                                                        "description": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "window",
-                                                        "limit_minutes",
-                                                        "description"
-                                                    ]
-                                                },
-                                                "rider": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "message": {
-                                                            "type": [
-                                                                "string",
-                                                                "null"
-                                                            ]
-                                                        },
-                                                        "url": {
-                                                            "type": [
-                                                                "string",
-                                                                "null"
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "message",
-                                                        "url"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "amount",
-                                                "currency",
-                                                "formatted_amount",
-                                                "required_inputs",
-                                                "expires_at",
-                                                "starts_at",
-                                                "validation",
-                                                "location_validation",
-                                                "time_validation",
-                                                "rider"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "code",
-                                        "status",
-                                        "metadata",
-                                        "info",
-                                        "preview",
-                                        "instructions"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "enum": [
-                                                "Voucher not found"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -3038,29 +3519,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/wallet/transactions": {
-            "get": {
-                "operationId": "wallet.transactions",
-                "tags": [
-                    "ListTransactions"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -3365,95 +3823,6 @@
                 }
             }
         },
-        "/vouchers/query": {
-            "get": {
-                "operationId": "vouchers.query",
-                "summary": "Handle API request",
-                "tags": [
-                    "QueryVouchers"
-                ],
-                "parameters": [
-                    {
-                        "name": "external_type",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "external_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "reference_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "user_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "order_by",
-                        "in": "query",
-                        "description": "Order by",
-                        "schema": {
-                            "type": "string",
-                            "default": "created_at"
-                        }
-                    },
-                    {
-                        "name": "order_direction",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "default": "desc"
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "default": 15
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
         "/transactions/{code}/refresh-status": {
             "post": {
                 "operationId": "transactions.refresh-status",
@@ -3615,77 +3984,6 @@
                                 }
                             }
                         }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{voucher}/external": {
-            "post": {
-                "operationId": "vouchers.external.set",
-                "summary": "Handle API request",
-                "tags": [
-                    "SetExternalMetadata"
-                ],
-                "parameters": [
-                    {
-                        "name": "voucher",
-                        "in": "path",
-                        "required": true,
-                        "description": "The voucher code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "enum": [
-                                                "You do not have permission to modify this voucher."
-                                            ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
-                                        },
-                                        "meta": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "message",
-                                        "errors",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -4119,155 +4417,6 @@
                                 }
                             }
                         }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{voucher}/timing/click": {
-            "post": {
-                "operationId": "vouchers.timing.click",
-                "description": "Public endpoint - no authentication required since vouchers can be redeemed publicly.",
-                "summary": "Handle API request",
-                "tags": [
-                    "TrackClick"
-                ],
-                "parameters": [
-                    {
-                        "name": "voucher",
-                        "in": "path",
-                        "required": true,
-                        "description": "The voucher code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{voucher}/timing/start": {
-            "post": {
-                "operationId": "vouchers.timing.start",
-                "description": "Public endpoint - no authentication required since vouchers can be redeemed publicly.",
-                "summary": "Handle API request",
-                "tags": [
-                    "TrackRedemptionStart"
-                ],
-                "parameters": [
-                    {
-                        "name": "voucher",
-                        "in": "path",
-                        "required": true,
-                        "description": "The voucher code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/vouchers/{voucher}/timing/submit": {
-            "post": {
-                "operationId": "vouchers.timing.submit",
-                "summary": "Handle API request",
-                "tags": [
-                    "TrackRedemptionSubmit"
-                ],
-                "parameters": [
-                    {
-                        "name": "voucher",
-                        "in": "path",
-                        "required": true,
-                        "description": "The voucher code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "enum": [
-                                                "You do not have permission to modify this voucher."
-                                            ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
-                                        },
-                                        "meta": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "message",
-                                        "errors",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"

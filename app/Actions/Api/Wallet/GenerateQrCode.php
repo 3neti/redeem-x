@@ -10,13 +10,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
- * Generate QR Code for Wallet Loading
+ * Generate Wallet QR Code
+ *
+ * Generate a QR Ph code that others can scan to send money directly to your wallet.
+ * Supports both fixed-amount and dynamic (any amount) QR codes.
  * 
- * Generates a QR Ph code via Omnipay gateway that can be shared
- * for others to scan and load funds into the user's wallet.
+ * QR codes are cached for 1 hour by default for performance. Use the `force` parameter to regenerate.
+ * The generated QR code is compliant with QR Ph standards and works with all Philippine payment apps.
+ *
+ * @group Wallet
+ * @authenticated
  */
+#[Group('Wallet')]
 class GenerateQrCode
 {
     public function __construct(
@@ -24,11 +33,25 @@ class GenerateQrCode
     ) {}
     
     /**
-     * Generate QR code.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Generate wallet QR code
+     * 
+     * Create a scannable QR Ph code for receiving payments into your wallet.
+     * 
+     * **QR Code Types:**
+     * - **Dynamic QR** (amount = 0 or omitted): Payer enters any amount when scanning
+     * - **Fixed QR** (amount > 0): Pre-set amount, payer cannot change it
+     * 
+     * **Response includes:**
+     * - `qr_code`: Base64-encoded PNG image as data URI (ready for <img> tag)
+     * - `shareable_url`: Public URL to view/share the QR code
+     * - `account`: Your payment account number
+     * - `merchant`: Your merchant profile details
+     * - `expires_at`: QR code expiration (null = does not expire)
+     * 
+     * **Caching:** QR codes are cached for 1 hour. Use `force=true` to bypass cache and generate fresh QR.
      */
+    #[BodyParameter('amount', description: '*optional* - Payment amount in major units (whole PHP). Set to 0 or omit for dynamic QR that accepts any amount. Fixed amount QR codes are useful for specific payments. Example: 500 = ₱500.00', type: 'number', example: 500)]
+    #[BodyParameter('force', description: '*optional* - Force regenerate QR code, bypassing the 1-hour cache. Set to true when you need an immediate fresh QR (e.g., after updating merchant settings). Default: false', type: 'boolean', example: false)]
     public function __invoke(Request $request): JsonResponse
     {
         $request->validate([
