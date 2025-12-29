@@ -40,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             \App\Http\Middleware\ForceJsonResponse::class,
             \App\Http\Middleware\CheckIpWhitelist::class,
+            \App\Http\Middleware\AdvancedRateLimiting::class,
         ]);
 
         // Enable session for API routes (required for Sanctum SPA authentication)
@@ -57,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.override' => \App\Http\Middleware\AllowAdminOverride::class,
             'idempotent' => \App\Http\Middleware\EnsureIdempotentRequest::class,
             'ip.whitelist' => \App\Http\Middleware\CheckIpWhitelist::class,
+            'rate.limit.advanced' => \App\Http\Middleware\AdvancedRateLimiting::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

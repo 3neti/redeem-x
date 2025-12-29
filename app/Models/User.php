@@ -66,6 +66,7 @@ class User extends Authenticatable implements Wallet, Customer
             'two_factor_confirmed_at' => 'datetime',
             'ip_whitelist' => 'array',
             'ip_whitelist_enabled' => 'boolean',
+            'rate_limit_tier' => 'string',
         ];
     }
 

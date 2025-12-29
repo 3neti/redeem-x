@@ -351,40 +351,188 @@ Response: 200 OK
 
 Rate limits protect API stability and ensure fair usage.
 
-### Limits by Endpoint Group
+### Advanced Rate Limiting (Token Bucket)
 
-| Endpoint Group | Rate Limit | Window |
-|---------------|-----------|--------|
-| Authenticated API | 60 requests | 1 minute |
-| Public endpoints | 10 requests | 1 minute |
-| Webhook callbacks | 30 requests | 1 minute |
+Redeem-X uses a **Token Bucket algorithm** for advanced rate limiting with burst allowance support. This provides better UX than simple request counting by allowing short bursts of traffic while maintaining average rate control.
 
-### Rate Limit Headers
+#### Service Tiers
 
-All responses include rate limit information:
+| Tier | Requests/Min | Burst Allowance | Typical Use Case |
+|------|-------------|----------------|------------------|
+| **Basic** | 60 | 10 tokens | Small integrations, testing |
+| **Premium** | 300 | 50 tokens | Medium-volume production use |
+| **Enterprise** | 1000 | 200 tokens | High-volume bank integrations |
 
+**Tier Assignment**: Contact your account manager to upgrade tiers based on your integration needs.
+
+#### How Token Bucket Works
+
+1. **Initial State**: Your bucket starts full with your tier's burst allowance (e.g., 10 tokens for Basic)
+2. **Request Consumption**: Each API request consumes 1 token
+3. **Token Refill**: Tokens refill continuously at your tier's rate (e.g., Basic = 1 token/second)
+4. **Burst Support**: You can make burst_allowance requests instantly, then sustain requests_per_minute/60 thereafter
+5. **Rate Limiting**: When bucket is empty (0 tokens), requests return 429 until tokens refill
+
+**Example (Basic Tier)**:
 ```
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 1640995200
+1. Start with 10 tokens (burst allowance)
+2. Make 10 requests instantly → All succeed (0 tokens left)
+3. 11th request → 429 Too Many Requests
+4. Wait 1 second → 1 token refills
+5. 12th request → Succeeds (0 tokens left again)
+6. Continue at 1 request/second sustainably
 ```
 
-### Exceeding Limits
+#### Rate Limit Headers
 
-**429 Too Many Requests** response:
-```json
-{
-  "error": "rate_limit_exceeded",
-  "message": "Too many requests. Please retry after 60 seconds.",
-  "retry_after": 60
+All API responses include comprehensive rate limit information:
+
+```http
+X-RateLimit-Limit: 60           # Requests per minute for your tier
+X-RateLimit-Remaining: 7         # Tokens remaining in bucket
+X-RateLimit-Reset: 1767020008    # Unix timestamp when bucket fully refills
+X-RateLimit-Tier: basic          # Your assigned tier
+```
+
+**Using Headers Effectively**:
+```javascript
+// Check headers before making next request
+if (response.headers['X-RateLimit-Remaining'] < 5) {
+  const resetTime = response.headers['X-RateLimit-Reset'];
+  const waitSeconds = resetTime - Math.floor(Date.now() / 1000);
+  console.log(`Low on tokens, ${waitSeconds}s until refill`);
 }
 ```
 
-**Best Practices**:
-- Implement exponential backoff
-- Monitor `X-RateLimit-Remaining` header
-- Cache non-time-sensitive data
-- Use batch endpoints where available
+#### Exceeding Rate Limits
+
+**429 Too Many Requests** response when bucket is empty:
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Too many requests. Please retry after 5 seconds.",
+  "retry_after": 5
+}
+```
+
+**Response headers on 429**:
+```http
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1767020013
+X-RateLimit-Tier: basic
+
+{
+  "error": "rate_limit_exceeded",
+  "message": "Too many requests. Please retry after 5 seconds.",
+  "retry_after": 5
+}
+```
+
+#### Best Practices
+
+**1. Monitor Token Levels**:
+```python
+if remaining_tokens < 10:
+    # Slow down request rate
+    time.sleep(0.5)
+```
+
+**2. Implement Exponential Backoff**:
+```python
+retries = 0
+while retries < 5:
+    response = make_api_request()
+    if response.status_code == 429:
+        retry_after = response.json()['retry_after']
+        time.sleep(min(retry_after * (2 ** retries), 60))  # Cap at 60s
+        retries += 1
+    else:
+        break
+```
+
+**3. Batch Operations**:
+```bash
+# Instead of 10 separate requests
+POST /api/v1/vouchers { "count": 1 }  # x10
+
+# Use batch generation
+POST /api/v1/vouchers { "count": 10 }  # 1 request
+```
+
+**4. Cache Non-Time-Sensitive Data**:
+```javascript
+// Cache voucher list for 5 minutes
+const cachedVouchers = cache.get('vouchers');
+if (!cachedVouchers) {
+  const response = await api.get('/vouchers');
+  cache.set('vouchers', response.data, 300); // 5 min TTL
+}
+```
+
+**5. Respect Reset Times**:
+```bash
+# When rate limited, wait until reset_at instead of retrying immediately
+reset_at=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  https://api.redeem-x.com/health | \
+  jq -r '.headers["X-RateLimit-Reset"]')
+
+wait_seconds=$((reset_at - $(date +%s)))
+sleep $wait_seconds
+```
+
+#### Configuration
+
+**Disable rate limiting** (for testing only - not recommended for production):
+```bash
+# .env
+RATE_LIMITING_ENABLED=false
+```
+
+**Per-endpoint overrides** are available for expensive operations - contact support if needed.
+
+#### Upgrading Tiers
+
+To request a tier upgrade:
+
+1. Email support@redeem-x.com with:
+   - Current tier and limits
+   - Expected request volume (avg/peak)
+   - Use case description
+   - Business justification
+
+2. Review period: 2-3 business days
+
+3. Tier changes take effect immediately upon approval
+
+#### Monitoring
+
+**Track your rate limit usage**:
+```bash
+GET /api/v1/auth/rate-limit-status
+Authorization: Bearer {token}
+
+Response:
+{
+  "tier": "premium",
+  "limits": {
+    "requests_per_minute": 300,
+    "burst_allowance": 50
+  },
+  "current": {
+    "tokens_remaining": 42,
+    "reset_at": 1767020100
+  },
+  "usage_30d": {
+    "total_requests": 450000,
+    "rate_limited_requests": 12,
+    "rate_limited_percentage": 0.003
+  }
+}
+```
+
+**Alerting**: Set up monitoring to alert when `rate_limited_percentage` exceeds acceptable threshold (e.g., >1%).
 
 ## Idempotency
 
