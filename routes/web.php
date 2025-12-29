@@ -25,6 +25,14 @@ Route::get('/vouchers/inspect', function () {
     return redirect()->route('redeem.start');
 })->name('vouchers.inspect');
 
+// Documentation routes (public - for bank integration teams)
+Route::prefix('documentation')->name('documentation.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\DocsController::class, 'index'])
+        ->name('index');
+    Route::get('{slug}', [\App\Http\Controllers\DocsController::class, 'show'])
+        ->name('show');
+});
+
 // Webhook routes (no authentication required)
 Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('netbank/payment', [\App\Http\Controllers\Webhooks\NetBankWebhookController::class, 'handlePayment'])
