@@ -60,12 +60,26 @@ const validationErrors = ref<Record<string, string>>({});
 const { mode, switchMode } = useGenerateMode('simple');
 const isSimpleMode = computed(() => mode.value === 'simple');
 
+console.log('[CreateV2] Initial mode:', mode.value);
+
 // Switch binding - convert boolean to mode string
 const isAdvancedMode = computed({
-    get: () => mode.value === 'advanced',
+    get: () => {
+        const value = mode.value === 'advanced';
+        console.log('[CreateV2] isAdvancedMode.get:', value, 'mode:', mode.value);
+        return value;
+    },
     set: (value: boolean) => {
-        switchMode(value ? 'advanced' : 'simple');
+        console.log('[CreateV2] isAdvancedMode.set called with:', value);
+        const newMode = value ? 'advanced' : 'simple';
+        console.log('[CreateV2] Switching to mode:', newMode);
+        switchMode(newMode);
     }
+});
+
+// Watch mode changes
+watch(mode, (newMode, oldMode) => {
+    console.log('[CreateV2] Mode changed from', oldMode, 'to', newMode);
 });
 
 // Debug mode changes
