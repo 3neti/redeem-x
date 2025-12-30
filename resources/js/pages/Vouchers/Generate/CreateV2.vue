@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle, Banknote, Code, Eye, FileText, Info, Send, Settings } from 'lucide-vue-next';
+import { AlertCircle, Banknote, ChevronDown, Code, Eye, FileText, Info, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -59,6 +59,30 @@ const validationErrors = ref<Record<string, string>>({});
 // Mode management (Simple vs Advanced)
 const { mode, switchMode } = useGenerateMode('simple');
 const isSimpleMode = computed(() => mode.value === 'simple');
+
+// Collapsible card state management (for Advanced Mode)
+const collapsibleCards = ref({
+    input_fields: false, // collapsed by default
+    validation_rules: false,
+    location_validation: false,
+    time_validation: false,
+    feedback_channels: false,
+    rider: false,
+    preview_controls: false,
+    json_preview: false,
+});
+
+const expandAll = () => {
+    Object.keys(collapsibleCards.value).forEach(key => {
+        collapsibleCards.value[key as keyof typeof collapsibleCards.value] = true;
+    });
+};
+
+const collapseAll = () => {
+    Object.keys(collapsibleCards.value).forEach(key => {
+        collapsibleCards.value[key as keyof typeof collapsibleCards.value] = false;
+    });
+};
 
 // Campaign selection
 interface Campaign {
@@ -487,16 +511,41 @@ const handleSubmit = async () => {
                     :description="config.page.description"
                 />
                 
-                <!-- Mode Toggle -->
-                <div class="flex items-center gap-2">
-                    <Label for="mode-toggle" class="text-sm text-muted-foreground">
-                        {{ isSimpleMode ? 'Simple' : 'Advanced' }} Mode
-                    </Label>
-                    <Switch
-                        id="mode-toggle"
-                        :checked="!isSimpleMode"
-                        @update:checked="(checked) => switchMode(checked ? 'advanced' : 'simple')"
-                    />
+                <div class="flex items-center gap-4">
+                    <!-- Expand/Collapse All (Advanced Mode only) -->
+                    <div v-if="!isSimpleMode" class="flex items-center gap-2 text-sm">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            @click="expandAll"
+                            class="h-8 px-2"
+                        >
+                            Expand All
+                        </Button>
+                        <span class="text-muted-foreground">|</span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            @click="collapseAll"
+                            class="h-8 px-2"
+                        >
+                            Collapse All
+                        </Button>
+                    </div>
+                    
+                    <!-- Mode Toggle -->
+                    <div class="flex items-center gap-2">
+                        <Label for="mode-toggle" class="text-sm text-muted-foreground">
+                            {{ isSimpleMode ? 'Simple' : 'Advanced' }} Mode
+                        </Label>
+                        <Switch
+                            id="mode-toggle"
+                            :checked="!isSimpleMode"
+                            @update:checked="(checked) => switchMode(checked ? 'advanced' : 'simple')"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -690,17 +739,24 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Input Fields -->
-                    <Card v-if="!isSimpleMode && config.input_fields.show_card">
-                        <CardHeader v-if="config.input_fields.show_header">
-                            <div class="flex items-center gap-2">
-                                <FileText class="h-5 w-5" />
-                                <CardTitle v-if="config.input_fields.show_title">{{ config.input_fields.title }}</CardTitle>
-                            </div>
-                            <CardDescription v-if="config.input_fields.show_description">
-                                {{ config.input_fields.description }}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                    <Collapsible v-if="!isSimpleMode && config.input_fields.show_card" v-model:open="collapsibleCards.input_fields">
+                        <Card>
+                            <CollapsibleTrigger class="w-full">
+                                <CardHeader v-if="config.input_fields.show_header" class="cursor-pointer hover:bg-muted/50">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <FileText class="h-5 w-5" />
+                                            <CardTitle v-if="config.input_fields.show_title">{{ config.input_fields.title }}</CardTitle>
+                                        </div>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.input_fields }" />
+                                    </div>
+                                    <CardDescription v-if="config.input_fields.show_description">
+                                        {{ config.input_fields.description }}
+                                    </CardDescription>
+                                </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <CardContent>
                             <div class="grid gap-3 sm:grid-cols-2">
                                 <label
                                     v-for="option in input_field_options"
@@ -730,8 +786,10 @@ const handleSubmit = async () => {
                                 :message="validationErrors.input_fields"
                                 class="mt-2"
                             />
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
 
                     <!-- Validation Rules -->
                     <Card v-if="!isSimpleMode && config.validation_rules.show_card">
