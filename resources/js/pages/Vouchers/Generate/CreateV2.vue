@@ -518,8 +518,8 @@ const handleSubmit = async () => {
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
-                            <!-- Campaign Template Selector -->
-                            <div v-if="config.basic_settings.show_campaign_selector" class="space-y-2 pb-4 border-b">
+                            <!-- Campaign Template Selector (Advanced Mode only) -->
+                            <div v-if="!isSimpleMode && config.basic_settings.show_campaign_selector" class="space-y-2 pb-4 border-b">
                                 <Label for="campaign">{{ config.basic_settings.campaign_selector.label }}</Label>
                                 <select
                                     id="campaign"
@@ -1025,7 +1025,7 @@ const handleSubmit = async () => {
                                         Need more customization?
                                     </p>
                                     <p class="text-sm text-muted-foreground">
-                                        Switch to Advanced Mode to access input fields, validation rules, feedback channels, custom expiry, and more.
+                                        Switch to Advanced Mode to access campaign templates, input fields, validation rules, feedback channels, custom expiry, and more.
                                     </p>
                                     <Button
                                         type="button"
@@ -1042,8 +1042,61 @@ const handleSubmit = async () => {
                     </Card>
                 </div>
 
-                <!-- Cost Preview Sidebar -->
-                <div v-if="config.cost_breakdown.show_sidebar" class="lg:col-span-1">
+                <!-- Simple Mode: Wallet Balance & Submit -->
+                <div v-if="isSimpleMode" class="lg:col-span-1">
+                    <Card class="sticky top-6">
+                        <CardHeader>
+                            <div class="flex items-center gap-2">
+                                <Banknote class="h-5 w-5" />
+                                <CardTitle>Wallet Balance</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Current Balance</span>
+                                    <span
+                                        :class="
+                                            insufficientFunds
+                                                ? 'text-destructive'
+                                                : 'text-green-600 dark:text-green-400'
+                                        "
+                                        class="font-medium"
+                                    >{{ formattedBalance }}</span>
+                                </div>
+                                <div v-if="realtimeNote" class="text-xs text-muted-foreground italic">
+                                    {{ realtimeNote }}
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <Button
+                                type="submit"
+                                class="w-full"
+                                :disabled="loading || insufficientFunds"
+                            >
+                                {{
+                                    insufficientFunds
+                                        ? 'Insufficient Funds'
+                                        : loading
+                                          ? 'Generating...'
+                                          : 'Generate Vouchers'
+                                }}
+                            </Button>
+
+                            <p
+                                v-if="insufficientFunds"
+                                class="text-center text-xs text-destructive"
+                            >
+                                Please top up your wallet to continue
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <!-- Cost Preview Sidebar (Advanced Mode only) -->
+                <div v-if="!isSimpleMode && config.cost_breakdown.show_sidebar" class="lg:col-span-1">
                     <Card class="sticky top-6">
                         <CardHeader v-if="config.cost_breakdown.show_header">
                             <div class="flex items-center gap-2">
