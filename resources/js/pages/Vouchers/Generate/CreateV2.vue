@@ -530,6 +530,11 @@ const handleSubmit = async () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto max-w-7xl space-y-6 p-6">
+            <!-- DEBUG: Confirm V2 is loading -->
+            <div class="bg-yellow-200 dark:bg-yellow-900 p-2 text-center font-bold text-sm">
+                🚀 CreateV2.vue (New UI) - Mode: {{ mode }}
+            </div>
+            
             <div class="flex items-start justify-between">
                 <Heading
                     :title="config.page.title"
