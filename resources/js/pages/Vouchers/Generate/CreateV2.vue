@@ -450,8 +450,6 @@ const jsonPreview = computed(() => {
     return removeNulls(data);
 });
 
-const showJsonPreview = ref(false);
-
 // Form submission
 const handleSubmit = async () => {
     if (insufficientFunds.value) return;
@@ -792,17 +790,24 @@ const handleSubmit = async () => {
                     </Collapsible>
 
                     <!-- Validation Rules -->
-                    <Card v-if="!isSimpleMode && config.validation_rules.show_card">
-                        <CardHeader v-if="config.validation_rules.show_header">
-                            <div class="flex items-center gap-2">
-                                <AlertCircle class="h-5 w-5" />
-                                <CardTitle v-if="config.validation_rules.show_title">{{ config.validation_rules.title }}</CardTitle>
-                            </div>
-                            <CardDescription v-if="config.validation_rules.show_description">
-                                {{ config.validation_rules.description }}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
+                    <Collapsible v-if="!isSimpleMode && config.validation_rules.show_card" v-model:open="collapsibleCards.validation_rules">
+                        <Card>
+                            <CollapsibleTrigger class="w-full">
+                                <CardHeader v-if="config.validation_rules.show_header" class="cursor-pointer hover:bg-muted/50">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <AlertCircle class="h-5 w-5" />
+                                            <CardTitle v-if="config.validation_rules.show_title">{{ config.validation_rules.title }}</CardTitle>
+                                        </div>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.validation_rules }" />
+                                    </div>
+                                    <CardDescription v-if="config.validation_rules.show_description">
+                                        {{ config.validation_rules.description }}
+                                    </CardDescription>
+                                </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <CardContent class="space-y-4">
                             <div v-if="config.validation_rules.show_secret" class="space-y-2">
                                 <Label for="validation_secret">{{ config.validation_rules.secret.label }}</Label>
                                 <Input
@@ -826,21 +831,30 @@ const handleSubmit = async () => {
                                 />
                                 <InputError :message="validationErrors.validation_mobile" />
                             </div>
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
 
                     <!-- Feedback Channels -->
-                    <Card v-if="!isSimpleMode && config.feedback_channels.show_card">
-                        <CardHeader v-if="config.feedback_channels.show_header">
-                            <div class="flex items-center gap-2">
-                                <Send class="h-5 w-5" />
-                                <CardTitle v-if="config.feedback_channels.show_title">{{ config.feedback_channels.title }}</CardTitle>
-                            </div>
-                            <CardDescription v-if="config.feedback_channels.show_description">
-                                {{ config.feedback_channels.description }}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
+                    <Collapsible v-if="!isSimpleMode && config.feedback_channels.show_card" v-model:open="collapsibleCards.feedback_channels">
+                        <Card>
+                            <CollapsibleTrigger class="w-full">
+                                <CardHeader v-if="config.feedback_channels.show_header" class="cursor-pointer hover:bg-muted/50">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <Send class="h-5 w-5" />
+                                            <CardTitle v-if="config.feedback_channels.show_title">{{ config.feedback_channels.title }}</CardTitle>
+                                        </div>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.feedback_channels }" />
+                                    </div>
+                                    <CardDescription v-if="config.feedback_channels.show_description">
+                                        {{ config.feedback_channels.description }}
+                                    </CardDescription>
+                                </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <CardContent class="space-y-4">
                             <div v-if="config.feedback_channels.show_email" class="space-y-2">
                                 <Label for="feedback_email">{{ config.feedback_channels.email.label }}</Label>
                                 <Input
@@ -875,21 +889,30 @@ const handleSubmit = async () => {
                                 />
                                 <InputError :message="validationErrors.feedback_webhook" />
                             </div>
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
 
                     <!-- Rider -->
-                    <Card v-if="!isSimpleMode && config.rider.show_card">
-                        <CardHeader v-if="config.rider.show_header">
-                            <div class="flex items-center gap-2">
-                                <FileText class="h-5 w-5" />
-                                <CardTitle v-if="config.rider.show_title">{{ config.rider.title }}</CardTitle>
-                            </div>
-                            <CardDescription v-if="config.rider.show_description">
-                                {{ config.rider.description }}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
+                    <Collapsible v-if="!isSimpleMode && config.rider.show_card" v-model:open="collapsibleCards.rider">
+                        <Card>
+                            <CollapsibleTrigger class="w-full">
+                                <CardHeader v-if="config.rider.show_header" class="cursor-pointer hover:bg-muted/50">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <FileText class="h-5 w-5" />
+                                            <CardTitle v-if="config.rider.show_title">{{ config.rider.title }}</CardTitle>
+                                        </div>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.rider }" />
+                                    </div>
+                                    <CardDescription v-if="config.rider.show_description">
+                                        {{ config.rider.description }}
+                                    </CardDescription>
+                                </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <CardContent class="space-y-4">
                             <div v-if="config.rider.show_message" class="space-y-2">
                                 <Label for="rider_message">{{ config.rider.message.label }}</Label>
                                 <Input
@@ -962,37 +985,52 @@ const handleSubmit = async () => {
                                     Time to wait before auto-advancing from splash page (0 = manual only, leave empty for default: 5s)
                                 </p>
                             </div>
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
 
                     <!-- Location Validation -->
-                    <LocationValidationForm
-                        v-if="!isSimpleMode && config.location_validation.show_card"
-                        v-model="locationValidation"
-                        :validation-errors="validationErrors"
-                        :config="config.location_validation"
-                    />
+                    <Collapsible v-if="!isSimpleMode && config.location_validation.show_card" v-model:open="collapsibleCards.location_validation">
+                        <LocationValidationForm
+                            v-model="locationValidation"
+                            :validation-errors="validationErrors"
+                            :config="config.location_validation"
+                            :collapsible="true"
+                            :is-expanded="collapsibleCards.location_validation"
+                        />
+                    </Collapsible>
 
                     <!-- Time Validation -->
-                    <TimeValidationForm
-                        v-if="!isSimpleMode && config.time_validation.show_card"
-                        v-model="timeValidation"
-                        :validation-errors="validationErrors"
-                        :config="config.time_validation"
-                    />
+                    <Collapsible v-if="!isSimpleMode && config.time_validation.show_card" v-model:open="collapsibleCards.time_validation">
+                        <TimeValidationForm
+                            v-model="timeValidation"
+                            :validation-errors="validationErrors"
+                            :config="config.time_validation"
+                            :collapsible="true"
+                            :is-expanded="collapsibleCards.time_validation"
+                        />
+                    </Collapsible>
 
                     <!-- Preview Controls -->
-                    <Card v-if="!isSimpleMode">
-                        <CardHeader>
-                            <div class="flex items-center gap-2">
-                                <Eye class="h-5 w-5" />
-                                <CardTitle>Preview Controls</CardTitle>
-                            </div>
-                            <CardDescription>
-                                Control what information is visible when the voucher code is previewed before redemption
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
+                    <Collapsible v-if="!isSimpleMode" v-model:open="collapsibleCards.preview_controls">
+                        <Card>
+                            <CollapsibleTrigger class="w-full">
+                                <CardHeader class="cursor-pointer hover:bg-muted/50">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <Eye class="h-5 w-5" />
+                                            <CardTitle>Preview Controls</CardTitle>
+                                        </div>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.preview_controls }" />
+                                    </div>
+                                    <CardDescription>
+                                        Control what information is visible when the voucher code is previewed before redemption
+                                    </CardDescription>
+                                </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <CardContent class="space-y-4">
                             <!-- Preview Enabled Toggle -->
                             <div class="flex items-start space-x-3">
                                 <Checkbox
@@ -1043,11 +1081,13 @@ const handleSubmit = async () => {
                                     Optional message displayed to the redeemer during preview
                                 </p>
                             </div>
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
 
                     <!-- JSON Preview -->
-                    <Collapsible v-if="!isSimpleMode && config.json_preview.show_card" v-model:open="showJsonPreview">
+                    <Collapsible v-if="!isSimpleMode && config.json_preview.show_card" v-model:open="collapsibleCards.json_preview">
                         <Card>
                             <CollapsibleTrigger class="w-full">
                                 <CardHeader class="cursor-pointer hover:bg-muted/50">
@@ -1056,9 +1096,7 @@ const handleSubmit = async () => {
                                             <Code class="h-5 w-5" />
                                             <CardTitle v-if="config.json_preview.show_title">{{ config.json_preview.title }}</CardTitle>
                                         </div>
-                                        <span class="text-sm text-muted-foreground">
-                                            {{ showJsonPreview ? '▼' : '▶' }}
-                                        </span>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.json_preview }" />
                                     </div>
                                     <CardDescription v-if="config.json_preview.show_description">
                                         {{ config.json_preview.description }}
