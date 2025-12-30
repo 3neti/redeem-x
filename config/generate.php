@@ -4,6 +4,50 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | UI Version & Feature Flags
+    |--------------------------------------------------------------------------
+    |
+    | Control which version of the UI is displayed and enable/disable features.
+    |
+    */
+
+    'ui_version' => env('GENERATE_UI_VERSION', 'v2'), // 'legacy' or 'v2'
+    
+    'feature_flags' => [
+        'progressive_disclosure' => env('GENERATE_UI_V2_ENABLED', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mode Presets (Simple vs Advanced)
+    |--------------------------------------------------------------------------
+    |
+    | Define what fields/cards are visible in Simple and Advanced modes.
+    |
+    */
+
+    'mode_presets' => [
+        'simple' => [
+            'visible_cards' => ['basic_settings', 'cost_breakdown'],
+            'basic_settings_fields' => ['campaign', 'amount', 'quantity'],
+        ],
+        'advanced' => [
+            'visible_cards' => ['all'],
+            'collapsible_by_default' => [
+                'input_fields',
+                'validation_rules',
+                'location_validation',
+                'time_validation',
+                'feedback_channels',
+                'rider',
+                'preview_controls',
+                'json_preview',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Generate Voucher Page Configuration
     |--------------------------------------------------------------------------
     |
