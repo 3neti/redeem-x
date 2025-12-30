@@ -1,4 +1,6 @@
 <script setup lang="ts">
+console.log('[CreateV2] Script is executing!');
+
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
