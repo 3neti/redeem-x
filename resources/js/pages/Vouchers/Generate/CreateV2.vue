@@ -575,6 +575,7 @@ const handleSubmit = async () => {
                         <Switch
                             id="mode-toggle"
                             v-model:checked="isAdvancedMode"
+                            @click="() => console.log('[CreateV2] Switch clicked!')"
                         />
                     </div>
                 </div>
