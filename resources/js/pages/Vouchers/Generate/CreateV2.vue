@@ -1251,6 +1251,13 @@ const handleSubmit = async () => {
                             
                             <!-- Breakdown from API -->
                             <div v-else class="space-y-2 text-sm">
+                                <!-- Always show base voucher charge first -->
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Voucher Amount × {{ count }}</span>
+                                    <span class="font-medium">₱{{ (amount * count).toLocaleString() }}</span>
+                                </div>
+                                
+                                <!-- Then show add-on charges from API -->
                                 <div
                                     v-for="item in costBreakdown.breakdown"
                                     :key="item.index"
@@ -1258,12 +1265,6 @@ const handleSubmit = async () => {
                                 >
                                     <span class="text-muted-foreground">{{ item.label }}</span>
                                     <span class="font-medium">{{ item.price_formatted }}</span>
-                                </div>
-                                
-                                <!-- Fallback message if no breakdown items -->
-                                <div v-if="costBreakdown.breakdown.length === 0" class="flex justify-between">
-                                    <span class="text-muted-foreground">Base Charge</span>
-                                    <span class="font-medium">₱{{ costBreakdown.total.toLocaleString() }}</span>
                                 </div>
                             </div>
 
