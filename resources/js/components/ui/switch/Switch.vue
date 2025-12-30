@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { Switch, type SwitchRootEmits, type SwitchRootProps, SwitchThumb, useForwardPropsEmits } from 'reka-ui'
+import { SwitchRoot, type SwitchRootEmits, type SwitchRootProps, SwitchThumb, useForwardPropsEmits } from 'reka-ui'
 import { cn } from '@/lib/utils'
+import { computed, type HTMLAttributes } from 'vue'
 
-const props = defineProps<SwitchRootProps>()
+const props = defineProps<SwitchRootProps & { class?: HTMLAttributes['class'] }>()
 const emits = defineEmits<SwitchRootEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const delegatedProps = computed(() => {
+  const { class: _, ...delegated } = props
+  return delegated
+})
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <Switch
+  <SwitchRoot
     v-bind="forwarded"
     :class="
       cn(
@@ -21,5 +27,5 @@ const forwarded = useForwardPropsEmits(props, emits)
     <SwitchThumb
       :class="cn('pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0')"
     />
-  </Switch>
+  </SwitchRoot>
 </template>
