@@ -15,13 +15,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle, Banknote, Code, Eye, FileText, Send, Settings } from 'lucide-vue-next';
+import { AlertCircle, Banknote, Code, Eye, FileText, Info, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 import LocationValidationForm from '@/components/voucher/forms/LocationValidationForm.vue';
 import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vue';
+import { useGenerateMode } from '@/composables/useGenerateMode';
+import { Switch } from '@/components/ui/switch';
 import axios from 'axios';
 
 // Debug flag - set to false to suppress console logs
@@ -53,6 +55,10 @@ watch([walletBalance, realtimeNote], ([newBalance, newNote]) => {
 
 const { loading, error, generateVouchers } = useVoucherApi();
 const validationErrors = ref<Record<string, string>>({});
+
+// Mode management (Simple vs Advanced)
+const { mode, switchMode } = useGenerateMode('simple');
+const isSimpleMode = computed(() => mode.value === 'simple');
 
 // Campaign selection
 interface Campaign {
@@ -475,10 +481,24 @@ const handleSubmit = async () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto max-w-7xl space-y-6 p-6">
-            <Heading
-                :title="config.page.title"
-                :description="config.page.description"
-            />
+            <div class="flex items-start justify-between">
+                <Heading
+                    :title="config.page.title"
+                    :description="config.page.description"
+                />
+                
+                <!-- Mode Toggle -->
+                <div class="flex items-center gap-2">
+                    <Label for="mode-toggle" class="text-sm text-muted-foreground">
+                        {{ isSimpleMode ? 'Simple' : 'Advanced' }} Mode
+                    </Label>
+                    <Switch
+                        id="mode-toggle"
+                        :checked="!isSimpleMode"
+                        @update:checked="(checked) => switchMode(checked ? 'advanced' : 'simple')"
+                    />
+                </div>
+            </div>
 
             <form
                 @submit.prevent="handleSubmit"
@@ -549,51 +569,54 @@ const handleSubmit = async () => {
                                 </div>
                             </div>
 
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <div v-if="config.basic_settings.show_prefix" class="space-y-2">
-                                    <Label for="prefix">{{ config.basic_settings.prefix.label }}</Label>
-                                    <Input
-                                        id="prefix"
-                                        name="prefix"
-                                        v-model="prefix"
-                                        :placeholder="config.basic_settings.prefix.placeholder"
-                                    />
-                                    <InputError :message="validationErrors.prefix" />
+                            <!-- Advanced fields (only in Advanced Mode) -->
+                            <template v-if="!isSimpleMode">
+                                <div class="grid gap-4 sm:grid-cols-2">
+                                    <div v-if="config.basic_settings.show_prefix" class="space-y-2">
+                                        <Label for="prefix">{{ config.basic_settings.prefix.label }}</Label>
+                                        <Input
+                                            id="prefix"
+                                            name="prefix"
+                                            v-model="prefix"
+                                            :placeholder="config.basic_settings.prefix.placeholder"
+                                        />
+                                        <InputError :message="validationErrors.prefix" />
+                                    </div>
+
+                                    <div v-if="config.basic_settings.show_mask" class="space-y-2">
+                                        <Label for="mask">{{ config.basic_settings.mask.label }}</Label>
+                                        <Input
+                                            id="mask"
+                                            name="mask"
+                                            v-model="mask"
+                                            :placeholder="config.basic_settings.mask.placeholder"
+                                        />
+                                        <InputError :message="validationErrors.mask" />
+                                        <p class="text-xs text-muted-foreground">
+                                            {{ config.basic_settings.mask.help_text }}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div v-if="config.basic_settings.show_mask" class="space-y-2">
-                                    <Label for="mask">{{ config.basic_settings.mask.label }}</Label>
+                                <div v-if="config.basic_settings.show_ttl" class="space-y-2">
+                                    <Label for="ttl_days">{{ config.basic_settings.ttl.label }}</Label>
                                     <Input
-                                        id="mask"
-                                        name="mask"
-                                        v-model="mask"
-                                        :placeholder="config.basic_settings.mask.placeholder"
+                                        id="ttl_days"
+                                        type="number"
+                                        name="ttl_days"
+                                        v-model.number="ttlDays"
+                                        :min="config.basic_settings.ttl.min"
+                                        :placeholder="config.basic_settings.ttl.placeholder"
                                     />
-                                    <InputError :message="validationErrors.mask" />
+                                    <InputError :message="validationErrors.ttl_days" />
                                     <p class="text-xs text-muted-foreground">
-                                        {{ config.basic_settings.mask.help_text }}
+                                        {{ config.basic_settings.ttl.help_text }}
                                     </p>
                                 </div>
-                            </div>
+                            </template>
 
-                            <div v-if="config.basic_settings.show_ttl" class="space-y-2">
-                                <Label for="ttl_days">{{ config.basic_settings.ttl.label }}</Label>
-                                <Input
-                                    id="ttl_days"
-                                    type="number"
-                                    name="ttl_days"
-                                    v-model.number="ttlDays"
-                                    :min="config.basic_settings.ttl.min"
-                                    :placeholder="config.basic_settings.ttl.placeholder"
-                                />
-                                <InputError :message="validationErrors.ttl_days" />
-                                <p class="text-xs text-muted-foreground">
-                                    {{ config.basic_settings.ttl.help_text }}
-                                </p>
-                            </div>
-
-                            <!-- Settlement Rail & Fee Strategy -->
-                            <div class="pt-4 border-t space-y-4">
+                            <!-- Settlement Rail & Fee Strategy (Advanced Mode only) -->
+                            <div v-if="!isSimpleMode" class="pt-4 border-t space-y-4">
                                 <h4 class="text-sm font-medium">Disbursement Settings</h4>
                                 
                                 <!-- Settlement Rail -->
@@ -667,7 +690,7 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Input Fields -->
-                    <Card v-if="config.input_fields.show_card">
+                    <Card v-if="!isSimpleMode && config.input_fields.show_card">
                         <CardHeader v-if="config.input_fields.show_header">
                             <div class="flex items-center gap-2">
                                 <FileText class="h-5 w-5" />
@@ -711,7 +734,7 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Validation Rules -->
-                    <Card v-if="config.validation_rules.show_card">
+                    <Card v-if="!isSimpleMode && config.validation_rules.show_card">
                         <CardHeader v-if="config.validation_rules.show_header">
                             <div class="flex items-center gap-2">
                                 <AlertCircle class="h-5 w-5" />
@@ -749,7 +772,7 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Feedback Channels -->
-                    <Card v-if="config.feedback_channels.show_card">
+                    <Card v-if="!isSimpleMode && config.feedback_channels.show_card">
                         <CardHeader v-if="config.feedback_channels.show_header">
                             <div class="flex items-center gap-2">
                                 <Send class="h-5 w-5" />
@@ -798,7 +821,7 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- Rider -->
-                    <Card v-if="config.rider.show_card">
+                    <Card v-if="!isSimpleMode && config.rider.show_card">
                         <CardHeader v-if="config.rider.show_header">
                             <div class="flex items-center gap-2">
                                 <FileText class="h-5 w-5" />
@@ -886,7 +909,7 @@ const handleSubmit = async () => {
 
                     <!-- Location Validation -->
                     <LocationValidationForm
-                        v-if="config.location_validation.show_card"
+                        v-if="!isSimpleMode && config.location_validation.show_card"
                         v-model="locationValidation"
                         :validation-errors="validationErrors"
                         :config="config.location_validation"
@@ -894,14 +917,14 @@ const handleSubmit = async () => {
 
                     <!-- Time Validation -->
                     <TimeValidationForm
-                        v-if="config.time_validation.show_card"
+                        v-if="!isSimpleMode && config.time_validation.show_card"
                         v-model="timeValidation"
                         :validation-errors="validationErrors"
                         :config="config.time_validation"
                     />
 
                     <!-- Preview Controls -->
-                    <Card>
+                    <Card v-if="!isSimpleMode">
                         <CardHeader>
                             <div class="flex items-center gap-2">
                                 <Eye class="h-5 w-5" />
@@ -966,7 +989,7 @@ const handleSubmit = async () => {
                     </Card>
 
                     <!-- JSON Preview -->
-                    <Collapsible v-if="config.json_preview.show_card" v-model:open="showJsonPreview">
+                    <Collapsible v-if="!isSimpleMode && config.json_preview.show_card" v-model:open="showJsonPreview">
                         <Card>
                             <CollapsibleTrigger class="w-full">
                                 <CardHeader class="cursor-pointer hover:bg-muted/50">
@@ -991,6 +1014,32 @@ const handleSubmit = async () => {
                             </CollapsibleContent>
                         </Card>
                     </Collapsible>
+
+                    <!-- Simple Mode Upgrade Notice -->
+                    <Card v-if="isSimpleMode" class="border-primary/50 bg-primary/5">
+                        <CardContent class="pt-6">
+                            <div class="flex items-start gap-3">
+                                <Info class="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                                <div class="space-y-2">
+                                    <p class="text-sm font-medium">
+                                        Need more customization?
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        Switch to Advanced Mode to access input fields, validation rules, feedback channels, custom expiry, and more.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        @click="switchMode('advanced')"
+                                        class="mt-2"
+                                    >
+                                        Switch to Advanced Mode
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <!-- Cost Preview Sidebar -->
