@@ -60,6 +60,19 @@ const validationErrors = ref<Record<string, string>>({});
 const { mode, switchMode } = useGenerateMode('simple');
 const isSimpleMode = computed(() => mode.value === 'simple');
 
+// Switch binding - convert boolean to mode string
+const isAdvancedMode = computed({
+    get: () => mode.value === 'advanced',
+    set: (value: boolean) => {
+        switchMode(value ? 'advanced' : 'simple');
+    }
+});
+
+// Debug mode changes
+watch(mode, (newMode) => {
+    console.log('[CreateV2] Mode changed to:', newMode, 'isSimpleMode:', isSimpleMode.value);
+});
+
 // Collapsible card state management (for Advanced Mode)
 const collapsibleCards = ref({
     input_fields: false, // collapsed by default
@@ -540,8 +553,7 @@ const handleSubmit = async () => {
                         </Label>
                         <Switch
                             id="mode-toggle"
-                            :checked="!isSimpleMode"
-                            @update:checked="(checked) => switchMode(checked ? 'advanced' : 'simple')"
+                            v-model:checked="isAdvancedMode"
                         />
                     </div>
                 </div>
