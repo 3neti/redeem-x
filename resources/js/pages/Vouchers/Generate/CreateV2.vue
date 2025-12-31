@@ -1257,6 +1257,12 @@ const handleSubmit = async () => {
                                     <span class="font-medium">₱{{ (amount * count).toLocaleString() }}</span>
                                 </div>
                                 
+                                <!-- System processing fee (₱20 per transaction) -->
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Processing Fee</span>
+                                    <span class="font-medium">₱20.00</span>
+                                </div>
+                                
                                 <!-- Then show add-on charges from API -->
                                 <div
                                     v-for="item in costBreakdown.breakdown"
