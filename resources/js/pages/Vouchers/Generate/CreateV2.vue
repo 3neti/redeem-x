@@ -378,8 +378,21 @@ const costBreakdown = computed(() => {
     };
 });
 
+// Actual total cost including manually displayed charges
+const actualTotalCost = computed(() => {
+    const baseVoucherAmount = amount.value * count.value;
+    const processingFee = 20; // ₱20 system processing fee
+    const apiAddons = costBreakdown.value.breakdown.reduce((sum, item) => {
+        // Extract numeric value from price_formatted (e.g., "₱1.50" -> 1.5)
+        const price = parseFloat(item.price_formatted?.replace(/[^0-9.]/g, '') || '0');
+        return sum + price;
+    }, 0);
+    
+    return baseVoucherAmount + processingFee + apiAddons;
+});
+
 const insufficientFunds = computed(
-    () => walletBalance.value !== null && costBreakdown.value.total > walletBalance.value,
+    () => walletBalance.value !== null && actualTotalCost.value > walletBalance.value,
 );
 
 // Form submission data
@@ -1278,7 +1291,7 @@ const handleSubmit = async () => {
 
                             <div class="flex justify-between text-base font-semibold">
                                 <span>Total Cost</span>
-                                <span>{{ costBreakdown.total_formatted || `₱${costBreakdown.total.toLocaleString()}` }}</span>
+                                <span>₱{{ actualTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
                             </div>
 
                             <Separator />
@@ -1310,7 +1323,7 @@ const handleSubmit = async () => {
                                         "
                                         >₱{{
                                             walletBalance !== null
-                                                ? (walletBalance - costBreakdown.total).toLocaleString()
+                                                ? (walletBalance - actualTotalCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                                 : '0.00'
                                         }}</span
                                     >
