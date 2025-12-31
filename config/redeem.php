@@ -403,25 +403,35 @@ return [
             'description' => 'Webhook notification',
             'category' => 'feedback',
         ],
+        // Simple validation rules (no modern replacement)
         'cash.validation.secret' => [
             'price' => 120, // ₱1.20
-            'description' => 'Secret code validation',
+            'label' => 'Secret Code',
+            'description' => 'Require secret code for redemption',
             'category' => 'validation',
         ],
         'cash.validation.mobile' => [
             'price' => 130, // ₱1.30
-            'description' => 'Mobile number validation',
+            'label' => 'Mobile Restriction',
+            'description' => 'Restrict redemption to specific mobile number',
             'category' => 'validation',
         ],
+        // DEPRECATED: Legacy location validation - use validation.location instead
         'cash.validation.location' => [
-            'price' => 150, // ₱1.50
-            'description' => 'GPS location validation',
+            'price' => 0, // DEPRECATED
+            'label' => 'Location String (Legacy)',
+            'description' => '[DEPRECATED] Use validation.location with coordinates instead',
             'category' => 'validation',
+            'deprecated' => true,
+            'deprecated_reason' => 'Use validation.location with lat/lng coordinates and radius_meters',
         ],
         'cash.validation.radius' => [
-            'price' => 160, // ₱1.60
-            'description' => 'Radius validation',
+            'price' => 0, // DEPRECATED
+            'label' => 'Radius String (Legacy)',
+            'description' => '[DEPRECATED] Use validation.location.radius_meters instead',
             'category' => 'validation',
+            'deprecated' => true,
+            'deprecated_reason' => 'Use validation.location.radius_meters for geo-fencing',
         ],
         
         // New validation features

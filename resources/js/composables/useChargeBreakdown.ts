@@ -9,6 +9,7 @@ const DEBUG = false;
 export interface ChargeItem {
     index: string;
     label: string;
+    category: string;
     value: string | number | boolean;
     unit_price: number;
     quantity: number;
@@ -51,11 +52,17 @@ export interface InstructionsData {
     ttl?: string;
 }
 
+export interface ChargeBreakdownOptions {
+    debounce?: number;
+    autoCalculate?: boolean;
+    faceValueLabel?: string; // Customizable label for face value
+}
+
 export function useChargeBreakdown(
     instructions: Ref<InstructionsData>,
-    options: { debounce?: number; autoCalculate?: boolean } = {}
+    options: ChargeBreakdownOptions = {}
 ) {
-    const { debounce: debounceMs = 500, autoCalculate = true } = options;
+    const { debounce: debounceMs = 500, autoCalculate = true, faceValueLabel = 'Face Value (Escrowed)' } = options;
 
     const loading = ref(false);
     const error = ref<ApiError | null>(null);
@@ -85,6 +92,11 @@ export function useChargeBreakdown(
 
         try {
             const response = await axios.post('/api/v1/calculate-charges', instructions.value);
+            // Always log for debugging
+            console.log('[useChargeBreakdown] Request:', instructions.value);
+            console.log('[useChargeBreakdown] Response received:', response.data);
+            console.log('[useChargeBreakdown] Breakdown items:', response.data.breakdown);
+            
             if (DEBUG) {
                 console.log('[useChargeBreakdown] Response received:', response.data);
                 console.log('[useChargeBreakdown] Breakdown items:', response.data.breakdown);
@@ -121,10 +133,85 @@ export function useChargeBreakdown(
         );
     }
 
+    // Total deduction = Face value (escrowed) + Charges
+    const totalDeduction = computed(() => {
+        const faceValue = instructions.value.cash?.amount || 0;
+        const count = instructions.value.count || 1;
+        const charges = (breakdown.value?.total || 0) / 100; // Convert centavos to pesos
+        return (faceValue * count) + charges;
+    });
+    
+    // Backward compatibility alias
+    const totalCost = computed(() => totalDeduction.value);
+    
+    // JSON preview of wallet deduction breakdown (all amounts in major units - pesos)
+    const deductionJson = computed(() => {
+        if (!breakdown.value) return null;
+        
+        const faceValue = instructions.value.cash?.amount || 0;
+        const count = instructions.value.count || 1;
+        const faceValueTotal = faceValue * count;
+        const chargesTotal = breakdown.value.total / 100;
+        const grandTotal = totalDeduction.value;
+        
+        // Helper to format currency
+        const formatCurrency = (amount: number, currency: string = 'PHP') => {
+            return `₱${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        };
+        
+        return {
+            face_value: {
+                label: faceValueLabel,
+                amount: faceValue, // pesos
+                amount_formatted: formatCurrency(faceValue),
+                quantity: count,
+                total: faceValueTotal, // pesos
+                total_formatted: formatCurrency(faceValueTotal),
+                currency: instructions.value.cash?.currency || 'PHP',
+                description: 'Amount to be disbursed to redeemer (escrowed)',
+            },
+            charges: {
+                items: breakdown.value.breakdown.map(item => ({
+                    index: item.index,
+                    label: item.label,
+                    category: item.category || 'other',
+                    unit_price: item.unit_price / 100, // convert centavos to pesos
+                    unit_price_formatted: formatCurrency(item.unit_price / 100),
+                    quantity: item.quantity,
+                    total: item.price / 100, // convert centavos to pesos
+                    total_formatted: formatCurrency(item.price / 100),
+                    currency: item.currency,
+                })),
+                total: chargesTotal, // convert centavos to pesos
+                total_formatted: breakdown.value.total_formatted,
+                description: 'Processing fees and add-on charges',
+            },
+            summary: {
+                face_value_total: faceValueTotal, // pesos
+                face_value_total_formatted: formatCurrency(faceValueTotal),
+                charges_total: chargesTotal, // pesos
+                charges_total_formatted: formatCurrency(chargesTotal),
+                grand_total: grandTotal, // pesos
+                grand_total_formatted: formatCurrency(grandTotal),
+                currency: instructions.value.cash?.currency || 'PHP',
+                note: 'All amounts in major units (PHP pesos). Minor units (centavos) stored in database only.',
+            },
+        };
+    });
+    
+    // Backward compatibility alias
+    const costJson = computed(() => deductionJson.value);
+
     return {
         loading,
         error,
         breakdown,
+        // New naming (deduction = more accurate)
+        totalDeduction,
+        deductionJson,
+        // Backward compatibility aliases
+        totalCost, // alias for totalDeduction
+        costJson, // alias for deductionJson
         calculateCharges,
         refresh: calculateCharges,
     };

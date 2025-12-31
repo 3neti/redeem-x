@@ -18,6 +18,10 @@ class ChargeCalculationController extends Controller
                 'cash' => 'required|array',
                 'cash.amount' => 'required|numeric|min:0',
                 'cash.currency' => 'nullable|string',
+                'cash.validation' => 'nullable|array',
+                'cash.validation.secret' => 'nullable|string',
+                'cash.validation.mobile' => 'nullable|string',
+                'cash.validation.country' => 'nullable|string',
                 'inputs' => 'nullable|array',
                 'feedback' => 'nullable|array',
                 'rider' => 'nullable|array',
@@ -31,7 +35,8 @@ class ChargeCalculationController extends Controller
             ]);
 
             // Ensure required nested structures exist with defaults
-            $data = array_merge([
+            // Use recursive merge to preserve nested arrays
+            $defaults = [
                 'cash' => [
                     'amount' => 0,
                     'currency' => 'PHP',
@@ -45,11 +50,16 @@ class ChargeCalculationController extends Controller
                 'prefix' => '',
                 'mask' => '',
                 'ttl' => null,
-            ], $validated);
-
-            // Ensure nested validation exists
-            if (isset($data['cash']) && !isset($data['cash']['validation'])) {
-                $data['cash']['validation'] = [];
+            ];
+            
+            // Merge cash separately to preserve nested validation
+            $data = array_merge($defaults, $validated);
+            if (isset($validated['cash'])) {
+                $data['cash'] = array_merge($defaults['cash'], $validated['cash']);
+                // Preserve cash.validation from request (don't overwrite with empty array)
+                if (isset($validated['cash']['validation'])) {
+                    $data['cash']['validation'] = $validated['cash']['validation'];
+                }
             }
 
             // Create VoucherInstructionsData from request

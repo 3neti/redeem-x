@@ -43,6 +43,7 @@ class CalculateCharge
             $breakdown[] = [
                 'index' => $charge['index'],
                 'label' => $charge['label'],
+                'category' => $charge['item']->category ?? 'other',
                 'value' => $charge['value'],
                 'unit_price' => $unitPrice,
                 'quantity' => $quantity,

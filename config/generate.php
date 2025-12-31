@@ -303,18 +303,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cost Breakdown Sidebar
+    | Wallet Deduction Sidebar
     |--------------------------------------------------------------------------
     |
-    | Configure the Cost Breakdown sidebar.
+    | Configure the Wallet Deduction sidebar (face value + charges).
     |
     */
 
-    'cost_breakdown' => [
+    'cost_breakdown' => [ // Keep key for backward compatibility
         'show_sidebar' => env('GENERATE_VOUCHER_SHOW_COST_SIDEBAR', true),
         'show_header' => env('GENERATE_VOUCHER_COST_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_COST_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_COST_TITLE', 'Cost Breakdown'),
+        'title' => env('GENERATE_VOUCHER_COST_TITLE', 'Wallet Deduction'),
+        'total_label' => env('GENERATE_VOUCHER_TOTAL_LABEL', 'Total Deduction'),
+        // Label for face value (used in UI breakdown AND deductionJson.face_value.label)
+        'face_value_label' => env('GENERATE_VOUCHER_FACE_VALUE_LABEL', 'Voucher Amount (Escrowed)'),
         'calculating_message' => env('GENERATE_VOUCHER_COST_CALCULATING', 'Calculating charges...'),
         'error_message' => env('GENERATE_VOUCHER_COST_ERROR', 'Error calculating charges. Using fallback pricing.'),
         'wallet_balance_label' => env('GENERATE_VOUCHER_WALLET_BALANCE_LABEL', 'Wallet Balance'),

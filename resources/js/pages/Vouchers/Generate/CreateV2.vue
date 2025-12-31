@@ -99,6 +99,7 @@ const collapsibleCards = ref({
     rider: false,
     preview_controls: false,
     json_preview: false,
+    deduction_json_preview: false,
 });
 
 const expandAll = () => {
@@ -310,6 +311,11 @@ const instructionsForPricing = computed(() => {
             currency: 'PHP',
             settlement_rail: settlementRail.value || null,
             fee_strategy: feeStrategy.value || 'absorb',
+            validation: {
+                secret: validationSecret.value || null,
+                mobile: validationMobile.value || null,
+                country: 'PH',
+            },
         },
         inputs: {
             fields: selectedInputFields.value,
@@ -352,10 +358,27 @@ if (DEBUG) {
     }, { deep: true });
 }
 
-// Use live pricing API
-const { breakdown: apiBreakdown, loading: pricingLoading, error: pricingError } = useChargeBreakdown(
+// Always log instructionsForPricing for debugging
+watch(instructionsForPricing, (newVal) => {
+    console.log('[CreateV2] instructionsForPricing:', newVal);
+    console.log('[CreateV2] validationSecret:', validationSecret.value);
+    console.log('[CreateV2] validationMobile:', validationMobile.value);
+}, { deep: true });
+
+// Use live pricing API with centralized deduction calculation
+const { 
+    breakdown: apiBreakdown, 
+    loading: pricingLoading, 
+    error: pricingError,
+    totalDeduction: centralizedTotalDeduction,
+    deductionJson,
+} = useChargeBreakdown(
     instructionsForPricing,
-    { debounce: 500, autoCalculate: true }
+    { 
+        debounce: 500, 
+        autoCalculate: true,
+        faceValueLabel: props.config.cost_breakdown.face_value_label || 'Voucher Amount (Escrowed)',
+    }
 );
 
 // Cost breakdown computed from API response with fallback during loading
@@ -378,24 +401,35 @@ const costBreakdown = computed(() => {
     };
 });
 
-// Calculate processing fee dynamically from API response
-const processingFee = computed(() => {
-    const faceValue = amount.value * count.value;
-    const apiTotal = costBreakdown.value.total;
-    const addonsTotal = costBreakdown.value.breakdown.reduce((sum, item) => {
-        const price = parseFloat(item.price_formatted?.replace(/[^0-9.]/g, '') || '0');
-        return sum + price;
-    }, 0);
+// Use centralized total deduction calculation from composable
+const actualTotalCost = computed(() => centralizedTotalDeduction.value);
+
+// Group charges by category for organized display
+const chargesByCategory = computed(() => {
+    if (!costBreakdown.value.breakdown) return {};
     
-    // Processing fee = Total - Face Value - Add-ons
-    return Math.max(0, apiTotal - faceValue - addonsTotal);
+    const groups: Record<string, any[]> = {};
+    
+    costBreakdown.value.breakdown.forEach(item => {
+        const category = item.category || 'other';
+        if (!groups[category]) {
+            groups[category] = [];
+        }
+        groups[category].push(item);
+    });
+    
+    return groups;
 });
 
-// Actual total cost - use API total since it includes all charges
-const actualTotalCost = computed(() => {
-    // API total is in pesos (already converted from centavos)
-    return costBreakdown.value.total;
-});
+// Category display names
+const categoryLabels: Record<string, string> = {
+    base: 'Base Charges',
+    input_fields: 'Input Fields',
+    feedback: 'Feedback Channels',
+    validation: 'Validation Rules',
+    rider: 'Rider Configuration',
+    other: 'Other Charges',
+};
 
 const insufficientFunds = computed(
     () => walletBalance.value !== null && actualTotalCost.value > walletBalance.value,
@@ -1143,7 +1177,7 @@ const handleSubmit = async () => {
                         </Card>
                     </Collapsible>
 
-                    <!-- JSON Preview -->
+                    <!-- Instruction JSON Preview -->
                     <Collapsible v-if="!isSimpleMode && config.json_preview.show_card" v-model:open="collapsibleCards.json_preview">
                         <Card>
                             <CollapsibleTrigger class="w-full">
@@ -1163,6 +1197,37 @@ const handleSubmit = async () => {
                             <CollapsibleContent>
                                 <CardContent>
                                     <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(jsonPreview, null, 2) }}</code></pre>
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
+                    
+                    <!-- Wallet Deduction JSON Preview -->
+                    <Collapsible v-if="!isSimpleMode" v-model:open="collapsibleCards.deduction_json_preview">
+                        <Card>
+                            <CollapsibleTrigger class="w-full">
+                                <CardHeader class="cursor-pointer hover:bg-muted/50">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <Banknote class="h-5 w-5" />
+                                            <CardTitle>Wallet Deduction JSON</CardTitle>
+                                        </div>
+                                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': collapsibleCards.deduction_json_preview }" />
+                                    </div>
+                                    <CardDescription>
+                                        Real-time wallet deduction breakdown (all amounts in pesos)
+                                    </CardDescription>
+                                </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <CardContent>
+                                    <div v-if="pricingLoading" class="text-sm text-muted-foreground text-center py-4">
+                                        Calculating charges...
+                                    </div>
+                                    <div v-else-if="!deductionJson" class="text-sm text-muted-foreground text-center py-4">
+                                        Enter an amount to see deduction breakdown
+                                    </div>
+                                    <pre v-else class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(deductionJson, null, 2) }}</code></pre>
                                 </CardContent>
                             </CollapsibleContent>
                         </Card>
@@ -1269,34 +1334,40 @@ const handleSubmit = async () => {
                             </div>
                             
                             <!-- Breakdown from API -->
-                            <div v-else class="space-y-2 text-sm">
-                                <!-- Base voucher amount (face value) -->
-                                <div class="flex justify-between">
-                                    <span class="text-muted-foreground">Voucher Amount × {{ count }}</span>
+                            <div v-else class="space-y-3 text-sm">
+                                <!-- Base voucher amount (face value - escrowed) -->
+                                <div class="flex justify-between pb-2 border-b border-border/50">
+                                    <span class="text-muted-foreground">{{ config.cost_breakdown.face_value_label || 'Voucher Amount' }} × {{ count }}</span>
                                     <span class="font-medium">₱{{ (amount * count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
                                 </div>
                                 
-                                <!-- Processing fee (calculated from total - face value - addons) -->
-                                <div class="flex justify-between">
-                                    <span class="text-muted-foreground">Processing Fee</span>
-                                    <span class="font-medium">₱{{ processingFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
-                                </div>
-                                
-                                <!-- Add-on charges from API breakdown -->
+                                <!-- Charges grouped by category -->
                                 <div
-                                    v-for="item in costBreakdown.breakdown"
-                                    :key="item.index"
-                                    class="flex justify-between"
+                                    v-for="(items, category) in chargesByCategory"
+                                    :key="category"
+                                    class="space-y-1"
                                 >
-                                    <span class="text-muted-foreground">{{ item.label }}</span>
-                                    <span class="font-medium">{{ item.price_formatted }}</span>
+                                    <!-- Category header -->
+                                    <div class="text-xs font-semibold text-foreground/70 uppercase tracking-wide pt-1">
+                                        {{ categoryLabels[category] || category }}
+                                    </div>
+                                    
+                                    <!-- Items in this category -->
+                                    <div
+                                        v-for="item in items"
+                                        :key="item.index"
+                                        class="flex justify-between pl-2"
+                                    >
+                                        <span class="text-muted-foreground">{{ item.label }}</span>
+                                        <span class="font-medium">{{ item.price_formatted }}</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <Separator />
 
                             <div class="flex justify-between text-base font-semibold">
-                                <span>Total Cost</span>
+                                <span>{{ config.cost_breakdown.total_label || 'Total Deduction' }}</span>
                                 <span>₱{{ actualTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
                             </div>
 

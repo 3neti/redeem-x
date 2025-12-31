@@ -104,31 +104,42 @@ return [
 
         'cash.amount' => [
             'price' => 20 * 100,
+            'label' => 'Transaction Fee',
             'description' => 'Amount of cash the user will receive',
         ],
 //        'cash.currency' => [
 //            'price' => 110,
 //            'description' => 'Currency of the cash disbursement',
 //        ],
+        // Simple validation rules (no modern replacement)
         'cash.validation.secret' => [
             'price' => 120,
-            'description' => 'Secret code required to claim the voucher',
+            'label' => 'Secret Code',
+            'description' => 'Require secret code for redemption',
+            'category' => 'validation',
         ],
         'cash.validation.mobile' => [
             'price' => 130,
-            'description' => 'Mobile number required to redeem',
+            'label' => 'Mobile Restriction',
+            'description' => 'Restrict redemption to specific mobile number',
+            'category' => 'validation',
         ],
-//        'cash.validation.country' => [
-//            'price' => 140,
-//            'description' => 'Country of the claimant',
-//        ],
+        // DEPRECATED: Legacy location validation - use validation.location instead
         'cash.validation.location' => [
-            'price' => 150,
-            'description' => 'Expected location of redemption',
+            'price' => 0,
+            'label' => 'Location String (Legacy)',
+            'description' => '[DEPRECATED] Use validation.location with coordinates instead',
+            'category' => 'validation',
+            'deprecated' => true,
+            'deprecated_reason' => 'Use validation.location with lat/lng coordinates and radius_meters',
         ],
         'cash.validation.radius' => [
-            'price' => 160,
-            'description' => 'Radius around the location where redemption is valid',
+            'price' => 0,
+            'label' => 'Radius String (Legacy)',
+            'description' => '[DEPRECATED] Use validation.location.radius_meters instead',
+            'category' => 'validation',
+            'deprecated' => true,
+            'deprecated_reason' => 'Use validation.location.radius_meters for geo-fencing',
         ],
         'feedback.email' => [
             'price' => 170,
