@@ -378,6 +378,19 @@ const costBreakdown = computed(() => {
     };
 });
 
+// Calculate processing fee dynamically from API response
+const processingFee = computed(() => {
+    const faceValue = amount.value * count.value;
+    const apiTotal = costBreakdown.value.total;
+    const addonsTotal = costBreakdown.value.breakdown.reduce((sum, item) => {
+        const price = parseFloat(item.price_formatted?.replace(/[^0-9.]/g, '') || '0');
+        return sum + price;
+    }, 0);
+    
+    // Processing fee = Total - Face Value - Add-ons
+    return Math.max(0, apiTotal - faceValue - addonsTotal);
+});
+
 // Actual total cost - use API total since it includes all charges
 const actualTotalCost = computed(() => {
     // API total is in pesos (already converted from centavos)
@@ -1257,6 +1270,19 @@ const handleSubmit = async () => {
                             
                             <!-- Breakdown from API -->
                             <div v-else class="space-y-2 text-sm">
+                                <!-- Base voucher amount (face value) -->
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Voucher Amount × {{ count }}</span>
+                                    <span class="font-medium">₱{{ (amount * count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+                                </div>
+                                
+                                <!-- Processing fee (calculated from total - face value - addons) -->
+                                <div class="flex justify-between">
+                                    <span class="text-muted-foreground">Processing Fee</span>
+                                    <span class="font-medium">₱{{ processingFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+                                </div>
+                                
+                                <!-- Add-on charges from API breakdown -->
                                 <div
                                     v-for="item in costBreakdown.breakdown"
                                     :key="item.index"
@@ -1264,12 +1290,6 @@ const handleSubmit = async () => {
                                 >
                                     <span class="text-muted-foreground">{{ item.label }}</span>
                                     <span class="font-medium">{{ item.price_formatted }}</span>
-                                </div>
-                                
-                                <!-- Fallback if API returns empty breakdown -->
-                                <div v-if="costBreakdown.breakdown.length === 0" class="flex justify-between text-muted-foreground">
-                                    <span>No charges calculated</span>
-                                    <span>₱0.00</span>
                                 </div>
                             </div>
 
