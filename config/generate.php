@@ -138,7 +138,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_INPUT_FIELDS_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_INPUT_FIELDS_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_INPUT_FIELDS_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_INPUT_FIELDS_TITLE', 'Required Input Fields'),
+        'title' => env('GENERATE_VOUCHER_INPUT_FIELDS_TITLE', 'Input Fields'),
         'show_description' => env('GENERATE_VOUCHER_INPUT_FIELDS_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_INPUT_FIELDS_DESCRIPTION', 'Select fields users must provide during redemption'),
     ],
@@ -156,7 +156,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_VALIDATION_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_VALIDATION_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_VALIDATION_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_VALIDATION_TITLE', 'Validation Rules (Optional)'),
+        'title' => env('GENERATE_VOUCHER_VALIDATION_TITLE', 'Validation Rules'),
         'show_description' => env('GENERATE_VOUCHER_VALIDATION_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_VALIDATION_DESCRIPTION', 'Add secret codes or location-based restrictions'),
 
@@ -224,7 +224,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_FEEDBACK_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_FEEDBACK_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_FEEDBACK_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_FEEDBACK_TITLE', 'Feedback Channels (Optional)'),
+        'title' => env('GENERATE_VOUCHER_FEEDBACK_TITLE', 'Feedback Channels'),
         'show_description' => env('GENERATE_VOUCHER_FEEDBACK_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_FEEDBACK_DESCRIPTION', 'Receive notifications when vouchers are redeemed'),
 
@@ -263,7 +263,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_RIDER_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_RIDER_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_RIDER_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_RIDER_TITLE', 'Rider (Optional)'),
+        'title' => env('GENERATE_VOUCHER_RIDER_TITLE', 'Rider'),
         'show_description' => env('GENERATE_VOUCHER_RIDER_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_RIDER_DESCRIPTION', 'Add custom message or redirect URL after redemption'),
 

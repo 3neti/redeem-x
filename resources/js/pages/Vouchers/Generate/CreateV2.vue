@@ -585,11 +585,6 @@ const handleSubmit = async () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto max-w-7xl space-y-6 p-6">
-            <!-- DEBUG: Confirm V2 is loading -->
-            <div class="bg-yellow-200 dark:bg-yellow-900 p-2 text-center font-bold text-sm">
-                🚀 CreateV2.vue (New UI) - Mode: {{ mode }}
-            </div>
-            
             <div class="flex items-start justify-between">
                 <Heading
                     :title="config.page.title"
@@ -898,29 +893,52 @@ const handleSubmit = async () => {
                                 </CardHeader>
                             </CollapsibleTrigger>
                             <CollapsibleContent>
-                                <CardContent class="space-y-4">
-                            <div v-if="config.validation_rules.show_secret" class="space-y-2">
-                                <Label for="validation_secret">{{ config.validation_rules.secret.label }}</Label>
-                                <Input
-                                    id="validation_secret"
-                                    name="validation_secret"
-                                    v-model="validationSecret"
-                                    :placeholder="config.validation_rules.secret.placeholder"
-                                />
-                                <InputError :message="validationErrors.validation_secret" />
+                                <CardContent class="space-y-6">
+                            <!-- Secret Code & Mobile Restriction -->
+                            <div class="space-y-4">
+                                <div v-if="config.validation_rules.show_secret" class="space-y-2">
+                                    <Label for="validation_secret">{{ config.validation_rules.secret.label }}</Label>
+                                    <Input
+                                        id="validation_secret"
+                                        name="validation_secret"
+                                        v-model="validationSecret"
+                                        :placeholder="config.validation_rules.secret.placeholder"
+                                    />
+                                    <InputError :message="validationErrors.validation_secret" />
+                                </div>
+
+                                <div v-if="config.validation_rules.show_mobile" class="space-y-2">
+                                    <Label for="validation_mobile"
+                                        >{{ config.validation_rules.mobile.label }}</Label
+                                    >
+                                    <Input
+                                        id="validation_mobile"
+                                        name="validation_mobile"
+                                        v-model="validationMobile"
+                                        :placeholder="config.validation_rules.mobile.placeholder"
+                                    />
+                                    <InputError :message="validationErrors.validation_mobile" />
+                                </div>
                             </div>
 
-                            <div v-if="config.validation_rules.show_mobile" class="space-y-2">
-                                <Label for="validation_mobile"
-                                    >{{ config.validation_rules.mobile.label }}</Label
-                                >
-                                <Input
-                                    id="validation_mobile"
-                                    name="validation_mobile"
-                                    v-model="validationMobile"
-                                    :placeholder="config.validation_rules.mobile.placeholder"
+                            <!-- Location Validation (nested) -->
+                            <div v-if="config.location_validation.show_card" class="space-y-2">
+                                <LocationValidationForm
+                                    v-model="locationValidation"
+                                    :validation-errors="validationErrors"
+                                    :config="config.location_validation"
+                                    :collapsible="false"
                                 />
-                                <InputError :message="validationErrors.validation_mobile" />
+                            </div>
+
+                            <!-- Time Validation (nested) -->
+                            <div v-if="config.time_validation.show_card" class="space-y-2">
+                                <TimeValidationForm
+                                    v-model="timeValidation"
+                                    :validation-errors="validationErrors"
+                                    :config="config.time_validation"
+                                    :collapsible="false"
+                                />
                             </div>
                                 </CardContent>
                             </CollapsibleContent>
@@ -1079,28 +1097,6 @@ const handleSubmit = async () => {
                                 </CardContent>
                             </CollapsibleContent>
                         </Card>
-                    </Collapsible>
-
-                    <!-- Location Validation -->
-                    <Collapsible v-if="!isSimpleMode && config.location_validation.show_card" v-model:open="collapsibleCards.location_validation">
-                        <LocationValidationForm
-                            v-model="locationValidation"
-                            :validation-errors="validationErrors"
-                            :config="config.location_validation"
-                            :collapsible="true"
-                            :is-expanded="collapsibleCards.location_validation"
-                        />
-                    </Collapsible>
-
-                    <!-- Time Validation -->
-                    <Collapsible v-if="!isSimpleMode && config.time_validation.show_card" v-model:open="collapsibleCards.time_validation">
-                        <TimeValidationForm
-                            v-model="timeValidation"
-                            :validation-errors="validationErrors"
-                            :config="config.time_validation"
-                            :collapsible="true"
-                            :is-expanded="collapsibleCards.time_validation"
-                        />
                     </Collapsible>
 
                     <!-- Preview Controls -->
