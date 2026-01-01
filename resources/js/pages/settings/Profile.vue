@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { update } from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import { ref, onMounted, computed } from 'vue';
+import { update, toggleFeature } from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import { edit } from '@/routes/profile';
-import { useForm, Head, usePage } from '@inertiajs/vue3';
+import { useForm, Head, usePage, router } from '@inertiajs/vue3';
 import axios from '@/lib/axios';
 
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -13,7 +13,9 @@ import MerchantNameTemplateComposer from '@/components/MerchantNameTemplateCompo
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
     Select,
     SelectContent,
@@ -22,16 +24,25 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
-import { Loader2 } from 'lucide-vue-next';
+import { Loader2, Lock, Unlock } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem } from '@/types';
 
-interface Props {
-    status?: string;
+interface Feature {
+    key: string;
+    name: string;
+    description: string;
+    locked: boolean;
+    active: boolean;
 }
 
-defineProps<Props>();
+interface Props {
+    status?: string;
+    available_features?: Feature[];
+}
+
+const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -137,6 +148,54 @@ const saveMerchantProfile = async () => {
     } finally {
         savingMerchant.value = false;
     }
+};
+
+// Feature flags
+const isSuperAdmin = computed(() => {
+    const roles = page.props.auth?.roles || [];
+    return roles.includes('super-admin');
+});
+
+const togglingFeature = ref<string | null>(null);
+
+const toggleFeatureFlag = async (feature: Feature) => {
+    if (feature.locked) {
+        toast({
+            title: 'Feature Locked',
+            description: 'This feature is role-based and cannot be manually toggled.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    
+    togglingFeature.value = feature.key;
+    
+    router.post(
+        toggleFeature.url(),
+        {
+            feature: feature.key,
+            enabled: !feature.active,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: 'Feature Updated',
+                    description: `${feature.name} ${!feature.active ? 'enabled' : 'disabled'} successfully.`,
+                });
+            },
+            onError: (errors) => {
+                toast({
+                    title: 'Error',
+                    description: errors.feature || 'Failed to toggle feature.',
+                    variant: 'destructive',
+                });
+            },
+            onFinish: () => {
+                togglingFeature.value = null;
+            },
+        }
+    );
 };
 
 onMounted(() => {
@@ -352,6 +411,58 @@ onMounted(() => {
                         </Button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Feature Flags Section (Super Admin Only) -->
+            <div v-if="isSuperAdmin && available_features && available_features.length > 0" class="flex flex-col space-y-6 border-t pt-6">
+                <HeadingSmall
+                    title="Feature Flags"
+                    description="Enable or disable experimental features for your account"
+                />
+
+                <div class="space-y-4">
+                    <div
+                        v-for="feature in available_features"
+                        :key="feature.key"
+                        class="flex items-start justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+                    >
+                        <div class="flex-1 space-y-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-medium">{{ feature.name }}</h4>
+                                <Badge v-if="feature.locked" variant="secondary" class="text-xs">
+                                    <Lock class="mr-1 h-3 w-3" />
+                                    Role-based
+                                </Badge>
+                                <Badge v-else variant="outline" class="text-xs">
+                                    <Unlock class="mr-1 h-3 w-3" />
+                                    Toggleable
+                                </Badge>
+                            </div>
+                            <p class="text-sm text-muted-foreground">
+                                {{ feature.description }}
+                            </p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 ml-4">
+                            <Switch
+                                :id="feature.key"
+                                :checked="feature.active"
+                                :disabled="feature.locked || togglingFeature === feature.key"
+                                @update:checked="() => toggleFeatureFlag(feature)"
+                            />
+                            <Loader2
+                                v-if="togglingFeature === feature.key"
+                                class="h-4 w-4 animate-spin text-muted-foreground"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-lg bg-muted p-4">
+                    <p class="text-sm text-muted-foreground">
+                        <strong>Note:</strong> Role-based features are automatically enabled based on your permissions and cannot be manually toggled. Changes to feature flags apply immediately.
+                    </p>
+                </div>
             </div>
 
             <DeleteUser />
