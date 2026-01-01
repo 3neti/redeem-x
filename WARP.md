@@ -162,6 +162,151 @@ npm run build:ssr    # Build with SSR support
 npm run dev          # Development with HMR
 ```
 
+## UI Improvement Methodology
+
+When implementing UI improvements (e.g., progressive disclosure, simplified/advanced modes), follow this proven approach:
+
+### Phase 1: Infrastructure Setup
+1. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/ui-component-name-v2
+   ```
+
+2. **Document the Plan**
+   - Create implementation plan in `docs/COMPONENT_NAME_PLAN.md`
+   - Include: scope, problem statement, solution, technical decisions
+   - Save plan before starting implementation
+
+3. **Add Feature Flags**
+   ```php
+   // config/component.php
+   'ui_version' => env('COMPONENT_UI_VERSION', 'v2'),
+   'feature_flags' => [
+       'new_ui' => env('COMPONENT_UI_V2_ENABLED', false),
+   ],
+   ```
+
+4. **Add User Preferences Storage**
+   - Create migration for `ui_preferences` JSON column (if not exists)
+   - Add to User model fillable and casts
+   - Store user's UI mode preference (simple/advanced)
+
+5. **Update .env.example**
+   ```bash
+   COMPONENT_UI_VERSION=v2
+   COMPONENT_UI_V2_ENABLED=false
+   ```
+
+### Phase 2: Parallel Development
+1. **Preserve Legacy UI**
+   - **DO NOT** modify existing component file
+   - Legacy file remains frozen during development
+
+2. **Create New UI Version**
+   ```bash
+   # Copy existing to new version
+   cp resources/js/pages/Component.vue resources/js/pages/ComponentV2.vue
+   ```
+
+3. **Create Composables**
+   ```typescript
+   // resources/js/composables/useComponentMode.ts
+   export function useComponentMode(initialMode = 'simple') {
+     const mode = ref(initialMode)
+     const switchMode = async (newMode) => {
+       mode.value = newMode
+       await axios.put('/api/v1/preferences/component-mode', { mode: newMode })
+     }
+     return { mode, switchMode }
+   }
+   ```
+
+4. **Add Dual Routes**
+   ```php
+   // routes/web.php
+   Route::get('/component', [Controller::class, 'create'])->name('component');
+   Route::get('/component/legacy', [Controller::class, 'createLegacy'])->name('component.legacy');
+   ```
+
+5. **Controller Logic**
+   ```php
+   public function create(Request $request) {
+       $useV2 = config('component.feature_flags.new_ui');
+       
+       if ($request->user()->ui_preferences['component_ui_version'] ?? null === 'legacy') {
+           $useV2 = false;
+       }
+       
+       $component = $useV2 ? 'ComponentV2' : 'Component';
+       return Inertia::render($component, [...]);
+   }
+   ```
+
+### Phase 3: Implementation
+1. **Build Simple Mode First**
+   - Minimal fields only (3-5 fields max)
+   - Clear "Switch to Advanced" link
+   - Test generation workflow
+
+2. **Build Advanced Mode**
+   - Use Collapsible components for cards
+   - Add expand/collapse all controls
+   - Default collapsed for non-essential cards
+
+3. **Test Both UIs**
+   ```bash
+   # Test new UI
+   open http://localhost:8000/component
+   
+   # Test legacy UI
+   open http://localhost:8000/component/legacy
+   ```
+
+### Phase 4: Deployment
+1. **Gradual Rollout**
+   - Week 1: Enable for team (set `COMPONENT_UI_V2_ENABLED=true` locally)
+   - Week 2: Beta release (25% of users)
+   - Week 3: Gradual increase (50% → 75% → 100%)
+   - Month 2-3: Stabilization (legacy still available)
+   - Month 4: Remove legacy route
+
+2. **Rollback Plan**
+   ```bash
+   # Option 1: Disable feature flag
+   COMPONENT_UI_V2_ENABLED=false
+   
+   # Option 2: Emergency rollback
+   git revert <commit-hash>
+   ```
+
+### Key Principles
+- **Never break existing UI** - Legacy route always works
+- **Progressive disclosure** - Show essential first, advanced on request
+- **User preference storage** - Persist mode choice in database
+- **Feature flags** - Easy toggle between versions
+- **Parallel development** - Build new without touching old
+- **Semantic commits** - Clear commit messages per phase
+
+### File Organization Pattern
+```
+resources/js/pages/component/
+├── Component.vue           # Legacy (frozen)
+├── ComponentV2.vue         # New UI (development target)
+└── components/
+    ├── ModeToggle.vue      # Mode switcher
+    ├── SimpleModeForm.vue  # Minimal form
+    └── AdvancedModeForm.vue # Full form
+```
+
+### Testing Checklist
+- [ ] New UI works: Simple mode generates correctly
+- [ ] New UI works: Advanced mode has all features
+- [ ] Legacy UI still works (no regressions)
+- [ ] Mode preference persists across sessions
+- [ ] Both UIs submit to same endpoint
+- [ ] Form validation works in both modes
+- [ ] Cost breakdown updates correctly
+
 ## Git Workflow
 
 ### Branch Strategy

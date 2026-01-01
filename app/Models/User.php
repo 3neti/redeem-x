@@ -41,6 +41,7 @@ class User extends Authenticatable implements Wallet, Customer
         'email',
         'workos_id',
         'avatar',
+        'ui_preferences',
     ];
 
     /**
@@ -69,6 +70,7 @@ class User extends Authenticatable implements Wallet, Customer
             'rate_limit_tier' => 'string',
             'signature_secret' => 'string',
             'signature_enabled' => 'boolean',
+            'ui_preferences' => 'array',
         ];
     }
 

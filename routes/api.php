@@ -85,6 +85,10 @@ Route::prefix('v1')
         Route::get('campaigns/{campaign}', [\App\Http\Controllers\Api\CampaignController::class, 'show'])
             ->name('api.campaigns.show');
         
+        // User preferences API
+        Route::put('preferences/voucher-mode', [\App\Http\Controllers\Api\PreferencesController::class, 'updateVoucherMode'])
+            ->name('api.preferences.voucher-mode');
+        
         // Charge calculation API (for real-time pricing preview)
         Route::post('/calculate-charges', \App\Http\Controllers\Api\ChargeCalculationController::class)
             ->name('calculate-charges');

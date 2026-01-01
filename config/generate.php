@@ -4,6 +4,50 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | UI Version & Feature Flags
+    |--------------------------------------------------------------------------
+    |
+    | Control which version of the UI is displayed and enable/disable features.
+    |
+    */
+
+    'ui_version' => env('GENERATE_UI_VERSION', 'v2'), // 'legacy' or 'v2'
+    
+    'feature_flags' => [
+        'progressive_disclosure' => env('GENERATE_UI_V2_ENABLED', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mode Presets (Simple vs Advanced)
+    |--------------------------------------------------------------------------
+    |
+    | Define what fields/cards are visible in Simple and Advanced modes.
+    |
+    */
+
+    'mode_presets' => [
+        'simple' => [
+            'visible_cards' => ['basic_settings', 'cost_breakdown'],
+            'basic_settings_fields' => ['campaign', 'amount', 'quantity'],
+        ],
+        'advanced' => [
+            'visible_cards' => ['all'],
+            'collapsible_by_default' => [
+                'input_fields',
+                'validation_rules',
+                'location_validation',
+                'time_validation',
+                'feedback_channels',
+                'rider',
+                'preview_controls',
+                'json_preview',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Generate Voucher Page Configuration
     |--------------------------------------------------------------------------
     |
@@ -94,7 +138,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_INPUT_FIELDS_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_INPUT_FIELDS_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_INPUT_FIELDS_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_INPUT_FIELDS_TITLE', 'Required Input Fields'),
+        'title' => env('GENERATE_VOUCHER_INPUT_FIELDS_TITLE', 'Input Fields'),
         'show_description' => env('GENERATE_VOUCHER_INPUT_FIELDS_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_INPUT_FIELDS_DESCRIPTION', 'Select fields users must provide during redemption'),
     ],
@@ -112,7 +156,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_VALIDATION_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_VALIDATION_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_VALIDATION_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_VALIDATION_TITLE', 'Validation Rules (Optional)'),
+        'title' => env('GENERATE_VOUCHER_VALIDATION_TITLE', 'Validation Rules'),
         'show_description' => env('GENERATE_VOUCHER_VALIDATION_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_VALIDATION_DESCRIPTION', 'Add secret codes or location-based restrictions'),
 
@@ -180,7 +224,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_FEEDBACK_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_FEEDBACK_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_FEEDBACK_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_FEEDBACK_TITLE', 'Feedback Channels (Optional)'),
+        'title' => env('GENERATE_VOUCHER_FEEDBACK_TITLE', 'Feedback Channels'),
         'show_description' => env('GENERATE_VOUCHER_FEEDBACK_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_FEEDBACK_DESCRIPTION', 'Receive notifications when vouchers are redeemed'),
 
@@ -219,7 +263,7 @@ return [
         'show_card' => env('GENERATE_VOUCHER_SHOW_RIDER_CARD', true),
         'show_header' => env('GENERATE_VOUCHER_RIDER_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_RIDER_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_RIDER_TITLE', 'Rider (Optional)'),
+        'title' => env('GENERATE_VOUCHER_RIDER_TITLE', 'Rider'),
         'show_description' => env('GENERATE_VOUCHER_RIDER_SHOW_DESCRIPTION', true),
         'description' => env('GENERATE_VOUCHER_RIDER_DESCRIPTION', 'Add custom message or redirect URL after redemption'),
 
@@ -259,18 +303,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cost Breakdown Sidebar
+    | Wallet Deduction Sidebar
     |--------------------------------------------------------------------------
     |
-    | Configure the Cost Breakdown sidebar.
+    | Configure the Wallet Deduction sidebar (face value + charges).
     |
     */
 
-    'cost_breakdown' => [
+    'cost_breakdown' => [ // Keep key for backward compatibility
         'show_sidebar' => env('GENERATE_VOUCHER_SHOW_COST_SIDEBAR', true),
         'show_header' => env('GENERATE_VOUCHER_COST_SHOW_HEADER', true),
         'show_title' => env('GENERATE_VOUCHER_COST_SHOW_TITLE', true),
-        'title' => env('GENERATE_VOUCHER_COST_TITLE', 'Cost Breakdown'),
+        'title' => env('GENERATE_VOUCHER_COST_TITLE', 'Wallet Deduction'),
+        'total_label' => env('GENERATE_VOUCHER_TOTAL_LABEL', 'Total Deduction'),
+        // Label for face value (used in UI breakdown AND deductionJson.face_value.label)
+        'face_value_label' => env('GENERATE_VOUCHER_FACE_VALUE_LABEL', 'Voucher Amount (Escrowed)'),
         'calculating_message' => env('GENERATE_VOUCHER_COST_CALCULATING', 'Calculating charges...'),
         'error_message' => env('GENERATE_VOUCHER_COST_ERROR', 'Error calculating charges. Using fallback pricing.'),
         'wallet_balance_label' => env('GENERATE_VOUCHER_WALLET_BALANCE_LABEL', 'Wallet Balance'),

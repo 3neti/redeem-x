@@ -10,7 +10,7 @@ use LBHurtado\Voucher\Data\VoucherInstructionsData;
 
 class InstructionCostEvaluator
 {
-    private const DEBUG = false;
+    private const DEBUG = true;
     
     protected array $excludedFields = [
         'count',
@@ -18,7 +18,9 @@ class InstructionCostEvaluator
         'ttl',
         'starts_at',
         'expires_at',
-        'cash.amount', // Face value is escrow, not a fee
+        // NOTE: cash.amount is the processing fee (₱20), NOT the face value.
+        // The face value comes from $source->cash->amount (user input).
+        // Do NOT exclude cash.amount - it should be charged as a processing fee.
     ];
 
     public function __construct(
@@ -78,6 +80,16 @@ class InstructionCostEvaluator
                     ]);
                 }
                 $value = $isSelected ? $fieldName : null;
+            } elseif (str_starts_with($item->index, 'cash.validation.')) {
+                // Handle cash.validation specially - it's a nested Data object
+                $fieldName = str_replace('cash.validation.', '', $item->index);
+                $value = $source->cash->validation->{$fieldName} ?? null;
+                
+                if (self::DEBUG) {
+                    Log::debug("[InstructionCostEvaluator] Checking cash.validation field: {$fieldName}", [
+                        'value' => $value,
+                    ]);
+                }
             } else {
                 $value = data_get($source, $item->index);
             }
@@ -119,9 +131,10 @@ class InstructionCostEvaluator
             } else {
                 $isTruthyString = is_string($value) && trim($value) !== '';
                 $isTruthyBoolean = is_bool($value) && $value === true;
+                $isTruthyInteger = is_int($value) && $value > 0;
                 $isTruthyFloat = is_float($value) && $value > 0.0;
                 $isTruthyObject = (is_array($value) || is_object($value)) && !empty((array) $value);
-                $shouldCharge = ($isTruthyString || $isTruthyBoolean || $isTruthyFloat || $isTruthyObject) && $item->price > 0;
+                $shouldCharge = ($isTruthyString || $isTruthyBoolean || $isTruthyInteger || $isTruthyFloat || $isTruthyObject) && $item->price > 0;
             }
 
             $price = $item->getAmountProduct($customer);
