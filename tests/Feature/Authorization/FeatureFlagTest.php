@@ -49,9 +49,9 @@ test('feature flags are persisted to database', function () {
     
     Feature::for($user)->activate('advanced-pricing-mode');
     
-    // Check database
+    // Check database (Pennant uses pipe separator in scope)
     $this->assertDatabaseHas('features', [
-        'scope' => 'App\\Models\\User:'.$user->id,
+        'scope' => 'App\\Models\\User|'.$user->id,
         'name' => 'advanced-pricing-mode',
         'value' => 'true',
     ]);

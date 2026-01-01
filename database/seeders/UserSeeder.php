@@ -28,7 +28,7 @@ class UserSeeder extends Seeder
             $admin->assignRole('super-admin');
         }
 
-        // Create or update ordinary user
+        // Create or update power user (lester@hurtado.ph)
         $user = User::updateOrCreate(
             ['email' => 'lester@hurtado.ph'],
             [
@@ -38,10 +38,13 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // No role assigned - use ADMIN_OVERRIDE_EMAILS in .env to grant admin access
+        // Assign super-admin role (ensure RolePermissionSeeder has run first)
+        if (!$user->hasRole('super-admin')) {
+            $user->assignRole('super-admin');
+        }
 
-        $this->command->info("✅ Admin user created: {$admin->email}");
-        $this->command->info("✅ Ordinary user created: {$user->email}");
+        $this->command->info("✅ Admin user created: {$admin->email} (super-admin role)");
+        $this->command->info("✅ Power user created: {$user->email} (super-admin role)");
         $this->command->info("Use /dev-login/{$admin->email} or /dev-login/{$user->email} in local environment");
     }
 }
