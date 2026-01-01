@@ -28,9 +28,14 @@ class BalanceController extends Controller
 
         // Check role-based access (if configured)
         $requiredRole = config('balance.view_role', 'admin');
+        $user = auth()->user();
         
-        // If role is empty or null, allow all authenticated users
-        if ($requiredRole && !auth()->user()->hasRole($requiredRole)) {
+        // Check if user has required role OR is in admin override
+        $hasRole = !$requiredRole || $user->hasRole($requiredRole);
+        $isOverride = in_array($user->email, config('admin.override_emails', []));
+        
+        // Grant access if user has role OR is in override list
+        if (!($hasRole || $isOverride)) {
             abort(403, 'You do not have permission to view balance information.');
         }
 
