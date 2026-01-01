@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, Banknote, ChevronDown, Code, Eye, FileText, Info, Send, Settings } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { useWalletBalance } from '@/composables/useWalletBalance';
@@ -58,8 +59,16 @@ watch([walletBalance, realtimeNote], ([newBalance, newNote]) => {
 const { loading, error, generateVouchers } = useVoucherApi();
 const validationErrors = ref<Record<string, string>>({});
 
+// Check if user has advanced pricing mode feature flag
+const page = usePage();
+const hasAdvancedMode = computed(() => {
+    return page.props.auth?.feature_flags?.advanced_pricing_mode || false;
+});
+
 // Mode management (Simple vs Advanced)
-const { mode, switchMode } = useGenerateMode('simple');
+// If user doesn't have the feature flag, force simple mode
+const initialMode = hasAdvancedMode.value ? 'simple' : 'simple';
+const { mode, switchMode } = useGenerateMode(initialMode);
 const isSimpleMode = computed(() => mode.value === 'simple');
 
 console.log('[CreateV2] Initial mode:', mode.value);
@@ -593,7 +602,7 @@ const handleSubmit = async () => {
                 
                 <div class="flex items-center gap-4">
                     <!-- Expand/Collapse All (Advanced Mode only) -->
-                    <div v-if="!isSimpleMode" class="flex items-center gap-2 text-sm">
+                    <div v-if="hasAdvancedMode && !isSimpleMode" class="flex items-center gap-2 text-sm">
                         <Button
                             type="button"
                             variant="ghost"
@@ -615,8 +624,8 @@ const handleSubmit = async () => {
                         </Button>
                     </div>
                     
-                    <!-- Mode Toggle -->
-                    <div class="flex items-center gap-2">
+                    <!-- Mode Toggle (only if user has advanced mode feature) -->
+                    <div v-if="hasAdvancedMode" class="flex items-center gap-2">
                         <Label for="mode-toggle" class="text-sm text-muted-foreground">
                             {{ isSimpleMode ? 'Simple' : 'Advanced' }} Mode
                         </Label>
@@ -1229,8 +1238,8 @@ const handleSubmit = async () => {
                         </Card>
                     </Collapsible>
 
-                    <!-- Simple Mode Upgrade Notice -->
-                    <Card v-if="isSimpleMode" class="border-primary/50 bg-primary/5">
+                    <!-- Simple Mode Upgrade Notice (only if user has advanced mode feature) -->
+                    <Card v-if="hasAdvancedMode && isSimpleMode" class="border-primary/50 bg-primary/5">
                         <CardContent class="pt-6">
                             <div class="flex items-start gap-3">
                                 <Info class="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
