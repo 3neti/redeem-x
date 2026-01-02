@@ -45,14 +45,22 @@ class PayWithVoucher
         return DB::transaction(function () use ($user, $voucher) {
             $cash = $voucher->cash;
             $amount = $voucher->instructions->cash->amount;
+            
+            // Get issuer for sender attribution
+            $issuer = User::find($voucher->owner_id);
 
             // CRITICAL: Transfer FROM Cash wallet TO User wallet
             // This is the correct money flow - Cash entity holds escrowed funds
             $transfer = $cash->transfer($user, $amount * 100, [
-                'type' => 'voucher_payment',
+                'type' => 'voucher_payment', // Legacy compatibility
+                'deposit_type' => 'voucher_payment',
+                'payment_method' => 'Voucher',
                 'voucher_code' => $voucher->code,
                 'voucher_uuid' => $voucher->uuid,
                 'issuer_id' => $voucher->owner_id,
+                'sender_id' => $voucher->owner_id,
+                'sender_name' => $issuer?->name ?? 'Unknown',
+                'sender_identifier' => $voucher->code,
             ]);
 
             // Mark voucher as redeemed (direct update, bypasses observer to avoid DisburseCash pipeline)

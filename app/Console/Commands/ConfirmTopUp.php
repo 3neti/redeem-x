@@ -70,7 +70,8 @@ class ConfirmTopUp extends Command
         $paymentId = $this->option('payment-id') ?: 'MANUAL-' . now()->timestamp;
 
         $topUp->markAsPaid($paymentId);
-        $topUp->user->creditWalletFromTopUp($topUp);
+        // Console command: no initiatedBy (system operation)
+        $topUp->user->creditWalletFromTopUp($topUp, null);
 
         $this->info("✅ Top-up confirmed: {$topUp->reference_no}");
         $this->line("   User: {$topUp->user->email}");
@@ -104,7 +105,8 @@ class ConfirmTopUp extends Command
         foreach ($pending as $topUp) {
             $paymentId = 'MANUAL-' . now()->timestamp . '-' . $topUp->id;
             $topUp->markAsPaid($paymentId);
-            $topUp->user->creditWalletFromTopUp($topUp);
+            // Console command: no initiatedBy (system operation)
+            $topUp->user->creditWalletFromTopUp($topUp, null);
             $confirmed++;
 
             $this->line("✅ {$topUp->reference_no} - {$topUp->user->email} - ₱" . number_format($topUp->amount, 2));
