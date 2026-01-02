@@ -77,6 +77,18 @@ class RefreshDisbursementStatus
     ): JsonResponse {
         $voucher = Voucher::where('code', $code)->firstOrFail();
         
+        // Check ownership: only the voucher owner can refresh status
+        // Voucher uses polymorphic ownership (owner_id + owner_type)
+        $user = $request->user();
+        $isOwner = $voucher->owner_type === get_class($user) && $voucher->owner_id === $user->id;
+        
+        if (!$isOwner) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not own this voucher',
+            ], 403);
+        }
+        
         // Check if voucher has disbursement
         if (!isset($voucher->metadata['disbursement'])) {
             return response()->json([

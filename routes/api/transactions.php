@@ -37,6 +37,8 @@ Route::prefix('transactions')->name('api.transactions.')->group(function () {
     
     // Refresh disbursement status
     // POST /api/v1/transactions/{code}/refresh-status
+    // Rate limit: 5 requests per minute per user to prevent gateway abuse
     Route::post('{code}/refresh-status', \App\Actions\Api\Transactions\RefreshDisbursementStatus::class)
+        ->middleware('throttle:5,1')
         ->name('refresh-status');
 });

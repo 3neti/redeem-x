@@ -139,7 +139,7 @@ const refreshStatus = async () => {
     refreshing.value = true;
     
     try {
-        await fetch(`/api/v1/transactions/${props.transaction.code}/refresh-status`, {
+        const response = await fetch(`/api/v1/transactions/${props.transaction.code}/refresh-status`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -148,10 +148,22 @@ const refreshStatus = async () => {
             }
         });
         
+        if (!response.ok) {
+            const data = await response.json();
+            
+            // Handle rate limiting with a friendly message
+            if (response.status === 429) {
+                throw new Error('Please wait a moment before refreshing again. Rate limit: 5 requests per minute.');
+            }
+            
+            throw new Error(data.message || 'Failed to refresh status');
+        }
+        
         // Reload the entire page to get updated transaction data
         router.reload();
     } catch (error) {
         console.error('Failed to refresh status:', error);
+        alert(error instanceof Error ? error.message : 'Failed to refresh status');
     } finally {
         setTimeout(() => {
             refreshing.value = false;
