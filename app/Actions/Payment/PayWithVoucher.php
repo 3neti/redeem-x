@@ -58,7 +58,7 @@ class PayWithVoucher
             // Mark voucher as redeemed (direct update, bypasses observer to avoid DisburseCash pipeline)
             $voucher->update([
                 'redeemed_at' => now(),
-                'meta' => array_merge($voucher->meta ?? [], [
+                'metadata' => array_merge($voucher->metadata ?? [], [
                     'redemption_type' => 'voucher_payment',
                     'redeemer_user_id' => $user->id,
                     'transfer_uuid' => $transfer->uuid,
