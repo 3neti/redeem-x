@@ -12,15 +12,14 @@ const config = computed(() => page.props.sidebar?.balance || {});
 const { state } = useSidebar();
 
 // Check if user can view balance monitoring page
-const userRoles = computed(() => page.props.auth?.roles || []);
+const permissions = computed(() => page.props.auth?.permissions || []);
+const isAdminOverride = computed(() => page.props.auth?.is_admin_override || false);
 const balanceViewEnabled = computed(() => page.props.balance?.view_enabled ?? true);
-const balanceViewRole = computed(() => page.props.balance?.view_role);
 
 const canViewBalancePage = computed(() => {
     if (!balanceViewEnabled.value) return false;
-    // If no role required (empty string or null), allow all users
-    if (!balanceViewRole.value) return true;
-    return userRoles.value.includes(balanceViewRole.value);
+    // Check if user has 'view balance' permission OR is in admin override
+    return isAdminOverride.value || permissions.value.includes('view balance');
 });
 
 const {

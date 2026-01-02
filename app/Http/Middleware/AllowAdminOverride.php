@@ -12,7 +12,11 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Allow specific users to bypass admin permission checks.
  * 
- * Configure allowed emails in config/admin.php or via ADMIN_OVERRIDE_EMAILS env variable.
+ * Supports DUAL authorization:
+ * 1. Role-based (recommended): Users with super-admin/admin/power-user roles
+ * 2. Override emails (legacy): Emails in ADMIN_OVERRIDE_EMAILS env variable
+ * 
+ * This ensures backward compatibility during migration from .env to roles.
  */
 class AllowAdminOverride
 {
@@ -24,14 +28,23 @@ class AllowAdminOverride
             return $next($request);
         }
         
-        // Get allowed emails from config
-        $allowedEmails = config('admin.override_emails', []);
+        // Check role-based authorization first (recommended approach)
+        $hasAdminRole = $user->hasAnyRole(['super-admin', 'admin', 'power-user']);
         
-        // If user's email is in the override list, grant all admin permissions via Gate
-        if (in_array($user->email, $allowedEmails)) {
-            Gate::before(function ($user, $ability) use ($allowedEmails) {
-                // Allow all permission checks for override users
-                if (in_array($user->email, $allowedEmails)) {
+        // Check override email (legacy approach for backward compatibility)
+        $allowedEmails = config('admin.override_emails', []);
+        $isOverrideEmail = in_array($user->email, $allowedEmails);
+        
+        // Grant admin access if EITHER condition is true
+        if ($hasAdminRole || $isOverrideEmail) {
+            Gate::before(function ($gateUser, $ability) use ($allowedEmails) {
+                // Check if user has admin role
+                if ($gateUser->hasAnyRole(['super-admin', 'admin', 'power-user'])) {
+                    return true;
+                }
+                
+                // Check if user is in override email list
+                if (in_array($gateUser->email, $allowedEmails)) {
                     return true;
                 }
             });

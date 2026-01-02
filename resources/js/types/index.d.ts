@@ -3,6 +3,13 @@ import type { LucideIcon } from 'lucide-vue-next';
 
 export interface Auth {
     user: User;
+    roles: string[];
+    permissions: string[];
+    feature_flags: {
+        advanced_pricing_mode: boolean;
+        beta_features: boolean;
+    };
+    is_admin_override: boolean;
 }
 
 export interface BreadcrumbItem {

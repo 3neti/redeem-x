@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Laravel\Pennant\Feature;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -39,8 +40,16 @@ class HandleInertiaRequests extends Middleware
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
         $permissions = [];
+        $featureFlags = [];
+        
         if ($request->user()) {
             $permissions = $request->user()->getAllPermissions()->pluck('name')->toArray();
+            
+            // Get feature flags for current user
+            $featureFlags = [
+                'advanced_pricing_mode' => Feature::for($request->user())->active('advanced-pricing-mode'),
+                'beta_features' => Feature::for($request->user())->active('beta-features'),
+            ];
         }
 
         $parentShare = parent::share($request);
@@ -52,7 +61,12 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user()?->load(['roles:name', 'permissions:name', 'wallet']),
                 'roles' => $request->user()?->roles->pluck('name')->toArray() ?? [],
                 'permissions' => $permissions,
-                'is_admin_override' => $request->user() && in_array($request->user()->email, config('admin.override_emails', [])),
+                'feature_flags' => $featureFlags,
+                // Check BOTH role-based AND .env override (backward compatible)
+                'is_admin_override' => $request->user() && (
+                    in_array($request->user()->email, config('admin.override_emails', [])) ||
+                    $request->user()->hasAnyRole(['super-admin', 'admin', 'power-user'])
+                ),
             ],
             'balance' => [
                 'view_enabled' => config('balance.view_enabled', true),

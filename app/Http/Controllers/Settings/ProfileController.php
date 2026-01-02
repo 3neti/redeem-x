@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 use Laravel\WorkOS\Http\Requests\AuthKitAccountDeletionRequest;
 
 class ProfileController extends Controller
@@ -17,9 +18,45 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        
+        // Get available features (only if user is super-admin)
+        $availableFeatures = [];
+        if ($user->hasRole('super-admin')) {
+            $availableFeatures = $this->getAvailableFeatures($user);
+        }
+        
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
+            'available_features' => $availableFeatures,
         ]);
+    }
+    
+    /**
+     * Get list of available features with their current status.
+     */
+    protected function getAvailableFeatures(User $user): array
+    {
+        $features = [
+            [
+                'key' => 'advanced-pricing-mode',
+                'name' => 'Advanced Pricing Mode',
+                'description' => 'Show advanced pricing options in voucher generation with collapsible cards, location validation, and complex pricing rules.',
+                'locked' => true, // Can't be manually toggled (role-based)
+            ],
+            [
+                'key' => 'beta-features',
+                'name' => 'Beta Features',
+                'description' => 'Access experimental features before public release. These features are under active development and may change.',
+                'locked' => false, // Can be toggled
+            ],
+        ];
+        
+        // Add current status for each feature
+        return collect($features)->map(function ($feature) use ($user) {
+            $feature['active'] = Feature::for($user)->active($feature['key']);
+            return $feature;
+        })->toArray();
     }
 
     /**
@@ -49,6 +86,45 @@ class ProfileController extends Controller
         }
 
         return to_route('profile.edit');
+    }
+    
+    /**
+     * Toggle a feature flag for the current user.
+     */
+    public function toggleFeature(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        
+        // Only super-admins can manage feature flags
+        if (!$user->hasRole('super-admin')) {
+            abort(403, 'Only super-admins can manage feature flags.');
+        }
+        
+        $validated = $request->validate([
+            'feature' => ['required', 'string'],
+            'enabled' => ['required', 'boolean'],
+        ]);
+        
+        // Check if feature is locked (can't be manually toggled)
+        $availableFeatures = $this->getAvailableFeatures($user);
+        $feature = collect($availableFeatures)->firstWhere('key', $validated['feature']);
+        
+        if (!$feature) {
+            return back()->withErrors(['feature' => 'Invalid feature.']);
+        }
+        
+        if ($feature['locked']) {
+            return back()->withErrors(['feature' => 'This feature is locked and cannot be manually toggled.']);
+        }
+        
+        // Toggle feature
+        if ($validated['enabled']) {
+            Feature::for($user)->activate($validated['feature']);
+        } else {
+            Feature::for($user)->deactivate($validated['feature']);
+        }
+        
+        return back()->with('status', 'feature-toggled');
     }
 
     /**

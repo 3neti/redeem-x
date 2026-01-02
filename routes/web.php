@@ -179,6 +179,7 @@ Route::middleware([
     
     // Balance monitoring routes (admin only, configurable via .env)
     Route::get('balances', [\App\Http\Controllers\Balances\BalanceController::class, 'index'])
+        ->middleware(['admin.override', 'permission:view balance'])
         ->name('balances.index');
     
     // Admin routes (requires super-admin role)

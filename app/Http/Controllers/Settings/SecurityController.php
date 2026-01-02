@@ -14,6 +14,10 @@ class SecurityController extends Controller
 {
     /**
      * Check if user is authorized to access security settings.
+     * 
+     * Supports DUAL authorization (backward compatible):
+     * 1. Role-based: super-admin role
+     * 2. Override: ADMIN_OVERRIDE_EMAILS or system user ID
      */
     protected function authorize(Request $request): void
     {
@@ -21,7 +25,15 @@ class SecurityController extends Controller
         $systemUserId = config('account.system_user_id');
         $adminEmails = config('admin.override_emails', []);
 
-        if ($user->id !== $systemUserId && !in_array($user->email, $adminEmails)) {
+        // Check role-based access (recommended)
+        $hasAdminRole = $user->hasRole('super-admin');
+        
+        // Check legacy override methods
+        $isSystemUser = $user->id === $systemUserId;
+        $isOverrideEmail = in_array($user->email, $adminEmails);
+
+        // Grant access if ANY condition is true
+        if (!($hasAdminRole || $isSystemUser || $isOverrideEmail)) {
             abort(403, 'Only system administrators can access security settings.');
         }
     }
