@@ -31,13 +31,31 @@ class GetRecentActivity
             ->limit(5)
             ->get()
             ->map(function ($charge) {
+                // Get voucher amount from instructions snapshot (JSON column)
+                $instructions = is_array($charge->instructions_snapshot) 
+                    ? $charge->instructions_snapshot 
+                    : json_decode($charge->instructions_snapshot, true);
+                
+                $voucherAmount = $instructions['cash']['amount'] ?? 0;
+                $totalAmount = $voucherAmount * $charge->voucher_count;
+                
+                // Get voucher codes - show first code if multiple, or "Multiple" if > 3
+                $codes = $charge->voucher_codes ?? [];
+                $codeDisplay = match(count($codes)) {
+                    0 => 'N/A',
+                    1 => $codes[0],
+                    2 => implode(', ', $codes),
+                    3 => implode(', ', $codes),
+                    default => $codes[0] . ' +' . (count($codes) - 1) . ' more'
+                };
+                
                 return [
                     'id' => $charge->id,
                     'type' => 'generation',
-                    'campaign_name' => $charge->campaign?->name ?? 'N/A',
+                    'voucher_codes' => $codeDisplay,
                     'voucher_count' => $charge->voucher_count,
-                    'total_amount' => $charge->instructions_snapshot['cash']['amount'] ?? 0,
-                    'total_charge' => (float) $charge->total_charge,
+                    'amount' => (float) $totalAmount, // Total value of all vouchers generated
+                    'total_charge' => (float) $charge->total_charge, // What user was charged
                     'currency' => 'PHP',
                     'generated_at' => $charge->generated_at->toIso8601String(),
                 ];
@@ -87,13 +105,18 @@ class GetRecentActivity
             ->limit(3)
             ->get()
             ->map(function ($topUp) {
+                // Show institution if selected, otherwise show gateway name
+                $displayName = $topUp->institution_code 
+                    ?? ucfirst($topUp->gateway) 
+                    ?? 'Manual';
+                
                 return [
                     'id' => $topUp->id,
                     'type' => 'topup',
                     'amount' => (float) $topUp->amount,
                     'currency' => $topUp->currency,
                     'gateway' => $topUp->gateway,
-                    'institution' => $topUp->institution_code ?? 'N/A',
+                    'institution' => $displayName,
                     'paid_at' => $topUp->paid_at->toIso8601String(),
                 ];
             });
