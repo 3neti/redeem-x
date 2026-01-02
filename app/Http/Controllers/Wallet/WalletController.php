@@ -16,10 +16,10 @@ class WalletController extends Controller
     {
         $user = $request->user();
         
-        // Get recent transactions (last 5)
+        // Get recent transactions (last 20 for grouping)
         $recentTransactions = $user->walletTransactions()
             ->latest()
-            ->limit(5)
+            ->limit(20)
             ->get()
             ->map(function ($tx) {
                 return [
