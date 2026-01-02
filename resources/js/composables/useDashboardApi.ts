@@ -42,10 +42,10 @@ export interface RecentActivity {
     generations: Array<{
         id: number;
         type: string;
-        campaign_name: string;
+        voucher_codes: string; // Comma-separated codes or "CODE +N more"
         voucher_count: number;
-        total_amount: number;
-        total_charge: number;
+        amount: number; // Total value of all vouchers generated
+        total_charge: number; // What user was charged (including fees)
         currency: string;
         generated_at: string;
     }>;

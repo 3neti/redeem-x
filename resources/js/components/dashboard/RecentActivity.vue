@@ -62,7 +62,7 @@ const allActivities = computed(() => {
             ...props.activity.generations.map((gen) => ({
                 ...gen,
                 icon: Ticket,
-                displayText: `Generated ${gen.voucher_count} vouchers (${gen.campaign_name})`,
+                displayText: `Generated ${gen.voucher_count} voucher${gen.voucher_count > 1 ? 's' : ''} (${gen.voucher_codes})`,
                 timestamp: gen.generated_at,
             })),
         );
