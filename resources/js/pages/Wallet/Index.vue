@@ -61,7 +61,13 @@ const formatRelativeTime = (dateString: string) => {
 };
 
 const getTransactionLabel = (tx: Transaction) => {
-    if (tx.type === 'deposit') return 'Top Up';
+    if (tx.type === 'deposit') {
+        // Check if this is a voucher payment vs bank top-up
+        if (tx.meta?.type === 'voucher_payment') {
+            return 'Voucher Payment';
+        }
+        return 'Bank Top-Up';
+    }
     
     if (tx.type === 'withdraw') {
         // Show specific charge category if available in meta
@@ -75,6 +81,11 @@ const getTransactionLabel = (tx: Transaction) => {
 };
 
 const getTransactionDescription = (tx: Transaction) => {
+    // Show voucher code for voucher payments
+    if (tx.type === 'deposit' && tx.meta?.type === 'voucher_payment' && tx.meta?.voucher_code) {
+        return `Code: ${tx.meta.voucher_code}`;
+    }
+    
     if (tx.type === 'withdraw' && tx.meta?.description) {
         return tx.meta.description;
     }
