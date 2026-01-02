@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
+import VoucherPaymentModal from '@/components/VoucherPaymentModal.vue';
 import type { BreadcrumbItem } from '@/types';
 import {
     Card,
@@ -18,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast/use-toast';
-import { Wallet, CreditCard, ArrowUpRight, Clock, CheckCircle2, XCircle } from 'lucide-vue-next';
+import { Wallet, CreditCard, ArrowUpRight, Clock, CheckCircle2, XCircle, Ticket } from 'lucide-vue-next';
 
 interface TopUpData {
     reference_no: string;
@@ -53,6 +54,20 @@ const error = ref<string | null>(null);
 
 // Quick amount buttons
 const quickAmounts = [100, 500, 1000, 2500, 5000];
+
+// Voucher payment modal state
+const voucherModalOpen = ref(false);
+
+const openVoucherModal = () => {
+    voucherModalOpen.value = true;
+};
+
+const handleVoucherSuccess = (data: { amount: number; newBalance: number }) => {
+    toast({
+        title: 'Success!',
+        description: `₱${data.amount} added to your wallet`,
+    });
+};
 
 const formattedBalance = computed(() => {
     return new Intl.NumberFormat('en-PH', {
@@ -170,13 +185,26 @@ const handleSubmit = async () => {
                 <div class="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                <CreditCard class="h-5 w-5" />
-                                Add Funds
-                            </CardTitle>
-                            <CardDescription>
-                                Top-up your wallet using Direct Checkout
-                            </CardDescription>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <CardTitle class="flex items-center gap-2">
+                                        <CreditCard class="h-5 w-5" />
+                                        Add Funds
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Top-up your wallet using Direct Checkout
+                                    </CardDescription>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    @click="openVoucherModal"
+                                    class="flex items-center gap-2"
+                                >
+                                    <Ticket class="h-4 w-4" />
+                                    Have a voucher?
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
                             <!-- Amount Input -->
@@ -320,5 +348,12 @@ const handleSubmit = async () => {
                 </div>
             </div>
         </div>
+
+        <!-- Voucher Payment Modal -->
+        <VoucherPaymentModal
+            :open="voucherModalOpen"
+            @update:open="voucherModalOpen = $event"
+            @success="handleVoucherSuccess"
+        />
     </AppLayout>
 </template>

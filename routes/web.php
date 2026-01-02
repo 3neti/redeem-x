@@ -159,7 +159,7 @@ Route::middleware([
             ->name('add-funds');
     });
     
-    // Top-Up routes
+    // Top-Up routes (bank-based external money)
     Route::prefix('topup')->name('topup.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'index'])
             ->name('index');
@@ -169,6 +169,13 @@ Route::middleware([
             ->name('callback');
         Route::get('status/{referenceNo}', [\App\Http\Controllers\Wallet\TopUpController::class, 'status'])
             ->name('status');
+    });
+    
+    // Payment routes (voucher-based internal transfers)
+    Route::prefix('pay')->name('pay.')->group(function () {
+        Route::post('voucher', [\App\Http\Controllers\Payment\PaymentController::class, 'voucher'])
+            ->middleware('throttle:5,1')
+            ->name('voucher');
     });
     
     // User billing routes
