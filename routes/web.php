@@ -164,6 +164,7 @@ Route::middleware([
         Route::get('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'index'])
             ->name('index');
         Route::post('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'store'])
+            ->middleware('role:super-admin')
             ->name('store');
         Route::get('callback', [\App\Http\Controllers\Wallet\TopUpController::class, 'callback'])
             ->name('callback');

@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
-import VoucherPaymentModal from '@/components/VoucherPaymentModal.vue';
+import VoucherPaymentCard from '@/components/VoucherPaymentCard.vue';
 import type { BreadcrumbItem } from '@/types';
 import {
     Card,
@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast/use-toast';
-import { Wallet, CreditCard, ArrowUpRight, Clock, CheckCircle2, XCircle, Ticket } from 'lucide-vue-next';
+import { Wallet, CreditCard, ArrowUpRight, Clock, CheckCircle2, XCircle, ShieldAlert } from 'lucide-vue-next';
 
 interface TopUpData {
     reference_no: string;
@@ -34,6 +34,7 @@ interface Props {
     balance: number;
     recentTopUps: TopUpData[];
     pendingTopUps: TopUpData[];
+    isSuperAdmin: boolean;
 }
 
 const props = defineProps<Props>();
@@ -54,20 +55,6 @@ const error = ref<string | null>(null);
 
 // Quick amount buttons
 const quickAmounts = [100, 500, 1000, 2500, 5000];
-
-// Voucher payment modal state
-const voucherModalOpen = ref(false);
-
-const openVoucherModal = () => {
-    voucherModalOpen.value = true;
-};
-
-const handleVoucherSuccess = (data: { amount: number; newBalance: number }) => {
-    toast({
-        title: 'Success!',
-        description: `₱${data.amount} added to your wallet`,
-    });
-};
 
 const formattedBalance = computed(() => {
     return new Intl.NumberFormat('en-PH', {
@@ -180,30 +167,27 @@ const handleSubmit = async () => {
                 />
             </div>
 
-            <div class="grid gap-6 md:grid-cols-2">
-                <!-- Left Column: Top-Up Form -->
+            <div class="grid gap-6 lg:grid-cols-2">
+                <!-- Left Column: Voucher Payment (Always Visible) -->
                 <div class="space-y-6">
-                    <Card>
+                    <VoucherPaymentCard />
+                </div>
+
+                <!-- Right Column: Bank Top-Up (Super-Admin Only) -->
+                <div class="space-y-6">
+                    <Card v-if="isSuperAdmin">
                         <CardHeader>
                             <div class="flex items-center justify-between">
                                 <div>
                                     <CardTitle class="flex items-center gap-2">
                                         <CreditCard class="h-5 w-5" />
                                         Add Funds
+                                        <Badge variant="secondary" class="ml-2">Admin Only</Badge>
                                     </CardTitle>
                                     <CardDescription>
-                                        Top-up your wallet using Direct Checkout
+                                        Top-up your wallet using NetBank Direct Checkout
                                     </CardDescription>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    @click="openVoucherModal"
-                                    class="flex items-center gap-2"
-                                >
-                                    <Ticket class="h-4 w-4" />
-                                    Have a voucher?
-                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-6">
@@ -269,9 +253,31 @@ const handleSubmit = async () => {
                             </Button>
                         </CardContent>
                     </Card>
-                </div>
 
-                <!-- Right Column: Recent & Pending Top-Ups -->
+                    <!-- Restricted Access Message (Non-Super-Admins) -->
+                    <Card v-else>
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <ShieldAlert class="h-5 w-5 text-muted-foreground" />
+                                Bank Top-Up Restricted
+                            </CardTitle>
+                            <CardDescription>
+                                This feature is only available to administrators
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Alert>
+                                <AlertDescription>
+                                    Bank-based top-ups are restricted to administrators. Please use voucher payments or contact support for assistance.
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            <!-- Recent & Pending Top-Ups Section -->
+            <div class="grid gap-6 md:grid-cols-2">
                 <div class="space-y-6">
                     <!-- Pending Top-Ups -->
                     <Card v-if="pendingTopUps.length > 0">
@@ -348,12 +354,5 @@ const handleSubmit = async () => {
                 </div>
             </div>
         </div>
-
-        <!-- Voucher Payment Modal -->
-        <VoucherPaymentModal
-            :open="voucherModalOpen"
-            @update:open="voucherModalOpen = $event"
-            @success="handleVoucherSuccess"
-        />
     </AppLayout>
 </template>

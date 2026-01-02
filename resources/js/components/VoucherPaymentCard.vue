@@ -2,22 +2,12 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Ticket, CheckCircle2, Loader2 } from 'lucide-vue-next';
-
-interface Props {
-    open: boolean;
-}
-
-const props = defineProps<Props>();
-const emit = defineEmits<{
-    (e: 'update:open', value: boolean): void;
-    (e: 'success', data: { amount: number; newBalance: number }): void;
-}>();
 
 const voucherCode = ref('');
 const loading = ref(false);
@@ -25,17 +15,8 @@ const error = ref<string | null>(null);
 const success = ref(false);
 const successData = ref<{ amount: number; newBalance: number } | null>(null);
 
-const closeDialog = () => {
-    emit('update:open', false);
-    // Reset state after closing animation
-    setTimeout(() => {
-        resetForm();
-    }, 200);
-};
-
 const resetForm = () => {
     voucherCode.value = '';
-    loading.value = false;
     error.value = null;
     success.value = false;
     successData.value = null;
@@ -69,18 +50,20 @@ const handleSubmit = async () => {
                 newBalance: data.new_balance,
             };
             
-            emit('success', successData.value);
-            
-            // Auto-close after 2 seconds and reload page to show updated balance
+            // Auto-reset form after 3 seconds and reload to show updated balance
             setTimeout(() => {
-                closeDialog();
+                resetForm();
                 router.reload();
-            }, 2000);
+            }, 3000);
         } else {
             error.value = data.error || 'Failed to redeem voucher';
         }
     } catch (e: any) {
-        error.value = e.response?.data?.error || e.message || 'An error occurred';
+        const errorMessage = e.response?.data?.errors?.code?.[0] || 
+                           e.response?.data?.message || 
+                           e.message || 
+                           'An error occurred';
+        error.value = errorMessage;
     } finally {
         loading.value = false;
     }
@@ -88,18 +71,17 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <Dialog :open="open" @update:open="closeDialog">
-        <DialogContent class="max-w-md">
-            <DialogHeader>
-                <DialogTitle class="flex items-center gap-2">
-                    <Ticket class="h-5 w-5" />
-                    Pay with Voucher
-                </DialogTitle>
-                <DialogDescription>
-                    Enter a voucher code to add funds to your wallet instantly
-                </DialogDescription>
-            </DialogHeader>
-
+    <Card>
+        <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+                <Ticket class="h-5 w-5" />
+                Pay with Voucher
+            </CardTitle>
+            <CardDescription>
+                Redeem a voucher code to add funds instantly
+            </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
             <div v-if="!success" class="space-y-4">
                 <!-- Voucher Code Input -->
                 <div class="space-y-2">
@@ -115,7 +97,7 @@ const handleSubmit = async () => {
                         @input="voucherCode = voucherCode.toUpperCase()"
                     />
                     <p class="text-xs text-muted-foreground">
-                        The voucher code is case-insensitive
+                        Case-insensitive. The voucher value will be credited immediately.
                     </p>
                 </div>
 
@@ -125,36 +107,26 @@ const handleSubmit = async () => {
                 </Alert>
 
                 <!-- Info Alert -->
-                <Alert>
+                <Alert v-else>
                     <AlertDescription class="text-sm">
-                        <strong>Note:</strong> Vouchers can only be redeemed once. The voucher value will be credited to your wallet immediately.
+                        <strong>Note:</strong> Vouchers can only be redeemed once. Funds are added to your wallet instantly.
                     </AlertDescription>
                 </Alert>
 
-                <!-- Action Buttons -->
-                <div class="flex gap-3">
-                    <Button
-                        variant="outline"
-                        class="flex-1"
-                        @click="closeDialog"
-                        :disabled="loading"
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        class="flex-1"
-                        @click="handleSubmit"
-                        :disabled="loading || !voucherCode.trim()"
-                    >
-                        <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-                        {{ loading ? 'Processing...' : 'Redeem Voucher' }}
-                    </Button>
-                </div>
+                <!-- Submit Button -->
+                <Button
+                    class="w-full"
+                    @click="handleSubmit"
+                    :disabled="loading || !voucherCode.trim()"
+                >
+                    <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+                    {{ loading ? 'Processing...' : 'Redeem Voucher' }}
+                </Button>
             </div>
 
             <!-- Success State -->
             <div v-else class="space-y-4">
-                <div class="flex flex-col items-center justify-center py-6 text-center">
+                <div class="flex flex-col items-center justify-center py-4 text-center">
                     <div class="rounded-full bg-green-100 p-3 mb-4">
                         <CheckCircle2 class="h-8 w-8 text-green-600" />
                     </div>
@@ -170,9 +142,9 @@ const handleSubmit = async () => {
                     </div>
                 </div>
                 <p class="text-xs text-center text-muted-foreground">
-                    This dialog will close automatically...
+                    Page will refresh automatically...
                 </p>
             </div>
-        </DialogContent>
-    </Dialog>
+        </CardContent>
+    </Card>
 </template>

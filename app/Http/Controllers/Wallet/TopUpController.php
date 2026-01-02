@@ -42,6 +42,7 @@ class TopUpController extends Controller
             'balance' => $user->balanceFloat,
             'recentTopUps' => $recentTopUps,
             'pendingTopUps' => $pendingTopUps,
+            'isSuperAdmin' => $user->hasRole('super-admin'),
         ]);
     }
 
