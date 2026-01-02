@@ -16,22 +16,28 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Seed instruction items for proper voucher generation
     $this->seed(\Database\Seeders\InstructionItemSeeder::class);
+    
+    // Helper to generate voucher via API (full pipeline with escrow)
+    $this->generateVoucher = function (User $issuer, array $overrides = []) {
+        $base = ['amount' => 100, 'count' => 1];
+        
+        $response = $this->postJson('/api/v1/vouchers', array_merge($base, $overrides), [
+            'Authorization' => 'Bearer ' . $issuer->createToken('test')->plainTextToken,
+            'Idempotency-Key' => \Illuminate\Support\Str::uuid()->toString(),
+        ]);
+        
+        $response->assertStatus(201);
+        $code = $response->json('data.vouchers.0.code');
+        return Voucher::where('code', $code)->firstOrFail();
+    };
 });
-
-// Helper function to generate vouchers
-function generateVoucher(User $issuer, array $overrides = []): Voucher {
-    actingAs($issuer);
-    $base = VoucherInstructionsData::generateFromScratch()->toArray();
-    $instructions = VoucherInstructionsData::from(array_merge($base, $overrides));
-    return GenerateVouchers::run($instructions)->first();
-}
 
 test('transfers money from Cash wallet to User wallet', function () {
     // Arrange: Create issuer and generate voucher
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000); // Give issuer funds
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     // Create redeemer
     $redeemer = User::factory()->create();
@@ -39,25 +45,18 @@ test('transfers money from Cash wallet to User wallet', function () {
     // Get initial balances
     $cashBalanceBefore = $voucher->cash->balanceFloat;
     $redeemerBalanceBefore = $redeemer->balanceFloat;
-    $voucherAmount = $voucher->amount;
-    
-    dump([
-        'cash_balance_before' => $cashBalanceBefore,
-        'redeemer_balance_before' => $redeemerBalanceBefore,
-        'voucher_amount' => $voucherAmount,
-        'issuer_balance' => $issuer->fresh()->balanceFloat,
-    ]);
+    $voucherAmount = $voucher->instructions->cash->amount;
     
     // Act: Pay with voucher
     $result = PayWithVoucher::run($redeemer, $voucher->code);
     
     // Assert: Cash wallet decreased
-    expect($voucher->cash->fresh()->balanceFloat)
-        ->toBe($cashBalanceBefore - $voucherAmount);
+    expect(floatval($voucher->cash->fresh()->balanceFloat))
+        ->toBe(floatval($cashBalanceBefore) - $voucherAmount);
     
     // Assert: User wallet increased
-    expect($redeemer->fresh()->balanceFloat)
-        ->toBe($redeemerBalanceBefore + $voucherAmount);
+    expect(floatval($redeemer->fresh()->balanceFloat))
+        ->toBe(floatval($redeemerBalanceBefore) + $voucherAmount);
     
     // Assert: Success response
     expect($result['success'])->toBeTrue();
@@ -70,7 +69,7 @@ test('marks voucher as redeemed with correct metadata', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $redeemer = User::factory()->create();
     
@@ -92,7 +91,7 @@ test('creates Transfer transaction record', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $redeemer = User::factory()->create();
     
@@ -116,7 +115,7 @@ test('rejects already redeemed voucher', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $redeemer = User::factory()->create();
     
@@ -132,7 +131,7 @@ test('rejects expired voucher', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer, ['ttl' => 'PT1S']); // 1 second TTL
+    $voucher = ($this->generateVoucher)($issuer, ['ttl' => 'PT1S']); // 1 second TTL
     
     $redeemer = User::factory()->create();
     
@@ -148,7 +147,7 @@ test('rejects voucher that has not started', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     // Manually set future start date
     $voucher->update(['starts_at' => now()->addDay()]);
@@ -172,7 +171,7 @@ test('issuer can reclaim own voucher', function () {
     $initialBalance = 1000;
     $issuer->depositFloat($initialBalance);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $balanceAfterGeneration = $issuer->fresh()->balanceFloat;
     $voucherAmount = $voucher->amount;
@@ -190,7 +189,7 @@ test('normalizes voucher code to uppercase', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $redeemer = User::factory()->create();
     
@@ -207,7 +206,7 @@ test('includes issuer_id in transaction metadata', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $redeemer = User::factory()->create();
     
@@ -231,7 +230,7 @@ test('bypasses post-redemption pipeline', function () {
     $issuer = User::factory()->create();
     $issuer->depositFloat(1000);
     
-    $voucher = generateVoucher($issuer);
+    $voucher = ($this->generateVoucher)($issuer);
     
     $redeemer = User::factory()->create();
     

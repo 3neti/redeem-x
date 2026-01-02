@@ -44,7 +44,7 @@ class PayWithVoucher
         // Step 2: Transfer from Cash wallet to User wallet (atomic transaction)
         return DB::transaction(function () use ($user, $voucher) {
             $cash = $voucher->cash;
-            $amount = $voucher->amount;
+            $amount = $voucher->instructions->cash->amount;
 
             // CRITICAL: Transfer FROM Cash wallet TO User wallet
             // This is the correct money flow - Cash entity holds escrowed funds
