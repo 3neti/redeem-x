@@ -6,7 +6,8 @@ import { Head, router } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUpCircle, QrCode, Receipt, TrendingUp, TrendingDown, Activity } from 'lucide-vue-next';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ArrowUpCircle, QrCode, Receipt, TrendingUp, TrendingDown, Activity, ChevronDown, Ticket } from 'lucide-vue-next';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 
 interface Transaction {
@@ -61,9 +62,80 @@ const formatRelativeTime = (dateString: string) => {
 
 const getTransactionLabel = (tx: Transaction) => {
     if (tx.type === 'deposit') return 'Top Up';
-    if (tx.type === 'withdraw') return 'Voucher Generation';
+    
+    if (tx.type === 'withdraw') {
+        // Show specific charge category if available in meta
+        if (tx.meta?.title) {
+            return tx.meta.title;
+        }
+        return 'Voucher Generation';
+    }
+    
     return tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
 };
+
+const getTransactionDescription = (tx: Transaction) => {
+    if (tx.type === 'withdraw' && tx.meta?.description) {
+        return tx.meta.description;
+    }
+    return null;
+};
+
+// Group transactions by type and timestamp
+// Voucher generation charges from the same batch will have the same created_at
+const groupedTransactions = computed(() => {
+    const groups: Array<{
+        key: string;
+        timestamp: string;
+        type: string;
+        isGroup: boolean;
+        transactions: Transaction[];
+        totalAmount: number;
+    }> = [];
+    
+    const txByTimestamp = new Map<string, Transaction[]>();
+    
+    // Group withdraw transactions by timestamp
+    for (const tx of props.recentTransactions) {
+        if (tx.type === 'withdraw') {
+            const key = tx.created_at;
+            if (!txByTimestamp.has(key)) {
+                txByTimestamp.set(key, []);
+            }
+            txByTimestamp.get(key)!.push(tx);
+        } else {
+            // Non-withdraw transactions are not grouped
+            groups.push({
+                key: `single-${tx.id}`,
+                timestamp: tx.created_at,
+                type: tx.type,
+                isGroup: false,
+                transactions: [tx],
+                totalAmount: tx.amount,
+            });
+        }
+    }
+    
+    // Add grouped withdraw transactions
+    // Note: We always group withdraw transactions (voucher generations) for consistency
+    // Even single charges are shown as groups for uniform UX
+    for (const [timestamp, transactions] of txByTimestamp.entries()) {
+        const totalAmount = transactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+        groups.push({
+            key: `group-${timestamp}`,
+            timestamp,
+            type: 'withdraw',
+            isGroup: true, // Always show as group for voucher generations
+            transactions,
+            totalAmount,
+        });
+    }
+    
+    // Sort by timestamp descending
+    groups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    return groups;
+});
 
 const getTransactionColor = (amount: number) => {
     return amount >= 0 ? 'text-green-600' : 'text-red-600';
@@ -178,25 +250,75 @@ const getTransactionColor = (amount: number) => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div v-if="recentTransactions.length > 0" class="space-y-4">
-                        <div
-                            v-for="tx in recentTransactions"
-                            :key="tx.id"
-                            class="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0"
-                        >
-                            <div class="space-y-1">
-                                <p class="font-medium">{{ getTransactionLabel(tx) }}</p>
-                                <p class="text-sm text-muted-foreground">
-                                    {{ formatRelativeTime(tx.created_at) }}
-                                </p>
-                            </div>
-                            <div class="text-right">
-                                <p :class="['font-semibold', getTransactionColor(tx.amount)]">
-                                    {{ tx.amount >= 0 ? '+' : '' }}{{ formatCurrency(tx.amount) }}
-                                </p>
-                                <p class="text-xs text-muted-foreground">
-                                    {{ tx.confirmed ? 'Confirmed' : 'Pending' }}
-                                </p>
+                    <div v-if="groupedTransactions.length > 0" class="space-y-3">
+                        <div v-for="group in groupedTransactions.slice(0, 10)" :key="group.key">
+                            <!-- Grouped voucher generation (expandable) -->
+                            <Collapsible v-if="group.isGroup" class="border rounded-lg">
+                                <div class="flex items-center justify-between p-3">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <Ticket class="h-4 w-4 text-muted-foreground" />
+                                            <p class="font-medium">Voucher Generation</p>
+                                        </div>
+                                        <p class="text-xs text-muted-foreground mt-1">
+                                            {{ group.transactions.length }} charges • {{ formatRelativeTime(group.timestamp) }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-right">
+                                            <p :class="['font-semibold', getTransactionColor(group.totalAmount)]">
+                                                {{ formatCurrency(group.totalAmount) }}
+                                            </p>
+                                            <p class="text-xs text-muted-foreground">
+                                                {{ group.transactions[0].confirmed ? 'Confirmed' : 'Pending' }}
+                                            </p>
+                                        </div>
+                                        <CollapsibleTrigger as-child>
+                                            <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+                                                <ChevronDown class="h-4 w-4" />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                    </div>
+                                </div>
+                                <CollapsibleContent>
+                                    <div class="border-t bg-muted/30 p-3 space-y-2">
+                                        <p class="text-xs font-medium text-muted-foreground uppercase">Charge Breakdown</p>
+                                        <div
+                                            v-for="tx in group.transactions"
+                                            :key="tx.id"
+                                            class="flex items-center justify-between text-sm py-1"
+                                        >
+                                            <div>
+                                                <p class="font-medium">{{ getTransactionLabel(tx) }}</p>
+                                                <p v-if="getTransactionDescription(tx)" class="text-xs text-muted-foreground">
+                                                    {{ getTransactionDescription(tx) }}
+                                                </p>
+                                            </div>
+                                            <p class="font-mono text-xs">{{ formatCurrency(tx.amount) }}</p>
+                                        </div>
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
+
+                            <!-- Single transaction (deposits, single charges) -->
+                            <div v-else class="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
+                                <div class="space-y-1">
+                                    <p class="font-medium">{{ getTransactionLabel(group.transactions[0]) }}</p>
+                                    <p v-if="getTransactionDescription(group.transactions[0])" class="text-xs text-muted-foreground">
+                                        {{ getTransactionDescription(group.transactions[0]) }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        {{ formatRelativeTime(group.timestamp) }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p :class="['font-semibold', getTransactionColor(group.totalAmount)]">
+                                        {{ group.totalAmount >= 0 ? '+' : '' }}{{ formatCurrency(group.totalAmount) }}
+                                    </p>
+                                    <p class="text-xs text-muted-foreground">
+                                        {{ group.transactions[0].confirmed ? 'Confirmed' : 'Pending' }}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
