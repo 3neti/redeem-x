@@ -82,7 +82,7 @@ class TopUpController extends Controller
                 $topUp = TopUp::where('reference_no', $result->reference_no)->first();
                 if ($topUp && !$topUp->isPaid()) {
                     $topUp->markAsPaid('FAKE-AUTO-' . now()->timestamp);
-                    $user->creditWalletFromTopUp($topUp);
+                    $user->creditWalletFromTopUp($topUp, auth()->user());
                     
                     if (self::DEBUG) {
                         Log::info('[TopUp] Auto-confirmed (fake mode)', [

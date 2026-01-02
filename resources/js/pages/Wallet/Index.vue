@@ -62,8 +62,12 @@ const formatRelativeTime = (dateString: string) => {
 
 const getTransactionLabel = (tx: Transaction) => {
     if (tx.type === 'deposit') {
-        // Check if this is a voucher payment vs bank top-up
-        if (tx.meta?.type === 'voucher_payment') {
+        // Use new payment_method metadata if available
+        if (tx.meta?.payment_method) {
+            return tx.meta.payment_method;
+        }
+        // Fallback to legacy type detection
+        if (tx.meta?.type === 'voucher_payment' || tx.meta?.deposit_type === 'voucher_payment') {
             return 'Voucher Payment';
         }
         return 'Bank Top-Up';
@@ -81,9 +85,18 @@ const getTransactionLabel = (tx: Transaction) => {
 };
 
 const getTransactionDescription = (tx: Transaction) => {
-    // Show voucher code for voucher payments
-    if (tx.type === 'deposit' && tx.meta?.type === 'voucher_payment' && tx.meta?.voucher_code) {
-        return `Code: ${tx.meta.voucher_code}`;
+    // Show sender info for deposits
+    if (tx.type === 'deposit') {
+        if (tx.meta?.sender_name && tx.meta?.sender_identifier) {
+            return `From: ${tx.meta.sender_name} (${tx.meta.sender_identifier})`;
+        }
+        if (tx.meta?.sender_name) {
+            return `From: ${tx.meta.sender_name}`;
+        }
+        // Legacy: Show voucher code for voucher payments
+        if (tx.meta?.voucher_code) {
+            return `Code: ${tx.meta.voucher_code}`;
+        }
     }
     
     if (tx.type === 'withdraw' && tx.meta?.description) {

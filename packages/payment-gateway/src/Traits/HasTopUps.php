@@ -136,8 +136,11 @@ trait HasTopUps
     /**
      * Credit wallet from a paid top-up.
      * Expects model to have wallet functionality (Bavix Wallet).
+     *
+     * @param TopUpInterface $topUp
+     * @param mixed|null $initiatedBy User who initiated the top-up (for audit trail)
      */
-    public function creditWalletFromTopUp(TopUpInterface $topUp): void
+    public function creditWalletFromTopUp(TopUpInterface $topUp, $initiatedBy = null): void
     {
         if (!$topUp->isPaid()) {
             return;
@@ -147,11 +150,22 @@ trait HasTopUps
             // Bavix Wallet stores amounts in cents, so multiply by 100
             $amountInCents = (int)($topUp->getAmount() * 100);
             
-            $this->deposit($amountInCents, [
-                'type' => 'top_up',
+            $metadata = [
+                'type' => 'top_up', // Legacy compatibility
+                'deposit_type' => 'manual_topup',
+                'payment_method' => 'Manual',
                 'reference_no' => $topUp->getReferenceNo(),
                 'gateway' => $topUp->getGateway(),
-            ]);
+            ];
+            
+            // Add admin user info for audit trail
+            if ($initiatedBy) {
+                $metadata['sender_id'] = $initiatedBy->id ?? null;
+                $metadata['sender_name'] = $initiatedBy->name ?? 'Unknown';
+                $metadata['sender_identifier'] = $initiatedBy->email ?? 'unknown@system';
+            }
+            
+            $this->deposit($amountInCents, $metadata);
         }
     }
 

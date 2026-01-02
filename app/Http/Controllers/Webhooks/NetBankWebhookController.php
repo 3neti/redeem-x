@@ -57,8 +57,9 @@ class NetBankWebhookController extends Controller
                 $topUp->markAsPaid($validated['payment_id']);
 
                 // Credit user wallet
+                // For webhook top-ups, the initiator is the user themselves (not an admin)
                 $user = $topUp->user;
-                $user->creditWalletFromTopUp($topUp);
+                $user->creditWalletFromTopUp($topUp, $user);
 
                 Log::info('[NetBank Webhook] Top-up completed and wallet credited', [
                     'user_id' => $user->id,
