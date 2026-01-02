@@ -571,7 +571,9 @@ onMounted(async () => {
                                                 :gateway="transaction.disbursement.gateway"
                                                 size="sm"
                                             />
-                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                            <Badge v-else variant="secondary" class="text-xs">
+                                                Voucher Payment
+                                            </Badge>
                                         </td>
                                         <td class="px-4 py-3 text-right font-semibold text-green-600">
                                             {{ formatAmount(transaction.amount, transaction.currency) }}
@@ -587,25 +589,30 @@ onMounted(async () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                            <div v-else>
+                                                <div class="font-medium text-sm">Wallet Transfer</div>
+                                                <div class="text-xs text-muted-foreground">Internal</div>
+                                            </div>
                                         </td>
                                         <td class="px-4 py-3">
                                             <Badge v-if="transaction.disbursement && getRail(transaction.disbursement)" :variant="getRailVariant(getRail(transaction.disbursement))" class="text-xs">
                                                 {{ getRail(transaction.disbursement) }}
                                             </Badge>
-                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                            <span v-else class="text-xs text-muted-foreground">—</span>
                                         </td>
                                         <td class="px-4 py-3">
                                             <Badge v-if="transaction.disbursement" :variant="getStatusVariant(transaction.disbursement.status)" class="text-xs">
                                                 {{ transaction.disbursement.status }}
                                             </Badge>
-                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                            <Badge v-else variant="default" class="text-xs">
+                                                Completed
+                                            </Badge>
                                         </td>
                                         <td class="px-4 py-3">
                                             <span v-if="transaction.disbursement" class="font-mono text-xs text-muted-foreground">
                                                 {{ getTransactionId(transaction.disbursement) }}
                                             </span>
-                                            <span v-else class="text-xs text-muted-foreground">N/A</span>
+                                            <span v-else class="text-xs text-muted-foreground">—</span>
                                         </td>
                                         <td class="px-4 py-3 text-muted-foreground">
                                             {{ formatDate(transaction.redeemed_at) }}
