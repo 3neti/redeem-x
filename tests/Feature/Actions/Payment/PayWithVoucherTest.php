@@ -61,7 +61,7 @@ test('transfers money from Cash wallet to User wallet', function () {
     // Assert: Success response
     expect($result['success'])->toBeTrue();
     expect($result['amount'])->toBe($voucherAmount);
-    expect($result['new_balance'])->toBe($redeemerBalanceBefore + $voucherAmount);
+    expect(floatval($result['new_balance']))->toBe(floatval($redeemerBalanceBefore) + $voucherAmount);
 });
 
 test('marks voucher as redeemed with correct metadata', function () {
