@@ -658,7 +658,7 @@ const handleSubmit = async () => {
                                 <CardTitle>Basic Settings</CardTitle>
                             </div>
                             <CardDescription>
-                                Configure voucher amount, quantity, and expiry
+                                Configure voucher amount and quantity
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
