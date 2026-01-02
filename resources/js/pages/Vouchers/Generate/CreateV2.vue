@@ -62,12 +62,14 @@ const validationErrors = ref<Record<string, string>>({});
 // Check if user has advanced pricing mode feature flag
 const page = usePage();
 const hasAdvancedMode = computed(() => {
-    return page.props.auth?.feature_flags?.advanced_pricing_mode || false;
+    const value = page.props.auth?.feature_flags?.advanced_pricing_mode || false;
+    console.log('[CreateV2] hasAdvancedMode computed:', value, 'auth:', page.props.auth);
+    return value;
 });
 
 // Mode management (Simple vs Advanced)
-// If user doesn't have the feature flag, force simple mode
-const initialMode = hasAdvancedMode.value ? 'simple' : 'simple';
+// If user doesn't have the feature flag, force simple mode and block advanced mode
+const initialMode = 'simple'; // Always start in simple mode
 const { mode, switchMode } = useGenerateMode(initialMode);
 const isSimpleMode = computed(() => mode.value === 'simple');
 

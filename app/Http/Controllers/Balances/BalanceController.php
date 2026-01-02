@@ -26,18 +26,9 @@ class BalanceController extends Controller
             abort(403, 'Balance viewing is currently disabled.');
         }
 
-        // Check role-based access (if configured)
-        $requiredRole = config('balance.view_role', 'admin');
+        // Authorization now handled by middleware (permission:view balance)
+        // This controller method assumes user has already been authorized
         $user = auth()->user();
-        
-        // Check if user has required role OR is in admin override
-        $hasRole = !$requiredRole || $user->hasRole($requiredRole);
-        $isOverride = in_array($user->email, config('admin.override_emails', []));
-        
-        // Grant access if user has role OR is in override list
-        if (!($hasRole || $isOverride)) {
-            abort(403, 'You do not have permission to view balance information.');
-        }
 
         $accountNumber = config('balance.default_account') 
             ?? config('payment-gateway.default_account')
@@ -84,7 +75,7 @@ class BalanceController extends Controller
             'history' => $historyData,
             'alerts' => $alerts,
             'accountNumber' => $accountNumber,
-            'canManageAlerts' => auth()->user()->hasRole($requiredRole),
+            'canManageAlerts' => $user->hasAnyRole(['super-admin', 'admin', 'power-user']),
             'reconciliation' => $reconciliationStatus,
         ]);
     }
