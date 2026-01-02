@@ -1,4 +1,4 @@
-<script setup lang=\"ts\">
+<script setup lang="ts">
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -101,7 +101,8 @@ const handleSubmit = async () => {
             </DialogHeader>
 
             <div v-if="!success" class="space-y-4">
-                <!-- Voucher Code Input -->\n                <div class="space-y-2">
+                <!-- Voucher Code Input -->
+                <div class="space-y-2">
                     <Label for="voucherCode">Voucher Code</Label>
                     <Input
                         id="voucherCode"
