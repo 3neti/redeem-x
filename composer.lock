@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8687cc4076c9f29c532ece33cc3a42fa",
+    "content-hash": "c84585eff512979ae7f05c413cf10e9f",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -3480,6 +3480,60 @@
             }
         },
         {
+            "name": "lbhurtado/merchant",
+            "version": "dev-feature/vendor-alias-registry",
+            "dist": {
+                "type": "path",
+                "url": "./packages/merchant",
+                "reference": "e10440cd5feefd016d3e18658cffe0d314f9f7a1"
+            },
+            "require": {
+                "illuminate/database": "^11.0|^12.0",
+                "illuminate/support": "^11.0|^12.0",
+                "lorisleiva/laravel-actions": "^2.9",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.15"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\Merchant\\MerchantServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\Merchant\\": "src/",
+                    "LBHurtado\\Merchant\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\Merchant\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Merchant and Vendor Alias Registry",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "lbhurtado/money-issuer",
             "version": "dev-main",
             "dist": {
@@ -3540,7 +3594,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/pennant-spatie-authorization",
+            "version": "dev-feature/vendor-alias-registry",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3724,7 +3778,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/pennant-spatie-authorization",
+            "version": "dev-feature/vendor-alias-registry",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
@@ -14680,6 +14734,7 @@
         "lbhurtado/contact": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
+        "lbhurtado/merchant": 20,
         "lbhurtado/money-issuer": 20,
         "lbhurtado/omnichannel": 20,
         "lbhurtado/payment-gateway": 20,
