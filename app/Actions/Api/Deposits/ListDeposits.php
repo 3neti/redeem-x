@@ -49,6 +49,11 @@ class ListDeposits
             $txInstitution = $tx->meta['gateway'] ?? null;
             if ($institution && $txInstitution !== $institution) continue;
             
+            // Extract enhanced metadata (sender info, payment method)
+            $senderName = $tx->meta['sender_name'] ?? 'Wallet Top-Up';
+            $senderIdentifier = $tx->meta['sender_identifier'] ?? null;
+            $paymentMethod = $tx->meta['payment_method'] ?? null;
+            
             $deposits->push([
                 'type' => 'wallet_top_up',
                 'sender' => null,
@@ -62,6 +67,10 @@ class ListDeposits
                     'reference_number' => $tx->meta['reference_no'] ?? null,
                     'transfer_type' => 'TOP_UP',
                     'timestamp' => $tx->created_at->toIso8601String(),
+                    // Enhanced metadata
+                    'sender_name' => $senderName,
+                    'sender_identifier' => $senderIdentifier,
+                    'payment_method' => $paymentMethod,
                 ],
                 'timestamp' => $tx->created_at->toIso8601String(),
             ]);
@@ -133,16 +142,21 @@ class ListDeposits
         $depositData = $paginatedDeposits->map(function ($item) {
             if ($item['type'] === 'wallet_top_up') {
                 // Create DTO for wallet top-up (no sender)
+                // Use enhanced metadata if available, fallback to defaults
+                $senderName = $item['metadata']['sender_name'] ?? 'Wallet Top-Up';
+                $senderIdentifier = $item['metadata']['sender_identifier'] ?? null;
+                $paymentMethod = $item['metadata']['payment_method'] ?? null;
+                
                 return DepositTransactionData::from([
                     'sender_id' => null,
-                    'sender_name' => 'Wallet Top-Up',
-                    'sender_mobile' => null,
+                    'sender_name' => $senderName,
+                    'sender_mobile' => $senderIdentifier, // Repurpose for identifier
                     'amount' => $item['metadata']['amount'],
                     'currency' => $item['metadata']['currency'],
                     'institution' => $item['metadata']['institution'],
                     'institution_name' => $item['metadata']['institution_name'],
                     'operation_id' => $item['metadata']['operation_id'],
-                    'channel' => $item['metadata']['channel'],
+                    'channel' => $paymentMethod ?? $item['metadata']['channel'],
                     'reference_number' => $item['metadata']['reference_number'],
                     'transfer_type' => $item['metadata']['transfer_type'],
                     'timestamp' => $item['metadata']['timestamp'],

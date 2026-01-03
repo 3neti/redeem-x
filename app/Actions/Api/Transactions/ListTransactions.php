@@ -76,6 +76,12 @@ class ListTransactions
         $query = Voucher::query()
             ->with(['owner'])
             ->whereNotNull('redeemed_at')
+            // Exclude voucher payments (internal wallet transfers)
+            // Only show vouchers that were disbursed to banks
+            ->where(function($q) {
+                $q->whereNull('metadata->redemption_type')
+                  ->orWhere('metadata->redemption_type', '!=', 'voucher_payment');
+            })
             ->orderByDesc('redeemed_at');
 
         // Filter by date range
