@@ -54,9 +54,17 @@ interface Props {
         search?: string;
         status?: string;
     };
+    config: {
+        min_length: number;
+        max_length: number;
+    };
 }
 
 const props = defineProps<Props>();
+
+const validationHint = computed(() => 
+    `${props.config.min_length}-${props.config.max_length} characters, uppercase letters and digits only`
+);
 
 const isOpen = ref(false);
 const searchQuery = ref('');
@@ -237,12 +245,12 @@ const formatDate = (dateString: string) => {
                                         id="alias"
                                         v-model="form.alias"
                                         placeholder="e.g., VNDR1"
-                                        maxlength="8"
+                                        :maxlength="config.max_length"
                                         class="uppercase"
                                         @input="form.alias = form.alias.toUpperCase()"
                                     />
                                     <p class="text-sm text-muted-foreground">
-                                        3-8 characters, uppercase letters and digits only
+                                        {{ validationHint }}
                                     </p>
                                     <p v-if="form.errors.alias" class="text-sm text-destructive">
                                         {{ form.errors.alias }}

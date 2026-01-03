@@ -48,6 +48,10 @@ class VendorAliasController extends Controller
                 'search' => $search,
                 'status' => $status,
             ],
+            'config' => [
+                'min_length' => config('merchant.alias.min_length', 3),
+                'max_length' => config('merchant.alias.max_length', 8),
+            ],
         ]);
     }
     

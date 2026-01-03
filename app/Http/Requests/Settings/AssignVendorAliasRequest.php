@@ -36,7 +36,9 @@ class AssignVendorAliasRequest extends FormRequest
                     $normalized = $service->normalize($value);
                     
                     if (!$service->validate($normalized)) {
-                        $fail('The alias must be 3-8 characters, start with a letter, and contain only uppercase letters and digits.');
+                        $minLength = config('merchant.alias.min_length', 3);
+                        $maxLength = config('merchant.alias.max_length', 8);
+                        $fail("The alias must be {$minLength}-{$maxLength} characters, start with a letter, and contain only uppercase letters and digits.");
                     }
                     
                     if ($service->isReserved($normalized)) {
