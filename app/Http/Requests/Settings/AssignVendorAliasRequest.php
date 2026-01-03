@@ -21,14 +21,17 @@ class AssignVendorAliasRequest extends FormRequest
      */
     public function rules(): array
     {
+        $minLength = config('merchant.alias.min_length', 3);
+        $maxLength = config('merchant.alias.max_length', 8);
+        
         return [
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'alias' => [
                 'required',
                 'string',
                 'uppercase',
-                'min:3',
-                'max:8',
+                "min:{$minLength}",
+                "max:{$maxLength}",
                 function ($attribute, $value, $fail) {
                     $service = new VendorAliasService();
                     
