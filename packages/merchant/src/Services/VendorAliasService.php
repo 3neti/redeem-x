@@ -31,7 +31,17 @@ class VendorAliasService
         }
 
         // Regex: starts with letter, 3-8 chars total, uppercase letters/digits only
-        $pattern = config('merchant.alias.pattern', '^[A-Z][A-Z0-9]{2,7}$');
+        // Default pattern - can be overridden by config
+        $pattern = '^[A-Z][A-Z0-9]{2,7}$';
+        
+        // Try to get from config if Laravel app is available
+        try {
+            if (function_exists('app') && app()->has('config')) {
+                $pattern = app('config')->get('merchant.alias.pattern', $pattern);
+            }
+        } catch (\Throwable $e) {
+            // Fallback to default pattern if config unavailable
+        }
         
         return (bool) preg_match('/'.$pattern.'/', $alias);
     }

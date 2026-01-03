@@ -57,10 +57,9 @@ test('validation requires uppercase', function () {
 });
 
 test('detects reserved aliases', function () {
-    // Seed reserved aliases
     DB::table('reserved_vendor_aliases')->insert([
-        ['alias' => 'ADMIN', 'reason' => 'System', 'reserved_at' => now(), 'created_at' => now(), 'updated_at' => now()],
-        ['alias' => 'GCASH', 'reason' => 'EMI', 'reserved_at' => now(), 'created_at' => now(), 'updated_at' => now()],
+        ['alias' => 'ADMIN', 'reason' => 'System', 'created_at' => now(), 'updated_at' => now()],
+        ['alias' => 'GCASH', 'reason' => 'EMI', 'created_at' => now(), 'updated_at' => now()],
     ]);
     
     expect($this->service->isReserved('ADMIN'))->toBeTrue();
@@ -70,11 +69,7 @@ test('detects reserved aliases', function () {
 
 test('reserved check is case insensitive', function () {
     DB::table('reserved_vendor_aliases')->insert([
-        'alias' => 'ADMIN',
-        'reason' => 'System',
-        'reserved_at' => now(),
-        'created_at' => now(),
-        'updated_at' => now(),
+        ['alias' => 'ADMIN', 'reason' => 'System', 'created_at' => now(), 'updated_at' => now()],
     ]);
     
     expect($this->service->isReserved('admin'))->toBeTrue();

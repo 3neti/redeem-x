@@ -125,7 +125,7 @@ class PayWithVoucher
             ]);
             
             throw new \RuntimeException(
-                'This voucher requires a vendor alias. Please contact support to get your merchant credentials.'
+                'This voucher requires an active vendor alias. Please contact support to get your merchant credentials.'
             );
         }
         
