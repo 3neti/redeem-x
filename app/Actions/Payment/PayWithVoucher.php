@@ -91,7 +91,7 @@ class PayWithVoucher
                 'amount' => $amount,
                 'new_balance' => $user->fresh()->balanceFloat,
                 'voucher_code' => $voucher->code,
-            ]);
+            ];
         });
     }
     

@@ -60,4 +60,12 @@ class VendorAlias extends Model
     {
         return $this->status === 'reserved';
     }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \LBHurtado\Merchant\Database\Factories\VendorAliasFactory::new();
+    }
 }
