@@ -5,6 +5,7 @@ use App\Http\Controllers\Settings\CampaignController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
+use App\Http\Controllers\Settings\VendorAliasController;
 use App\Http\Controllers\Settings\WalletController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -46,5 +47,11 @@ Route::middleware([
         Route::resource('campaigns', CampaignController::class);
         Route::post('campaigns/{campaign}/duplicate', [CampaignController::class, 'duplicate'])
             ->name('campaigns.duplicate');
+        
+        // Vendor Aliases
+        Route::get('vendor-aliases/search-users', [VendorAliasController::class, 'searchUsers'])
+            ->name('vendor-aliases.search-users');
+        Route::resource('vendor-aliases', VendorAliasController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
     });
 });

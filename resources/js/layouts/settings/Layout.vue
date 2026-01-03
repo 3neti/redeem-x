@@ -8,6 +8,7 @@ import { edit as editProfile } from '@/routes/profile';
 import { index as campaignsIndex } from '@/actions/App/Http/Controllers/Settings/CampaignController';
 import { index as apiTokensIndex } from '@/actions/App/Http/Controllers/Settings/ApiTokenController';
 import { edit as editSecurity } from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import { index as vendorAliasesIndex } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 
@@ -31,6 +32,10 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Campaigns',
         href: campaignsIndex.url(),
+    },
+    {
+        title: 'Vendor Aliases',
+        href: vendorAliasesIndex.url(),
     },
 ];
 
