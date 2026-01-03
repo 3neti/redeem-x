@@ -16,6 +16,7 @@ use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\ModelChannel\Traits\HasChannels;
 use LBHurtado\PaymentGateway\Traits\{HasMerchant, HasTopUps};
+use LBHurtado\Merchant\Traits\HasVendorAlias;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements Wallet, Customer
@@ -29,6 +30,7 @@ class User extends Authenticatable implements Wallet, Customer
     use HasChannels;
     use HasMerchant;
     use HasTopUps;
+    use HasVendorAlias;
     use HasRoles;
 
     /**
