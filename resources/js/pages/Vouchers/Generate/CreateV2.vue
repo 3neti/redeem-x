@@ -28,6 +28,7 @@ import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vu
 import { useGenerateMode } from '@/composables/useGenerateMode';
 import { Switch } from '@/components/ui/switch';
 import axios from 'axios';
+import { index as vendorAliasesIndex } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
 
 // Debug flag - set to false to suppress console logs
 const DEBUG = false;
@@ -137,10 +138,25 @@ const campaigns = ref<Campaign[]>([]);
 const selectedCampaignId = ref<string>('');
 const selectedCampaign = ref<Campaign | null>(null);
 
-// Load campaigns on mount
+// Vendor aliases for payable field
+interface VendorAlias {
+    id: number;
+    alias: string;
+    status: string;
+}
+
+const vendorAliases = ref<VendorAlias[]>([]);
+
+// Load campaigns and vendor aliases on mount
 axios.get('/api/v1/campaigns').then(response => {
     campaigns.value = response.data;
 }).catch(err => console.error('Failed to load campaigns:', err));
+
+// Load vendor aliases
+axios.get(vendorAliasesIndex.url()).then(response => {
+    vendorAliases.value = (response.data.aliases?.data || [])
+        .filter((alias: VendorAlias) => alias.status === 'active');
+}).catch(err => console.error('Failed to load vendor aliases:', err));
 
 // Watch campaign selection and populate form
 watch(selectedCampaignId, async (campaignId) => {
@@ -168,6 +184,7 @@ watch(selectedCampaignId, async (campaignId) => {
         if (inst.cash?.validation) {
             validationSecret.value = inst.cash.validation.secret || '';
             validationMobile.value = inst.cash.validation.mobile || '';
+            validationPayable.value = inst.cash.validation.payable || null;
         }
         
         if (inst.feedback) {
@@ -240,6 +257,7 @@ const selectedInputFields = ref<string[]>([]);
 
 const validationSecret = ref('');
 const validationMobile = ref('');
+const validationPayable = ref<number | null>(null);
 
 const feedbackEmail = ref('');
 const feedbackMobile = ref('');
@@ -325,6 +343,7 @@ const instructionsForPricing = computed(() => {
             validation: {
                 secret: validationSecret.value || null,
                 mobile: validationMobile.value || null,
+                payable: validationPayable.value || null,
                 country: 'PH',
             },
         },
@@ -929,6 +948,32 @@ const handleSubmit = async () => {
                                         :placeholder="config.validation_rules.mobile.placeholder"
                                     />
                                     <InputError :message="validationErrors.validation_mobile" />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label for="validation_payable">Payable To (Vendor Alias)</Label>
+                                    <Select
+                                        :model-value="validationPayable?.toString() || ''"
+                                        @update:model-value="(value) => validationPayable = value ? parseInt(value) : null"
+                                    >
+                                        <SelectTrigger id="validation_payable">
+                                            <SelectValue placeholder="Optional - Select vendor alias" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">None (Anyone can redeem)</SelectItem>
+                                            <SelectItem
+                                                v-for="alias in vendorAliases"
+                                                :key="alias.id"
+                                                :value="alias.id.toString()"
+                                            >
+                                                {{ alias.alias }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError :message="validationErrors.validation_payable" />
+                                    <p class="text-xs text-muted-foreground">
+                                        Restrict redemption to a specific merchant (B2B vouchers)
+                                    </p>
                                 </div>
                             </div>
 
