@@ -15,7 +15,8 @@ use Laravel\Sanctum\HasApiTokens;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\ModelChannel\Traits\HasChannels;
-use LBHurtado\PaymentGateway\Traits\{HasMerchant, HasTopUps};
+use LBHurtado\PaymentGateway\Traits\HasTopUps;
+use LBHurtado\Merchant\Traits\HasMerchant;
 use LBHurtado\Merchant\Traits\HasVendorAlias;
 use Spatie\Permission\Traits\HasRoles;
 

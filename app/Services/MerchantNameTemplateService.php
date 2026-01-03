@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 

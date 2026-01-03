@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Services\MerchantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 
 class MerchantProfileController extends Controller
 {

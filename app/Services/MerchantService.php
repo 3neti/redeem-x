@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 
 /**
  * Merchant Profile Management Service

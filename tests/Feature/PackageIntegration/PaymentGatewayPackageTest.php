@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,7 +12,7 @@ test('payment gateway package is loaded and autoloaded', function () {
     expect(class_exists(Merchant::class))->toBeTrue()
         ->and(interface_exists(PaymentGatewayInterface::class))->toBeTrue()
         ->and(enum_exists(SettlementRail::class))->toBeTrue()
-        ->and(trait_exists(\LBHurtado\PaymentGateway\Traits\HasMerchant::class))->toBeTrue();
+        ->and(trait_exists(\LBHurtado\Merchant\Traits\HasMerchant::class))->toBeTrue();
 });
 
 test('merchant model can be instantiated', function () {

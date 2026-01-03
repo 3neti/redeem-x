@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 
 class LoadPublicController extends Controller
 {
