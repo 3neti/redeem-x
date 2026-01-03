@@ -6,7 +6,7 @@ use FrittenKeeZ\Vouchers\VouchersServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 use LBHurtado\PaymentGateway\Tests\Models\User;
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 
 abstract class TestCase extends BaseTestCase
 {

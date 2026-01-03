@@ -3,7 +3,7 @@
 namespace LBHurtado\PaymentGateway\Gateways\Netbank\Traits;
 
 use LBHurtado\PaymentGateway\Data\Netbank\Generate\GeneratePayloadData;
-use LBHurtado\PaymentGateway\Contracts\MerchantInterface;
+use LBHurtado\Merchant\Contracts\MerchantInterface;
 use Illuminate\Support\Facades\Http;
 use Brick\Money\Money;
 

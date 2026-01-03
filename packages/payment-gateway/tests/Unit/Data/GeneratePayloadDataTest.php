@@ -2,7 +2,7 @@
 
 use LBHurtado\PaymentGateway\Data\Netbank\Generate\GeneratePayloadData;
 use LBHurtado\PaymentGateway\Tests\Models\User;
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 use Illuminate\Support\Facades\Config;
 use Brick\Money\Money;
 

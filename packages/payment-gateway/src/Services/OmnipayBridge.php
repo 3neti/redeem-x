@@ -3,7 +3,7 @@
 namespace LBHurtado\PaymentGateway\Services;
 
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use LBHurtado\PaymentGateway\Contracts\MerchantInterface;
+use LBHurtado\Merchant\Contracts\MerchantInterface;
 use LBHurtado\PaymentGateway\Data\Disburse\{
     DisburseInputData,
     DisburseResponseData

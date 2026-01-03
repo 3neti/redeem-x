@@ -6,6 +6,10 @@
     "repositories": [
         {
             "type": "path",
+            "url": "./../merchant"
+        },
+        {
+            "type": "path",
             "url": "./../model-channel"
         },
         {
@@ -62,6 +66,7 @@
         "laravel/sanctum": "^4.0",
         "lorisleiva/laravel-actions": "^2.9",
         "brick/money": "^0.10.1",
+        "lbhurtado/merchant": "dev-main",
         "lbhurtado/laravel-model-channel": "dev-main",
         "lbhurtado/wallet": "dev-main",
         "lbhurtado/money-issuer": "dev-main",

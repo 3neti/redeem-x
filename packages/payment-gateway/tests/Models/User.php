@@ -12,10 +12,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use LBHurtado\ModelChannel\Traits\HasChannels;
-use LBHurtado\PaymentGateway\Contracts\MerchantInterface;
+use LBHurtado\Merchant\Contracts\MerchantInterface;
 use LBHurtado\PaymentGateway\Database\Factories\UserFactory;
-use LBHurtado\PaymentGateway\Models\Merchant;
-use LBHurtado\PaymentGateway\Traits\{HasMerchant, HasTopUps};
+use LBHurtado\Merchant\Models\Merchant;
+use LBHurtado\Merchant\Traits\HasMerchant;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\Wallet\Services\WalletProvisioningService;
 

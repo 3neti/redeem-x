@@ -1,6 +1,6 @@
 <?php
 
-use LBHurtado\PaymentGateway\Models\Merchant;
+use LBHurtado\Merchant\Models\Merchant;
 use LBHurtado\PaymentGateway\Data\{Netbank\Deposit\DepositResponseData, Netbank\Deposit\DepositSenderData};
 use LBHurtado\PaymentGateway\Data\Netbank\{Deposit\DepositMerchantDetailsData,
     Disburse\DisburseInputData,
