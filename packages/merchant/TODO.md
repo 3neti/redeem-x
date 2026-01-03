@@ -239,6 +239,163 @@ Track these to measure feature adoption:
 
 ---
 
+## Federation Support (Future)
+
+### Vision
+Allow vendor aliases to work across a federation of servers (Maya, LandBank, NetBank, BDO) where the same merchant can operate on multiple deployments.
+
+### Current Architecture Status
+✅ **Federation-Ready**
+- Service abstraction allows swapping implementations
+- Action pattern supports extension
+- Config-driven design enables feature toggles
+- Package isolation prevents coupling
+- No breaking changes needed for federation
+
+### Key Decisions Required Before Implementation
+
+#### 1. Alias Ownership Model
+**Question**: How do we handle the same alias across multiple servers?
+
+**Option A: Single Owner (Recommended)**
+- `MAYA` alias registered on Maya server is THE canonical owner
+- Other servers see it as "federated" (read-only reference)
+- Prevents conflicts, clear ownership
+
+**Option B: Multi-Owner**
+- `MAYA` on Maya server ≠ `MAYA` on LandBank server
+- Same alias, different entities per server
+- Requires namespacing (e.g., `MAYA@maya-server`)
+
+**Option C: Hybrid**
+- System aliases (MAYA, GCASH, BDO) are single-owner
+- Vendor aliases (VNDR1, SHOP2) are multi-owner per server
+
+**Decision**: ___________ (To be decided)
+
+#### 2. Conflict Resolution Strategy
+**Question**: What happens when two servers try to register the same alias simultaneously?
+
+**Option A: First-Come-First-Serve**
+- Central registry assigns to first request
+- Second request gets rejection
+- Simple but may frustrate users
+
+**Option B: Priority by Server Type**
+- Payment institution servers (Maya, GCash) have priority
+- Bank servers (LandBank, BDO) have lower priority
+- Requires server tier configuration
+
+**Option C: Manual Resolution**
+- Conflicts go to admin queue
+- Human decides based on business rules
+- Slow but most flexible
+
+**Decision**: ___________ (To be decided)
+
+#### 3. Synchronization Strategy
+**Question**: How do servers stay in sync with the registry?
+
+**Option A: Real-Time API Calls**
+- Every validation checks central registry
+- Always up-to-date
+- High latency, registry becomes bottleneck
+
+**Option B: Periodic Sync**
+- Background job syncs every N minutes
+- Local cache with TTL
+- Eventual consistency, better performance
+
+**Option C: Event-Driven (Webhooks)**
+- Registry pushes updates to all servers
+- Near real-time with good performance
+- Requires webhook infrastructure
+
+**Decision**: ___________ (To be decided)
+
+#### 4. Availability Guarantees
+**Question**: What happens if the central registry is unavailable?
+
+**Option A: Fail Closed**
+- Reject all alias validations
+- Secure but affects operations
+
+**Option B: Fail Open**
+- Allow local-only validation
+- Operations continue, risk of conflicts
+
+**Option C: Degraded Mode**
+- Use last known sync state
+- Flag as "unverified" in metadata
+- Reconcile when registry returns
+
+**Decision**: ___________ (To be decided)
+
+### Implementation Roadmap (When Needed)
+
+#### Phase 1: Database Schema (Non-Breaking)
+```sql
+ALTER TABLE vendor_aliases ADD COLUMN is_federated BOOLEAN DEFAULT FALSE;
+ALTER TABLE vendor_aliases ADD COLUMN federation_server_id VARCHAR(50);
+ALTER TABLE vendor_aliases ADD COLUMN federation_registry_id VARCHAR(100);
+ALTER TABLE vendor_aliases ADD COLUMN synced_at TIMESTAMP;
+```
+
+#### Phase 2: Central Registry Service
+Build standalone API:
+- `POST /api/aliases/check` - Check availability across federation
+- `POST /api/aliases/register` - Register new alias globally
+- `POST /api/aliases/sync` - Sync local aliases to registry
+- `GET /api/aliases/{alias}` - Get canonical owner info
+- `POST /api/webhooks/alias-updated` - Push updates to servers
+
+#### Phase 3: Extend VendorAliasService
+```php
+class FederatedVendorAliasService extends VendorAliasService
+{
+    public function isReserved(string $alias): bool
+    {
+        return parent::isReserved($alias) 
+            || $this->checkFederationRegistry($alias);
+    }
+}
+```
+
+#### Phase 4: Config Toggle
+```php
+// config/merchant.php
+'federation' => [
+    'enabled' => env('FEDERATION_ENABLED', false),
+    'server_id' => env('FEDERATION_SERVER_ID'),
+    'registry_url' => env('FEDERATION_REGISTRY_URL'),
+],
+```
+
+#### Phase 5: Background Sync Jobs
+- `SyncAliasesToRegistry` - Push local changes to registry
+- `SyncAliasesFromRegistry` - Pull federated aliases
+- `ReconcileConflicts` - Handle sync conflicts
+
+### Extension Points (Already Built)
+1. **VendorAliasService**: Can be extended with federation logic
+2. **AssignVendorAlias Action**: Can register with federation before local save
+3. **Config-driven**: Federation can be toggled without code changes
+4. **Model scopes**: Can filter local vs federated aliases
+
+### Testing Strategy for Federation
+- Unit tests: Mock registry API responses
+- Integration tests: Use test registry instance
+- E2E tests: Multi-server setup with Docker Compose
+- Chaos tests: Registry downtime scenarios
+
+### Monitoring & Observability
+- Registry API latency metrics
+- Sync lag monitoring (local vs registry)
+- Conflict detection alerts
+- Cross-server alias usage analytics
+
+---
+
 ## Resources
 
 - [WARP.md Implementation Notes](/Users/rli/PhpstormProjects/redeem-x/WARP.md#vendor-alias-registry-system)
