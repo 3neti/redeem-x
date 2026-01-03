@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use Illuminate\Foundation\Http\FormRequest;
-use LBHurtado\Merchant\Services\VendorAliasService;
+use LBHurtado\Merchant\Rules\ValidVendorAlias;
 
 class AssignVendorAliasRequest extends FormRequest
 {
@@ -32,22 +32,7 @@ class AssignVendorAliasRequest extends FormRequest
                 'uppercase',
                 "min:{$minLength}",
                 "max:{$maxLength}",
-                function ($attribute, $value, $fail) {
-                    $service = new VendorAliasService();
-                    
-                    // Normalize and validate format
-                    $normalized = $service->normalize($value);
-                    
-                    if (!$service->validate($normalized)) {
-                        $minLength = config('merchant.alias.min_length', 3);
-                        $maxLength = config('merchant.alias.max_length', 8);
-                        $fail("The alias must be {$minLength}-{$maxLength} characters, start with a letter, and contain only uppercase letters and digits.");
-                    }
-                    
-                    if ($service->isReserved($normalized)) {
-                        $fail('This alias is reserved and cannot be assigned.');
-                    }
-                },
+                new ValidVendorAlias(),
                 'unique:vendor_aliases,alias',
             ],
             'notes' => ['nullable', 'string', 'max:500'],
