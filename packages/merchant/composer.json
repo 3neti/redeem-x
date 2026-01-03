@@ -39,6 +39,9 @@
             ]
         }
     },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }
