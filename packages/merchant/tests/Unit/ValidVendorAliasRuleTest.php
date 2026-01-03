@@ -5,9 +5,7 @@ namespace LBHurtado\Merchant\Tests\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use LBHurtado\Merchant\Rules\ValidVendorAlias;
-use LBHurtado\Merchant\Tests\TestCase;
 
-uses(TestCase::class);
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
