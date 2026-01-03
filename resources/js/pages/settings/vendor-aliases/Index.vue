@@ -114,9 +114,19 @@ const submitForm = () => {
 };
 
 const revokeAlias = (alias: VendorAlias) => {
-    if (confirm(`Are you sure you want to revoke the alias "${alias.alias}"?`)) {
+    if (confirm(`Are you sure you want to revoke the alias "${alias.alias}"? The user will no longer be able to redeem vouchers with this alias.`)) {
         router.patch(update.url({ vendor_alias: alias.id }), {
             status: 'revoked',
+        }, {
+            preserveScroll: true,
+        });
+    }
+};
+
+const reactivateAlias = (alias: VendorAlias) => {
+    if (confirm(`Reactivate the alias "${alias.alias}"? The user will be able to redeem vouchers again.`)) {
+        router.patch(update.url({ vendor_alias: alias.id }), {
+            status: 'active',
         }, {
             preserveScroll: true,
         });
@@ -308,10 +318,16 @@ const formatDate = (dateString: string) => {
                                                 Revoke
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
+                                                v-if="alias.status === 'revoked'"
+                                                @click="reactivateAlias(alias)"
+                                            >
+                                                Reactivate
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
                                                 @click="deleteAlias(alias)"
                                                 class="text-destructive"
                                             >
-                                                Delete
+                                                Delete Permanently
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
