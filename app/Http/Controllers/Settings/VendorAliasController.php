@@ -60,9 +60,9 @@ class VendorAliasController extends Controller
         
         try {
             AssignVendorAlias::run(
-                userId: $validated['user_id'],
+                ownerUserId: $validated['user_id'],
                 alias: $validated['alias'],
-                assignedBy: $request->user()->id,
+                assignedByUserId: $request->user()->id,
                 notes: $validated['notes'] ?? null
             );
             
