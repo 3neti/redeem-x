@@ -2,6 +2,18 @@
 
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
+## Development Environment
+
+This project uses **Laravel Herd** for local development.
+
+**Local URL**: `http://redeem-x.test`
+
+**Key Points**:
+- No need to run `php artisan serve` - Herd handles the web server
+- Database, queue worker, and Vite still need to be started manually (via `composer dev`)
+- When testing API endpoints, use `redeem-x.test` instead of `localhost:8000`
+- Herd provides automatic HTTPS support for `.test` domains
+
 ## Development Commands
 
 ### Initial Setup
