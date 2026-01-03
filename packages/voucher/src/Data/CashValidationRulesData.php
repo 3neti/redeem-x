@@ -12,7 +12,7 @@ class CashValidationRulesData extends Data
     public function __construct(
         public ?string $secret,
         public ?string $mobile,
-        public ?int $payable, // vendor_alias_id - who can redeem
+        public ?string $payable, // vendor alias text - who can redeem (e.g., "BB", "TESTSHOP")
         public ?string $country,
         public ?string $location,
         public ?string $radius, // future: consider DistanceValueObject
@@ -30,7 +30,7 @@ class CashValidationRulesData extends Data
                 config('instructions.cash.validation_rules.mobile')
             ],
             'payable' => [
-                ['nullable', 'integer', 'exists:vendor_aliases,id'],
+                ['nullable', 'string', 'max:20'],
                 null
             ],
             'country' => [
