@@ -28,7 +28,7 @@ import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vu
 import { useGenerateMode } from '@/composables/useGenerateMode';
 import { Switch } from '@/components/ui/switch';
 import axios from 'axios';
-import { index as vendorAliasesIndex } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
+import { list as vendorAliasesList } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
 
 // Debug flag - set to false to suppress console logs
 const DEBUG = false;
@@ -153,9 +153,8 @@ axios.get('/api/v1/campaigns').then(response => {
 }).catch(err => console.error('Failed to load campaigns:', err));
 
 // Load vendor aliases
-axios.get(vendorAliasesIndex.url()).then(response => {
-    vendorAliases.value = (response.data.aliases?.data || [])
-        .filter((alias: VendorAlias) => alias.status === 'active');
+axios.get('/settings/vendor-aliases/list').then(response => {
+    vendorAliases.value = response.data.aliases || [];
 }).catch(err => console.error('Failed to load vendor aliases:', err));
 
 // Watch campaign selection and populate form
@@ -184,7 +183,7 @@ watch(selectedCampaignId, async (campaignId) => {
         if (inst.cash?.validation) {
             validationSecret.value = inst.cash.validation.secret || '';
             validationMobile.value = inst.cash.validation.mobile || '';
-            validationPayable.value = inst.cash.validation.payable || null;
+            validationPayable.value = inst.cash.validation.payable || '';
         }
         
         if (inst.feedback) {
@@ -257,7 +256,7 @@ const selectedInputFields = ref<string[]>([]);
 
 const validationSecret = ref('');
 const validationMobile = ref('');
-const validationPayable = ref<number | null>(null);
+const validationPayable = ref<string>(''); // Store alias text, not ID
 
 const feedbackEmail = ref('');
 const feedbackMobile = ref('');
@@ -343,7 +342,7 @@ const instructionsForPricing = computed(() => {
             validation: {
                 secret: validationSecret.value || null,
                 mobile: validationMobile.value || null,
-                payable: validationPayable.value || null,
+                payable: validationPayable.value || null, // Send alias text
                 country: 'PH',
             },
         },
@@ -505,6 +504,7 @@ const jsonPreview = computed(() => {
             validation: {
                 secret: validationSecret.value || null,
                 mobile: validationMobile.value || null,
+                payable: validationPayable.value || null,
                 country: 'PH',
                 location: null,
                 radius: null,
@@ -577,6 +577,7 @@ const handleSubmit = async () => {
         input_fields: selectedInputFields.value.length > 0 ? selectedInputFields.value : undefined,
         validation_secret: validationSecret.value || undefined,
         validation_mobile: validationMobile.value || undefined,
+        validation_payable: validationPayable.value || undefined,
         settlement_rail: settlementRail.value || undefined,
         fee_strategy: feeStrategy.value || undefined,
         feedback_email: feedbackEmail.value || undefined,
@@ -952,27 +953,24 @@ const handleSubmit = async () => {
 
                                 <div class="space-y-2">
                                     <Label for="validation_payable">Payable To (Vendor Alias)</Label>
-                                    <Select
-                                        :model-value="validationPayable?.toString() || ''"
-                                        @update:model-value="(value) => validationPayable = value ? parseInt(value) : null"
-                                    >
-                                        <SelectTrigger id="validation_payable">
-                                            <SelectValue placeholder="Optional - Select vendor alias" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="">None (Anyone can redeem)</SelectItem>
-                                            <SelectItem
-                                                v-for="alias in vendorAliases"
-                                                :key="alias.id"
-                                                :value="alias.id.toString()"
-                                            >
-                                                {{ alias.alias }}
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div class="relative">
+                                        <Input
+                                            id="validation_payable"
+                                            name="validation_payable"
+                                            v-model="validationPayable"
+                                            placeholder="Enter or select vendor alias"
+                                            list="vendor-aliases-list"
+                                            class="pr-10"
+                                        />
+                                        <datalist id="vendor-aliases-list">
+                                            <option v-for="alias in vendorAliases" :key="alias.id" :value="alias.alias">
+                                                {{ alias.owner_name }}
+                                            </option>
+                                        </datalist>
+                                    </div>
                                     <InputError :message="validationErrors.validation_payable" />
                                     <p class="text-xs text-muted-foreground">
-                                        Restrict redemption to a specific merchant (B2B vouchers)
+                                        Type to enter or select from most-used vendor aliases. Restricts redemption to specific merchant (B2B vouchers).
                                     </p>
                                 </div>
                             </div>

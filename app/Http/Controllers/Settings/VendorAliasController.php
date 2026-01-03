@@ -99,6 +99,25 @@ class VendorAliasController extends Controller
     }
     
     /**
+     * List active vendor aliases for API/dropdown use.
+     */
+    public function list(Request $request)
+    {
+        $aliases = VendorAlias::query()
+            ->where('status', 'active')
+            ->with('owner:id,name,email')
+            ->orderBy('alias')
+            ->get()
+            ->map(fn($alias) => [
+                'id' => $alias->id,
+                'alias' => $alias->alias,
+                'owner_name' => $alias->owner?->name,
+            ]);
+        
+        return response()->json(['aliases' => $aliases]);
+    }
+    
+    /**
      * Search users for typeahead (AJAX endpoint).
      */
     public function searchUsers(Request $request)

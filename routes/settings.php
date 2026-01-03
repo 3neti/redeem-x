@@ -49,6 +49,8 @@ Route::middleware([
             ->name('campaigns.duplicate');
         
         // Vendor Aliases
+        Route::get('vendor-aliases/list', [VendorAliasController::class, 'list'])
+            ->name('vendor-aliases.list');
         Route::get('vendor-aliases/search-users', [VendorAliasController::class, 'searchUsers'])
             ->name('vendor-aliases.search-users');
         Route::resource('vendor-aliases', VendorAliasController::class)
