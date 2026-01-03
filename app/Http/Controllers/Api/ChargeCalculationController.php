@@ -21,6 +21,7 @@ class ChargeCalculationController extends Controller
                 'cash.validation' => 'nullable|array',
                 'cash.validation.secret' => 'nullable|string',
                 'cash.validation.mobile' => 'nullable|string',
+                'cash.validation.payable' => 'nullable|string',
                 'cash.validation.country' => 'nullable|string',
                 'inputs' => 'nullable|array',
                 'feedback' => 'nullable|array',
