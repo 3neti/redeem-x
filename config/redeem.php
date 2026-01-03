@@ -416,6 +416,12 @@ return [
             'description' => 'Restrict redemption to specific mobile number',
             'category' => 'validation',
         ],
+        'cash.validation.payable' => [
+            'price' => 500, // ₱5.00
+            'label' => 'Vendor Alias (B2B)',
+            'description' => 'Restrict redemption to specific merchant vendor alias',
+            'category' => 'validation',
+        ],
         // DEPRECATED: Legacy location validation - use validation.location instead
         'cash.validation.location' => [
             'price' => 0, // DEPRECATED
