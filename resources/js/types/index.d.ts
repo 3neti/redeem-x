@@ -34,6 +34,18 @@ export type AppPageProps<
     sidebarOpen: boolean;
 };
 
+export interface VendorAlias {
+    id: number;
+    alias: string;
+    owner_user_id: number;
+    status: 'active' | 'revoked' | 'reserved';
+    assigned_by_user_id: number | null;
+    assigned_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface User {
     id: number;
     name: string;
@@ -46,6 +58,7 @@ export interface User {
         id: number;
         balance: number;
     };
+    primary_vendor_alias?: VendorAlias;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;

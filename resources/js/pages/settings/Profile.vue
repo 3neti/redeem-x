@@ -214,6 +214,23 @@ onMounted(() => {
                     description="Update your name and email address"
                 />
 
+                <!-- Vendor Alias Badge (if assigned) -->
+                <div v-if="user.primary_vendor_alias" class="rounded-lg border bg-muted/50 p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">Vendor Alias</p>
+                            <p class="text-2xl font-bold font-mono tracking-wider">{{ user.primary_vendor_alias.alias }}</p>
+                            <p class="text-xs text-muted-foreground mt-1">
+                                Assigned {{ new Date(user.primary_vendor_alias.assigned_at).toLocaleDateString() }}
+                            </p>
+                        </div>
+                        <Badge variant="default">B2B Merchant</Badge>
+                    </div>
+                    <p class="text-sm text-muted-foreground mt-3">
+                        You can redeem vouchers restricted to this alias. Contact admin to update.
+                    </p>
+                </div>
+
                 <form @submit.prevent="saveProfile" class="space-y-6">
                     <div class="grid gap-2">
                         <Label for="name">Name</Label>
