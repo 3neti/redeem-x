@@ -25,6 +25,7 @@ export interface VoucherInputFieldOption {
 export interface CashValidation {
     secret?: string | null;
     mobile?: string | null;
+    payable?: number | null;  // vendor_alias_id for B2B vouchers
     country?: string | null;
     location?: string | null;
     radius?: string | null;
@@ -83,6 +84,7 @@ export interface VoucherGenerationForm {
     // Validation
     validation_secret?: string;
     validation_mobile?: string;
+    validation_payable?: number;  // vendor_alias_id
     validation_location?: string;
     validation_radius?: string;
 
