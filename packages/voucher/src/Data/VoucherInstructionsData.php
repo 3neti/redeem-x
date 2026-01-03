@@ -44,6 +44,7 @@ class VoucherInstructionsData extends Data
 
             'cash.validation.secret'   => 'nullable|string',
             'cash.validation.mobile'   => ['nullable', (new Phone)->country('PH')->type('mobile')],
+            'cash.validation.payable'  => 'nullable|integer|exists:vendor_aliases,id',
             'cash.validation.country'  => 'nullable|string|size:2',
             'cash.validation.location' => 'nullable|string',
             'cash.validation.radius'   => 'nullable|string',
@@ -119,6 +120,7 @@ class VoucherInstructionsData extends Data
                 'validation' => [
                     'secret'   => $validated['cash']['validation']['secret'] ?? null,
                     'mobile'   => $validated['cash']['validation']['mobile'] ?? null,
+                    'payable'  => $validated['cash']['validation']['payable'] ?? null,
                     'country'  => $validated['cash']['validation']['country'] ?? null,
                     'location' => $validated['cash']['validation']['location'] ?? null,
                     'radius'   => $validated['cash']['validation']['radius'] ?? null,
@@ -179,6 +181,7 @@ class VoucherInstructionsData extends Data
                 'validation' => [
                     'secret' => null,
                     'mobile' => null,
+                    'payable' => null,
                     'country' => config('instructions.cash.validation_rules.country'),
                     'location' => null,
                     'radius' => null,

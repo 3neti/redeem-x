@@ -12,6 +12,7 @@ class CashValidationRulesData extends Data
     public function __construct(
         public ?string $secret,
         public ?string $mobile,
+        public ?int $payable, // vendor_alias_id - who can redeem
         public ?string $country,
         public ?string $location,
         public ?string $radius, // future: consider DistanceValueObject
@@ -27,6 +28,10 @@ class CashValidationRulesData extends Data
             'mobile' => [
                 ['required', (new \Propaganistas\LaravelPhone\Rules\Phone)->country('PH')->type('mobile')],
                 config('instructions.cash.validation_rules.mobile')
+            ],
+            'payable' => [
+                ['nullable', 'integer', 'exists:vendor_aliases,id'],
+                null
             ],
             'country' => [
                 ['required', 'string', 'size:2'],
