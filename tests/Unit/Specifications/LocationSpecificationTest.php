@@ -204,6 +204,95 @@ describe('LocationSpecification', function () {
         
         expect($this->spec->passes($strictVoucher, $context))->toBeFalse();
     });
+    
+    describe('Location Input Requirement', function () {
+        it('passes when location input field is not required', function () {
+            $voucher = createVoucherWithInputFields([]);
+            $context = new RedemptionContext(mobile: '09171234567', inputs: []);
+            
+            expect($this->spec->passes($voucher, $context))->toBeTrue();
+        });
+        
+        it('fails when location input is required but not provided', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(mobile: '09171234567', inputs: []);
+            
+            expect($this->spec->passes($voucher, $context))->toBeFalse();
+        });
+        
+        it('passes when location input is required and provided with lat/lng', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'location' => [
+                        'lat' => 14.5547,
+                        'lng' => 121.0244,
+                    ]
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeTrue();
+        });
+        
+        it('passes when location input is required and provided with latitude/longitude', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'location' => [
+                        'latitude' => 14.5547,
+                        'longitude' => 121.0244,
+                    ]
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeTrue();
+        });
+        
+        it('fails when location input has invalid data structure', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'location' => 'invalid string' // Not an array
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeFalse();
+        });
+        
+        it('fails when location input has missing coordinates', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'location' => [
+                        'address' => 'Makati City' // No lat/lng
+                    ]
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeFalse();
+        });
+        
+        it('passes when location input is required along with other fields', function () {
+            $voucher = createVoucherWithInputFields(['name', 'location', 'email']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'name' => 'John Doe',
+                    'location' => [
+                        'lat' => 14.5547,
+                        'lng' => 121.0244,
+                    ],
+                    'email' => 'john@example.com',
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeTrue();
+        });
+    });
 });
 
 // Helper functions
@@ -212,6 +301,7 @@ function createVoucherWithoutLocationValidation(): object
     return (object) [
         'instructions' => (object) [
             'validation' => (object) [],
+            'inputs' => (object) ['fields' => []],
         ],
     ];
 }
@@ -226,6 +316,7 @@ function createVoucherWithIncompleteLocationValidation(): object
                     // Missing coordinates
                 ],
             ],
+            'inputs' => (object) ['fields' => []],
         ],
     ];
 }
@@ -243,6 +334,19 @@ function createVoucherWithLocationValidation(float $lat, float $lng, string $rad
                     'radius' => $radius,
                 ],
             ],
+            'inputs' => (object) ['fields' => []],
+        ],
+    ];
+}
+
+function createVoucherWithInputFields(array $fields): object
+{
+    return (object) [
+        'instructions' => (object) [
+            'inputs' => (object) [
+                'fields' => $fields,
+            ],
+            'validation' => (object) [],
         ],
     ];
 }

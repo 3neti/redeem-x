@@ -145,7 +145,7 @@ class VoucherRedemptionService
                 ),
                 'inputs' => $this->buildInputsErrorMessage($voucher, $context),
                 'kyc' => 'KYC verification is required but not approved. Please complete identity verification.',
-                'location' => 'You must be within the allowed location radius to redeem this voucher.',
+                'location' => 'Location data is required for this voucher.',
                 'time_window' => 'This voucher can only be redeemed during specific time periods. Please try again later.',
                 'time_limit' => 'This voucher has expired and can no longer be redeemed.',
                 default => "Validation failed: {$failure}",

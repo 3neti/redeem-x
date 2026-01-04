@@ -3,42 +3,53 @@
 namespace LBHurtado\Voucher\Specifications;
 
 use LBHurtado\Voucher\Data\RedemptionContext;
+use LBHurtado\Voucher\Enums\VoucherInputField;
 
 /**
- * Validates GPS location is within required radius.
+ * Validates GPS location requirements.
  * 
- * Uses Haversine formula to calculate distance between two GPS coordinates.
+ * Handles two scenarios:
+ * 1. Location input requirement - Checks if location data was collected when required
+ * 2. Geofence validation - Validates location is within required radius using Haversine formula
  */
 class LocationSpecification implements RedemptionSpecificationInterface
 {
     public function passes(object $voucher, RedemptionContext $context): bool
     {
+        // Scenario 1: Check if location input is required
+        if ($this->isLocationInputRequired($voucher)) {
+            if (!$this->hasLocationData($context)) {
+                return false; // Location data is required but not provided
+            }
+        }
+        
+        // Scenario 2: Check geofence validation (if configured)
         $locationValidation = $voucher->instructions->validation->location ?? null;
         
         if (!$locationValidation) {
-            return true; // No location validation required
+            return true; // No geofence validation required
         }
         
-        // Get required location and radius
+        // Get required location and radius for geofence
         $requiredLocation = $locationValidation->coordinates ?? null;
         $requiredRadius = $locationValidation->radius ?? null;
         
         if (!$requiredLocation || !$requiredRadius) {
-            return true; // Incomplete config, pass
+            return true; // Incomplete geofence config, pass
         }
         
         // Get provided location from context
         $providedLocation = $context->inputs['location'] ?? null;
         
         if (!$providedLocation) {
-            return false; // Location required but not provided
+            return false; // Geofence validation requires location
         }
         
         $providedLat = $providedLocation['lat'] ?? $providedLocation['latitude'] ?? null;
         $providedLng = $providedLocation['lng'] ?? $providedLocation['longitude'] ?? null;
         
         if ($providedLat === null || $providedLng === null) {
-            return false; // Invalid location data
+            return false; // Invalid location data for geofence
         }
         
         // Calculate distance
@@ -53,6 +64,40 @@ class LocationSpecification implements RedemptionSpecificationInterface
         $radiusMeters = $this->parseRadius($requiredRadius);
         
         return $distance <= $radiusMeters;
+    }
+    
+    /**
+     * Check if location input field is required.
+     */
+    private function isLocationInputRequired(object $voucher): bool
+    {
+        $requiredFields = $voucher->instructions->inputs->fields ?? [];
+        
+        foreach ($requiredFields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : $field;
+            if ($fieldValue === 'location') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if location data exists in context.
+     */
+    private function hasLocationData(RedemptionContext $context): bool
+    {
+        $location = $context->inputs['location'] ?? null;
+        
+        if (!$location || !is_array($location)) {
+            return false;
+        }
+        
+        $lat = $location['lat'] ?? $location['latitude'] ?? null;
+        $lng = $location['lng'] ?? $location['longitude'] ?? null;
+        
+        return $lat !== null && $lng !== null;
     }
     
     /**
