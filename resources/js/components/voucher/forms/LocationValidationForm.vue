@@ -230,11 +230,9 @@ const useCurrentLocation = () => {
                 <Label for="radius">Allowed Radius (kilometers)</Label>
                 <Input
                     id="radius"
-                    type="number"
-                    :step="config?.default_radius_step_km ?? 0.5"
+                    type="text"
+                    inputmode="decimal"
                     v-model.number="radiusKm"
-                    :min="0.1"
-                    :max="10"
                     placeholder="0.5"
                     :readonly="readonly"
                     :required="enabled"
