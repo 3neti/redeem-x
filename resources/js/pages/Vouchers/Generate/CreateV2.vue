@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, Banknote, ChevronDown, Code, Eye, FileText, Info, Send, Settings } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useVoucherApi } from '@/composables/useVoucherApi';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -253,6 +253,7 @@ const mask = ref('');
 const ttlDays = ref<number | null>(props.config.basic_settings.ttl.default);
 
 const selectedInputFields = ref<string[]>([]);
+const autoAddedFields = ref<Set<string>>(new Set());
 
 const validationSecret = ref('');
 const validationMobile = ref('');
@@ -329,6 +330,22 @@ const timeValidation = ref<any>(
     } : null
 );
 
+// Computed state for location input (auto-add + read-only logic)
+const locationInputState = computed(() => {
+    const isValidationEnabled = locationValidation.value !== null;
+    const isInFields = selectedInputFields.value.includes('location');
+    const isAutoAdded = autoAddedFields.value.has('location');
+    
+    return {
+        readOnly: isValidationEnabled,
+        checked: isInFields,
+        disabled: isValidationEnabled && isAutoAdded,
+        label: isValidationEnabled 
+            ? 'Location (Required by validation)' 
+            : 'Location',
+    };
+});
+
 // Validation fields initialized from config
 
 // Build instructions payload for pricing API
@@ -370,6 +387,30 @@ const instructionsForPricing = computed(() => {
         mask: mask.value || null,
         ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
     };
+});
+
+// Auto-add location input when location validation is enabled
+watch(locationValidation, (newVal, oldVal) => {
+    const autoAdd = props.config?.location_validation?.auto_add_input ?? true;
+    
+    if (autoAdd) {
+        if (newVal && !oldVal) {
+            // Location validation enabled - auto-add location input if not present
+            if (!selectedInputFields.value.includes('location')) {
+                selectedInputFields.value.push('location');
+                autoAddedFields.value.add('location');
+            }
+        } else if (!newVal && oldVal) {
+            // Location validation disabled - remove if auto-added
+            if (autoAddedFields.value.has('location')) {
+                const index = selectedInputFields.value.indexOf('location');
+                if (index > -1) {
+                    selectedInputFields.value.splice(index, 1);
+                }
+                autoAddedFields.value.delete('location');
+            }
+        }
+    }
 });
 
 // Debug watchers (after all refs are defined)
@@ -560,6 +601,18 @@ const jsonPreview = computed(() => {
     };
     
     return removeNulls(data);
+});
+
+// Initialize auto-add location input on mount if location validation is enabled
+onMounted(() => {
+    // If location validation enabled by default or from initial config
+    if (locationValidation.value && !selectedInputFields.value.includes('location')) {
+        const autoAdd = props.config?.location_validation?.auto_add_input ?? true;
+        if (autoAdd) {
+            selectedInputFields.value.push('location');
+            autoAddedFields.value.add('location');
+        }
+    }
 });
 
 // Form submission
@@ -876,17 +929,28 @@ const handleSubmit = async () => {
                                 <label
                                     v-for="option in input_field_options"
                                     :key="option.value"
-                                    class="flex items-center space-x-2 cursor-pointer"
+                                    :class="[
+                                        'flex items-center space-x-2',
+                                        option.value === 'location' && locationInputState.readOnly
+                                            ? 'opacity-75 cursor-not-allowed'
+                                            : 'cursor-pointer'
+                                    ]"
                                 >
                                     <input
                                         type="checkbox"
                                         :id="option.value"
                                         :value="option.value"
                                         v-model="selectedInputFields"
+                                        :disabled="option.value === 'location' && locationInputState.disabled"
                                         class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                     />
-                                    <span class="text-sm">
-                                        {{ option.label }}
+                                    <span class="text-sm flex items-center gap-2">
+                                        {{ option.value === 'location' ? locationInputState.label : option.label }}
+                                        <Info
+                                            v-if="option.value === 'location' && locationInputState.readOnly"
+                                            class="h-3 w-3 text-muted-foreground"
+                                            :title="'Required by location validation'"
+                                        />
                                     </span>
                                 </label>
                             </div>
