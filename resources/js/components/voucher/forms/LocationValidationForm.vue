@@ -30,7 +30,9 @@ interface LocationValidation {
 
 interface LocationValidationConfig {
     default_radius_km?: number;
+    default_radius_step_km?: number;
     default_on_failure?: 'block' | 'warn';
+    auto_fill_current_location?: boolean;
 }
 
 interface Props {
@@ -44,8 +46,10 @@ const props = withDefaults(defineProps<Props>(), {
     validationErrors: () => ({}),
     readonly: false,
     config: () => ({
-        default_radius_km: 1,
+        default_radius_km: 0.5,
+        default_radius_step_km: 0.5,
         default_on_failure: 'block',
+        auto_fill_current_location: true,
     }),
 });
 
@@ -57,7 +61,7 @@ const defaultLocationValidation = (): LocationValidation => ({
     required: true,
     target_lat: null,
     target_lng: null,
-    radius_meters: (props.config?.default_radius_km ?? 1) * 1000, // Convert km to meters
+    radius_meters: (props.config?.default_radius_km ?? 0.5) * 1000, // Convert km to meters
     on_failure: props.config?.default_on_failure ?? 'block',
 });
 
@@ -77,7 +81,14 @@ watch(() => props.modelValue, (newVal) => {
 // Watch enabled to update modelValue (from checkbox click)
 watch(enabled, (newVal) => {
     if (newVal) {
-        emit('update:modelValue', defaultLocationValidation());
+        const newLocation = defaultLocationValidation();
+        emit('update:modelValue', newLocation);
+        
+        // Auto-fill current location if enabled
+        if (props.config?.auto_fill_current_location && !props.readonly) {
+            // Use next tick to ensure the model is updated first
+            setTimeout(() => useCurrentLocation(), 100);
+        }
     } else {
         emit('update:modelValue', null);
     }
@@ -94,7 +105,7 @@ const updateField = (field: keyof LocationValidation, value: any) => {
 
 // Computed for radius in kilometers (for better UX)
 const radiusKm = computed({
-    get: () => localValue.value?.radius_meters ? localValue.value.radius_meters / 1000 : (props.config?.default_radius_km ?? 1),
+    get: () => localValue.value?.radius_meters ? localValue.value.radius_meters / 1000 : (props.config?.default_radius_km ?? 0.5),
     set: (value: number) => {
         if (localValue.value && value > 0) {
             updateField('radius_meters', Math.round(value * 1000));
@@ -180,8 +191,8 @@ const useCurrentLocation = () => {
                         <Label for="target_lat">Latitude</Label>
                         <Input
                             id="target_lat"
-                            type="number"
-                            step="0.000001"
+                            type="text"
+                            inputmode="decimal"
                             :model-value="localValue?.target_lat ?? ''"
                             @update:model-value="updateField('target_lat', $event ? parseFloat($event) : null)"
                             placeholder="14.5995"
@@ -198,8 +209,8 @@ const useCurrentLocation = () => {
                         <Label for="target_lng">Longitude</Label>
                         <Input
                             id="target_lng"
-                            type="number"
-                            step="0.000001"
+                            type="text"
+                            inputmode="decimal"
                             :model-value="localValue?.target_lng ?? ''"
                             @update:model-value="updateField('target_lng', $event ? parseFloat($event) : null)"
                             placeholder="120.9842"
@@ -219,12 +230,10 @@ const useCurrentLocation = () => {
                 <Label for="radius">Allowed Radius (kilometers)</Label>
                 <Input
                     id="radius"
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    inputmode="decimal"
                     v-model.number="radiusKm"
-                    :min="0.01"
-                    :max="10"
-                    placeholder="1.0"
+                    placeholder="0.5"
                     :readonly="readonly"
                     :required="enabled"
                 />
