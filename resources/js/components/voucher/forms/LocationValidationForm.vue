@@ -192,7 +192,6 @@ const useCurrentLocation = () => {
                         <Input
                             id="target_lat"
                             type="number"
-                            step="0.000001"
                             :model-value="localValue?.target_lat ?? ''"
                             @update:model-value="updateField('target_lat', $event ? parseFloat($event) : null)"
                             placeholder="14.5995"
@@ -210,7 +209,6 @@ const useCurrentLocation = () => {
                         <Input
                             id="target_lng"
                             type="number"
-                            step="0.000001"
                             :model-value="localValue?.target_lng ?? ''"
                             @update:model-value="updateField('target_lng', $event ? parseFloat($event) : null)"
                             placeholder="120.9842"
