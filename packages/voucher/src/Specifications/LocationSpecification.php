@@ -38,18 +38,20 @@ class LocationSpecification implements RedemptionSpecificationInterface
             return true; // Incomplete geofence config, pass
         }
         
-        // Get provided location from context
+        // Get provided location from context (handle both nested and flat formats)
         $providedLocation = $context->inputs['location'] ?? null;
         
-        if (!$providedLocation) {
-            return false; // Geofence validation requires location
+        if ($providedLocation && is_array($providedLocation)) {
+            $providedLat = $providedLocation['lat'] ?? $providedLocation['latitude'] ?? null;
+            $providedLng = $providedLocation['lng'] ?? $providedLocation['longitude'] ?? null;
+        } else {
+            // Try flat format
+            $providedLat = $context->inputs['lat'] ?? $context->inputs['latitude'] ?? null;
+            $providedLng = $context->inputs['lng'] ?? $context->inputs['longitude'] ?? null;
         }
         
-        $providedLat = $providedLocation['lat'] ?? $providedLocation['latitude'] ?? null;
-        $providedLng = $providedLocation['lng'] ?? $providedLocation['longitude'] ?? null;
-        
         if ($providedLat === null || $providedLng === null) {
-            return false; // Invalid location data for geofence
+            return false; // Geofence validation requires location
         }
         
         // Calculate distance
@@ -85,17 +87,25 @@ class LocationSpecification implements RedemptionSpecificationInterface
     
     /**
      * Check if location data exists in context.
+     * Handles both nested format (location => [lat, lng]) and flat format (lat, lng at root).
      */
     private function hasLocationData(RedemptionContext $context): bool
     {
+        // Check for nested location format
         $location = $context->inputs['location'] ?? null;
         
-        if (!$location || !is_array($location)) {
-            return false;
+        if ($location && is_array($location)) {
+            $lat = $location['lat'] ?? $location['latitude'] ?? null;
+            $lng = $location['lng'] ?? $location['longitude'] ?? null;
+            
+            if ($lat !== null && $lng !== null) {
+                return true;
+            }
         }
         
-        $lat = $location['lat'] ?? $location['latitude'] ?? null;
-        $lng = $location['lng'] ?? $location['longitude'] ?? null;
+        // Check for flat format (latitude/longitude at root level)
+        $lat = $context->inputs['lat'] ?? $context->inputs['latitude'] ?? null;
+        $lng = $context->inputs['lng'] ?? $context->inputs['longitude'] ?? null;
         
         return $lat !== null && $lng !== null;
     }

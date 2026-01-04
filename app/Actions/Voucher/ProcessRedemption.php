@@ -78,10 +78,8 @@ class ProcessRedemption
             // Step 2: Validate KYC if required
             $this->validateKYC($voucher, $contact);
             
-            // Step 3: Validate location if required
-            $this->validateLocation($voucher, $inputs);
-
-            // Step 4: Validate time if required
+            // Step 3: Validate time if required
+            // Note: Location validation is handled by LocationSpecification in the Unified Validation Gateway
             $this->validateTime($voucher);
 
             // Step 5: Prepare metadata for redemption
@@ -268,84 +266,7 @@ class ProcessRedemption
         }
     }
 
-    /**
-     * Validate location if location validation is configured.
-     *
-     * @param  Voucher  $voucher
-     * @param  array  $inputs
-     * @return void
-     *
-     * @throws \RuntimeException  If validation fails and should block
-     */
-    protected function validateLocation(Voucher $voucher, array $inputs): void
-    {
-        // Check if location validation is configured
-        $locationValidation = $voucher->instructions->validation?->location;
-        
-        if (!$locationValidation) {
-            if (self::DEBUG) {
-                Log::debug('[ProcessRedemption] No location validation configured', [
-                    'voucher' => $voucher->code,
-                ]);
-            }
-            return;
-        }
-
-        // Check if location data was provided
-        if (!isset($inputs['location']) || !is_array($inputs['location'])) {
-            Log::warning('[ProcessRedemption] Location validation required but no location data provided', [
-                'voucher' => $voucher->code,
-            ]);
-            throw new \RuntimeException('Location data is required for this voucher.');
-        }
-
-        $location = $inputs['location'];
-        
-        if (!isset($location['latitude']) || !isset($location['longitude'])) {
-            Log::warning('[ProcessRedemption] Invalid location data format', [
-                'voucher' => $voucher->code,
-                'location' => $location,
-            ]);
-            throw new \RuntimeException('Invalid location data format.');
-        }
-
-        // Validate location
-        $locationResult = $locationValidation->validateLocation(
-            (float) $location['latitude'],
-            (float) $location['longitude']
-        );
-
-        Log::info('[ProcessRedemption] Location validation result', [
-            'voucher' => $voucher->code,
-            'validated' => $locationResult->validated,
-            'distance_meters' => $locationResult->distance_meters,
-            'should_block' => $locationResult->should_block,
-        ]);
-
-        // Store validation results on voucher
-        $voucher->storeValidationResults(location: $locationResult);
-        $voucher->save();
-
-        // Block redemption if validation failed and should block
-        if ($locationResult->should_block) {
-            $distanceKm = $locationResult->distance_meters / 1000;
-            $radiusKm = $locationValidation->radius_meters / 1000;
-            
-            Log::warning('[ProcessRedemption] Location validation failed - blocking redemption', [
-                'voucher' => $voucher->code,
-                'distance_meters' => $locationResult->distance_meters,
-                'radius_meters' => $locationValidation->radius_meters,
-            ]);
-            
-            throw new \RuntimeException(
-                sprintf(
-                    'You must be within %.1f km of the designated location. You are %.1f km away.',
-                    $radiusKm,
-                    $distanceKm
-                )
-            );
-        }
-    }
+    // Location validation removed - handled by LocationSpecification in Unified Validation Gateway
 
     /**
      * Prepare metadata for redemption.

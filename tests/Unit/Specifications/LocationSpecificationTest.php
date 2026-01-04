@@ -292,6 +292,72 @@ describe('LocationSpecification', function () {
             
             expect($this->spec->passes($voucher, $context))->toBeTrue();
         });
+        
+        it('passes with flat location format (lat/lng at root level)', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'latitude' => 14.5547,
+                    'longitude' => 121.0244,
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeTrue();
+        });
+        
+        it('fails with flat location format missing coordinates', function () {
+            $voucher = createVoucherWithInputFields(['location']);
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'latitude' => 14.5547,
+                    // Missing longitude
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeFalse();
+        });
+    });
+    
+    describe('Geofence with Flat Location Format', function () {
+        it('passes when location is within radius using flat format', function () {
+            $voucher = createVoucherWithLocationValidation(
+                lat: 14.5547,
+                lng: 121.0244,
+                radius: '1000m'
+            );
+            
+            // User location at root level (flat format from form flow)
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'latitude' => 14.5592,
+                    'longitude' => 121.0244,
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeTrue();
+        });
+        
+        it('fails when location is outside radius using flat format', function () {
+            $voucher = createVoucherWithLocationValidation(
+                lat: 14.5547,
+                lng: 121.0244,
+                radius: '500m'
+            );
+            
+            // User location 2km away using flat format
+            $context = new RedemptionContext(
+                mobile: '09171234567',
+                inputs: [
+                    'lat' => 14.5723,
+                    'lng' => 121.0448,
+                ]
+            );
+            
+            expect($this->spec->passes($voucher, $context))->toBeFalse();
+        });
     });
 });
 
