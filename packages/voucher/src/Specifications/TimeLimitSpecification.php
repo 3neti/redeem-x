@@ -6,10 +6,11 @@ use Carbon\Carbon;
 use LBHurtado\Voucher\Data\RedemptionContext;
 
 /**
- * Validates redemption is within time limit from creation.
+ * Validates redemption time limits.
  * 
- * Checks if voucher hasn't exceeded max duration since creation.
- * Example: "24h" = voucher expires 24 hours after creation.
+ * Handles two types of time validation:
+ * 1. Redemption process duration (limit_minutes) - How long the redemption process takes
+ * 2. Time since creation (duration) - How long since voucher was created
  */
 class TimeLimitSpecification implements RedemptionSpecificationInterface
 {
@@ -21,17 +22,37 @@ class TimeLimitSpecification implements RedemptionSpecificationInterface
             return true; // No time validation required
         }
         
-        $duration = $timeValidation->duration ?? null;
-        
-        if (!$duration) {
-            return true; // No duration limit
+        // Check 1: Redemption process duration limit (limit_minutes)
+        if (isset($timeValidation->limit_minutes)) {
+            $processDuration = $voucher->getRedemptionDuration();
+            
+            // If timing tracking failed, block redemption
+            // This ensures limit_minutes validation is actually enforced
+            if ($processDuration === null) {
+                return false; // Cannot validate - timing data missing
+            }
+            
+            $limitSeconds = $timeValidation->limit_minutes * 60;
+            
+            if ($processDuration > $limitSeconds) {
+                return false; // Redemption took too long
+            }
         }
         
-        $createdAt = Carbon::parse($voucher->created_at);
-        $durationSeconds = $this->parseDuration($duration);
-        $expiresAt = $createdAt->addSeconds($durationSeconds);
+        // Check 2: Time since creation (duration field)
+        $duration = $timeValidation->duration ?? null;
         
-        return Carbon::now()->lessThanOrEqualTo($expiresAt);
+        if ($duration) {
+            $createdAt = Carbon::parse($voucher->created_at);
+            $durationSeconds = $this->parseDuration($duration);
+            $expiresAt = $createdAt->addSeconds($durationSeconds);
+            
+            if (Carbon::now()->greaterThan($expiresAt)) {
+                return false; // Voucher has expired
+            }
+        }
+        
+        return true;
     }
     
     /**

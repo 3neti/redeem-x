@@ -147,7 +147,7 @@ class VoucherRedemptionService
                 'kyc' => 'KYC verification is required but not approved. Please complete identity verification.',
                 'location' => 'Location data is required for this voucher.',
                 'time_window' => 'This voucher can only be redeemed during specific time periods. Please try again later.',
-                'time_limit' => 'This voucher has expired and can no longer be redeemed.',
+                'time_limit' => 'Redemption time limit exceeded. Please start the redemption process again.',
                 default => "Validation failed: {$failure}",
             };
         }

@@ -78,11 +78,12 @@ class ProcessRedemption
             // Step 2: Validate KYC if required
             $this->validateKYC($voucher, $contact);
             
-            // Step 3: Validate time if required
-            // Note: Location validation is handled by LocationSpecification in the Unified Validation Gateway
-            $this->validateTime($voucher);
+            // Note: Time and Location validation are handled by the Unified Validation Gateway:
+            // - TimeLimitSpecification (duration limit validation)
+            // - TimeWindowSpecification (time-of-day window validation)
+            // - LocationSpecification (GPS proximity validation)
 
-            // Step 5: Prepare metadata for redemption
+            // Step 3: Prepare metadata for redemption
             $meta = $this->prepareMetadata($inputs, $bankAccount);
 
             // Step 6: Mark voucher as redeemed (uses package action)
@@ -155,117 +156,7 @@ class ProcessRedemption
         ]);
     }
 
-    /**
-     * Validate time if time validation is configured.
-     *
-     * @param  Voucher  $voucher
-     * @return void
-     *
-     * @throws \RuntimeException  If validation fails
-     */
-    protected function validateTime(Voucher $voucher): void
-    {
-        // Check if time validation is configured
-        $timeValidation = $voucher->instructions->validation?->time;
-        
-        if (!$timeValidation) {
-            if (self::DEBUG) {
-                Log::debug('[ProcessRedemption] No time validation configured', [
-                    'voucher' => $voucher->code,
-                ]);
-            }
-            return;
-        }
-
-        $withinWindow = true;
-        $withinDuration = true;
-        $durationSeconds = 0;
-        $windowError = null;
-        $durationError = null;
-
-        // Validate time window if configured
-        if ($timeValidation->hasWindowValidation()) {
-            $withinWindow = $timeValidation->isWithinWindow();
-            
-            if (!$withinWindow) {
-                $window = $timeValidation->window;
-                $windowError = sprintf(
-                    'Redemption is only allowed between %s and %s (%s).',
-                    $window->start_time,
-                    $window->end_time,
-                    $window->timezone
-                );
-                
-                Log::warning('[ProcessRedemption] Time window validation failed', [
-                    'voucher' => $voucher->code,
-                    'start_time' => $window->start_time,
-                    'end_time' => $window->end_time,
-                    'timezone' => $window->timezone,
-                ]);
-            }
-        }
-
-        // Validate duration limit if configured
-        if ($timeValidation->hasDurationLimit()) {
-            $duration = $voucher->getRedemptionDuration();
-            
-            if ($duration !== null) {
-                $durationSeconds = $duration;
-                $exceedsLimit = $timeValidation->exceedsDurationLimit($duration);
-                
-                if ($exceedsLimit) {
-                    $withinDuration = false;
-                    $limitMinutes = $timeValidation->limit_minutes;
-                    $actualMinutes = round($duration / 60, 1);
-                    
-                    $durationError = sprintf(
-                        'Redemption took too long. Maximum allowed: %d minutes. Actual: %.1f minutes.',
-                        $limitMinutes,
-                        $actualMinutes
-                    );
-                    
-                    Log::warning('[ProcessRedemption] Duration limit exceeded', [
-                        'voucher' => $voucher->code,
-                        'duration_seconds' => $duration,
-                        'limit_minutes' => $limitMinutes,
-                    ]);
-                }
-            }
-        }
-
-        // Determine if should block
-        $shouldBlock = !$withinWindow || !$withinDuration;
-
-        // Store time validation results
-        if ($timeValidation->hasWindowValidation() || $timeValidation->hasDurationLimit()) {
-            $timeResult = \LBHurtado\Voucher\Data\TimeValidationResultData::from([
-                'within_window' => $withinWindow,
-                'within_duration' => $withinDuration,
-                'duration_seconds' => $durationSeconds,
-                'should_block' => $shouldBlock,
-            ]);
-            
-            $voucher->storeValidationResults(time: $timeResult);
-            $voucher->save();
-
-            Log::info('[ProcessRedemption] Time validation result', [
-                'voucher' => $voucher->code,
-                'within_window' => $withinWindow,
-                'within_duration' => $withinDuration,
-                'should_block' => $shouldBlock,
-            ]);
-        }
-
-        // Block redemption if any validation failed
-        if (!$withinWindow) {
-            throw new \RuntimeException($windowError);
-        }
-        
-        if (!$withinDuration) {
-            throw new \RuntimeException($durationError);
-        }
-    }
-
+    // Time validation removed - handled by TimeLimitSpecification and TimeWindowSpecification in Unified Validation Gateway
     // Location validation removed - handled by LocationSpecification in Unified Validation Gateway
 
     /**
