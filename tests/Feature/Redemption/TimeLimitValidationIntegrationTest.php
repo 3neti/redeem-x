@@ -24,7 +24,7 @@ beforeEach(function () {
 describe('Time Limit Validation - Integration Tests', function () {
     test('blocks redemption when limit_minutes configured but no timing data', function () {
         // Create voucher with 1 minute limit
-        $voucher = createVoucherWithTimeLimit($this->user, 1);
+        $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
         
         // Verify timing data is missing
         expect($voucher->timing)->toBeNull();
@@ -47,7 +47,7 @@ describe('Time Limit Validation - Integration Tests', function () {
     
     test('allows redemption when timing tracked within limit', function () {
         // Create voucher with 1 minute limit
-        $voucher = createVoucherWithTimeLimit($this->user, 1);
+        $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
         
         // Track start
         $voucher->trackRedemptionStart();
@@ -84,7 +84,7 @@ describe('Time Limit Validation - Integration Tests', function () {
     
     test('blocks redemption when timing exceeds limit', function () {
         // Create voucher with 1 minute limit
-        $voucher = createVoucherWithTimeLimit($this->user, 1);
+        $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
         
         // Track start
         $voucher->trackRedemptionStart();
@@ -127,7 +127,7 @@ describe('Time Limit Validation - Integration Tests', function () {
     
     test('allows redemption when no time limit configured', function () {
         // Create voucher WITHOUT time validation
-        $voucher = createVoucherWithoutTimeValidation($this->user);
+        $voucher = createVoucherWithoutTimeValidationIntegration($this->user);
         
         // Try to redeem WITHOUT timing tracking
         $service = new VoucherRedemptionService();
@@ -151,7 +151,7 @@ describe('Time Limit Validation - Integration Tests', function () {
         // 2. RedemptionGuard calls TimeLimitSpecification
         // 3. TimeLimitSpecification checks timing data
         
-        $voucher = createVoucherWithTimeLimit($this->user, 1);
+        $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
         
         $service = new VoucherRedemptionService();
         $context = new RedemptionContext(
@@ -172,8 +172,8 @@ describe('Time Limit Validation - Integration Tests', function () {
     });
 });
 
-// Helper functions
-function createVoucherWithTimeLimit(User $user, int $limitMinutes): Voucher
+// Helper functions (namespaced to avoid conflicts)
+function createVoucherWithTimeLimitIntegration(User $user, int $limitMinutes): Voucher
 {
     $instructions = VoucherInstructionsData::from([
         'cash' => [
@@ -211,7 +211,7 @@ function createVoucherWithTimeLimit(User $user, int $limitMinutes): Voucher
     return $voucher;
 }
 
-function createVoucherWithoutTimeValidation(User $user): Voucher
+function createVoucherWithoutTimeValidationIntegration(User $user): Voucher
 {
     $instructions = VoucherInstructionsData::from([
         'cash' => [
