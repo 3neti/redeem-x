@@ -191,7 +191,8 @@ const useCurrentLocation = () => {
                         <Label for="target_lat">Latitude</Label>
                         <Input
                             id="target_lat"
-                            type="number"
+                            type="text"
+                            inputmode="decimal"
                             :model-value="localValue?.target_lat ?? ''"
                             @update:model-value="updateField('target_lat', $event ? parseFloat($event) : null)"
                             placeholder="14.5995"
@@ -208,7 +209,8 @@ const useCurrentLocation = () => {
                         <Label for="target_lng">Longitude</Label>
                         <Input
                             id="target_lng"
-                            type="number"
+                            type="text"
+                            inputmode="decimal"
                             :model-value="localValue?.target_lng ?? ''"
                             @update:model-value="updateField('target_lng', $event ? parseFloat($event) : null)"
                             placeholder="120.9842"
