@@ -187,9 +187,11 @@ return [
     'location_validation' => [
         'show_card' => env('GENERATE_VOUCHER_SHOW_LOCATION_CARD', true),
         'default_enabled' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_ENABLED', false), // Auto-enable main checkbox
-        'default_radius_km' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_RADIUS', 1), // Default 1km
+        'default_radius_km' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_RADIUS', 0.5), // Default 500 meters
+        'default_radius_step_km' => env('GENERATE_VOUCHER_LOCATION_RADIUS_STEP', 0.5), // Spinner step size
         'default_on_failure' => env('GENERATE_VOUCHER_LOCATION_DEFAULT_FAILURE', 'block'), // 'block' or 'warn'
         'auto_add_input' => env('LOCATION_VALIDATION_AUTO_ADD_INPUT', true), // Auto-add location to input fields when validation enabled
+        'auto_fill_current_location' => env('LOCATION_VALIDATION_AUTO_FILL_CURRENT', true), // Auto-fill current location on enable
     ],
 
     /*
