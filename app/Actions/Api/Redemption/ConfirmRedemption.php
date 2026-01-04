@@ -6,10 +6,12 @@ namespace App\Actions\Api\Redemption;
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Responses\ApiResponse;
+use App\Services\VoucherRedemptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use Propaganistas\LaravelPhone\PhoneNumber;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -77,6 +79,17 @@ class ConfirmRedemption
             try {
                 // Create PhoneNumber instance
                 $phoneNumber = new PhoneNumber($mobile, $country);
+                
+                // Validate using Unified Validation Gateway
+                $service = new VoucherRedemptionService();
+                $context = $service->resolveContextFromArray([
+                    'mobile' => $mobile,
+                    'secret' => request()->input('secret'),
+                    'inputs' => $inputs,
+                    'bank_account' => $bankAccount,
+                ]);
+                
+                $service->validateRedemption($voucher, $context);
 
                 // Process redemption (uses transaction)
                 ProcessRedemption::run(
@@ -108,6 +121,14 @@ class ConfirmRedemption
                         ],
                     ],
                 ], 200);
+            } catch (RedemptionException $e) {
+                // Validation failed (secret, mobile, payable, inputs, kyc, location, time)
+                Log::warning('[ConfirmRedemption] Validation failed', [
+                    'voucher' => $voucherCode,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return ApiResponse::error($e->getMessage(), 422);
             } catch (\Throwable $e) {
                 // Handle known business exceptions gracefully (no stack trace)
                 if ($e instanceof InvalidSettlementRailException) {

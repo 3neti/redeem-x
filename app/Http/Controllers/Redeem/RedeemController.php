@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Redeem;
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Controllers\Controller;
+use App\Services\VoucherRedemptionService;
 use Illuminate\Http\RedirectResponse;
 use LBHurtado\Voucher\Data\VoucherData;
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
@@ -18,9 +20,19 @@ use Propaganistas\LaravelPhone\PhoneNumber;
 use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 /**
- * Redemption controller.
+ * Redemption controller (LEGACY - DEPRECATED).
+ *
+ * @deprecated This controller is deprecated in favor of DisburseController (/disburse).
+ *             DisburseController uses Form Flow Manager for dynamic input collection,
+ *             which is more flexible and maintainable.
  *
  * Handles redemption start, confirmation, and success pages.
+ * 
+ * **Current Status:** Still functional but not actively developed.
+ * **Replacement:** Use DisburseController (/disburse route) for new implementations.
+ * **Validation:** Uses Unified Validation Gateway (PayableSpecification, etc.).
+ * 
+ * @see \App\Http\Controllers\Disburse\DisburseController
  */
 class RedeemController extends Controller
 {
@@ -327,7 +339,9 @@ class RedeemController extends Controller
         // Gather all session data
         $mobile = Session::get("redeem.{$voucherCode}.mobile");
         $country = Session::get("redeem.{$voucherCode}.country", 'PH');
-        $wallet = Session::get("redeem.{$voucherCode}.wallet", []);
+        $secret = Session::get("redeem.{$voucherCode}.secret");
+        $bankCode = Session::get("redeem.{$voucherCode}.bank_code");
+        $accountNumber = Session::get("redeem.{$voucherCode}.account_number");
         $inputs = Session::get("redeem.{$voucherCode}.inputs", []);
         $signature = Session::get("redeem.{$voucherCode}.signature");
 
@@ -350,13 +364,24 @@ class RedeemController extends Controller
 
         // Prepare bank account data
         $bankAccount = [
-            'bank_code' => $wallet['bank_code'] ?? null,
-            'account_number' => $wallet['account_number'] ?? null,
+            'bank_code' => $bankCode,
+            'account_number' => $accountNumber,
         ];
 
         try {
             // Create PhoneNumber instance
             $phoneNumber = new PhoneNumber($mobile, $country);
+            
+            // Validate using Unified Validation Gateway
+            $service = new VoucherRedemptionService();
+            $context = $service->resolveContextFromArray([
+                'mobile' => $mobile,
+                'secret' => $secret,
+                'inputs' => $allInputs,
+                'bank_account' => $bankAccount,
+            ], auth()->user());
+            
+            $service->validateRedemption($voucher, $context);
 
             // Process redemption (uses transaction)
             ProcessRedemption::run(
@@ -380,6 +405,16 @@ class RedeemController extends Controller
             return redirect()
                 ->route('redeem.success', $voucher)
                 ->with('success', 'Voucher redeemed successfully!');
+        } catch (RedemptionException $e) {
+            // Validation failed (secret, mobile, payable mismatch)
+            Log::warning('[RedeemController] Validation failed', [
+                'voucher' => $voucherCode,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('redeem.finalize', $voucher)
+                ->with('error', $e->getMessage());
         } catch (\App\Exceptions\VoucherNotProcessedException $e) {
             // Voucher still being processed - return 425 with retry guidance
             Log::info('[RedeemController] Voucher not yet processed', [

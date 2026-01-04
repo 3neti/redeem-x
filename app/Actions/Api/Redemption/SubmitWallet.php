@@ -6,10 +6,12 @@ namespace App\Actions\Api\Redemption;
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Responses\ApiResponse;
+use App\Services\VoucherRedemptionService;
 use Illuminate\Http\JsonResponse;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Data\VoucherData;
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use LBHurtado\Voucher\Models\Voucher;
 use Propaganistas\LaravelPhone\PhoneNumber;
 use Propaganistas\LaravelPhone\Rules\Phone;
@@ -70,17 +72,13 @@ class SubmitWallet
         // Prepare inputs
         $inputs = $validated['inputs'] ?? [];
         
-        // Validate secret if required
-        if (!empty($voucher->instructions->cash->validation->secret)) {
-            $requiredSecret = $voucher->instructions->cash->validation->secret;
-            $providedSecret = $validated['secret'] ?? null;
-            
-            if ($providedSecret !== $requiredSecret) {
-                return ApiResponse::error('Invalid secret code.', 400);
-            }
-        }
-
+        // Validate using Unified Validation Gateway
+        $service = new VoucherRedemptionService();
+        $context = $service->resolveContextFromArray($validated);
+        
         try {
+            $service->validateRedemption($voucher, $context);
+            
             // Process redemption
             ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
 
@@ -92,6 +90,14 @@ class SubmitWallet
                 'message' => 'Voucher redeemed successfully!',
                 'voucher' => VoucherData::fromModel($voucher),
             ]);
+        } catch (RedemptionException $e) {
+            // Validation failed (secret, mobile, payable, inputs, kyc, location, time)
+            \Log::warning('[SubmitWallet] Validation failed', [
+                'voucher' => $voucher->code,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ApiResponse::error($e->getMessage(), 422);
         } catch (\Throwable $e) {
             \Log::error('[SubmitWallet] Redemption failed', [
                 'voucher' => $voucher->code,

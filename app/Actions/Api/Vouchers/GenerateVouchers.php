@@ -77,6 +77,7 @@ class GenerateVouchers
     #[BodyParameter('input_fields', description: '*optional* - Array of required input fields for redemption. Valid values: "email", "mobile", "name", "address", "birth_date", "gross_monthly_income", "location", "reference_code", "signature", "selfie", "otp", "kyc". Leave empty or omit for no required inputs.', type: 'array', example: ['mobile', 'location', 'selfie'])]
     #[BodyParameter('validation_secret', description: '*optional* - Secret PIN required for redemption. Useful for restricting access.', type: 'string', example: '1234')]
     #[BodyParameter('validation_mobile', description: '*optional* - Assign voucher to specific Philippine mobile number (+639XXXXXXXXX format).', type: 'string', example: '+639171234567')]
+    #[BodyParameter('validation_payable', description: '*optional* - Restrict redemption to specific vendor alias (B2B vouchers). Only users with matching vendor alias can redeem.', type: 'string', example: 'TESTSHOP')]
     #[BodyParameter('feedback_email', description: '*optional* - Email address to receive redemption notifications.', type: 'string', example: 'notify@example.com')]
     #[BodyParameter('feedback_mobile', description: '*optional* - Philippine mobile number to receive SMS notifications upon redemption.', type: 'string', example: '+639171234567')]
     #[BodyParameter('feedback_webhook', description: '*optional* - Webhook URL to POST redemption data to your system.', type: 'string', example: 'https://api.example.com/webhooks/voucher-redeemed')]
@@ -205,6 +206,7 @@ class GenerateVouchers
 
             'validation_secret' => 'nullable|string',
             'validation_mobile' => ['nullable', (new Phone)->country('PH')->type('mobile')],
+            'validation_payable' => 'nullable|string',
 
             'feedback_email' => 'nullable|email',
             'feedback_mobile' => ['nullable', (new Phone)->country('PH')->type('mobile')],
@@ -303,6 +305,7 @@ class GenerateVouchers
                 'validation' => [
                     'secret' => $validated['validation_secret'] ?? null,
                     'mobile' => $validated['validation_mobile'] ?? null,
+                    'payable' => $validated['validation_payable'] ?? null,
                     'country' => config('instructions.cash.validation_rules.country', 'PH'),
                     'location' => null,
                     'radius' => null,

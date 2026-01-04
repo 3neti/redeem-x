@@ -6,18 +6,45 @@ namespace App\Http\Controllers\Disburse;
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Controllers\Controller;
+use App\Services\VoucherRedemptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\FormFlowManager\Services\{DriverService, FormFlowService};
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use LBHurtado\Voucher\Models\Voucher;
 
 /**
- * Disburse Controller
+ * Disburse Controller - PRIMARY REDEMPTION PATH
  * 
  * Handles voucher redemption via dynamic Form Flow Manager.
+ * 
+ * **Primary Redemption Flow:** This is the main redemption controller.
+ * Uses Form Flow Manager for flexible, dynamic input collection based on
+ * voucher instructions. Replaces the legacy RedeemController (/redeem).
+ * 
+ * **Validation:** Integrated with Unified Validation Gateway:
+ * - PayableSpecification: Enforces vendor alias restrictions (B2B vouchers)
+ * - SecretSpecification: Validates secret codes
+ * - MobileSpecification: Validates mobile number restrictions
+ * - InputsSpecification: Validates required input fields
+ * - KycSpecification: Validates KYC approval status
+ * - LocationSpecification: Validates GPS radius restrictions
+ * - TimeWindowSpecification: Validates time window restrictions
+ * - TimeLimitSpecification: Validates redemption time limits
+ * 
+ * **Key Features:**
+ * - Dynamic form generation via Form Flow Manager
+ * - Pluggable input handlers (location, signature, selfie, KYC)
+ * - Complete validation before redemption
+ * - Supports both authenticated and unauthenticated redemptions
+ * - For B2B vouchers (payable restriction), user must be authenticated
+ * 
+ * @see \App\Services\VoucherRedemptionService
+ * @see \LBHurtado\Voucher\Guards\RedemptionGuard
+ * @see \App\Http\Controllers\Redeem\RedeemController (deprecated)
  */
 class DisburseController extends Controller
 {
@@ -157,6 +184,17 @@ class DisburseController extends Controller
             ->toArray();
         
         try {
+            // Validate using Unified Validation Gateway
+            $service = new VoucherRedemptionService();
+            $context = $service->resolveContextFromArray([
+                'mobile' => $mobile,
+                'secret' => $flatData['secret'] ?? null,
+                'inputs' => $inputs,
+                'bank_account' => $bankAccount,
+            ], auth()->user());
+            
+            $service->validateRedemption($voucher, $context);
+            
             // Store idempotency key for redemption tracking
             $idempotencyKey = request()->header('Idempotency-Key');
             if ($idempotencyKey) {
@@ -175,6 +213,24 @@ class DisburseController extends Controller
             // Redirect to success page
             return redirect()->route('disburse.success', ['voucher' => $voucher->code])
                 ->with('success', 'Voucher redeemed successfully!');
+                
+        } catch (RedemptionException $e) {
+            // Validation failed (secret, mobile, payable mismatch, etc.)
+            Log::warning('[DisburseController] Validation failed', [
+                'voucher' => $voucher->code,
+                'error' => $e->getMessage(),
+            ]);
+            
+            // Return JSON error for AJAX requests, redirect otherwise
+            if (request()->wantsJson() || request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+            
+            return redirect()->route('disburse.start')
+                ->withErrors(['code' => $e->getMessage()]);
                 
         } catch (\Throwable $e) {
             Log::error('[DisburseController] Redemption failed', [

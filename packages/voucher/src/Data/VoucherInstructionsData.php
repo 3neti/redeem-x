@@ -44,7 +44,7 @@ class VoucherInstructionsData extends Data
 
             'cash.validation.secret'   => 'nullable|string',
             'cash.validation.mobile'   => ['nullable', (new Phone)->country('PH')->type('mobile')],
-            'cash.validation.payable'  => 'nullable|integer|exists:vendor_aliases,id',
+            'cash.validation.payable'  => 'nullable|string',
             'cash.validation.country'  => 'nullable|string|size:2',
             'cash.validation.location' => 'nullable|string',
             'cash.validation.radius'   => 'nullable|string',

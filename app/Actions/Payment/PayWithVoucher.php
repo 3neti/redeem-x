@@ -4,8 +4,11 @@ namespace App\Actions\Payment;
 
 use App\Actions\Voucher\ValidateVoucherCode;
 use App\Models\User;
+use App\Services\VoucherRedemptionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use LBHurtado\Voucher\Data\RedemptionContext;
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -26,7 +29,7 @@ class PayWithVoucher
      * @return array{success: bool, amount: float, new_balance: float, voucher_code: string}
      *
      * @throws \Illuminate\Validation\ValidationException  If validation fails
-     * @throws \RuntimeException  If payable validation fails
+     * @throws RedemptionException  If validation fails
      */
     public function handle(User $user, string $code): array
     {
@@ -34,8 +37,14 @@ class PayWithVoucher
         $validator = new ValidateVoucherCode();
         $voucher = $validator->validateOrFail($code);
         
-        // Step 2: Validate payable restriction (if voucher requires specific vendor alias)
-        $this->validatePayable($voucher, $user);
+        // Step 2: Validate using Unified Validation Gateway
+        $service = new VoucherRedemptionService();
+        $context = new RedemptionContext(
+            mobile: '', // Not needed for authenticated redemption
+            vendorAlias: $user->primaryVendorAlias?->alias
+        );
+        
+        $service->validateRedemption($voucher, $context);
 
         Log::info('[PayWithVoucher] Voucher validated and payable check passed, transferring from Cash wallet', [
             'user_id' => $user->id,
@@ -93,68 +102,5 @@ class PayWithVoucher
                 'voucher_code' => $voucher->code,
             ];
         });
-    }
-    
-    /**
-     * Validate that user has the required vendor alias (payable restriction).
-     *
-     * @param  \LBHurtado\Voucher\Models\Voucher  $voucher
-     * @param  User  $user
-     * @return void
-     *
-     * @throws \RuntimeException  If payable validation fails
-     */
-    protected function validatePayable($voucher, User $user): void
-    {
-        // Check if voucher has payable restriction
-        $payableAliasId = $voucher->instructions->cash->validation->payable ?? null;
-        
-        if (!$payableAliasId) {
-            // No restriction - any authenticated user can redeem
-            return;
-        }
-        
-        // User must have an active vendor alias
-        $vendorAlias = $user->primaryVendorAlias;
-        
-        if (!$vendorAlias || !$vendorAlias->isActive()) {
-            Log::warning('[PayWithVoucher] User has no active vendor alias', [
-                'user_id' => $user->id,
-                'voucher' => $voucher->code,
-                'required_alias_id' => $payableAliasId,
-            ]);
-            
-            throw new \RuntimeException(
-                'This voucher requires an active vendor alias. Please contact support to get your merchant credentials.'
-            );
-        }
-        
-        // Vendor alias must match the payable restriction
-        if ($vendorAlias->id !== $payableAliasId) {
-            Log::warning('[PayWithVoucher] Vendor alias mismatch', [
-                'user_id' => $user->id,
-                'voucher' => $voucher->code,
-                'user_alias_id' => $vendorAlias->id,
-                'user_alias' => $vendorAlias->alias,
-                'required_alias_id' => $payableAliasId,
-            ]);
-            
-            // Load the required alias for error message
-            $requiredAlias = \LBHurtado\Merchant\Models\VendorAlias::find($payableAliasId);
-            
-            throw new \RuntimeException(
-                sprintf(
-                    'This voucher is payable to %s. You are logged in as %s.',
-                    $requiredAlias->alias ?? 'another vendor',
-                    $vendorAlias->alias
-                )
-            );
-        }
-        
-        Log::info('[PayWithVoucher] Payable validation passed', [
-            'user_id' => $user->id,
-            'voucher' => $voucher->code,
-            'vendor_alias' => $vendorAlias->alias,
-        ]);
     }
 }
