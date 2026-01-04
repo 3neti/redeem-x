@@ -92,6 +92,8 @@ class GenerateVouchers
     #[BodyParameter('preview_enabled', description: '*optional* - Allow voucher preview via inspect endpoint before redemption.', type: 'boolean', example: true)]
     #[BodyParameter('preview_scope', description: '*optional* - Preview data scope: "full" (all details), "requirements_only" (inputs needed), "none" (no preview).', type: 'string', example: 'full')]
     #[BodyParameter('preview_message', description: '*optional* - Custom message to display in voucher inspection/preview.', type: 'string', example: 'This voucher is for event attendees only.')]
+    #[BodyParameter('validation_location', description: '*optional* - Location validation settings. Object with: required (bool), target_lat (float -90 to 90), target_lng (float -180 to 180), radius_meters (int 1-10000), on_failure ("block"|"warn"). Enforces GPS radius restrictions.', type: 'object', example: ['required' => true, 'target_lat' => 14.5995, 'target_lng' => 120.9842, 'radius_meters' => 1000, 'on_failure' => 'block'])]
+    #[BodyParameter('validation_time', description: '*optional* - Time validation settings. Object with: window (object with start_time HH:mm, end_time HH:mm, timezone), limit_minutes (int 1-1440 max time to redeem after generation), track_duration (bool). Enforces time restrictions.', type: 'object', example: ['limit_minutes' => 1440, 'track_duration' => true])]
     public function asController(ActionRequest $request): JsonResponse
     {
         // Get validated data (ActionRequest auto-validates with rules() method)
@@ -228,6 +230,23 @@ class GenerateVouchers
             'preview_enabled' => 'nullable|boolean',
             'preview_scope' => 'nullable|string|in:full,requirements_only,none',
             'preview_message' => 'nullable|string|max:500',
+            
+            // Location validation
+            'validation_location' => 'nullable|array',
+            'validation_location.required' => 'nullable|boolean',
+            'validation_location.target_lat' => 'required_with:validation_location|numeric|between:-90,90',
+            'validation_location.target_lng' => 'required_with:validation_location|numeric|between:-180,180',
+            'validation_location.radius_meters' => 'required_with:validation_location|integer|min:1|max:10000',
+            'validation_location.on_failure' => 'required_with:validation_location|in:block,warn',
+            
+            // Time validation
+            'validation_time' => 'nullable|array',
+            'validation_time.window' => 'nullable|array',
+            'validation_time.window.start_time' => 'required_with:validation_time.window|date_format:H:i',
+            'validation_time.window.end_time' => 'required_with:validation_time.window|date_format:H:i',
+            'validation_time.window.timezone' => 'required_with:validation_time.window|string|timezone',
+            'validation_time.limit_minutes' => 'nullable|integer|min:1|max:1440',
+            'validation_time.track_duration' => 'nullable|boolean',
         ];
     }
 
@@ -328,6 +347,24 @@ class GenerateVouchers
                 'splash' => $validated['rider_splash'] ?? null,
                 'splash_timeout' => $validated['rider_splash_timeout'] ?? null,
             ],
+            'validation' => isset($validated['validation_location']) || isset($validated['validation_time']) ? [
+                'location' => isset($validated['validation_location']) ? [
+                    'required' => $validated['validation_location']['required'] ?? true,
+                    'target_lat' => $validated['validation_location']['target_lat'],
+                    'target_lng' => $validated['validation_location']['target_lng'],
+                    'radius_meters' => $validated['validation_location']['radius_meters'],
+                    'on_failure' => $validated['validation_location']['on_failure'],
+                ] : null,
+                'time' => isset($validated['validation_time']) ? [
+                    'window' => isset($validated['validation_time']['window']) ? [
+                        'start_time' => $validated['validation_time']['window']['start_time'],
+                        'end_time' => $validated['validation_time']['window']['end_time'],
+                        'timezone' => $validated['validation_time']['window']['timezone'],
+                    ] : null,
+                    'limit_minutes' => $validated['validation_time']['limit_minutes'] ?? null,
+                    'track_duration' => $validated['validation_time']['track_duration'] ?? true,
+                ] : null,
+            ] : null,
             'count' => $validated['count'],
             'prefix' => $validated['prefix'] ?? '',
             'mask' => $validated['mask'] ?? '',
