@@ -186,10 +186,10 @@ class Voucher extends BaseVoucher implements InputInterface
             return 0.0;
         }
 
-        return $this->cash->wallet->transactions()
+        return abs($this->cash->wallet->transactions()
             ->where('type', 'withdraw')
             ->whereJsonContains('meta->flow', 'redeem')
-            ->sum('amount') / 100; // Convert minor units to major
+            ->sum('amount')) / 100; // Convert minor units to major (withdrawals are negative)
     }
 
     public function getRemaining(): float
