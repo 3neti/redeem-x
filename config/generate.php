@@ -123,6 +123,14 @@ return [
             'placeholder' => env('GENERATE_VOUCHER_TTL_PLACEHOLDER', '30'),
             'help_text' => env('GENERATE_VOUCHER_TTL_HELP', 'Leave empty for non-expiring vouchers'),
         ],
+
+        // Payee field (bank check metaphor)
+        'show_payee' => env('GENERATE_VOUCHER_SHOW_PAYEE', true),
+        'payee' => [
+            'label' => env('GENERATE_VOUCHER_PAYEE_LABEL', 'Payee'),
+            'placeholder' => env('GENERATE_VOUCHER_PAYEE_PLACEHOLDER', 'CASH'),
+            'help_text' => env('GENERATE_VOUCHER_PAYEE_HELP', 'Like a bank check - leave as CASH for anyone to redeem, or specify a mobile number or merchant name'),
+        ],
     ],
 
     /*

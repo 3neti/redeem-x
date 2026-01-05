@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle, Banknote, ChevronDown, Code, Eye, FileText, Info, Send, Settings } from 'lucide-vue-next';
+import { AlertCircle, Banknote, ChevronDown, Code, Eye, FileText, Info, Receipt, Send, Settings } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useVoucherApi } from '@/composables/useVoucherApi';
@@ -152,8 +152,12 @@ watch(selectedCampaignId, async (campaignId) => {
         
         if (inst.cash?.validation) {
             validationSecret.value = inst.cash.validation.secret || '';
-            validationMobile.value = inst.cash.validation.mobile || '';
-            validationPayable.value = inst.cash.validation.payable || '';
+            // Load payee from either mobile or payable field
+            if (inst.cash.validation.mobile) {
+                payee.value = inst.cash.validation.mobile;
+            } else if (inst.cash.validation.payable) {
+                payee.value = inst.cash.validation.payable;
+            }
         }
         
         if (inst.feedback) {
@@ -226,8 +230,7 @@ const selectedInputFields = ref<string[]>([]);
 const autoAddedFields = ref<Set<string>>(new Set());
 
 const validationSecret = ref('');
-const validationMobile = ref('');
-const validationPayable = ref<string>(''); // Store alias text, not ID
+const payee = ref<string>(''); // Bank check metaphor: blank/CASH, mobile, or vendor alias
 
 const feedbackEmail = ref('');
 const feedbackMobile = ref('');
@@ -300,6 +303,38 @@ const timeValidation = ref<any>(
     } : null
 );
 
+// Payee field smart detection (bank check metaphor)
+const payeeType = computed(() => {
+    const normalized = payee.value.trim();
+    
+    // Blank or "CASH" (case-insensitive) = anyone
+    if (!normalized || normalized.toUpperCase() === 'CASH') return 'anyone';
+    
+    // Detect mobile: starts with +, 09, etc.
+    if (/^(\+|09|\+63)/.test(normalized)) return 'mobile';
+    
+    // Everything else is vendor alias
+    return 'vendor';
+});
+
+const normalizedPayee = computed(() => {
+    const normalized = payee.value.trim();
+    // Normalize "CASH" to empty string
+    return normalized.toUpperCase() === 'CASH' ? '' : normalized;
+});
+
+const showDisbursementSettings = computed(() => {
+    return payeeType.value === 'anyone';  // Only for blank/CASH
+});
+
+const contextualHelpText = computed(() => {
+    switch (payeeType.value) {
+        case 'anyone': return 'Anyone can redeem this voucher';
+        case 'mobile': return `Restricted to mobile number: ${normalizedPayee.value}`;
+        case 'vendor': return `Restricted to merchant: ${normalizedPayee.value}`;
+    }
+});
+
 // Computed state for location input (auto-add + read-only logic)
 const locationInputState = computed(() => {
     const isValidationEnabled = locationValidation.value !== null;
@@ -328,8 +363,8 @@ const instructionsForPricing = computed(() => {
             fee_strategy: feeStrategy.value || 'absorb',
             validation: {
                 secret: validationSecret.value || null,
-                mobile: validationMobile.value || null,
-                payable: validationPayable.value || null, // Send alias text
+                mobile: payeeType.value === 'mobile' ? normalizedPayee.value : null,
+                payable: payeeType.value === 'vendor' ? normalizedPayee.value : null,
                 country: 'PH',
             },
         },
@@ -402,7 +437,8 @@ if (DEBUG) {
 watch(instructionsForPricing, (newVal) => {
     console.log('[CreateV2] instructionsForPricing:', newVal);
     console.log('[CreateV2] validationSecret:', validationSecret.value);
-    console.log('[CreateV2] validationMobile:', validationMobile.value);
+    console.log('[CreateV2] payee:', payee.value);
+    console.log('[CreateV2] payeeType:', payeeType.value);
 }, { deep: true });
 
 // Use live pricing API with centralized deduction calculation
@@ -514,8 +550,8 @@ const jsonPreview = computed(() => {
             currency: 'PHP',
             validation: {
                 secret: validationSecret.value || null,
-                mobile: validationMobile.value || null,
-                payable: validationPayable.value || null,
+                mobile: payeeType.value === 'mobile' ? normalizedPayee.value : null,
+                payable: payeeType.value === 'vendor' ? normalizedPayee.value : null,
                 country: 'PH',
                 location: null,
                 radius: null,
@@ -599,8 +635,8 @@ const handleSubmit = async () => {
         ttl_days: ttlDays.value || undefined,
         input_fields: selectedInputFields.value.length > 0 ? selectedInputFields.value : undefined,
         validation_secret: validationSecret.value || undefined,
-        validation_mobile: validationMobile.value || undefined,
-        validation_payable: validationPayable.value || undefined,
+        validation_mobile: payeeType.value === 'mobile' ? normalizedPayee.value : undefined,
+        validation_payable: payeeType.value === 'vendor' ? normalizedPayee.value : undefined,
         settlement_rail: settlementRail.value || undefined,
         fee_strategy: feeStrategy.value || undefined,
         feedback_email: feedbackEmail.value || undefined,
@@ -752,6 +788,28 @@ const handleSubmit = async () => {
                                 </div>
                             </div>
 
+                            <!-- Payee field (bank check metaphor) - Visible in both Simple and Advanced modes -->
+                            <div v-if="config.basic_settings.show_payee" class="space-y-2">
+                                <Label for="payee">
+                                    <span class="flex items-center gap-2">
+                                        <Receipt class="h-4 w-4" />
+                                        {{ config.basic_settings.payee.label }}
+                                    </span>
+                                </Label>
+                                <Input
+                                    id="payee"
+                                    v-model="payee"
+                                    :placeholder="config.basic_settings.payee.placeholder"
+                                    list="vendor-aliases-datalist"
+                                />
+                                <datalist id="vendor-aliases-datalist">
+                                    <option v-for="alias in vendorAliases" :key="alias.id" :value="alias.alias" />
+                                </datalist>
+                                <p class="text-xs text-muted-foreground">
+                                    {{ contextualHelpText }}
+                                </p>
+                            </div>
+
                             <!-- Advanced fields (only in Advanced Mode) -->
                             <template v-if="!isSimpleMode">
                                 <div class="grid gap-4 sm:grid-cols-2">
@@ -798,8 +856,8 @@ const handleSubmit = async () => {
                                 </div>
                             </template>
 
-                            <!-- Settlement Rail & Fee Strategy (Advanced Mode only) -->
-                            <div v-if="!isSimpleMode" class="pt-4 border-t space-y-4">
+                            <!-- Settlement Rail & Fee Strategy (Advanced Mode only, and only for disbursement vouchers) -->
+                            <div v-if="!isSimpleMode && showDisbursementSettings" class="pt-4 border-t space-y-4">
                                 <h4 class="text-sm font-medium">Disbursement Settings</h4>
                                 
                                 <!-- Settlement Rail -->
@@ -955,7 +1013,7 @@ const handleSubmit = async () => {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <CardContent class="space-y-6">
-                            <!-- Secret Code & Mobile Restriction -->
+                            <!-- Secret Code -->
                             <div class="space-y-4">
                                 <div v-if="config.validation_rules.show_secret" class="space-y-2">
                                     <Label for="validation_secret">{{ config.validation_rules.secret.label }}</Label>
@@ -966,42 +1024,6 @@ const handleSubmit = async () => {
                                         :placeholder="config.validation_rules.secret.placeholder"
                                     />
                                     <InputError :message="validationErrors.validation_secret" />
-                                </div>
-
-                                <div v-if="config.validation_rules.show_mobile" class="space-y-2">
-                                    <Label for="validation_mobile"
-                                        >{{ config.validation_rules.mobile.label }}</Label
-                                    >
-                                    <Input
-                                        id="validation_mobile"
-                                        name="validation_mobile"
-                                        v-model="validationMobile"
-                                        :placeholder="config.validation_rules.mobile.placeholder"
-                                    />
-                                    <InputError :message="validationErrors.validation_mobile" />
-                                </div>
-
-                                <div class="space-y-2">
-                                    <Label for="validation_payable">Payable To (Vendor Alias)</Label>
-                                    <div class="relative">
-                                        <Input
-                                            id="validation_payable"
-                                            name="validation_payable"
-                                            v-model="validationPayable"
-                                            placeholder="Enter or select vendor alias"
-                                            list="vendor-aliases-list"
-                                            class="pr-10"
-                                        />
-                                        <datalist id="vendor-aliases-list">
-                                            <option v-for="alias in vendorAliases" :key="alias.id" :value="alias.alias">
-                                                {{ alias.owner_name }}
-                                            </option>
-                                        </datalist>
-                                    </div>
-                                    <InputError :message="validationErrors.validation_payable" />
-                                    <p class="text-xs text-muted-foreground">
-                                        Type to enter or select from most-used vendor aliases. Restricts redemption to specific merchant (B2B vouchers).
-                                    </p>
                                 </div>
                             </div>
 
