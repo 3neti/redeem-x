@@ -321,6 +321,13 @@ class DisburseController extends Controller
             }
         }
         
+        // Map form flow field names to voucher input field names
+        // Form flow uses 'otp_code' but InputsSpecification expects 'otp'
+        if (isset($mapped['otp_code'])) {
+            $mapped['otp'] = $mapped['otp_code'];
+            unset($mapped['otp_code']);
+        }
+        
         return $mapped;
     }
 }
