@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 
+const page = usePage()
 const voucherCode = ref('')
 const amount = ref('')
 const quote = ref<any>(null)
@@ -19,11 +20,17 @@ async function getQuote() {
   quote.value = null
 
   try {
+    // Get CSRF token from Inertia page props
+    const csrfToken = (page.props as any).csrf_token || 
+                      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                      document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    
     const response = await fetch('/pay/quote', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
       },
       body: JSON.stringify({ code: voucherCode.value }),
     })
