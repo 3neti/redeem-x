@@ -79,11 +79,15 @@ Route::middleware([
             $useV2 = config('generate.feature_flags.progressive_disclosure', false);
             
             // Check user preference override
+            $savedMode = 'simple'; // Default
             if (auth()->check()) {
                 $userPreference = auth()->user()->ui_preferences['voucher_generate_ui_version'] ?? null;
                 if ($userPreference === 'legacy') {
                     $useV2 = false;
                 }
+                
+                // Read saved Simple/Advanced mode preference
+                $savedMode = auth()->user()->ui_preferences['voucher_generate_mode'] ?? 'simple';
             }
             
             $component = $useV2 ? 'vouchers/generate/CreateV2' : 'vouchers/generate/Create';
@@ -91,6 +95,7 @@ Route::middleware([
             return Inertia::render($component, [
                 'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),
                 'config' => config('generate'),
+                'saved_mode' => $savedMode, // Pass saved mode to frontend
             ]);
         })->name('generate.create');
         

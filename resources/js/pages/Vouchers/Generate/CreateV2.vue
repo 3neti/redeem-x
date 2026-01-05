@@ -36,6 +36,7 @@ const DEBUG = false;
 interface Props {
     input_field_options: VoucherInputFieldOption[];
     config: any;
+    saved_mode?: string;
 }
 
 const props = defineProps<Props>();
@@ -70,7 +71,7 @@ const hasAdvancedMode = computed(() => {
 
 // Mode management (Simple vs Advanced)
 // If user doesn't have the feature flag, force simple mode and block advanced mode
-const initialMode = 'simple'; // Always start in simple mode
+const initialMode = (props.saved_mode ?? 'simple') as GenerateMode; // Use saved preference or default to simple
 const { mode, switchMode } = useGenerateMode(initialMode);
 const isSimpleMode = computed(() => mode.value === 'simple');
 
