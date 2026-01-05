@@ -78,9 +78,9 @@ class DisburseRequest extends AbstractRequest
             $payload['remarks'] = $remarks;
         }
         
-        // Add optional additional sender info
+        // Add optional additional sender info (camelCase per NetBank API docs)
         if ($additionalSenderInfo = $this->getAdditionalSenderInfo()) {
-            $payload['additional_sender_info'] = $additionalSenderInfo;
+            $payload['additionalSenderInfo'] = $additionalSenderInfo;
         }
         
         return $payload;
