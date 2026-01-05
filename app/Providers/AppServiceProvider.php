@@ -56,5 +56,14 @@ class AppServiceProvider extends ServiceProvider
             // Disabled by default, can be manually activated per user
             return false;
         });
+
+        Feature::define('settlement-vouchers', function (User $user) {
+            // Enable in dev/staging for testing
+            if (app()->environment('local', 'staging')) {
+                return true;
+            }
+            // Disabled in production until manually enabled
+            return false;
+        });
     }
 }
