@@ -59,4 +59,20 @@ return [
         'redeemers' => 'redeemers',
         'vouchers'  => 'vouchers',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Settlement Rules
+    |--------------------------------------------------------------------------
+    | Default rules for settlement vouchers (PAYABLE/SETTLEMENT types)
+    */
+
+    'settlement' => [
+        'default_rules' => [
+            'min_payment' => 1.00,              // Minimum payment amount (PHP)
+            'max_payment' => null,              // Maximum payment amount (null = no limit)
+            'allow_overpayment' => false,       // Allow payments exceeding target_amount
+            'auto_close_on_full_payment' => true, // Auto-close when fully paid
+        ],
+    ],
 ];

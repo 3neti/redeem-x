@@ -11,6 +11,7 @@ use Inertia\Response;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Models\Voucher;
+use Laravel\Pennant\Feature;
 
 /**
  * Voucher Management Controller
@@ -37,9 +38,31 @@ class VoucherController extends Controller
         // Load relationships including inputs (single source of truth)
         $voucher->load(['owner', 'inputs']);
 
-        return Inertia::render('vouchers/Show', [
+        $data = [
             'voucher' => VoucherData::fromModel($voucher),
             'input_field_options' => VoucherInputField::options(),
-        ]);
+        ];
+
+        // Add settlement data if feature is enabled
+        if (Feature::active('settlement-vouchers') && $voucher->voucher_type) {
+            $data['settlement'] = [
+                'type' => $voucher->voucher_type->value,
+                'state' => $voucher->state->value,
+                'target_amount' => $voucher->target_amount,
+                'paid_total' => $voucher->getPaidTotal(),
+                'redeemed_total' => $voucher->getRedeemedTotal(),
+                'remaining' => $voucher->getRemaining(),
+                'can_accept_payment' => $voucher->canAcceptPayment(),
+                'can_redeem' => $voucher->canRedeem(),
+                'is_locked' => $voucher->isLocked(),
+                'is_closed' => $voucher->isClosed(),
+                'is_expired' => $voucher->isExpired(),
+                'locked_at' => $voucher->locked_at?->toIso8601String(),
+                'closed_at' => $voucher->closed_at?->toIso8601String(),
+                'rules' => $voucher->rules,
+            ];
+        }
+
+        return Inertia::render('vouchers/Show', $data);
     }
 }

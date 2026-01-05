@@ -7,6 +7,7 @@ use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
 use LBHurtado\Voucher\Data\Casts\CarbonIntervalCast;
 use LBHurtado\Voucher\Data\Traits\HasSafeDefaults;
 use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Rules\ValidISODuration;
 use Propaganistas\LaravelPhone\Rules\Phone;
 use Illuminate\Support\Number;
@@ -31,6 +32,9 @@ class VoucherInstructionsData extends Data
         public CarbonInterval|null           $ttl,              // Expiry time (TTL)
         public ?ValidationInstructionData    $validation = null, // Validation instructions
         public ?VoucherMetadataData          $metadata = null,   // System metadata (version, copyright, licenses, issuer, redemption URLs)
+        public ?VoucherType                  $voucher_type = null, // Settlement voucher type (REDEEMABLE, PAYABLE, SETTLEMENT)
+        public ?float                        $target_amount = null, // Target amount for PAYABLE/SETTLEMENT vouchers
+        public ?array                        $rules = null,         // Settlement-specific rules (min_payment, max_payment, allow_overpayment, etc.)
     ){
         $this->applyRulesAndDefaults();
 //        $this->ttl = $ttl ?: CarbonInterval::hours(config('instructions.ttl'));
@@ -88,6 +92,15 @@ class VoucherInstructionsData extends Data
             'ttl' => ['nullable', new ValidISODuration()],
             'starts_at'  => 'nullable|date',
             'expires_at' => 'nullable|date|after_or_equal:starts_at',
+
+            // Settlement voucher fields
+            'voucher_type' => 'nullable|string|in:redeemable,payable,settlement',
+            'target_amount' => 'nullable|numeric|min:0|required_if:voucher_type,payable,settlement',
+            'rules' => 'nullable|array',
+            'rules.min_payment' => 'nullable|numeric|min:0',
+            'rules.max_payment' => 'nullable|numeric|min:0',
+            'rules.allow_overpayment' => 'nullable|boolean',
+            'rules.auto_close_on_full_payment' => 'nullable|boolean',
 
             // Validation instructions
             'validation' => 'nullable|array',
@@ -165,6 +178,9 @@ class VoucherInstructionsData extends Data
             'ttl'        => $validated['ttl'] ?? null,
             'starts_at'  => $validated['starts_at'] ?? null,
             'expires_at' => $validated['expires_at'] ?? null,
+            'voucher_type' => isset($validated['voucher_type']) ? VoucherType::from($validated['voucher_type']) : null,
+            'target_amount' => $validated['target_amount'] ?? null,
+            'rules' => $validated['rules'] ?? null,
         ];
 
         return VoucherInstructionsData::from($data_array);
