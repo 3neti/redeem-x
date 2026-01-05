@@ -19,6 +19,9 @@ use LBHurtado\ModelInput\Traits\HasInputs;
 use LBHurtado\Voucher\Traits\HasExternalMetadata;
 use LBHurtado\Voucher\Traits\HasVoucherTiming;
 use LBHurtado\Voucher\Traits\HasValidationResults;
+use LBHurtado\Voucher\Enums\VoucherType;
+use LBHurtado\Voucher\Enums\VoucherState;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
  * Class Voucher.
@@ -62,6 +65,11 @@ class Voucher extends BaseVoucher implements InputInterface
         // Include parent's casts and add/override
         return array_merge(parent::casts(), [
             'processed_on' => 'datetime:Y-m-d H:i:s',
+            'voucher_type' => VoucherType::class,
+            'state' => VoucherState::class,
+            'rules' => 'array',
+            'locked_at' => 'datetime',
+            'closed_at' => 'datetime',
         ]);
     }
 
@@ -112,5 +120,84 @@ class Voucher extends BaseVoucher implements InputInterface
     public function getContactAttribute(): ?Contact
     {
         return $this->redeemers?->first()?->redeemer;
+    }
+
+    /**
+     * Target amount accessor - converts between minor units (storage) and major units (display)
+     */
+    protected function targetAmount(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? $value / 100 : null, // Convert centavos to pesos
+            set: fn ($value) => $value ? $value * 100 : null  // Convert pesos to centavos
+        );
+    }
+
+    // Domain Guards
+    
+    public function canAcceptPayment(): bool
+    {
+        return in_array($this->voucher_type, [VoucherType::PAYABLE, VoucherType::SETTLEMENT])
+            && $this->state === VoucherState::ACTIVE
+            && !$this->isExpired()
+            && !$this->isClosed();
+    }
+
+    public function canRedeem(): bool
+    {
+        return in_array($this->voucher_type, [VoucherType::REDEEMABLE, VoucherType::SETTLEMENT])
+            && $this->state === VoucherState::ACTIVE
+            && !$this->isExpired()
+            && $this->redeemed_at === null;
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->state === VoucherState::LOCKED;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->state === VoucherState::CLOSED;
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at && $this->expires_at->isPast();
+    }
+
+    // Computed Amount Methods (derived from wallet ledger)
+
+    public function getPaidTotal(): float
+    {
+        if (!$this->cash || !$this->cash->wallet) {
+            return 0.0;
+        }
+
+        return $this->cash->wallet->transactions()
+            ->where('type', 'deposit')
+            ->whereJsonContains('meta->flow', 'pay')
+            ->sum('amount') / 100; // Convert minor units to major
+    }
+
+    public function getRedeemedTotal(): float
+    {
+        if (!$this->cash || !$this->cash->wallet) {
+            return 0.0;
+        }
+
+        return $this->cash->wallet->transactions()
+            ->where('type', 'withdraw')
+            ->whereJsonContains('meta->flow', 'redeem')
+            ->sum('amount') / 100; // Convert minor units to major
+    }
+
+    public function getRemaining(): float
+    {
+        if (!$this->target_amount) {
+            return 0.0;
+        }
+
+        return $this->target_amount - $this->getPaidTotal();
     }
 }
