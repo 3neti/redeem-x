@@ -21,6 +21,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
 use App\Models\CampaignVoucher;
 use App\Models\VoucherGenerationCharge;
+use App\Settings\VoucherSettings;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -270,9 +271,13 @@ class GenerateVouchers
         // Get authenticated user for metadata
         $owner = auth()->user();
         
+        // Get redemption endpoint from settings
+        $settings = app(VoucherSettings::class);
+        $redemptionPath = $settings->default_redemption_endpoint ?? '/disburse';
+        
         // Get redemption URLs
         $redemptionUrls = [
-            'web' => route('redeem.start'),
+            'web' => url($redemptionPath),
         ];
         
         // Add API endpoint if route exists
