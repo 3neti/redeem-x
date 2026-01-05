@@ -81,16 +81,39 @@ Route::middleware([
             // Check user preference override
             $savedMode = 'simple'; // Default
             if (auth()->check()) {
-                $userPreference = auth()->user()->ui_preferences['voucher_generate_ui_version'] ?? null;
+                $user = auth()->user();
+                
+                // Debug: Log user preferences
+                \Log::info('[Generate Route] User authenticated', [
+                    'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'ui_preferences' => $user->ui_preferences,
+                    'ui_preferences_type' => gettype($user->ui_preferences),
+                ]);
+                
+                $userPreference = $user->ui_preferences['voucher_generate_ui_version'] ?? null;
                 if ($userPreference === 'legacy') {
                     $useV2 = false;
                 }
                 
                 // Read saved Simple/Advanced mode preference
-                $savedMode = auth()->user()->ui_preferences['voucher_generate_mode'] ?? 'simple';
+                $savedMode = $user->ui_preferences['voucher_generate_mode'] ?? 'simple';
+                
+                \Log::info('[Generate Route] Mode preference read', [
+                    'saved_mode' => $savedMode,
+                    'has_key' => isset($user->ui_preferences['voucher_generate_mode']),
+                    'raw_value' => $user->ui_preferences['voucher_generate_mode'] ?? 'KEY_NOT_SET',
+                ]);
+            } else {
+                \Log::info('[Generate Route] User not authenticated, using default mode');
             }
             
             $component = $useV2 ? 'vouchers/generate/CreateV2' : 'vouchers/generate/Create';
+            
+            \Log::info('[Generate Route] Rendering component', [
+                'component' => $component,
+                'saved_mode' => $savedMode,
+            ]);
             
             return Inertia::render($component, [
                 'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),

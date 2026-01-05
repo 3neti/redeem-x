@@ -3,12 +3,16 @@ import { SwitchRoot, type SwitchRootEmits, type SwitchRootProps, SwitchThumb } f
 import { cn } from '@/lib/utils'
 import { type HTMLAttributes } from 'vue'
 
-const props = defineProps<SwitchRootProps & { class?: HTMLAttributes['class'] }>()
+const props = defineProps<SwitchRootProps & { class?: HTMLAttributes['class'], checked?: boolean }>()
 const emits = defineEmits<SwitchRootEmits>()
 </script>
 
 <template>
   <SwitchRoot
+    :id="props.id"
+    :name="props.name"
+    :disabled="props.disabled"
+    :required="props.required"
     :model-value="props.checked"
     @update:model-value="(value) => emits('update:checked', value)"
     :class="
