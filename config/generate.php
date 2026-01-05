@@ -135,6 +135,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mobile Validation
+    |--------------------------------------------------------------------------
+    |
+    | Configure mobile validation behavior. When a mobile number is specified
+    | as the payee, automatically require OTP verification.
+    |
+    */
+
+    'mobile_validation' => [
+        'auto_add_otp' => env('MOBILE_VALIDATION_AUTO_ADD_OTP', true), // Auto-add OTP input when mobile payee specified
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Input Fields Card
     |--------------------------------------------------------------------------
     |

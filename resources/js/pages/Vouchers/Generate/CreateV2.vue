@@ -351,6 +351,22 @@ const locationInputState = computed(() => {
     };
 });
 
+// Computed state for OTP input (auto-add when mobile validation enabled)
+const otpInputState = computed(() => {
+    const isMobileValidation = payeeType.value === 'mobile';
+    const isInFields = selectedInputFields.value.includes('otp');
+    const isAutoAdded = autoAddedFields.value.has('otp');
+    
+    return {
+        readOnly: isMobileValidation,
+        checked: isInFields,
+        disabled: isMobileValidation && isAutoAdded,
+        label: isMobileValidation 
+            ? 'OTP (Required for mobile verification)' 
+            : 'OTP',
+    };
+});
+
 // Validation fields initialized from config
 
 // Build instructions payload for pricing API
@@ -413,6 +429,30 @@ watch(locationValidation, (newVal, oldVal) => {
                     selectedInputFields.value.splice(index, 1);
                 }
                 autoAddedFields.value.delete('location');
+            }
+        }
+    }
+});
+
+// Auto-add OTP input when mobile validation is enabled
+watch(payeeType, (newType, oldType) => {
+    const autoAdd = props.config?.mobile_validation?.auto_add_otp ?? true;
+    
+    if (autoAdd) {
+        if (newType === 'mobile' && oldType !== 'mobile') {
+            // Mobile validation enabled - auto-add OTP if not present
+            if (!selectedInputFields.value.includes('otp')) {
+                selectedInputFields.value.push('otp');
+                autoAddedFields.value.add('otp');
+            }
+        } else if (newType !== 'mobile' && oldType === 'mobile') {
+            // Mobile validation disabled - remove OTP if auto-added
+            if (autoAddedFields.value.has('otp')) {
+                const index = selectedInputFields.value.indexOf('otp');
+                if (index > -1) {
+                    selectedInputFields.value.splice(index, 1);
+                }
+                autoAddedFields.value.delete('otp');
             }
         }
     }
@@ -617,6 +657,15 @@ onMounted(() => {
         if (autoAdd) {
             selectedInputFields.value.push('location');
             autoAddedFields.value.add('location');
+        }
+    }
+    
+    // If mobile validation enabled on mount, auto-add OTP
+    if (payeeType.value === 'mobile' && !selectedInputFields.value.includes('otp')) {
+        const autoAdd = props.config?.mobile_validation?.auto_add_otp ?? true;
+        if (autoAdd) {
+            selectedInputFields.value.push('otp');
+            autoAddedFields.value.add('otp');
         }
     }
 });
@@ -955,7 +1004,8 @@ const handleSubmit = async () => {
                                     :key="option.value"
                                     :class="[
                                         'flex items-center space-x-2',
-                                        option.value === 'location' && locationInputState.readOnly
+                                        (option.value === 'location' && locationInputState.readOnly) ||
+                                        (option.value === 'otp' && otpInputState.readOnly)
                                             ? 'opacity-75 cursor-not-allowed'
                                             : 'cursor-pointer'
                                     ]"
@@ -965,15 +1015,25 @@ const handleSubmit = async () => {
                                         :id="option.value"
                                         :value="option.value"
                                         v-model="selectedInputFields"
-                                        :disabled="option.value === 'location' && locationInputState.disabled"
+                                        :disabled="
+                                            (option.value === 'location' && locationInputState.disabled) ||
+                                            (option.value === 'otp' && otpInputState.disabled)
+                                        "
                                         class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                     />
                                     <span class="text-sm flex items-center gap-2">
-                                        {{ option.value === 'location' ? locationInputState.label : option.label }}
+                                        {{ 
+                                            option.value === 'location' ? locationInputState.label :
+                                            option.value === 'otp' ? otpInputState.label :
+                                            option.label 
+                                        }}
                                         <Info
-                                            v-if="option.value === 'location' && locationInputState.readOnly"
+                                            v-if="
+                                                (option.value === 'location' && locationInputState.readOnly) ||
+                                                (option.value === 'otp' && otpInputState.readOnly)
+                                            "
                                             class="h-3 w-3 text-muted-foreground"
-                                            :title="'Required by location validation'"
+                                            :title="option.value === 'location' ? 'Required by location validation' : 'Required for mobile verification'"
                                         />
                                     </span>
                                 </label>
