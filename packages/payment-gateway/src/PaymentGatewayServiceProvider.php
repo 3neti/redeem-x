@@ -7,7 +7,8 @@ use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use LBHurtado\PaymentGateway\Console\Commands\{
     CheckBalanceCommand,
     TestDisbursementCommand,
-    GenerateQrCommand
+    GenerateQrCommand,
+    TestGCashMemoCommand
 };
 use LBHurtado\Wallet\Services\SystemUserResolverService;
 use LBHurtado\MoneyIssuer\Support\BankRegistry;
@@ -84,6 +85,7 @@ class PaymentGatewayServiceProvider extends ServiceProvider
                 CheckBalanceCommand::class,
                 TestDisbursementCommand::class,
                 GenerateQrCommand::class,
+                TestGCashMemoCommand::class,
             ]);
         }
 

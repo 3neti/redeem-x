@@ -23,6 +23,8 @@ class TestDisbursementCommand extends TestOmnipayCommand
                             {rail : Settlement rail (INSTAPAY or PESONET)}
                             {--reference= : Custom reference (auto-generated if not provided)}
                             {--gateway=netbank : The gateway to use}
+                            {--remarks= : Optional remarks/memo for recipient}
+                            {--sender-info= : Optional additional sender information}
                             {--no-confirm : Skip confirmation prompt (dangerous!)}';
     
     protected $description = 'Test disbursement to a recipient (⚠️  REAL TRANSACTION)';
@@ -95,6 +97,16 @@ class TestDisbursementCommand extends TestOmnipayCommand
                 'Reference' => $reference,
             ];
             
+            // Add remarks if provided
+            if ($remarks = $this->option('remarks')) {
+                $details['Remarks'] = $remarks;
+            }
+            
+            // Add sender info if provided
+            if ($senderInfo = $this->option('sender-info')) {
+                $details['Sender Info'] = $senderInfo;
+            }
+            
             $this->info('Disbursement Details:');
             $this->displayResults($details);
             $this->newLine();
@@ -117,14 +129,26 @@ class TestDisbursementCommand extends TestOmnipayCommand
                 'reference' => $reference,
             ]);
             
-            $response = $this->gateway->disburse([
+            $disburseParams = [
                 'amount' => $amountInCentavos,
                 'accountNumber' => $account,
                 'bankCode' => $bankCode,
                 'reference' => $reference,
                 'via' => $railName,
                 'currency' => 'PHP',
-            ])->send();
+            ];
+            
+            // Add remarks if provided
+            if ($remarks = $this->option('remarks')) {
+                $disburseParams['remarks'] = $remarks;
+            }
+            
+            // Add sender info if provided
+            if ($senderInfo = $this->option('sender-info')) {
+                $disburseParams['additionalSenderInfo'] = $senderInfo;
+            }
+            
+            $response = $this->gateway->disburse($disburseParams)->send();
             
             // Handle response
             if ($response->isSuccessful()) {

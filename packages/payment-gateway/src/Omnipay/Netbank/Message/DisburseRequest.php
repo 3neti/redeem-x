@@ -73,6 +73,16 @@ class DisburseRequest extends AbstractRequest
         $this->applyKycWorkaround($payload, 'sender');
         $this->applyKycWorkaround($payload, 'recipient');
         
+        // Add optional remarks field (for GCash memo smoke test)
+        if ($remarks = $this->getRemarks()) {
+            $payload['remarks'] = $remarks;
+        }
+        
+        // Add optional additional sender info
+        if ($additionalSenderInfo = $this->getAdditionalSenderInfo()) {
+            $payload['additional_sender_info'] = $additionalSenderInfo;
+        }
+        
         return $payload;
     }
     
@@ -310,5 +320,26 @@ class DisburseRequest extends AbstractRequest
     public function setRails($value)
     {
         return $this->setParameter('rails', $value);
+    }
+    
+    // Remarks field (for GCash memo smoke test)
+    public function getRemarks()
+    {
+        return $this->getParameter('remarks');
+    }
+    
+    public function setRemarks($value)
+    {
+        return $this->setParameter('remarks', $value);
+    }
+    
+    public function getAdditionalSenderInfo()
+    {
+        return $this->getParameter('additionalSenderInfo');
+    }
+    
+    public function setAdditionalSenderInfo($value)
+    {
+        return $this->setParameter('additionalSenderInfo', $value);
     }
 }
