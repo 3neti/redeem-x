@@ -1,6 +1,4 @@
 <script setup lang="ts">
-console.log('[CreateV2] Script is executing!');
-
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -36,11 +34,10 @@ const DEBUG = false;
 interface Props {
     input_field_options: VoucherInputFieldOption[];
     config: any;
+    saved_mode?: string;
 }
 
 const props = defineProps<Props>();
-
-// Config loaded successfully
 
 // Use reactive wallet balance with real-time updates
 const { balance: walletBalance, formattedBalance, realtimeNote, realtimeTime } = useWalletBalance();
@@ -63,43 +60,16 @@ const validationErrors = ref<Record<string, string>>({});
 // Check if user has advanced pricing mode feature flag
 const page = usePage();
 const hasAdvancedMode = computed(() => {
-    const value = page.props.auth?.feature_flags?.advanced_pricing_mode || false;
-    console.log('[CreateV2] hasAdvancedMode computed:', value, 'auth:', page.props.auth);
-    return value;
+    return page.props.auth?.feature_flags?.advanced_pricing_mode || false;
 });
 
 // Mode management (Simple vs Advanced)
-// If user doesn't have the feature flag, force simple mode and block advanced mode
-const initialMode = 'simple'; // Always start in simple mode
+const initialMode = (props.saved_mode ?? 'simple') as GenerateMode;
 const { mode, switchMode } = useGenerateMode(initialMode);
 const isSimpleMode = computed(() => mode.value === 'simple');
 
-console.log('[CreateV2] Initial mode:', mode.value);
-
-// Switch binding - convert boolean to mode string
-const isAdvancedMode = computed({
-    get: () => {
-        const value = mode.value === 'advanced';
-        console.log('[CreateV2] isAdvancedMode.get:', value, 'mode:', mode.value);
-        return value;
-    },
-    set: (value: boolean) => {
-        console.log('[CreateV2] isAdvancedMode.set called with:', value);
-        const newMode = value ? 'advanced' : 'simple';
-        console.log('[CreateV2] Switching to mode:', newMode);
-        switchMode(newMode);
-    }
-});
-
-// Watch mode changes
-watch(mode, (newMode, oldMode) => {
-    console.log('[CreateV2] Mode changed from', oldMode, 'to', newMode);
-});
-
-// Debug mode changes
-watch(mode, (newMode) => {
-    console.log('[CreateV2] Mode changed to:', newMode, 'isSimpleMode:', isSimpleMode.value);
-});
+// Explicit computed for Switch component binding
+const isSwitchChecked = computed(() => mode.value === 'advanced');
 
 // Collapsible card state management (for Advanced Mode)
 const collapsibleCards = ref({
@@ -706,12 +676,8 @@ const handleSubmit = async () => {
                         </Label>
                         <Switch
                             id="mode-toggle"
-                            :checked="isAdvancedMode"
-                            @update:checked="(value) => {
-                                console.log('[CreateV2] Switch update:checked event:', value);
-                                isAdvancedMode = value;
-                            }"
-                            @click="() => console.log('[CreateV2] Switch clicked!')"
+                            :checked="isSwitchChecked"
+                            @update:checked="(checked) => switchMode(checked ? 'advanced' : 'simple')"
                         />
                     </div>
                 </div>

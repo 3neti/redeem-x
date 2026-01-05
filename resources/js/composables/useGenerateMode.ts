@@ -1,35 +1,41 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import axios from 'axios'
 import { usePage } from '@inertiajs/vue3'
 
 export type GenerateMode = 'simple' | 'advanced'
 
+const STORAGE_KEY = 'voucher_generate_mode'
+
 export function useGenerateMode(initialMode: GenerateMode = 'simple') {
-  const mode = ref<GenerateMode>(initialMode)
+  // Try to load from localStorage first (for immediate persistence)
+  const savedMode = localStorage.getItem(STORAGE_KEY) as GenerateMode | null
+  const startMode = savedMode || initialMode
+  
+  const mode = ref<GenerateMode>(startMode)
   const loading = ref(false)
   const page = usePage()
+  
+  // Watch mode changes and persist to localStorage immediately
+  watch(mode, (newMode) => {
+    localStorage.setItem(STORAGE_KEY, newMode)
+  })
 
   const switchMode = async (newMode: GenerateMode) => {
-    console.log('[useGenerateMode] switchMode called:', { newMode, currentMode: mode.value })
-    
     // Check if user has permission to use advanced mode
     const hasAdvancedMode = page.props.auth?.feature_flags?.advanced_pricing_mode || false
-    console.log('[useGenerateMode] Permission check:', { hasAdvancedMode, newMode })
     
     if (newMode === 'advanced' && !hasAdvancedMode) {
-      console.warn('[useGenerateMode] ❌ BLOCKED: User does not have advanced mode feature flag')
-      return // CRITICAL: Block mode change if no permission
+      return // Block mode change if no permission
     }
     
-    console.log('[useGenerateMode] ✅ Permission check passed, switching mode to:', newMode)
-    mode.value = newMode
+    mode.value = newMode // This will trigger the watch() which saves to localStorage
     loading.value = true
     
     try {
+      // Also save to backend for cross-device sync (optional, non-blocking)
       await axios.put('/api/v1/preferences/voucher-mode', { mode: newMode })
-      console.log('[useGenerateMode] Mode preference saved successfully')
     } catch (error) {
-      console.error('[useGenerateMode] Failed to save mode preference:', error)
+      // Don't fail - localStorage persistence is enough
     } finally {
       loading.value = false
     }
