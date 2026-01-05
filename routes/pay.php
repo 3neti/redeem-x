@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Pay\PayVoucherController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Pennant\Feature;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +15,11 @@ use Illuminate\Support\Facades\Route;
 | Protected by feature flag + security middleware stack.
 |
 */
+
+// Feature flag guard - entire pay system only available when enabled
+if (!Feature::active('settlement-vouchers')) {
+    return;
+}
 
 Route::prefix('pay')->name('pay.')->group(function () {
     // Pay page (public UI)

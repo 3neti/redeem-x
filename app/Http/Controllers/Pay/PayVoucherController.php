@@ -10,17 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class PayVoucherController extends Controller
 {
-    public function __construct()
-    {
-        // Feature flag guard - 404 if feature disabled
-        $this->middleware(function ($request, $next) {
-            if (!Feature::active('settlement-vouchers')) {
-                abort(404);
-            }
-            return $next($request);
-        });
-    }
-
     /**
      * Show pay voucher page
      */
