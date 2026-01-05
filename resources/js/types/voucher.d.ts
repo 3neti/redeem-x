@@ -161,6 +161,11 @@ export interface TimeValidation {
     description: string;
 }
 
+export interface PayableValidation {
+    vendor_alias: string;
+    description: string;
+}
+
 export interface InspectInstructions {
     amount?: number; // optional when scope = requirements_only/none
     currency?: string; // optional
@@ -175,6 +180,7 @@ export interface InspectInstructions {
     };
     location_validation?: LocationValidation;
     time_validation?: TimeValidation;
+    payable_validation?: PayableValidation;
     rider?: {
         message?: string;
         url?: string;

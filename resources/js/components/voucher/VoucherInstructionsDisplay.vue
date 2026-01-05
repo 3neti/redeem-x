@@ -20,7 +20,9 @@ import {
     Timer,
     AlertCircle,
     Info,
-    Lock
+    Lock,
+    Building2,
+    Briefcase
 } from 'lucide-vue-next';
 import type { InspectInstructions } from '@/types/voucher';
 
@@ -132,7 +134,7 @@ const hasAssignmentOrSecurity = computed(() => {
 });
 
 const hasValidationRules = computed(() => {
-    return props.instructions.location_validation || props.instructions.time_validation;
+    return props.instructions.location_validation || props.instructions.time_validation || props.instructions.payable_validation;
 });
 
 const hasRequirements = computed(() => {
@@ -318,6 +320,35 @@ const hasRequirements = computed(() => {
                             <p class="text-sm text-muted-foreground">
                                 {{ instructions.time_validation.description }}
                             </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payable validation (B2B) -->
+                <div v-if="instructions.payable_validation" class="space-y-2">
+                    <div class="rounded-lg border-2 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20 p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
+                                <Building2 class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <p class="text-sm font-semibold">B2B Vendor Restriction</p>
+                                    <Badge variant="outline" class="text-xs">
+                                        <Briefcase class="h-3 w-3 mr-1" />
+                                        Business
+                                    </Badge>
+                                </div>
+                                <p class="text-sm text-muted-foreground leading-relaxed mb-3">
+                                    {{ instructions.payable_validation.description }}
+                                </p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-medium text-muted-foreground">Authorized Vendor:</span>
+                                    <Badge variant="default" class="font-mono">
+                                        {{ instructions.payable_validation.vendor_alias }}
+                                    </Badge>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

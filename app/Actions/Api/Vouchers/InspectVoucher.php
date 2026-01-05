@@ -122,9 +122,13 @@ class InspectVoucher
             $instructions->cash->currency
         );
 
-        // Get required inputs with labels
+        // Check if this is a B2B voucher (has payable restriction)
+        // B2B vouchers ONLY validate vendor alias, skip all other validations
+        $isB2B = !empty($instructions->cash->validation->payable);
+
+        // Get required inputs with labels (skip for B2B vouchers)
         $requiredInputs = [];
-        if ($instructions->inputs && $instructions->inputs->fields) {
+        if (!$isB2B && $instructions->inputs && $instructions->inputs->fields) {
             foreach ($instructions->inputs->fields as $field) {
                 $requiredInputs[] = [
                     'value' => $field->value,
@@ -150,8 +154,8 @@ class InspectVoucher
             'assigned_mobile_masked' => $this->maskMobile($instructions->cash->validation->mobile),
         ];
 
-        // Add location validation if present
-        if ($instructions->validation?->location) {
+        // Add location validation if present AND not B2B
+        if ($instructions->validation?->location && !$isB2B) {
             $location = $instructions->validation->location;
             $response['location_validation'] = [
                 'required' => $location->required,
@@ -163,8 +167,8 @@ class InspectVoucher
             ];
         }
 
-        // Add time validation if present
-        if ($instructions->validation?->time) {
+        // Add time validation if present AND not B2B
+        if ($instructions->validation?->time && !$isB2B) {
             $time = $instructions->validation->time;
             $response['time_validation'] = [
                 'window' => $time->window ? [
@@ -174,6 +178,14 @@ class InspectVoucher
                 ] : null,
                 'limit_minutes' => $time->limit_minutes,
                 'description' => $this->formatTimeDescription($time),
+            ];
+        }
+
+        // Add payable validation if present (B2B voucher)
+        if (!empty($instructions->cash->validation->payable)) {
+            $response['payable_validation'] = [
+                'vendor_alias' => $instructions->cash->validation->payable,
+                'description' => $this->formatPayableDescription($instructions->cash->validation->payable),
             ];
         }
 
@@ -286,6 +298,14 @@ class InspectVoucher
         }
 
         return implode('. ', $descriptions) . '.';
+    }
+
+    /**
+     * Format payable validation description.
+     */
+    private function formatPayableDescription(string $payable): string
+    {
+        return "This is a business-to-business voucher restricted to vendor {$payable}. Only authorized personnel from this vendor can redeem this voucher.";
     }
 
     /**
