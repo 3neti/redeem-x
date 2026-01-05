@@ -50,6 +50,32 @@ async function getQuote() {
   }
 }
 
+async function generateQR() {
+  if (!amount.value || parseFloat(amount.value) <= 0) {
+    error.value = 'Please enter a valid amount'
+    return
+  }
+
+  const amountNum = parseFloat(amount.value)
+  if (amountNum < quote.value.min_amount || amountNum > quote.value.max_amount) {
+    error.value = `Amount must be between ${formatCurrency(quote.value.min_amount)} and ${formatCurrency(quote.value.max_amount)}`
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    // TODO: Implement NetBank Direct Checkout QR generation
+    // For now, show success message
+    alert(`Payment QR generation coming soon!\n\nVoucher: ${quote.value.voucher_code}\nAmount: ${formatCurrency(amountNum)}\n\nThis feature requires NetBank Direct Checkout integration.`)
+  } catch (err: any) {
+    error.value = err.message || 'Failed to generate QR code'
+  } finally {
+    loading.value = false
+  }
+}
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-PH', {
     style: 'currency',
@@ -149,17 +175,21 @@ function formatCurrency(amount: number) {
 
           <div class="flex gap-3">
             <button
-              @click="quote = null; error = ''"
+              @click="quote = null; error = ''; amount = ''"
               class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
             >
               Back
             </button>
             <button
-              class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+              @click="generateQR"
+              :disabled="loading || !amount || parseFloat(amount) <= 0"
+              class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
             >
-              Generate QR
+              {{ loading ? 'Processing...' : 'Generate QR' }}
             </button>
           </div>
+
+          <p v-if="error" class="text-red-600 text-sm text-center">{{ error }}</p>
 
           <p class="text-xs text-center text-gray-500">
             Payment via InstaPay • Secure • Real-time
