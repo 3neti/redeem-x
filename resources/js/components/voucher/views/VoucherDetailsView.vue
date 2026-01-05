@@ -10,6 +10,7 @@
  * <VoucherDetailsView :voucher="voucher" />
  */
 import { ref, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Copy, CheckCircle2, DollarSign, Calendar } from 'lucide-vue-next';
@@ -32,6 +33,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const page = usePage();
 const copied = ref(false);
 const copiedLink = ref(false);
 
@@ -65,7 +67,8 @@ const copyCode = async () => {
 };
 
 const redeemLink = computed(() => {
-    return `${window.location.origin}/redeem?code=${props.voucher.code}`;
+    const redemptionPath = page.props.redemption_endpoint || '/disburse';
+    return `${window.location.origin}${redemptionPath}?code=${props.voucher.code}`;
 });
 
 const copyRedeemLink = async () => {
