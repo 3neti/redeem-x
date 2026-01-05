@@ -124,7 +124,15 @@ class DisburseCash
         $withdrawal = WithdrawCash::run(
             $cash,
             $response->transaction_id,
-            'Disbursed to external bank account'
+            'Disbursed to external bank account',
+            [
+                'voucher_id' => $voucher->id,
+                'voucher_code' => $voucher->code,
+                'flow' => 'redeem',
+                'counterparty' => $bankName,
+                'reference' => $input->account_number,
+                'idempotency_key' => $response->uuid,
+            ]
         );
         
         $voucher->metadata = array_merge(
