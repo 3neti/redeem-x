@@ -6,6 +6,13 @@ use LBHurtado\Cash\Models\Cash;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Enums\VoucherState;
+use LBHurtado\Voucher\Actions\GenerateVouchers;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Data\CashInstructionData;
+use LBHurtado\Voucher\Data\CashValidationRulesData;
+use LBHurtado\Voucher\Data\InputFieldsData;
+use LBHurtado\Voucher\Data\FeedbackInstructionData;
+use LBHurtado\Voucher\Data\RiderInstructionData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -15,6 +22,10 @@ beforeEach(function () {
     Feature::activate('settlement-vouchers');
     
     $this->user = User::factory()->create();
+    $this->actingAs($this->user);
+    
+    // Give user sufficient balance for generating vouchers
+    $this->user->depositFloat(1000000); // ₱10,000
 });
 
 describe('Voucher Domain Guards', function () {
@@ -259,67 +270,55 @@ describe('Pay Page', function () {
 // Helper function to create settlement vouchers
 function createSettlementVoucher(VoucherType $type, float $targetAmount): Voucher
 {
-    $user = User::first();
+    // Create instructions data
+    $instructions = new VoucherInstructionsData(
+        cash: new CashInstructionData(
+            amount: $targetAmount,
+            currency: 'PHP',
+            validation: new CashValidationRulesData(
+                secret: null,
+                mobile: null,
+                payable: null,
+                country: 'PH',
+                location: null,
+                radius: null
+            ),
+            settlement_rail: null,
+            fee_strategy: 'absorb'
+        ),
+        inputs: new InputFieldsData([]),
+        feedback: new FeedbackInstructionData(
+            email: null,
+            mobile: null,
+            webhook: null
+        ),
+        rider: new RiderInstructionData(
+            message: null,
+            url: null,
+            redirect_timeout: null,
+            splash: null,
+            splash_timeout: null
+        ),
+        count: 1,
+        prefix: 'TEST',
+        mask: '****',
+        ttl: null,
+        validation: null,
+        metadata: null,
+        voucher_type: $type,
+        target_amount: $targetAmount,
+        rules: null
+    );
     
-    // Create voucher using base voucher facade
-    $voucher = \FrittenKeeZ\Vouchers\Facades\Vouchers::withOwner($user)
-        ->withMetadata([
-            'instructions' => [
-                'cash' => [
-                    'amount' => $targetAmount,
-                    'currency' => 'PHP',
-                    'validation' => [
-                        'secret' => null,
-                        'mobile' => null,
-                        'payable' => null,
-                        'country' => 'PH',
-                        'location' => null,
-                        'radius' => null,
-                    ],
-                    'settlement_rail' => null,
-                    'fee_strategy' => 'absorb',
-                ],
-                'inputs' => ['fields' => []],
-                'feedback' => [
-                    'email' => null,
-                    'mobile' => null,
-                    'webhook' => null,
-                ],
-                'rider' => [
-                    'message' => null,
-                    'url' => null,
-                    'redirect_timeout' => null,
-                    'splash' => null,
-                    'splash_timeout' => null,
-                ],
-                'count' => 1,
-            ],
-        ])
-        ->withStartTime(now())
-        ->withExpireTime(now()->addMonth())
-        ->create(1)
-        ->first();
+    // Generate voucher using the action (this creates cash entity automatically)
+    $vouchers = GenerateVouchers::run($instructions);
+    $voucher = $vouchers->first();
     
-    // Create cash entity manually
-    $cash = Cash::create([
-        'amount' => $targetAmount,
-        'currency' => 'PHP',
-    ]);
-    
-    // Create the voucher entity pivot entry
-    $voucher->voucherEntities()->create([
-        'entity_id' => $cash->id,
-        'entity_type' => get_class($cash),
-        'owner_id' => $user->id,
-        'owner_type' => get_class($user),
-    ]);
-    
-    // Update voucher with settlement fields
-    $voucher->update([
-        'voucher_type' => $type,
-        'state' => VoucherState::ACTIVE,
-        'target_amount' => $targetAmount,
-    ]);
+    // Set settlement-specific fields directly
+    $voucher->voucher_type = $type;
+    $voucher->state = VoucherState::ACTIVE;
+    $voucher->target_amount = $targetAmount;
+    $voucher->save();
     
     return $voucher->fresh();
 }
