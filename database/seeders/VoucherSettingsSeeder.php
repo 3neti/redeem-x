@@ -48,6 +48,12 @@ class VoucherSettingsSeeder extends Seeder
                 'payload' => json_encode(config('generate.rider.message.placeholder', 'Thank you for redeeming your voucher! The cash will be transferred shortly.')),
                 'locked' => false,
             ],
+            [
+                'group' => 'voucher',
+                'name' => 'default_redemption_endpoint',
+                'payload' => json_encode('/disburse'),
+                'locked' => false,
+            ],
         ]);
 
         $this->command->info('VoucherSettings seeded successfully!');

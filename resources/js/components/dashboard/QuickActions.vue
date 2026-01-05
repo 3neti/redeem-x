@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import {
     Plus,
     Wallet,
@@ -11,7 +12,10 @@ import {
     Download,
 } from 'lucide-vue-next';
 
-const actions = [
+const page = usePage();
+const redemptionEndpoint = computed(() => page.props.redemption_endpoint || '/disburse');
+
+const actions = computed(() => [
     {
         label: 'Generate Vouchers',
         href: '/vouchers/generate',
@@ -38,7 +42,7 @@ const actions = [
     },
     {
         label: 'Redeem Voucher',
-        href: '/redeem',
+        href: redemptionEndpoint.value,
         icon: TicketX,
         variant: 'outline' as const,
     },
@@ -48,7 +52,7 @@ const actions = [
         icon: Download,
         variant: 'outline' as const,
     },
-];
+]);
 </script>
 
 <template>

@@ -52,6 +52,7 @@ return [
     | {{ redeemed_at }}        - Redemption timestamp
     | {{ signature }}          - Signature data URL (if captured)
     | {{ location }}           - Raw location JSON (if captured)
+    | {{ redemption_endpoint }} - Redemption endpoint path (e.g., /disburse)
     | {{ <custom_field> }}    - Any custom input field by name
     |
     */

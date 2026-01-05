@@ -117,10 +117,12 @@ const mainNavItems = computed<NavItem[]>(() => {
     return items;
 });
 
-const footerNavItems: NavItem[] = [
+const redemptionEndpoint = computed(() => page.props.redemption_endpoint || '/disburse');
+
+const footerNavItems = computed<NavItem[]>(() => [
     {
         title: 'Redeem',
-        href: redeemStart.url(),
+        href: redemptionEndpoint.value,
         icon: TicketX,
     },
     {
@@ -133,7 +135,7 @@ const footerNavItems: NavItem[] = [
         href: '/help',
         icon: HelpCircle,
     },
-];
+]);
 </script>
 
 <template>

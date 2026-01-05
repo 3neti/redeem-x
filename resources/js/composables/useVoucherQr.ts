@@ -7,7 +7,7 @@ export interface VoucherQrData {
     voucher_code: string;   // Just the code
 }
 
-export function useVoucherQr(voucherCode: string) {
+export function useVoucherQr(voucherCode: string, redemptionPath: string = '/disburse') {
     const qrData = ref<VoucherQrData | null>(null);
     const loading = ref(false);
     const error = ref<string | null>(null);
@@ -17,7 +17,7 @@ export function useVoucherQr(voucherCode: string) {
         error.value = null;
 
         try {
-            const redemptionUrl = `${window.location.origin}/redeem?code=${voucherCode}`;
+            const redemptionUrl = `${window.location.origin}${redemptionPath}?code=${voucherCode}`;
             
             // Generate QR code as data URL
             const qrCode = await QRCode.toDataURL(redemptionUrl, {

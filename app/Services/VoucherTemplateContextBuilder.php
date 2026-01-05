@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Settings\VoucherSettings;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\VoucherData;
@@ -41,6 +42,9 @@ class VoucherTemplateContextBuilder
 
         // Owner information
         $context = array_merge($context, static::buildOwnerContext($voucher));
+
+        // Global settings
+        $context = array_merge($context, static::buildSettingsContext());
 
         return $context;
     }
@@ -161,6 +165,20 @@ class VoucherTemplateContextBuilder
     }
 
     /**
+     * Build context from global settings.
+     *
+     * @return array
+     */
+    protected static function buildSettingsContext(): array
+    {
+        $settings = app(VoucherSettings::class);
+        
+        return [
+            'redemption_endpoint' => $settings->default_redemption_endpoint ?? '/disburse',
+        ];
+    }
+
+    /**
      * Format location JSON to readable address string.
      *
      * @param  string  $locationJson
@@ -208,6 +226,9 @@ class VoucherTemplateContextBuilder
             'owner_name' => 'Voucher owner name',
             'owner_email' => 'Voucher owner email',
             'owner_mobile' => 'Voucher owner mobile',
+            
+            // Settings
+            'redemption_endpoint' => 'Redemption endpoint path (e.g., /disburse)',
             
             // Dynamic inputs
             'signature' => 'Signature data URL (if captured)',

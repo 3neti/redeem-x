@@ -17,6 +17,7 @@ interface Props {
         default_expiry_days: number | null;
         default_rider_url: string;
         default_success_message: string;
+        default_redemption_endpoint: string;
     };
     status?: string;
 }
@@ -119,6 +120,24 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Message shown to users after successful redemption
                         </p>
                         <InputError class="mt-2" :message="errors.default_success_message" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="default_redemption_endpoint">Redemption Endpoint</Label>
+                        <Input
+                            id="default_redemption_endpoint"
+                            type="text"
+                            class="mt-1 block w-full"
+                            name="default_redemption_endpoint"
+                            :default-value="preferences.default_redemption_endpoint"
+                            required
+                            pattern="^\/[a-z-]+$"
+                            placeholder="/disburse"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Path where users redeem vouchers (e.g., /disburse, /redeem). Must start with / and contain only lowercase letters and hyphens.
+                        </p>
+                        <InputError class="mt-2" :message="errors.default_redemption_endpoint" />
                     </div>
 
                     <div class="flex items-center gap-4">

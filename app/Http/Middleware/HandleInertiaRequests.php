@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Settings\VoucherSettings;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -79,6 +80,7 @@ class HandleInertiaRequests extends Middleware
             'redeem' => [
                 'widget' => config('redeem.widget'),
             ],
+            'redemption_endpoint' => app(VoucherSettings::class)->default_redemption_endpoint ?? '/disburse',
         ]);
     }
 }
