@@ -40,6 +40,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/generate-qr', \App\Actions\Api\Pay\GeneratePaymentQr::class)
             ->name('generate-qr');
     });
+    
+    // Public voucher payment history (no auth - anyone can view payment history)
+    Route::middleware(['throttle:60,1'])->prefix('vouchers')->name('api.vouchers.')->group(function () {
+        Route::get('/{code}/payments', \App\Actions\Api\Vouchers\GetPaymentHistory::class)
+            ->name('payments');
+    });
 });
 
 /**

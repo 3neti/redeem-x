@@ -48,18 +48,12 @@ const fetchPaymentHistory = async () => {
     error.value = null
     
     try {
-        // Fetch wallet transactions filtered by voucher_code and flow: 'pay'
-        const response = await axios.get('/api/v1/wallet/transactions', {
-            params: {
-                type: 'deposit',
-                per_page: 50,
-            }
-        })
+        // Fetch payment transactions for this voucher
+        const response = await axios.get(`/api/v1/vouchers/${props.voucherCode}/payments`)
         
-        // Filter for payments to this voucher
-        payments.value = response.data.data.filter((tx: Payment) => 
-            tx.meta?.voucher_code === props.voucherCode
-        )
+        // Handle different response formats
+        const data = response.data?.data || response.data || []
+        payments.value = Array.isArray(data) ? data : []
     } catch (err: any) {
         error.value = err.message || 'Failed to load payment history'
         console.error('Failed to fetch payment history:', err)
