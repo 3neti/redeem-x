@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
 import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
 import { ref, computed, watch } from 'vue';
@@ -91,16 +90,10 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const currentTab = ref(props.report_type);
 const fromDate = ref(props.filters.from_date);
 const toDate = ref(props.filters.to_date);
 const status = ref(props.filters.status || 'all');
 const rail = ref(props.filters.rail || 'all');
-
-// Watch for prop changes from navigation
-watch(() => props.report_type, (newType) => {
-    currentTab.value = newType;
-});
 
 const switchTab = (newTab: string) => {
     router.get('/reports', { type: newTab });
@@ -165,13 +158,34 @@ const getStatusBadge = (status: string) => {
                 description="View and analyze transactions and settlements"
             />
             
-            <Tabs v-model="currentTab" @update:model-value="switchTab" class="w-full">
-                <TabsList class="grid w-full max-w-md grid-cols-2">
-                    <TabsTrigger value="disbursements">Disbursements</TabsTrigger>
-                    <TabsTrigger value="settlements">Settlements</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="disbursements" class="space-y-6">
+            <!-- Tabs -->
+            <div class="flex gap-2 border-b">
+                <button
+                    @click="switchTab('disbursements')"
+                    :class="[
+                        'px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
+                        report_type === 'disbursements'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ]"
+                >
+                    Disbursements
+                </button>
+                <button
+                    @click="switchTab('settlements')"
+                    :class="[
+                        'px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
+                        report_type === 'settlements'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ]"
+                >
+                    Settlements
+                </button>
+            </div>
+            
+            <!-- Disbursements View -->
+            <div v-if="report_type === 'disbursements'" class="space-y-6">
                     <!-- Disbursement Report Content -->
 
                     <!-- Summary Cards -->
@@ -307,9 +321,11 @@ const getStatusBadge = (status: string) => {
                         </div>
                     </CardContent>
                 </Card>
-                </TabsContent>
-                
-                <TabsContent value="settlements" class="space-y-6">
+            </div>
+            <!-- End Disbursements View -->
+            
+            <!-- Settlements View -->
+            <div v-if="report_type === 'settlements'" class="space-y-6">
                     <!-- Settlement Report Content -->
                     
                     <!-- Summary Cards -->
@@ -431,8 +447,8 @@ const getStatusBadge = (status: string) => {
                             </div>
                         </CardContent>
                     </Card>
-                </TabsContent>
-            </Tabs>
+            </div>
+            <!-- End Settlements View -->
         </div>
     </AppLayout>
 </template>
