@@ -8,6 +8,7 @@ return [
     ],
     'post-generation' => [
         \LBHurtado\Voucher\Pipelines\GeneratedVouchers\ValidateStructure::class,
+        \LBHurtado\Voucher\Pipelines\GeneratedVouchers\PopulateSettlementFields::class,
         \LBHurtado\Voucher\Pipelines\GeneratedVouchers\NormalizeMetadata::class,
 
         \LBHurtado\Voucher\Pipelines\GeneratedVouchers\RunFraudChecks::class,

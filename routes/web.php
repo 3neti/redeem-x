@@ -119,6 +119,7 @@ Route::middleware([
                 'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),
                 'config' => config('generate'),
                 'saved_mode' => $savedMode, // Pass saved mode to frontend
+                'settlement_enabled' => \Laravel\Pennant\Feature::active('settlement-vouchers'),
             ]);
         })->name('generate.create');
         

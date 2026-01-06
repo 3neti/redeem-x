@@ -35,6 +35,7 @@ interface Props {
     input_field_options: VoucherInputFieldOption[];
     config: any;
     saved_mode?: string;
+    settlement_enabled?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -251,6 +252,11 @@ const previewMessage = ref<string>('');
 const settlementRail = ref<string | null>(null);
 const feeStrategy = ref<string>('absorb');
 
+// Settlement voucher fields (only when feature enabled)
+const voucherType = ref<string>('redeemable'); // redeemable, payable, settlement
+const targetAmount = ref<number | null>(null);
+const settlementRules = ref<any>(null); // Optional JSON rules
+
 // Rail fees for preview (must match config/omnipay.php)
 const railFees = { INSTAPAY: 10, PESONET: 25 };
 
@@ -371,7 +377,7 @@ const otpInputState = computed(() => {
 
 // Build instructions payload for pricing API
 const instructionsForPricing = computed(() => {
-    return {
+    const payload: any = {
         cash: {
             amount: amount.value,
             currency: 'PHP',
@@ -408,6 +414,17 @@ const instructionsForPricing = computed(() => {
         mask: mask.value || null,
         ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
     };
+    
+    // Add settlement fields if feature enabled and not default type
+    if (props.settlement_enabled && voucherType.value !== 'redeemable') {
+        payload.voucher_type = voucherType.value;
+        payload.target_amount = targetAmount.value;
+        if (settlementRules.value) {
+            payload.rules = settlementRules.value;
+        }
+    }
+    
+    return payload;
 });
 
 // Auto-add location input when location validation is enabled
@@ -704,6 +721,10 @@ const handleSubmit = async () => {
         preview_enabled: previewEnabled.value,
         preview_scope: previewScope.value,
         preview_message: previewMessage.value || undefined,
+        // Settlement voucher fields
+        voucher_type: (props.settlement_enabled && voucherType.value !== 'redeemable') ? voucherType.value : undefined,
+        target_amount: (props.settlement_enabled && voucherType.value !== 'redeemable') ? targetAmount.value : undefined,
+        rules: (props.settlement_enabled && settlementRules.value) ? settlementRules.value : undefined,
     };
     
     const result = await generateVouchers(payload);
@@ -857,6 +878,62 @@ const handleSubmit = async () => {
                                 <p class="text-xs text-muted-foreground">
                                     {{ contextualHelpText }}
                                 </p>
+                            </div>
+
+                            <!-- Settlement Voucher Type (Advanced Mode + Feature Flag) -->
+                            <div v-if="!isSimpleMode && settlement_enabled" class="pt-4 border-t space-y-4">
+                                <h4 class="text-sm font-medium">Settlement Voucher Settings</h4>
+                                
+                                <div class="space-y-2">
+                                    <Label>Voucher Type</Label>
+                                    <RadioGroup v-model="voucherType" class="space-y-2">
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="redeemable" id="type-redeemable" />
+                                            <Label for="type-redeemable" class="font-normal cursor-pointer">
+                                                <div>
+                                                    <div class="font-medium">Redeemable (Default)</div>
+                                                    <div class="text-xs text-muted-foreground">Standard one-time redemption voucher</div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="payable" id="type-payable" />
+                                            <Label for="type-payable" class="font-normal cursor-pointer">
+                                                <div>
+                                                    <div class="font-medium">Payable</div>
+                                                    <div class="text-xs text-muted-foreground">Accepts payments until target amount reached</div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="settlement" id="type-settlement" />
+                                            <Label for="type-settlement" class="font-normal cursor-pointer">
+                                                <div>
+                                                    <div class="font-medium">Settlement</div>
+                                                    <div class="text-xs text-muted-foreground">Enterprise settlement instrument (multi-payment)</div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+
+                                <!-- Target Amount (shown for payable/settlement types) -->
+                                <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
+                                    <Label for="target_amount">Target Amount (₱)</Label>
+                                    <Input
+                                        id="target_amount"
+                                        type="number"
+                                        v-model.number="targetAmount"
+                                        :min="1"
+                                        :step="0.01"
+                                        placeholder="Enter target amount"
+                                        required
+                                    />
+                                    <p class="text-xs text-muted-foreground">
+                                        Total amount to collect before voucher closes
+                                    </p>
+                                    <InputError :message="validationErrors.target_amount" />
+                                </div>
                             </div>
 
                             <!-- Advanced fields (only in Advanced Mode) -->

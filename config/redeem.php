@@ -527,6 +527,20 @@ return [
             'description' => 'Custom splash screen shown after redemption',
             'category' => 'rider',
         ],
+        
+        // Settlement voucher types
+        'voucher_type.payable' => [
+            'price' => 5000, // ₱50.00
+            'label' => 'Payable Voucher',
+            'description' => 'Multi-payment voucher that accepts payments until target amount reached',
+            'category' => 'base',
+        ],
+        'voucher_type.settlement' => [
+            'price' => 10000, // ₱100.00
+            'label' => 'Settlement Voucher',
+            'description' => 'Enterprise settlement instrument for complex multi-payment scenarios',
+            'category' => 'base',
+        ],
     ],
 
 ];

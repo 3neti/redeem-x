@@ -224,6 +224,11 @@ class GenerateVouchers
             // Settlement rail and fee strategy
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
             'fee_strategy' => 'nullable|string|in:absorb,include,add',
+            
+            // Settlement voucher fields
+            'voucher_type' => 'nullable|string|in:redeemable,payable,settlement',
+            'target_amount' => 'nullable|numeric|min:0|required_if:voucher_type,payable,settlement',
+            'rules' => 'nullable|array',
 
             'campaign_id' => 'nullable|integer|exists:campaigns,id',
             
@@ -337,6 +342,9 @@ class GenerateVouchers
                 'settlement_rail' => $validated['settlement_rail'] ?? null,
                 'fee_strategy' => $validated['fee_strategy'] ?? 'absorb',
             ],
+            'voucher_type' => $validated['voucher_type'] ?? null,
+            'target_amount' => $validated['target_amount'] ?? null,
+            'rules' => $validated['rules'] ?? null,
             'inputs' => [
                 'fields' => $inputFields,
             ],
