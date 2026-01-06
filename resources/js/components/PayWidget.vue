@@ -113,7 +113,6 @@ const emit = defineEmits<{
 </script>
 
 <template>
-{{ config }}
     <div class="flex flex-col gap-6">
         <!-- Logo and App Name -->
         <div v-if="config.showLogo || config.showAppName" class="flex flex-col items-center gap-2">
