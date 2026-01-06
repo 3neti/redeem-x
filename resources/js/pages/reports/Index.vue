@@ -91,7 +91,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const activeTab = ref(props.report_type);
 const fromDate = ref(props.filters.from_date);
 const toDate = ref(props.filters.to_date);
 const status = ref(props.filters.status || '');
@@ -103,14 +102,14 @@ const switchTab = (newTab: string) => {
 
 const applyFilters = () => {
     const params: Record<string, any> = {
-        type: activeTab.value,
+        type: props.report_type,
         from_date: fromDate.value,
         to_date: toDate.value,
         status: status.value || undefined,
     };
     
     // Only add rail for disbursement reports
-    if (activeTab.value === 'disbursements') {
+    if (props.report_type === 'disbursements') {
         params.rail = rail.value || undefined;
     }
     
@@ -160,7 +159,7 @@ const getStatusBadge = (status: string) => {
                 description="View and analyze transactions and settlements"
             />
             
-            <Tabs :model-value="activeTab" @update:model-value="switchTab" class="w-full">
+            <Tabs :default-value="report_type" @update:model-value="switchTab" class="w-full">
                 <TabsList class="grid w-full max-w-md grid-cols-2">
                     <TabsTrigger value="disbursements">Disbursements</TabsTrigger>
                     <TabsTrigger value="settlements">Settlements</TabsTrigger>
