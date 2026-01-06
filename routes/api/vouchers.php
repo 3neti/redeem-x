@@ -90,4 +90,9 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     // POST /api/v1/vouchers/force-close
     Route::post('force-close', \App\Actions\Api\Vouchers\ForceCloseVoucher::class)
         ->name('force-close');
+    
+    // Collect payments from settlement voucher (owner only)
+    // POST /api/v1/vouchers/{code}/collect
+    Route::post('{code}/collect', \App\Actions\Api\Vouchers\CollectPayments::class)
+        ->name('collect');
 });

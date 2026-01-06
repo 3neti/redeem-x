@@ -315,6 +315,7 @@ const instructionsFormData = computed(() => {
                     <!-- Settlement Details (for payable/settlement vouchers) -->
                     <SettlementDetailsCard 
                         v-if="settlement && (settlement.type === 'payable' || settlement.type === 'settlement')"
+                        :voucher-code="voucher.code"
                         :type="settlement.type"
                         :state="settlement.state"
                         :target-amount="settlement.target_amount"
@@ -322,6 +323,7 @@ const instructionsFormData = computed(() => {
                         :redeemed-total="settlement.redeemed_total"
                         :remaining="settlement.remaining"
                         :currency="voucher.currency"
+                        :is-owner="isOwner"
                     />
                     
                     <!-- Standard Voucher Details -->

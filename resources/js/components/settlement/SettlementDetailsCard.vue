@@ -1,21 +1,32 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import Progress from '@/components/ui/progress.vue'
-import { TrendingUp, Target, DollarSign } from 'lucide-vue-next'
+import { TrendingUp, Target, DollarSign, Wallet, Loader2 } from 'lucide-vue-next'
 import VoucherStateBadge from './VoucherStateBadge.vue'
+import axios from 'axios'
+import { useToast } from '@/components/ui/toast/use-toast'
 
 interface Props {
+    voucherCode: string
     targetAmount: number
     paidTotal: number
     remaining: number
     state: 'active' | 'locked' | 'closed' | 'cancelled' | 'expired'
     currency?: string
+    isOwner?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    currency: 'PHP'
+    currency: 'PHP',
+    isOwner: false
 })
+
+const page = usePage()
+const { toast } = useToast()
+const collecting = ref(false)
 
 const progressPercentage = computed(() => {
     if (!props.targetAmount || props.targetAmount === 0) return 0
@@ -45,6 +56,44 @@ const stateMessage = computed(() => {
             return ''
     }
 })
+
+const canCollect = computed(() => {
+    return props.isOwner && props.paidTotal > 0
+})
+
+const collectPayments = async () => {
+    collecting.value = true
+    
+    try {
+        const csrfToken = (page.props as any).csrf_token || 
+                          document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        
+        const response = await axios.post(`/api/v1/vouchers/${props.voucherCode}/collect`, {}, {
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+            },
+        })
+        
+        const data = response.data
+        
+        toast({
+            title: 'Payments Collected',
+            description: `${formatCurrency(data.data.amount_collected)} has been credited to your wallet`,
+        })
+        
+        // Reload page to update balances
+        window.location.reload()
+        
+    } catch (err: any) {
+        toast({
+            title: 'Collection Failed',
+            description: err.response?.data?.message || 'Failed to collect payments',
+            variant: 'destructive',
+        })
+    } finally {
+        collecting.value = false
+    }
+}
 </script>
 
 <template>
@@ -108,6 +157,23 @@ const stateMessage = computed(() => {
             <!-- State Message -->
             <div v-if="stateMessage" class="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
                 {{ stateMessage }}
+            </div>
+            
+            <!-- Collect Button (Owner Only) -->
+            <div v-if="canCollect" class="pt-2">
+                <Button 
+                    @click="collectPayments" 
+                    :disabled="collecting"
+                    class="w-full"
+                    size="lg"
+                >
+                    <Loader2 v-if="collecting" class="mr-2 h-4 w-4 animate-spin" />
+                    <Wallet v-else class="mr-2 h-4 w-4" />
+                    {{ collecting ? 'Collecting...' : `Collect ${formatCurrency(paidTotal)}` }}
+                </Button>
+                <p class="text-xs text-center text-muted-foreground mt-2">
+                    Transfer collected payments to your wallet
+                </p>
             </div>
         </CardContent>
     </Card>
