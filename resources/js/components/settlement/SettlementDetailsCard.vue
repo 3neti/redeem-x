@@ -14,6 +14,7 @@ interface Props {
     targetAmount: number
     paidTotal: number
     remaining: number
+    availableBalance: number
     state: 'active' | 'locked' | 'closed' | 'cancelled' | 'expired'
     currency?: string
     isOwner?: boolean
@@ -58,7 +59,7 @@ const stateMessage = computed(() => {
 })
 
 const canCollect = computed(() => {
-    return props.isOwner && props.paidTotal > 0
+    return props.isOwner && props.availableBalance > 0
 })
 
 const collectPayments = async () => {
@@ -169,10 +170,10 @@ const collectPayments = async () => {
                 >
                     <Loader2 v-if="collecting" class="mr-2 h-4 w-4 animate-spin" />
                     <Wallet v-else class="mr-2 h-4 w-4" />
-                    {{ collecting ? 'Collecting...' : `Collect ${formatCurrency(paidTotal)}` }}
+                    {{ collecting ? 'Transferring...' : `Transfer to Wallet ${formatCurrency(availableBalance)}` }}
                 </Button>
                 <p class="text-xs text-center text-muted-foreground mt-2">
-                    Transfer collected payments to your wallet
+                    Move collected payments to your personal wallet
                 </p>
             </div>
         </CardContent>

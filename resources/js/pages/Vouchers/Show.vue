@@ -94,12 +94,13 @@ interface RedemptionInputs {
 }
 
 interface SettlementData {
-    type: 'redeemable' | 'payable' | 'settlement';
+    type: 'payable' | 'redeemable' | 'settlement';
     state: 'active' | 'locked' | 'closed' | 'cancelled' | 'expired';
     target_amount: number;
     paid_total: number;
     redeemed_total: number;
     remaining: number;
+    available_balance: number;
     can_accept_payment: boolean;
     can_redeem: boolean;
     is_locked: boolean;
@@ -107,7 +108,7 @@ interface SettlementData {
     is_expired: boolean;
     locked_at?: string;
     closed_at?: string;
-    rules?: any;
+    rules: Record<string, any>;
 }
 
 interface Props {
@@ -137,26 +138,22 @@ const goBack = () => {
     router.visit('/vouchers');
 };
 
-// Generate QR code for voucher (redemption or payment based on type)
+// Generate QR code for voucher redemption only
 const isPayableVoucher = computed(() => 
     props.settlement?.type === 'payable' || props.settlement?.type === 'settlement'
 );
 
-const qrPath = computed(() => 
-    isPayableVoucher.value ? '/pay' : '/redeem'
-);
-
 const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
     props.voucher.code, 
-    qrPath.value
+    '/redeem'
 );
 
 onMounted(() => {
-    // Generate QR for unredeemed/unexpired vouchers, or for payable vouchers that can accept payment
+    // Only generate redemption QR for unredeemed/unexpired vouchers
+    // Payment QRs are generated separately in /pay page
     const shouldGenerateQr = !props.voucher.is_redeemed && !props.voucher.is_expired;
-    const canGeneratePaymentQr = isPayableVoucher.value && props.settlement?.can_accept_payment;
     
-    if (shouldGenerateQr || canGeneratePaymentQr) {
+    if (shouldGenerateQr) {
         generateQr();
     }
 });
@@ -313,15 +310,14 @@ const instructionsFormData = computed(() => {
                 <!-- Details Tab Content -->
                 <div v-show="activeTab === 'details'" class="space-y-6">
                     <!-- Settlement Details (for payable/settlement vouchers) -->
-                    <SettlementDetailsCard 
+                    <SettlementDetailsCard
                         v-if="settlement && (settlement.type === 'payable' || settlement.type === 'settlement')"
                         :voucher-code="voucher.code"
-                        :type="settlement.type"
-                        :state="settlement.state"
                         :target-amount="settlement.target_amount"
                         :paid-total="settlement.paid_total"
-                        :redeemed-total="settlement.redeemed_total"
                         :remaining="settlement.remaining"
+                        :available-balance="settlement.available_balance"
+                        :state="settlement.state"
                         :currency="voucher.currency"
                         :is-owner="isOwner"
                     />
@@ -373,22 +369,18 @@ const instructionsFormData = computed(() => {
                 <VoucherOwnerView v-if="voucher.owner" :owner="voucher.owner" />
 
                 <!-- QR Code Section -->
-                <!-- Show for: unredeemed regular vouchers OR payable vouchers that can accept payment -->
+                <!-- Show only for unredeemed, unexpired vouchers (redemption QR only) -->
+                <!-- Payment QRs are generated in /pay page, not here -->
                 <div 
-                    v-if="(!voucher.is_redeemed && !voucher.is_expired) || (isPayableVoucher && settlement?.can_accept_payment)" 
+                    v-if="!voucher.is_redeemed && !voucher.is_expired" 
                     class="grid gap-6 md:grid-cols-2"
                 >
                     <!-- QR Display -->
                     <Card>
                         <CardHeader>
-                            <CardTitle>
-                                {{ isPayableVoucher ? 'Payment QR Code' : 'Redemption QR Code' }}
-                            </CardTitle>
+                            <CardTitle>Redemption QR Code</CardTitle>
                             <CardDescription>
-                                {{ isPayableVoucher 
-                                    ? 'Scan this QR code to make a payment to this voucher' 
-                                    : 'Scan this QR code to redeem the voucher' 
-                                }}
+                                Scan this QR code to redeem the voucher
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="flex justify-center">
@@ -405,7 +397,7 @@ const instructionsFormData = computed(() => {
                     <!-- Share Panel -->
                     <VoucherQrSharePanel
                         :qr-data="qrData"
-                        :amount="settlement?.remaining ?? voucher.amount"
+                        :amount="voucher.amount"
                         :currency="voucher.currency"
                     />
                 </div>
