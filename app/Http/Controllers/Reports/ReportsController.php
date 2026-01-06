@@ -92,7 +92,8 @@ class ReportsController extends Controller
     private function getSettlementReport(Request $request, string $fromDate, string $toDate, ?string $status): Response
     {
         $query = Voucher::query()
-            ->where('user_id', auth()->id())
+            ->where('owner_type', get_class(auth()->user()))
+            ->where('owner_id', auth()->id())
             ->whereIn('voucher_type', ['payable', 'settlement'])
             ->whereBetween('created_at', [
                 $fromDate,
@@ -123,7 +124,8 @@ class ReportsController extends Controller
         
         // Calculate summary stats
         $summaryQuery = Voucher::query()
-            ->where('user_id', auth()->id())
+            ->where('owner_type', get_class(auth()->user()))
+            ->where('owner_id', auth()->id())
             ->whereIn('voucher_type', ['payable', 'settlement'])
             ->whereBetween('created_at', [$fromDate, $toDate . ' 23:59:59']);
         
