@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use App\Models\PaymentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Models\Voucher;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\BodyParameter;
 
@@ -25,28 +28,64 @@ class ConfirmPayment
 {
     /**
      * Confirm payment for a voucher
+     * 
+     * Two modes:
+     * 1. Manual: Provide voucher_code, amount, payment_id, payer (manual entry)
+     * 2. From PaymentRequest: Provide only payment_request_id (one-click confirm)
      */
-    #[BodyParameter('voucher_code', description: 'Voucher code', type: 'string', example: '2Q2T', required: true)]
-    #[BodyParameter('amount', description: 'Payment amount in PHP', type: 'number', example: 100, required: true)]
-    #[BodyParameter('payment_id', description: 'Optional payment reference ID', type: 'string', example: 'GCASH-123456')]
-    #[BodyParameter('payer', description: 'Optional payer mobile/email', type: 'string', example: '09171234567')]
+    #[BodyParameter('payment_request_id', description: 'Payment request ID (for QR payments)', type: 'integer', example: 1)]
+    #[BodyParameter('voucher_code', description: 'Voucher code (manual mode)', type: 'string', example: '2Q2T')]
+    #[BodyParameter('amount', description: 'Payment amount in PHP (manual mode)', type: 'number', example: 100)]
+    #[BodyParameter('payment_id', description: 'Optional payment reference ID (manual mode)', type: 'string', example: 'GCASH-123456')]
+    #[BodyParameter('payer', description: 'Optional payer mobile/email (manual mode)', type: 'string', example: '09171234567')]
     public function __invoke(Request $request): JsonResponse
     {
         $request->validate([
-            'voucher_code' => ['required', 'string'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'payment_request_id' => ['nullable', 'integer', 'exists:payment_requests,id'],
+            'voucher_code' => ['required_without:payment_request_id', 'string'],
+            'amount' => ['required_without:payment_request_id', 'numeric', 'min:0.01'],
             'payment_id' => ['nullable', 'string'],
             'payer' => ['nullable', 'string'],
         ]);
 
-        $voucherCode = $request->input('voucher_code');
-        $amount = (float) $request->input('amount');
-        $paymentId = $request->input('payment_id') ?: 'WEB-' . now()->timestamp;
-        $payer = $request->input('payer');
         $user = $request->user();
-
-        // Find voucher with owner
-        $voucher = Voucher::with('owner')->where('code', $voucherCode)->first();
+        $paymentRequestId = $request->input('payment_request_id');
+        
+        // Mode 1: Confirm from PaymentRequest (QR payment)
+        if ($paymentRequestId) {
+            $paymentRequest = PaymentRequest::with('voucher.owner')->find($paymentRequestId);
+            
+            if (!$paymentRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment request not found',
+                ], 404);
+            }
+            
+            // Check if payment request is awaiting confirmation
+            if ($paymentRequest->status !== 'awaiting_confirmation') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment request is not awaiting confirmation',
+                ], 422);
+            }
+            
+            $voucher = $paymentRequest->voucher;
+            $voucherCode = $voucher->code;
+            $amountInMajorUnits = $paymentRequest->getAmountInMajorUnits();
+            $paymentId = $paymentRequest->reference_id;
+            $payer = $paymentRequest->payer_info['name'] ?? $paymentRequest->payer_info['mobile'] ?? null;
+        }
+        // Mode 2: Manual confirmation
+        else {
+            $voucherCode = $request->input('voucher_code');
+            $amountInMajorUnits = (float) $request->input('amount');
+            $paymentId = $request->input('payment_id') ?: 'WEB-' . now()->timestamp;
+            $payer = $request->input('payer');
+            
+            // Find voucher with owner
+            $voucher = Voucher::with('owner')->where('code', $voucherCode)->first();
+        }
 
         if (!$voucher) {
             return response()->json([
@@ -73,7 +112,7 @@ class ConfirmPayment
 
         // Validate amount against remaining
         $remaining = $voucher->getRemaining();
-        if ($amount > $remaining) {
+        if ($amountInMajorUnits > $remaining) {
             return response()->json([
                 'success' => false,
                 'message' => "Amount exceeds remaining balance. Maximum: ₱{$remaining}",
@@ -91,16 +130,52 @@ class ConfirmPayment
                     'message' => 'Voucher has no wallet',
                 ], 500);
             }
-
-            // Credit cash entity's wallet
-            $cash->wallet->deposit($amount * 100, [ // Convert to minor units
-                'flow' => 'pay',
+            
+            Log::info('[ConfirmPayment] Processing payment confirmation', [
                 'voucher_code' => $voucher->code,
+                'amount' => $amountInMajorUnits,
                 'payment_id' => $paymentId,
-                'payer' => $payer,
-                'confirmed_by' => 'web',
-                'confirmed_by_user_id' => $user->id,
+                'cash_balance_before' => $cash->balanceFloat,
             ]);
+
+            // Transfer from system wallet to voucher's cash wallet using TopupWalletAction
+            // Real world: Payer's GCash → Owner's Bank Account (via NetBank)
+            // App world: System Wallet → Voucher Wallet (maintains double-entry accounting)
+            $transfer = TopupWalletAction::run($cash, $amountInMajorUnits);
+            
+            // Add metadata to the transfer
+            $transfer->withdraw->update([
+                'meta' => array_merge($transfer->withdraw->meta ?? [], [
+                    'flow' => 'pay',
+                    'voucher_code' => $voucher->code,
+                    'payment_id' => $paymentId,
+                    'payer' => $payer,
+                    'confirmed_by' => 'web',
+                    'confirmed_by_user_id' => $user->id,
+                ]),
+            ]);
+            
+            $transfer->deposit->update([
+                'meta' => array_merge($transfer->deposit->meta ?? [], [
+                    'flow' => 'pay',
+                    'voucher_code' => $voucher->code,
+                    'payment_id' => $paymentId,
+                    'payer' => $payer,
+                    'confirmed_by' => 'web',
+                    'confirmed_by_user_id' => $user->id,
+                ]),
+            ]);
+            
+            Log::info('[ConfirmPayment] Payment confirmed successfully', [
+                'voucher_code' => $voucher->code,
+                'transfer_uuid' => $transfer->uuid,
+                'cash_balance_after' => $cash->fresh()->balanceFloat,
+            ]);
+            
+            // Mark payment request as confirmed if it exists
+            if (isset($paymentRequest)) {
+                $paymentRequest->markAsConfirmed();
+            }
 
             DB::commit();
 
@@ -108,7 +183,7 @@ class ConfirmPayment
                 'success' => true,
                 'message' => 'Payment confirmed successfully',
                 'data' => [
-                    'amount' => $amount,
+                    'amount' => $amountInMajorUnits,
                     'payment_id' => $paymentId,
                     'new_paid_total' => $voucher->fresh()->getPaidTotal(),
                     'remaining' => $voucher->fresh()->getRemaining(),

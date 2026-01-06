@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Pay;
 
+use App\Models\PaymentRequest;
 use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -143,14 +144,32 @@ class GeneratePaymentQr
                 'amount' => $amountValue,
             ]);
             
+            // Generate unique reference ID
+            $referenceId = 'PAYMENT-QR-' . strtoupper(uniqid());
+            
+            // Store payment request
+            $paymentRequest = PaymentRequest::create([
+                'reference_id' => $referenceId,
+                'voucher_id' => $voucher->id,
+                'amount' => (int) ($amountValue * 100), // Store in minor units
+                'currency' => $currency,
+                'status' => 'pending',
+            ]);
+            
+            Log::info('[GeneratePaymentQr] Payment request created', [
+                'payment_request_id' => $paymentRequest->id,
+                'reference_id' => $referenceId,
+            ]);
+            
             // Prepare response data
             $responseData = [
                 'qr_code' => $this->ensureDataUrl($qrCode),
-                'qr_id' => 'PAYMENT-QR-' . strtoupper(uniqid()),
+                'qr_id' => $referenceId,
                 'account' => $account,
                 'amount' => $amountValue,
                 'voucher_code' => $voucherCode,
                 'expires_at' => now()->addMinutes(5)->toIso8601String(),
+                'payment_request_id' => $paymentRequest->id,
             ];
             
             // Cache the QR code data

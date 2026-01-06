@@ -12,6 +12,8 @@ const error = ref('')
 const showQrStep = ref(false)
 const paymentQr = ref<any>(null)
 const qrLoading = ref(false)
+const markingDone = ref(false)
+const paymentMarkedDone = ref(false)
 
 async function getQuote() {
   if (!voucherCode.value.trim()) {
@@ -106,10 +108,51 @@ async function generatePaymentQR() {
   }
 }
 
+async function markPaymentDone() {
+  if (!paymentQr.value?.payment_request_id) {
+    error.value = 'No payment request found'
+    return
+  }
+
+  markingDone.value = true
+  error.value = ''
+
+  try {
+    const csrfToken = (page.props as any).csrf_token || 
+                      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+
+    const response = await fetch('/api/v1/pay/mark-done', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ 
+        payment_request_id: paymentQr.value.payment_request_id,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      error.value = data.message || 'Failed to mark payment as done'
+      return
+    }
+
+    paymentMarkedDone.value = true
+  } catch (err: any) {
+    error.value = err.message || 'Failed to mark payment'
+  } finally {
+    markingDone.value = false
+  }
+}
+
 function backToDetails() {
   showQrStep.value = false
   paymentQr.value = null
   error.value = ''
+  paymentMarkedDone.value = false
 }
 
 function resetFlow() {
@@ -118,6 +161,7 @@ function resetFlow() {
   error.value = ''
   showQrStep.value = false
   paymentQr.value = null
+  paymentMarkedDone.value = false
 }
 
 function formatCurrency(amount: number) {
@@ -275,6 +319,28 @@ function formatCurrency(amount: number) {
               </p>
             </div>
           </div>
+          
+          <!-- Payment Done Confirmation -->
+          <div v-if="!paymentMarkedDone" class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p class="text-sm text-amber-800 mb-3">
+              After scanning and completing payment in your app, please confirm:
+            </p>
+            <button
+              @click="markPaymentDone"
+              :disabled="markingDone"
+              class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+            >
+              {{ markingDone ? 'Processing...' : '✓ Payment Done' }}
+            </button>
+          </div>
+          
+          <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p class="text-sm text-green-800 text-center">
+              ✓ Payment marked as done! The voucher owner will confirm receipt.
+            </p>
+          </div>
+          
+          <p v-if="error" class="text-red-600 text-sm text-center">{{ error }}</p>
           
           <div class="flex gap-3">
             <button

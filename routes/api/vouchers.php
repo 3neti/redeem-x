@@ -72,4 +72,9 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     // POST /api/v1/vouchers/confirm-payment
     Route::post('confirm-payment', \App\Actions\Api\Vouchers\ConfirmPayment::class)
         ->name('confirm-payment');
+    
+    // Get pending payment requests (owner only)
+    // GET /api/v1/vouchers/{code}/pending-payments
+    Route::get('{code}/pending-payments', \App\Actions\Api\Vouchers\GetPendingPaymentRequests::class)
+        ->name('pending-payments');
 });

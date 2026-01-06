@@ -39,6 +39,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['throttle:20,1'])->prefix('pay')->name('api.pay.')->group(function () {
         Route::post('/generate-qr', \App\Actions\Api\Pay\GeneratePaymentQr::class)
             ->name('generate-qr');
+        Route::post('/mark-done', \App\Actions\Api\Pay\MarkPaymentDone::class)
+            ->name('mark-done');
     });
     
     // Public voucher payment history (no auth - anyone can view payment history)
