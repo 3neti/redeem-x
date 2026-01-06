@@ -24,11 +24,40 @@ interface Props {
     isExpired: boolean;
     amount: number;
     currency: string;
+    isSettlement?: boolean;
+    isClosed?: boolean;
 }
 
 const props = defineProps<Props>();
 
 const statusInfo = computed(() => {
+    // Settlement voucher status
+    if (props.isSettlement) {
+        if (props.isClosed) {
+            return { 
+                variant: 'default' as const, 
+                label: 'Fulfilled', 
+                icon: TicketCheck,
+                description: 'Target amount reached - payment collection complete'
+            };
+        }
+        if (props.isExpired) {
+            return { 
+                variant: 'destructive' as const, 
+                label: 'Expired', 
+                icon: XCircle,
+                description: 'This voucher has expired and can no longer accept payments'
+            };
+        }
+        return { 
+            variant: 'secondary' as const, 
+            label: 'Collecting', 
+            icon: Clock,
+            description: 'Accepting payments towards target amount'
+        };
+    }
+    
+    // Standard voucher status
     if (props.isRedeemed) {
         return { 
             variant: 'default' as const, 

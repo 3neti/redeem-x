@@ -52,6 +52,7 @@ class VoucherController extends Controller
                 'paid_total' => $voucher->getPaidTotal(),
                 'redeemed_total' => $voucher->getRedeemedTotal(),
                 'remaining' => $voucher->getRemaining(),
+                'available_balance' => $voucher->cash?->balanceFloat ?? 0,
                 'can_accept_payment' => $voucher->canAcceptPayment(),
                 'can_redeem' => $voucher->canRedeem(),
                 'is_locked' => $voucher->isLocked(),

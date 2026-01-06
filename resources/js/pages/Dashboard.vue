@@ -23,6 +23,9 @@ import {
     Wallet,
     CreditCard,
     TrendingUp,
+    FileText,
+    CircleDollarSign,
+    Activity,
 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -141,6 +144,44 @@ onMounted(() => {
                     :value="`${stats?.disbursements.success_rate || 0}%`"
                     :subtitle="`${stats?.disbursements.successful || 0} of ${stats?.disbursements.total_attempts || 0} attempts`"
                     :icon="TrendingUp"
+                    :loading="loading"
+                />
+            </div>
+            
+            <!-- Settlement Vouchers Stats -->
+            <div v-if="stats?.settlements" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                    title="Settlement Vouchers"
+                    :value="formatNumber(stats.settlements.total_vouchers || 0)"
+                    :subtitle="`${stats.settlements.active_count || 0} active, ${stats.settlements.closed_count || 0} closed`"
+                    :icon="FileText"
+                    :loading="loading"
+                    href="/vouchers?type=settlement"
+                />
+                <StatCard
+                    title="Amount Collected"
+                    :value="
+                        formatAmount(
+                            stats.settlements.total_collected || 0,
+                            stats.settlements.currency || 'PHP',
+                        )
+                    "
+                    :subtitle="`Target: ${formatAmount(
+                        stats.settlements.total_target || 0,
+                        stats.settlements.currency || 'PHP',
+                    )}`"
+                    :icon="CircleDollarSign"
+                    :loading="loading"
+                />
+                <StatCard
+                    title="Collection Rate"
+                    :value="
+                        stats.settlements.total_target > 0
+                            ? `${Math.round((stats.settlements.total_collected / stats.settlements.total_target) * 100)}%`
+                            : '0%'
+                    "
+                    :subtitle="`${stats.settlements.total_payable || 0} payable, ${stats.settlements.total_settlement || 0} settlement`"
+                    :icon="Activity"
                     :loading="loading"
                 />
             </div>

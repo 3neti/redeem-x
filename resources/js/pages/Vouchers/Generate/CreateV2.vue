@@ -333,6 +333,10 @@ const showDisbursementSettings = computed(() => {
     return payeeType.value === 'anyone';  // Only for blank/CASH
 });
 
+const isAmountDisabled = computed(() => {
+    return voucherType.value === 'payable';
+});
+
 const contextualHelpText = computed(() => {
     switch (payeeType.value) {
         case 'anyone': return 'Anyone can redeem this voucher';
@@ -498,6 +502,48 @@ watch(instructionsForPricing, (newVal) => {
     console.log('[CreateV2] payeeType:', payeeType.value);
 }, { deep: true });
 
+// Voucher type-specific amount behavior
+const amountInputRef = ref<HTMLInputElement | null>(null);
+const targetAmountInputRef = ref<HTMLInputElement | null>(null);
+
+watch(voucherType, (newType, oldType) => {
+    if (newType === 'payable') {
+        // Payable: Set amount to 0, make read-only, focus on target amount
+        amount.value = 0;
+        // Focus on target amount field on next tick
+        setTimeout(() => {
+            const targetInput = document.getElementById('target_amount') as HTMLInputElement;
+            if (targetInput) targetInput.focus();
+        }, 100);
+    } else if (newType === 'settlement') {
+        // Settlement: If amount is zero (coming from payable), set to default
+        if (amount.value === 0) {
+            amount.value = props.config.basic_settings.amount.default;
+        }
+        // Populate target amount with current amount
+        targetAmount.value = amount.value;
+        // Focus and select amount field
+        setTimeout(() => {
+            const amountInput = document.getElementById('amount') as HTMLInputElement;
+            if (amountInput) {
+                amountInput.focus();
+                amountInput.select();
+            }
+        }, 100);
+    } else if (newType === 'redeemable') {
+        // Redeemable: Restore default amount, enable editing
+        amount.value = props.config.basic_settings.amount.default;
+        targetAmount.value = null;
+    }
+});
+
+// Settlement: Sync target amount whenever amount changes
+watch(amount, (newAmount) => {
+    if (voucherType.value === 'settlement') {
+        targetAmount.value = newAmount;
+    }
+});
+
 // Use live pricing API with centralized deduction calculation
 const { 
     breakdown: apiBreakdown, 
@@ -601,7 +647,7 @@ const toggleInputField = (fieldValue: string) => {
 
 // Live JSON preview
 const jsonPreview = computed(() => {
-    const data = {
+    const data: any = {
         cash: {
             amount: amount.value,
             currency: 'PHP',
@@ -640,6 +686,15 @@ const jsonPreview = computed(() => {
         mask: mask.value || null,
         ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
     };
+    
+    // Add settlement fields if feature enabled and not default type
+    if (props.settlement_enabled && voucherType.value !== 'redeemable') {
+        data.voucher_type = voucherType.value;
+        data.target_amount = targetAmount.value;
+        if (settlementRules.value) {
+            data.rules = settlementRules.value;
+        }
+    }
     
     // Recursively remove null values
     const removeNulls = (obj: any): any => {
@@ -839,8 +894,17 @@ const handleSubmit = async () => {
                                         v-model.number="amount"
                                         :min="config.basic_settings.amount.min"
                                         :step="config.basic_settings.amount.step"
+                                        :disabled="isAmountDisabled"
+                                        :readonly="isAmountDisabled"
+                                        :class="{ 'opacity-60 cursor-not-allowed': isAmountDisabled }"
                                         required
                                     />
+                                    <p v-if="voucherType === 'payable'" class="text-xs text-muted-foreground">
+                                        Payable vouchers have no initial amount - set target amount instead
+                                    </p>
+                                    <p v-else-if="voucherType === 'settlement'" class="text-xs text-muted-foreground">
+                                        Settlement amount syncs to target amount (loan principal)
+                                    </p>
                                     <InputError :message="validationErrors.amount" />
                                 </div>
 
@@ -929,7 +993,10 @@ const handleSubmit = async () => {
                                         placeholder="Enter target amount"
                                         required
                                     />
-                                    <p class="text-xs text-muted-foreground">
+                                    <p v-if="voucherType === 'settlement'" class="text-xs text-muted-foreground">
+                                        Syncs with loan principal amount above (editable)
+                                    </p>
+                                    <p v-else class="text-xs text-muted-foreground">
                                         Total amount to collect before voucher closes
                                     </p>
                                     <InputError :message="validationErrors.target_amount" />

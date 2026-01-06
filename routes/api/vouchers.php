@@ -67,4 +67,32 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     // DELETE /api/v1/vouchers/{voucher}
     Route::delete('{voucher:code}', [\App\Actions\Api\Vouchers\CancelVoucher::class, 'asController'])
         ->name('cancel');
+    
+    // Manually confirm payment (owner only)
+    // POST /api/v1/vouchers/confirm-payment
+    Route::post('confirm-payment', \App\Actions\Api\Vouchers\ConfirmPayment::class)
+        ->name('confirm-payment');
+    
+    // Get pending payment requests (owner only)
+    // GET /api/v1/vouchers/{code}/pending-payments
+    Route::get('{code}/pending-payments', \App\Actions\Api\Vouchers\GetPendingPaymentRequests::class)
+        ->name('pending-payments');
+    
+    // State management actions (owner only)
+    // POST /api/v1/vouchers/lock
+    Route::post('lock', \App\Actions\Api\Vouchers\LockVoucher::class)
+        ->name('lock');
+    
+    // POST /api/v1/vouchers/unlock
+    Route::post('unlock', \App\Actions\Api\Vouchers\UnlockVoucher::class)
+        ->name('unlock');
+    
+    // POST /api/v1/vouchers/force-close
+    Route::post('force-close', \App\Actions\Api\Vouchers\ForceCloseVoucher::class)
+        ->name('force-close');
+    
+    // Collect payments from settlement voucher (owner only)
+    // POST /api/v1/vouchers/{code}/collect
+    Route::post('{code}/collect', \App\Actions\Api\Vouchers\CollectPayments::class)
+        ->name('collect');
 });

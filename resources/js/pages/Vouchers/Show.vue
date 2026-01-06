@@ -13,11 +13,18 @@ import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import QrDisplay from '@/components/shared/QrDisplay.vue';
 import VoucherQrSharePanel from '@/components/voucher/VoucherQrSharePanel.vue';
 import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
+import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
+import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
+import SettlementDetailsCard from '@/components/settlement/SettlementDetailsCard.vue';
+import PaymentsCard from '@/components/settlement/PaymentsCard.vue';
+import VoucherActionsCard from '@/components/settlement/VoucherActionsCard.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
+import { usePage } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
 interface VoucherOwner {
+    id: number;
     name: string;
     email: string;
 }
@@ -86,16 +93,41 @@ interface RedemptionInputs {
     [key: string]: any;
 }
 
+interface SettlementData {
+    type: 'payable' | 'redeemable' | 'settlement';
+    state: 'active' | 'locked' | 'closed' | 'cancelled' | 'expired';
+    target_amount: number;
+    paid_total: number;
+    redeemed_total: number;
+    remaining: number;
+    available_balance: number;
+    can_accept_payment: boolean;
+    can_redeem: boolean;
+    is_locked: boolean;
+    is_closed: boolean;
+    is_expired: boolean;
+    locked_at?: string;
+    closed_at?: string;
+    rules: Record<string, any>;
+}
+
 interface Props {
     voucher: VoucherProp;
     input_field_options: VoucherInputFieldOption[];
+    settlement?: SettlementData;
 }
 
 const props = defineProps<Props>();
+const page = usePage();
 
 const activeTab = ref<'details' | 'instructions' | 'metadata'>('details');
 
 const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
+
+const isOwner = computed(() => {
+    const currentUser = (page.props as any).auth?.user;
+    return currentUser && props.voucher.owner && currentUser.id === props.voucher.owner.id;
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Vouchers', href: '/vouchers' },
@@ -106,12 +138,22 @@ const goBack = () => {
     router.visit('/vouchers');
 };
 
-// Generate QR code for voucher
-const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(props.voucher.code);
+// Generate QR code for voucher redemption only
+const isPayableVoucher = computed(() => 
+    props.settlement?.type === 'payable' || props.settlement?.type === 'settlement'
+);
+
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
+    props.voucher.code, 
+    '/redeem'
+);
 
 onMounted(() => {
-    // Only generate QR if voucher is redeemable
-    if (!props.voucher.is_redeemed && !props.voucher.is_expired) {
+    // Only generate redemption QR for unredeemed/unexpired vouchers
+    // Payment QRs are generated separately in /pay page
+    const shouldGenerateQr = !props.voucher.is_redeemed && !props.voucher.is_expired;
+    
+    if (shouldGenerateQr) {
         generateQr();
     }
 });
@@ -193,10 +235,21 @@ const instructionsFormData = computed(() => {
             <div class="mx-auto max-w-4xl space-y-6 p-6">
                 <!-- Header -->
                 <div class="flex items-center justify-between">
-                    <Heading
-                        :title="voucher.code"
-                        description="Voucher details and status"
-                    />
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <Heading
+                                :title="voucher.code"
+                                description="Voucher details and status"
+                            />
+                            <!-- Voucher Type Badge (always show if settlement data exists) -->
+                            <VoucherTypeBadge v-if="settlement" :type="settlement.type" />
+                            <!-- State Badge (only for payable/settlement types) -->
+                            <VoucherStateBadge 
+                                v-if="settlement && (settlement.type === 'payable' || settlement.type === 'settlement')" 
+                                :state="settlement.state" 
+                            />
+                        </div>
+                    </div>
                     <Button variant="outline" @click="goBack">
                         <ArrowLeft class="mr-2 h-4 w-4" />
                         Back to Vouchers
@@ -209,6 +262,8 @@ const instructionsFormData = computed(() => {
                     :is-expired="voucher.is_expired"
                     :amount="voucher.amount"
                     :currency="voucher.currency"
+                    :is-settlement="settlement?.type === 'payable' || settlement?.type === 'settlement'"
+                    :is-closed="settlement?.is_closed || false"
                 />
 
                 <!-- Tabs Navigation -->
@@ -253,10 +308,42 @@ const instructionsFormData = computed(() => {
                 </div>
 
                 <!-- Details Tab Content -->
-                <div v-show="activeTab === 'details'">
+                <div v-show="activeTab === 'details'" class="space-y-6">
+                    <!-- Settlement Details (for payable/settlement vouchers) -->
+                    <SettlementDetailsCard
+                        v-if="settlement && (settlement.type === 'payable' || settlement.type === 'settlement')"
+                        :voucher-code="voucher.code"
+                        :target-amount="settlement.target_amount"
+                        :paid-total="settlement.paid_total"
+                        :remaining="settlement.remaining"
+                        :available-balance="settlement.available_balance"
+                        :state="settlement.state"
+                        :currency="voucher.currency"
+                        :is-owner="isOwner"
+                    />
+                    
+                    <!-- Standard Voucher Details -->
                     <VoucherDetailsTabContent 
                         :voucher="voucher" 
                         :redemption="redemptionInputs"
+                    />
+                    
+                    <!-- Payments (for payable/settlement vouchers) -->
+                    <PaymentsCard 
+                        v-if="settlement && (settlement.type === 'payable' || settlement.type === 'settlement')"
+                        :voucher-code="voucher.code"
+                        :is-owner="isOwner"
+                        :can-accept-payment="settlement.can_accept_payment"
+                    />
+                    
+                    <!-- Admin Actions (owner only) -->
+                    <VoucherActionsCard
+                        v-if="settlement"
+                        :voucher-code="voucher.code"
+                        :voucher-state="settlement.state"
+                        :voucher-type="settlement.type"
+                        :is-owner="isOwner"
+                        :is-expired="settlement.is_expired"
                     />
                 </div>
 
@@ -281,8 +368,13 @@ const instructionsFormData = computed(() => {
                 <!-- Owner Information (if available) -->
                 <VoucherOwnerView v-if="voucher.owner" :owner="voucher.owner" />
 
-                <!-- QR Code Section (only show for unredeemed, non-expired vouchers) -->
-                <div v-if="!voucher.is_redeemed && !voucher.is_expired" class="grid gap-6 md:grid-cols-2">
+                <!-- QR Code Section -->
+                <!-- Show only for unredeemed, unexpired vouchers (redemption QR only) -->
+                <!-- Payment QRs are generated in /pay page, not here -->
+                <div 
+                    v-if="!voucher.is_redeemed && !voucher.is_expired" 
+                    class="grid gap-6 md:grid-cols-2"
+                >
                     <!-- QR Display -->
                     <Card>
                         <CardHeader>

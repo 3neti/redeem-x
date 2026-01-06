@@ -36,6 +36,16 @@ export interface DashboardStats {
         successful: number;
         failed: number;
     };
+    settlements: {
+        total_payable: number;
+        total_settlement: number;
+        total_vouchers: number;
+        active_count: number;
+        closed_count: number;
+        total_collected: number;
+        total_target: number;
+        currency: string;
+    };
 }
 
 export interface RecentActivity {
