@@ -15,7 +15,9 @@ class PayVoucherController extends Controller
      */
     public function index()
     {
-        return inertia('Pay/Index');
+        return inertia('Pay/Index', [
+            'pay' => config('pay'),
+        ]);
     }
 
     /**
