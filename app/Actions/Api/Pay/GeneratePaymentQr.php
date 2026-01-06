@@ -48,14 +48,21 @@ class GeneratePaymentQr
         $amountValue = (float) $request->input('amount');
         $currency = config('disbursement.currency', 'PHP');
         
-        // Find voucher
-        $voucher = Voucher::where('code', $voucherCode)->first();
+        // Find voucher with owner
+        $voucher = Voucher::with('owner')->where('code', $voucherCode)->first();
         
         if (!$voucher) {
             return response()->json([
                 'success' => false,
                 'message' => 'Voucher not found',
             ], 404);
+        }
+        
+        if (!$voucher->owner) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Voucher has no owner',
+            ], 422);
         }
         
         // Validate voucher can accept payment
@@ -75,15 +82,19 @@ class GeneratePaymentQr
             ], 422);
         }
         
-        // Get system account for receiving payments
-        $systemAccount = config('payment-gateway.system_account');
+        // Get voucher owner's account (payment goes to their wallet)
+        $owner = $voucher->owner;
+        $account = $owner->accountNumber;
         
-        if (!$systemAccount) {
+        if (!$account) {
             return response()->json([
                 'success' => false,
-                'message' => 'System account not configured',
-            ], 500);
+                'message' => 'Voucher owner has no account number. Please update profile.',
+            ], 422);
         }
+        
+        // Get or create merchant profile for owner
+        $merchant = $owner->getOrCreateMerchant();
         
         // Create cache key
         $cacheKey = "payment_qr:{$voucherCode}:{$amountValue}";
@@ -110,24 +121,22 @@ class GeneratePaymentQr
             Log::info('[GeneratePaymentQr] Generating new payment QR', [
                 'voucher_code' => $voucherCode,
                 'amount' => $amountValue,
-                'system_account' => $systemAccount,
+                'owner_account' => $account,
+                'owner_id' => $owner->id,
             ]);
             
             // Create Money object
             $money = Money::of($amountValue, $currency);
             
-            // Prepare merchant data (use voucher context)
+            // Prepare merchant data (same as wallet QR - pass full objects)
             $merchantData = [
-                'merchant' => [
-                    'name' => config('app.name', 'redeem-x'),
-                    'city' => 'Manila',
-                    'description' => "Payment for voucher {$voucherCode}",
-                ],
-                'voucher_code' => $voucherCode,
+                'merchant' => $merchant,
+                'user' => $owner,
+                'voucher_code' => $voucherCode, // Add voucher context
             ];
             
-            // Generate QR code via gateway
-            $qrCode = $this->gateway->generate($systemAccount, $money, $merchantData);
+            // Generate QR code via gateway (same as wallet)
+            $qrCode = $this->gateway->generate($account, $money, $merchantData);
             
             Log::info('[GeneratePaymentQr] Payment QR generated successfully', [
                 'voucher_code' => $voucherCode,
