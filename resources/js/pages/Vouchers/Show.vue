@@ -23,6 +23,7 @@ import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
 interface VoucherOwner {
+    id: number;
     name: string;
     email: string;
 }

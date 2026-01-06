@@ -128,6 +128,7 @@ class VoucherData extends Data
 class ModelData extends Data
 {
     public function __construct(
+        public int         $id,
         public string      $name,
         public string      $email,
         public ?string     $mobile
@@ -136,6 +137,7 @@ class ModelData extends Data
     public static function fromModel($model): static
     {
         return new static(
+            id: $model->id,
             name: $model->name,
             email: $model->email,
             mobile: $model->mobile ?? null,
