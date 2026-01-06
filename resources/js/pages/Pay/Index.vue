@@ -202,7 +202,7 @@ function formatCurrency(amount: number) {
       <div v-else class="bg-white rounded-lg shadow-md p-6">
 
         <!-- Step 2: Payment Details -->
-        <div v-else-if="quote && !showQrStep" class="space-y-6">
+        <div v-if="!showQrStep" class="space-y-6">
           <div>
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment Details</h2>
             
@@ -273,7 +273,7 @@ function formatCurrency(amount: number) {
         </div>
         
         <!-- Step 3: QR Code Display -->
-        <div v-else-if="showQrStep" class="space-y-6">
+        <div v-else class="space-y-6">
           <div>
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment QR Code</h2>
             
