@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
-import { Receipt, CreditCard, FileText } from 'lucide-vue-next'
+import { Ticket, CircleDollarSign, FileText } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 interface Props {
@@ -14,25 +14,31 @@ const props = withDefaults(defineProps<Props>(), {
 
 const config = computed(() => {
     switch (props.type) {
+        case 'redeemable':
+            return {
+                label: 'Redeemable',
+                icon: Ticket,
+                variant: 'default' as const,
+                class: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20'
+            }
         case 'payable':
             return {
                 label: 'Payable',
-                icon: CreditCard,
+                icon: CircleDollarSign,
                 variant: 'default' as const,
-                class: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20'
+                class: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
             }
         case 'settlement':
             return {
                 label: 'Settlement',
                 icon: FileText,
                 variant: 'default' as const,
-                class: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
+                class: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20'
             }
-        case 'redeemable':
         default:
             return {
-                label: 'Redeemable',
-                icon: Receipt,
+                label: 'Unknown',
+                icon: Ticket,
                 variant: 'outline' as const,
                 class: ''
             }

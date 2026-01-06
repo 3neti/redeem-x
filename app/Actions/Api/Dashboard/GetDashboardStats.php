@@ -41,6 +41,9 @@ class GetDashboardStats
 
         // Disbursement Success Rate
         $disbursementStats = $this->getDisbursementStats();
+        
+        // Settlement Voucher Stats
+        $settlementStats = $this->getSettlementStats($user);
 
         return ApiResponse::success([
             'stats' => [
@@ -50,6 +53,7 @@ class GetDashboardStats
                 'wallet' => $walletStats,
                 'billing' => $billingStats,
                 'disbursements' => $disbursementStats,
+                'settlements' => $settlementStats,
             ],
         ]);
     }
@@ -187,6 +191,40 @@ class GetDashboardStats
             'total_attempts' => $total,
             'successful' => $successful,
             'failed' => $failed,
+        ];
+    }
+    
+    private function getSettlementStats($user): array
+    {
+        // Total payable/settlement vouchers
+        $settlementVouchers = $user->vouchers()
+            ->whereIn('voucher_type', ['payable', 'settlement'])
+            ->get();
+        
+        $totalPayable = $settlementVouchers->where('voucher_type', 'payable')->count();
+        $totalSettlement = $settlementVouchers->where('voucher_type', 'settlement')->count();
+        
+        // Active vs Closed
+        $activeCount = $settlementVouchers->where('state', 'active')->count();
+        $closedCount = $settlementVouchers->where('state', 'closed')->count();
+        
+        // Total amount collected via payments
+        $totalCollected = $settlementVouchers->sum(function ($voucher) {
+            return $voucher->getPaidTotal();
+        });
+        
+        // Total target amount
+        $totalTarget = $settlementVouchers->sum('target_amount');
+        
+        return [
+            'total_payable' => $totalPayable,
+            'total_settlement' => $totalSettlement,
+            'total_vouchers' => $settlementVouchers->count(),
+            'active_count' => $activeCount,
+            'closed_count' => $closedCount,
+            'total_collected' => $totalCollected,
+            'total_target' => $totalTarget,
+            'currency' => 'PHP',
         ];
     }
 }

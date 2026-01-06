@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
 import PayWidget from '@/components/PayWidget.vue'
+import { useToast } from '@/components/ui/toast/use-toast'
 
 interface Props {
     initial_code?: string | null;
@@ -11,6 +12,7 @@ interface Props {
 defineProps<Props>()
 
 const page = usePage()
+const { toast } = useToast()
 const voucherCode = ref('')
 const amount = ref('')
 const quote = ref<any>(null)
@@ -114,8 +116,18 @@ async function generatePaymentQR() {
 
     paymentQr.value = data.data
     showQrStep.value = true
+    
+    toast({
+      title: 'QR Code Generated',
+      description: `Payment QR code ready for ${formatCurrency(amountNum)}`,
+    })
   } catch (err: any) {
     error.value = err.message || 'Failed to generate QR code'
+    toast({
+      title: 'Generation Failed',
+      description: err.message || 'Failed to generate QR code',
+      variant: 'destructive',
+    })
   } finally {
     qrLoading.value = false
   }
@@ -150,12 +162,27 @@ async function markPaymentDone() {
 
     if (!response.ok) {
       error.value = data.message || 'Failed to mark payment as done'
+      toast({
+        title: 'Marking Failed',
+        description: data.message || 'Failed to mark payment as done',
+        variant: 'destructive',
+      })
       return
     }
 
     paymentMarkedDone.value = true
+    
+    toast({
+      title: 'Payment Confirmed',
+      description: `Payment of ${formatCurrency(parseFloat(amount.value))} marked as complete`,
+    })
   } catch (err: any) {
     error.value = err.message || 'Failed to mark payment'
+    toast({
+      title: 'Error',
+      description: err.message || 'Failed to mark payment',
+      variant: 'destructive',
+    })
   } finally {
     markingDone.value = false
   }
