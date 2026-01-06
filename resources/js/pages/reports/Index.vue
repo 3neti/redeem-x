@@ -94,8 +94,8 @@ const props = defineProps<Props>();
 const currentTab = ref(props.report_type);
 const fromDate = ref(props.filters.from_date);
 const toDate = ref(props.filters.to_date);
-const status = ref(props.filters.status || '');
-const rail = ref(props.filters.rail || '');
+const status = ref(props.filters.status || 'all');
+const rail = ref(props.filters.rail || 'all');
 
 // Watch for prop changes from navigation
 watch(() => props.report_type, (newType) => {
@@ -111,12 +111,12 @@ const applyFilters = () => {
         type: props.report_type,
         from_date: fromDate.value,
         to_date: toDate.value,
-        status: status.value || undefined,
+        status: status.value && status.value !== 'all' ? status.value : undefined,
     };
     
     // Only add rail for disbursement reports
     if (props.report_type === 'disbursements') {
-        params.rail = rail.value || undefined;
+        params.rail = rail.value && rail.value !== 'all' ? rail.value : undefined;
     }
     
     router.get('/reports', params);
@@ -232,7 +232,7 @@ const getStatusBadge = (status: string) => {
                                 <SelectValue placeholder="All Statuses" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Statuses</SelectItem>
+                                <SelectItem value="all">All Statuses</SelectItem>
                                 <SelectItem value="success">Success</SelectItem>
                                 <SelectItem value="failed">Failed</SelectItem>
                                 <SelectItem value="pending">Pending</SelectItem>
@@ -246,7 +246,7 @@ const getStatusBadge = (status: string) => {
                                 <SelectValue placeholder="All Rails" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Rails</SelectItem>
+                                <SelectItem value="all">All Rails</SelectItem>
                                 <SelectItem value="INSTAPAY">INSTAPAY</SelectItem>
                                 <SelectItem value="PESONET">PESONET</SelectItem>
                             </SelectContent>
@@ -370,7 +370,7 @@ const getStatusBadge = (status: string) => {
                                             <SelectValue placeholder="All Statuses" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">All Statuses</SelectItem>
+                                            <SelectItem value="all">All Statuses</SelectItem>
                                             <SelectItem value="active">Active</SelectItem>
                                             <SelectItem value="closed">Closed</SelectItem>
                                             <SelectItem value="locked">Locked</SelectItem>
