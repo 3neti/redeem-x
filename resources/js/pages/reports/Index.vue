@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
 import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -91,10 +91,16 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const currentTab = ref(props.report_type);
 const fromDate = ref(props.filters.from_date);
 const toDate = ref(props.filters.to_date);
 const status = ref(props.filters.status || '');
 const rail = ref(props.filters.rail || '');
+
+// Watch for prop changes from navigation
+watch(() => props.report_type, (newType) => {
+    currentTab.value = newType;
+});
 
 const switchTab = (newTab: string) => {
     router.get('/reports', { type: newTab });
@@ -159,7 +165,7 @@ const getStatusBadge = (status: string) => {
                 description="View and analyze transactions and settlements"
             />
             
-            <Tabs :default-value="report_type" @update:model-value="switchTab" class="w-full">
+            <Tabs v-model="currentTab" @update:model-value="switchTab" class="w-full">
                 <TabsList class="grid w-full max-w-md grid-cols-2">
                     <TabsTrigger value="disbursements">Disbursements</TabsTrigger>
                     <TabsTrigger value="settlements">Settlements</TabsTrigger>
