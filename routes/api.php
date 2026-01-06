@@ -34,6 +34,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/{voucher:code}/timing/start', [\App\Actions\Api\Vouchers\TrackRedemptionStart::class, 'asController'])
             ->name('timing.start');
     });
+    
+    // Public payment QR generation (no auth - anyone can pay a voucher)
+    Route::middleware(['throttle:20,1'])->prefix('pay')->name('api.pay.')->group(function () {
+        Route::post('/generate-qr', \App\Actions\Api\Pay\GeneratePaymentQr::class)
+            ->name('generate-qr');
+    });
 });
 
 /**

@@ -58,6 +58,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | System Account
+    |--------------------------------------------------------------------------
+    |
+    | The system's main account for receiving payments (top-ups, voucher payments, etc.).
+    | Format: mobile number with area code (e.g., 09173011987)
+    |
+    */
+    'system_account' => env('SYSTEM_ACCOUNT', env('APP_MOBILE')),
+
+    /*
+    |--------------------------------------------------------------------------
     | QR Code Caching
     |--------------------------------------------------------------------------
     |

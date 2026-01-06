@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
-import { useVoucherQr } from '@/composables/useVoucherQr'
 
 const page = usePage()
 const voucherCode = ref('')
@@ -11,6 +10,8 @@ const quote = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
 const showQrStep = ref(false)
+const paymentQr = ref<any>(null)
+const qrLoading = ref(false)
 
 async function getQuote() {
   if (!voucherCode.value.trim()) {
@@ -53,18 +54,7 @@ async function getQuote() {
   }
 }
 
-// Generate QR code for payment
-const paymentUrl = computed(() => {
-  if (!quote.value?.voucher_code || !amount.value) return ''
-  const baseUrl = window.location.origin
-  return `${baseUrl}/pay?code=${quote.value.voucher_code}&amount=${amount.value}`
-})
-
-const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
-  computed(() => quote.value?.voucher_code || ''),
-  '/pay'
-)
-
+// Generate InstaPay QR code for payment
 async function generatePaymentQR() {
   if (!amount.value || parseFloat(amount.value) <= 0) {
     error.value = 'Please enter a valid amount'
@@ -78,17 +68,47 @@ async function generatePaymentQR() {
   }
 
   error.value = ''
+  qrLoading.value = true
+  paymentQr.value = null
   
   try {
-    await generateQr()
+    // Get CSRF token
+    const csrfToken = (page.props as any).csrf_token || 
+                      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    
+    // Generate InstaPay QR via API
+    const response = await fetch('/api/v1/pay/generate-qr', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ 
+        voucher_code: quote.value.voucher_code,
+        amount: amountNum 
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      error.value = data.message || 'Failed to generate payment QR'
+      return
+    }
+
+    paymentQr.value = data.data
     showQrStep.value = true
   } catch (err: any) {
-    error.value = qrError.value || 'Failed to generate QR code'
+    error.value = err.message || 'Failed to generate QR code'
+  } finally {
+    qrLoading.value = false
   }
 }
 
 function backToDetails() {
   showQrStep.value = false
+  paymentQr.value = null
   error.value = ''
 }
 
@@ -97,6 +117,7 @@ function resetFlow() {
   amount.value = ''
   error.value = ''
   showQrStep.value = false
+  paymentQr.value = null
 }
 
 function formatCurrency(amount: number) {
@@ -235,19 +256,22 @@ function formatCurrency(amount: number) {
             <div class="flex justify-center py-4">
               <div class="w-full max-w-xs">
                 <QrDisplay
-                  :qr-code="qrData?.qr_code ?? null"
+                  :qr-code="paymentQr?.qr_code ?? null"
                   :loading="qrLoading"
-                  :error="qrError"
+                  :error="error"
                 />
               </div>
             </div>
             
             <div class="text-center space-y-2">
               <p class="text-sm text-gray-600">
-                Scan with your phone's camera or payment app
+                Scan with GCash, Maya, or any InstaPay-enabled app
               </p>
-              <p class="text-xs text-gray-500">
-                {{ paymentUrl }}
+              <p class="text-xs text-gray-500 font-mono">
+                QR ID: {{ paymentQr?.qr_id }}
+              </p>
+              <p v-if="paymentQr?.expires_at" class="text-xs text-amber-600">
+                Expires: {{ new Date(paymentQr.expires_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) }}
               </p>
             </div>
           </div>
