@@ -147,7 +147,7 @@ class GeneratePaymentQr
             $responseData = [
                 'qr_code' => $this->ensureDataUrl($qrCode),
                 'qr_id' => 'PAYMENT-QR-' . strtoupper(uniqid()),
-                'account' => $systemAccount,
+                'account' => $account,
                 'amount' => $amountValue,
                 'voucher_code' => $voucherCode,
                 'expires_at' => now()->addMinutes(5)->toIso8601String(),
