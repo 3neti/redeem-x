@@ -3,10 +3,8 @@ import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { ArrowDownLeft, Plus, Loader2 } from 'lucide-vue-next'
+import { ArrowDownLeft, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useToast } from '@/components/ui/toast/use-toast'
 
@@ -40,12 +38,6 @@ interface PendingPaymentRequest {
 const props = defineProps<Props>()
 const { toast } = useToast()
 const page = usePage()
-
-// Manual confirmation state
-const confirmAmount = ref('')
-const confirmPaymentId = ref('')
-const confirmPayer = ref('')
-const confirming = ref(false)
 
 // Payment history state
 const payments = ref<Payment[]>([])
@@ -162,73 +154,6 @@ const confirmPendingPayment = async (paymentRequestId: number) => {
     }
 }
 
-const confirmPayment = async () => {
-    const amount = parseFloat(confirmAmount.value)
-    
-    if (!amount || amount <= 0) {
-        toast({
-            title: 'Invalid Amount',
-            description: 'Please enter a valid payment amount',
-            variant: 'destructive',
-        })
-        return
-    }
-    
-    confirming.value = true
-    
-    try {
-        const csrfToken = (page.props as any).csrf_token || 
-                          document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        
-        const response = await fetch('/api/v1/vouchers/confirm-payment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-                voucher_code: props.voucherCode,
-                amount: amount,
-                payment_id: confirmPaymentId.value || undefined,
-                payer: confirmPayer.value || undefined,
-            }),
-        })
-        
-        const data = await response.json()
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to confirm payment')
-        }
-        
-        toast({
-            title: 'Payment Confirmed',
-            description: `₱${amount.toFixed(2)} has been credited to this voucher`,
-        })
-        
-        // Reset form
-        confirmAmount.value = ''
-        confirmPaymentId.value = ''
-        confirmPayer.value = ''
-        
-        // Refresh payment history
-        historyLoaded.value = false
-        await fetchPaymentHistory()
-        
-        // Reload page to update settlement details
-        window.location.reload()
-        
-    } catch (err: any) {
-        toast({
-            title: 'Confirmation Failed',
-            description: err.message || 'Failed to confirm payment',
-            variant: 'destructive',
-        })
-    } finally {
-        confirming.value = false
-    }
-}
-
 // Auto-load data on mount
 fetchPendingPayments()
 fetchPaymentHistory()
@@ -239,7 +164,7 @@ fetchPaymentHistory()
         <CardHeader>
             <CardTitle>Payments</CardTitle>
             <CardDescription>
-                {{ isOwner ? 'Confirm payments and view history' : 'View payment history' }}
+                {{ isOwner ? 'Pending payment confirmations and history' : 'View payment history' }}
             </CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
@@ -295,65 +220,6 @@ fetchPaymentHistory()
             </div>
             
             <Separator v-if="isOwner && canAcceptPayment && pendingRequests.length > 0" />
-            
-            <!-- Manual Payment Confirmation (Owner Only) -->
-            <div v-if="isOwner && canAcceptPayment" class="space-y-4 p-4 rounded-lg border bg-muted/50">
-                <div class="flex items-center gap-2">
-                    <Plus class="h-4 w-4" />
-                    <h4 class="font-medium">Confirm Payment</h4>
-                </div>
-                <p class="text-sm text-muted-foreground">
-                    Manually confirm a payment received outside the system (e.g., GCash screenshot)
-                </p>
-                
-                <div class="space-y-3">
-                    <div class="space-y-2">
-                        <Label for="amount">Amount (₱)</Label>
-                        <Input
-                            id="amount"
-                            type="number"
-                            v-model="confirmAmount"
-                            placeholder="100.00"
-                            step="0.01"
-                            min="0.01"
-                            :disabled="confirming"
-                        />
-                    </div>
-                    
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div class="space-y-2">
-                            <Label for="payment-id">Payment ID (Optional)</Label>
-                            <Input
-                                id="payment-id"
-                                v-model="confirmPaymentId"
-                                placeholder="GCASH-123456"
-                                :disabled="confirming"
-                            />
-                        </div>
-                        
-                        <div class="space-y-2">
-                            <Label for="payer">Payer (Optional)</Label>
-                            <Input
-                                id="payer"
-                                v-model="confirmPayer"
-                                placeholder="Mobile or name"
-                                :disabled="confirming"
-                            />
-                        </div>
-                    </div>
-                    
-                    <Button 
-                        @click="confirmPayment" 
-                        :disabled="confirming || !confirmAmount"
-                        class="w-full"
-                    >
-                        <Loader2 v-if="confirming" class="mr-2 h-4 w-4 animate-spin" />
-                        {{ confirming ? 'Confirming...' : 'Confirm Payment' }}
-                    </Button>
-                </div>
-            </div>
-            
-            <Separator v-if="isOwner && canAcceptPayment" />
             
             <!-- Payment History -->
             <div class="space-y-4">
