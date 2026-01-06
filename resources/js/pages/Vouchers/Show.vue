@@ -17,6 +17,7 @@ import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
 import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
 import SettlementDetailsCard from '@/components/settlement/SettlementDetailsCard.vue';
 import PaymentsCard from '@/components/settlement/PaymentsCard.vue';
+import VoucherActionsCard from '@/components/settlement/VoucherActionsCard.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
@@ -335,6 +336,16 @@ const instructionsFormData = computed(() => {
                         :voucher-code="voucher.code"
                         :is-owner="isOwner"
                         :can-accept-payment="settlement.can_accept_payment"
+                    />
+                    
+                    <!-- Admin Actions (owner only) -->
+                    <VoucherActionsCard
+                        v-if="settlement"
+                        :voucher-code="voucher.code"
+                        :voucher-state="settlement.state"
+                        :voucher-type="settlement.type"
+                        :is-owner="isOwner"
+                        :is-expired="settlement.is_expired"
                     />
                 </div>
 
