@@ -601,7 +601,7 @@ const toggleInputField = (fieldValue: string) => {
 
 // Live JSON preview
 const jsonPreview = computed(() => {
-    const data = {
+    const data: any = {
         cash: {
             amount: amount.value,
             currency: 'PHP',
@@ -640,6 +640,15 @@ const jsonPreview = computed(() => {
         mask: mask.value || null,
         ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
     };
+    
+    // Add settlement fields if feature enabled and not default type
+    if (props.settlement_enabled && voucherType.value !== 'redeemable') {
+        data.voucher_type = voucherType.value;
+        data.target_amount = targetAmount.value;
+        if (settlementRules.value) {
+            data.rules = settlementRules.value;
+        }
+    }
     
     // Recursively remove null values
     const removeNulls = (obj: any): any => {

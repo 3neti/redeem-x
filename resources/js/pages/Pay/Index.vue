@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
+import QrDisplay from '@/components/shared/QrDisplay.vue'
+import { useVoucherQr } from '@/composables/useVoucherQr'
 
 const page = usePage()
 const voucherCode = ref('')
@@ -8,6 +10,7 @@ const amount = ref('')
 const quote = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
+const showQrStep = ref(false)
 
 async function getQuote() {
   if (!voucherCode.value.trim()) {
@@ -50,7 +53,19 @@ async function getQuote() {
   }
 }
 
-async function generateQR() {
+// Generate QR code for payment
+const paymentUrl = computed(() => {
+  if (!quote.value?.voucher_code || !amount.value) return ''
+  const baseUrl = window.location.origin
+  return `${baseUrl}/pay?code=${quote.value.voucher_code}&amount=${amount.value}`
+})
+
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
+  computed(() => quote.value?.voucher_code || ''),
+  '/pay'
+)
+
+async function generatePaymentQR() {
   if (!amount.value || parseFloat(amount.value) <= 0) {
     error.value = 'Please enter a valid amount'
     return
@@ -62,18 +77,26 @@ async function generateQR() {
     return
   }
 
-  loading.value = true
   error.value = ''
-
+  
   try {
-    // TODO: Implement NetBank Direct Checkout QR generation
-    // For now, show success message
-    alert(`Payment QR generation coming soon!\n\nVoucher: ${quote.value.voucher_code}\nAmount: ${formatCurrency(amountNum)}\n\nThis feature requires NetBank Direct Checkout integration.`)
+    await generateQr()
+    showQrStep.value = true
   } catch (err: any) {
-    error.value = err.message || 'Failed to generate QR code'
-  } finally {
-    loading.value = false
+    error.value = qrError.value || 'Failed to generate QR code'
   }
+}
+
+function backToDetails() {
+  showQrStep.value = false
+  error.value = ''
+}
+
+function resetFlow() {
+  quote.value = null
+  amount.value = ''
+  error.value = ''
+  showQrStep.value = false
 }
 
 function formatCurrency(amount: number) {
@@ -126,7 +149,7 @@ function formatCurrency(amount: number) {
         </div>
 
         <!-- Step 2: Payment Details -->
-        <div v-else class="space-y-6">
+        <div v-else-if="quote && !showQrStep" class="space-y-6">
           <div>
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment Details</h2>
             
@@ -175,17 +198,17 @@ function formatCurrency(amount: number) {
 
           <div class="flex gap-3">
             <button
-              @click="quote = null; error = ''; amount = ''"
+              @click="resetFlow"
               class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
             >
               Back
             </button>
             <button
-              @click="generateQR"
-              :disabled="loading || !amount || parseFloat(amount) <= 0"
+              @click="generatePaymentQR"
+              :disabled="qrLoading || !amount || parseFloat(amount) <= 0"
               class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
             >
-              {{ loading ? 'Processing...' : 'Generate QR' }}
+              {{ qrLoading ? 'Generating...' : 'Generate QR' }}
             </button>
           </div>
 
@@ -194,6 +217,55 @@ function formatCurrency(amount: number) {
           <p class="text-xs text-center text-gray-500">
             Payment via InstaPay • Secure • Real-time
           </p>
+        </div>
+        
+        <!-- Step 3: QR Code Display -->
+        <div v-else-if="showQrStep" class="space-y-6">
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment QR Code</h2>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p class="text-sm text-blue-800">
+                <strong>Scan this QR code</strong> to make a payment of 
+                <strong class="text-lg">{{ formatCurrency(parseFloat(amount)) }}</strong>
+                to voucher <strong class="font-mono">{{ quote.voucher_code }}</strong>
+              </p>
+            </div>
+            
+            <div class="flex justify-center py-4">
+              <div class="w-full max-w-xs">
+                <QrDisplay
+                  :qr-code="qrData?.qr_code ?? null"
+                  :loading="qrLoading"
+                  :error="qrError"
+                />
+              </div>
+            </div>
+            
+            <div class="text-center space-y-2">
+              <p class="text-sm text-gray-600">
+                Scan with your phone's camera or payment app
+              </p>
+              <p class="text-xs text-gray-500">
+                {{ paymentUrl }}
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex gap-3">
+            <button
+              @click="backToDetails"
+              class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+            >
+              Back
+            </button>
+            <button
+              @click="resetFlow"
+              class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              New Payment
+            </button>
+          </div>
         </div>
       </div>
 
