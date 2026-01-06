@@ -67,4 +67,9 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     // DELETE /api/v1/vouchers/{voucher}
     Route::delete('{voucher:code}', [\App\Actions\Api\Vouchers\CancelVoucher::class, 'asController'])
         ->name('cancel');
+    
+    // Manually confirm payment (owner only)
+    // POST /api/v1/vouchers/confirm-payment
+    Route::post('confirm-payment', \App\Actions\Api\Vouchers\ConfirmPayment::class)
+        ->name('confirm-payment');
 });

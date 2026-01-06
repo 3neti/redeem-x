@@ -16,8 +16,9 @@ import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.
 import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
 import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
 import SettlementDetailsCard from '@/components/settlement/SettlementDetailsCard.vue';
-import PaymentHistoryCard from '@/components/settlement/PaymentHistoryCard.vue';
+import PaymentsCard from '@/components/settlement/PaymentsCard.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
+import { usePage } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
@@ -114,10 +115,16 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const page = usePage();
 
 const activeTab = ref<'details' | 'instructions' | 'metadata'>('details');
 
 const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
+
+const isOwner = computed(() => {
+    const currentUser = (page.props as any).auth?.user;
+    return currentUser && props.voucher.owner && currentUser.id === props.voucher.owner.id;
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Vouchers', href: '/vouchers' },
@@ -321,10 +328,12 @@ const instructionsFormData = computed(() => {
                         :redemption="redemptionInputs"
                     />
                     
-                    <!-- Payment History (for payable/settlement vouchers) -->
-                    <PaymentHistoryCard 
+                    <!-- Payments (for payable/settlement vouchers) -->
+                    <PaymentsCard 
                         v-if="settlement && (settlement.type === 'payable' || settlement.type === 'settlement')"
                         :voucher-code="voucher.code"
+                        :is-owner="isOwner"
+                        :can-accept-payment="settlement.can_accept_payment"
                     />
                 </div>
 
