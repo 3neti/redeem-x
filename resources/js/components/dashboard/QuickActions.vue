@@ -10,55 +10,74 @@ import {
     Users,
     TicketX,
     Download,
+    CircleDollarSign,
 } from 'lucide-vue-next';
 
 const page = usePage();
 const redemptionEndpoint = computed(() => page.props.redemption_endpoint || '/disburse');
+const settlementEndpoint = computed(() => page.props.settlement_endpoint || '/pay');
+const settlementEnabled = computed(() => page.props.settlement_enabled ?? false);
 
-const actions = computed(() => [
-    {
-        label: 'Generate Vouchers',
-        href: '/vouchers/generate',
-        icon: Plus,
-        variant: 'default' as const,
-        external: false,
-    },
-    {
-        label: 'Top Up Wallet',
-        href: '/topup',
-        icon: Wallet,
-        variant: 'outline' as const,
-        external: false,
-    },
-    {
-        label: 'View Transactions',
-        href: '/transactions',
-        icon: Receipt,
-        variant: 'outline' as const,
-        external: false,
-    },
-    {
-        label: 'View Contacts',
-        href: '/contacts',
-        icon: Users,
-        variant: 'outline' as const,
-        external: false,
-    },
-    {
-        label: 'Redeem Voucher',
-        href: redemptionEndpoint.value,
-        icon: TicketX,
-        variant: 'outline' as const,
-        external: false,
-    },
-    {
+const actions = computed(() => {
+    const items = [
+        {
+            label: 'Generate Vouchers',
+            href: '/vouchers/generate',
+            icon: Plus,
+            variant: 'default' as const,
+            external: false,
+        },
+        {
+            label: 'Top Up Wallet',
+            href: '/topup',
+            icon: Wallet,
+            variant: 'outline' as const,
+            external: false,
+        },
+        {
+            label: 'View Transactions',
+            href: '/transactions',
+            icon: Receipt,
+            variant: 'outline' as const,
+            external: false,
+        },
+        {
+            label: 'View Contacts',
+            href: '/contacts',
+            icon: Users,
+            variant: 'outline' as const,
+            external: false,
+        },
+        {
+            label: 'Redeem Voucher',
+            href: redemptionEndpoint.value,
+            icon: TicketX,
+            variant: 'outline' as const,
+            external: false,
+        },
+    ];
+    
+    // Add Settle Voucher if feature enabled
+    if (settlementEnabled.value) {
+        items.push({
+            label: 'Settle Voucher',
+            href: settlementEndpoint.value,
+            icon: CircleDollarSign,
+            variant: 'outline' as const,
+            external: false,
+        });
+    }
+    
+    items.push({
         label: 'Export Reports',
         href: '/transactions/export',
         icon: Download,
         variant: 'outline' as const,
         external: true, // Use native link for file download
-    },
-]);
+    });
+    
+    return items;
+});
 </script>
 
 <template>

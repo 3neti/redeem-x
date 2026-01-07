@@ -26,6 +26,7 @@ class PreferencesController extends Controller
                 'default_rider_url' => $settings->default_rider_url,
                 'default_success_message' => $settings->default_success_message,
                 'default_redemption_endpoint' => $settings->default_redemption_endpoint,
+                'default_settlement_endpoint' => $settings->default_settlement_endpoint,
             ],
             'status' => $request->session()->get('status'),
         ]);
@@ -42,6 +43,7 @@ class PreferencesController extends Controller
             'default_rider_url' => ['nullable', 'url', 'max:500'],
             'default_success_message' => ['nullable', 'string', 'max:1000'],
             'default_redemption_endpoint' => ['required', 'string', 'regex:/^\/[a-z-]+$/'],
+            'default_settlement_endpoint' => ['required', 'string', 'regex:/^\/[a-z-]+$/'],
         ]);
 
         $settings->default_amount = (int) $request->default_amount;
@@ -49,6 +51,7 @@ class PreferencesController extends Controller
         $settings->default_rider_url = $request->default_rider_url ?: config('app.url');
         $settings->default_success_message = $request->default_success_message ?: 'Thank you for redeeming your voucher! The cash will be transferred shortly.';
         $settings->default_redemption_endpoint = $request->default_redemption_endpoint;
+        $settings->default_settlement_endpoint = $request->default_settlement_endpoint;
         
         $settings->save();
 
@@ -70,6 +73,7 @@ class PreferencesController extends Controller
             $settings->default_rider_url = config('generate.rider.url.default', config('app.url'));
             $settings->default_success_message = config('generate.rider.message.placeholder', 'Thank you for redeeming your voucher! The cash will be transferred shortly.');
             $settings->default_redemption_endpoint = '/disburse';
+            $settings->default_settlement_endpoint = '/pay';
             $settings->save();
         }
     }

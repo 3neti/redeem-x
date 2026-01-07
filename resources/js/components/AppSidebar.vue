@@ -20,7 +20,7 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { BookOpen, LayoutGrid, Ticket, Users, Receipt, Wallet, TicketX, HelpCircle, DollarSign, Settings2, BarChart3 } from 'lucide-vue-next';
+import { BookOpen, LayoutGrid, Ticket, Users, Receipt, Wallet, TicketX, HelpCircle, DollarSign, Settings2, BarChart3, CircleDollarSign } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 // Debug flag
@@ -109,24 +109,42 @@ const mainNavItems = computed<NavItem[]>(() => {
 });
 
 const redemptionEndpoint = computed(() => page.props.redemption_endpoint || '/disburse');
+const settlementEndpoint = computed(() => page.props.settlement_endpoint || '/pay');
+const settlementEnabled = computed(() => page.props.settlement_enabled ?? false);
 
-const footerNavItems = computed<NavItem[]>(() => [
-    {
-        title: 'Redeem',
-        href: redemptionEndpoint.value,
-        icon: TicketX,
-    },
-    {
-        title: 'Documentation',
-        href: '/documentation',
-        icon: BookOpen,
-    },
-    {
-        title: 'Help',
-        href: '/help',
-        icon: HelpCircle,
-    },
-]);
+const footerNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [
+        {
+            title: 'Redeem',
+            href: redemptionEndpoint.value,
+            icon: TicketX,
+        },
+    ];
+    
+    // Add Settle link if feature enabled
+    if (settlementEnabled.value) {
+        items.push({
+            title: 'Settle',
+            href: settlementEndpoint.value,
+            icon: CircleDollarSign,
+        });
+    }
+    
+    items.push(
+        {
+            title: 'Documentation',
+            href: '/documentation',
+            icon: BookOpen,
+        },
+        {
+            title: 'Help',
+            href: '/help',
+            icon: HelpCircle,
+        }
+    );
+    
+    return items;
+});
 </script>
 
 <template>

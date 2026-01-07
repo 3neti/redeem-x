@@ -11,6 +11,7 @@ class VoucherSettings extends Settings
     public ?string $default_rider_url;
     public ?string $default_success_message;
     public string $default_redemption_endpoint;
+    public string $default_settlement_endpoint;
 
     public static function group(): string
     {

@@ -81,6 +81,8 @@ class HandleInertiaRequests extends Middleware
                 'widget' => config('redeem.widget'),
             ],
             'redemption_endpoint' => app(VoucherSettings::class)->default_redemption_endpoint ?? '/disburse',
+            'settlement_endpoint' => app(VoucherSettings::class)->default_settlement_endpoint ?? '/pay',
+            'settlement_enabled' => Feature::active('settlement-vouchers'),
         ]);
     }
 }

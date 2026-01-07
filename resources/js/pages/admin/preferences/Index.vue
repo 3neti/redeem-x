@@ -18,6 +18,7 @@ interface Props {
         default_rider_url: string;
         default_success_message: string;
         default_redemption_endpoint: string;
+        default_settlement_endpoint: string;
     };
     status?: string;
 }
@@ -138,6 +139,24 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Path where users redeem vouchers (e.g., /disburse, /redeem). Must start with / and contain only lowercase letters and hyphens.
                         </p>
                         <InputError class="mt-2" :message="errors.default_redemption_endpoint" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="default_settlement_endpoint">Settlement Endpoint</Label>
+                        <Input
+                            id="default_settlement_endpoint"
+                            type="text"
+                            class="mt-1 block w-full"
+                            name="default_settlement_endpoint"
+                            :default-value="preferences.default_settlement_endpoint"
+                            required
+                            pattern="^\/[a-z-]+$"
+                            placeholder="/pay"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Path where users settle/pay vouchers (e.g., /pay, /settle). Must start with / and contain only lowercase letters and hyphens.
+                        </p>
+                        <InputError class="mt-2" :message="errors.default_settlement_endpoint" />
                     </div>
 
                     <div class="flex items-center gap-4">
