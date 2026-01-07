@@ -208,12 +208,6 @@ Route::middleware([
             ->name('voucher');
     });
     
-    // User billing routes
-    Route::prefix('billing')->name('billing.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Billing\BillingController::class, 'index'])
-            ->name('index');
-    });
-    
     // Balance monitoring routes (admin only, configurable via .env)
     Route::get('balances', [\App\Http\Controllers\Balances\BalanceController::class, 'index'])
         ->middleware(['admin.override', 'permission:view balance'])
@@ -234,18 +228,7 @@ Route::middleware([
                     Route::get('{item}/edit', [\App\Http\Controllers\Admin\PricingController::class, 'edit'])
                         ->name('edit');
                     Route::patch('{item}', [\App\Http\Controllers\Admin\PricingController::class, 'update'])
-                        ->name('update');
-                });
-            
-            // Admin billing (view all users)
-            Route::prefix('billing')
-                ->name('billing.')
-                ->middleware('permission:view all billing')
-                ->group(function () {
-                    Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])
-                        ->name('index');
-                    Route::get('{charge}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])
-                        ->name('show');
+                    ->name('update');
                 });
             
             // Global voucher preferences (default settings for all users)

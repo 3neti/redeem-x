@@ -20,7 +20,7 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { BookOpen, LayoutGrid, Ticket, Users, Receipt, CreditCard, Wallet, TicketX, HelpCircle, DollarSign, Settings2, BarChart3 } from 'lucide-vue-next';
+import { BookOpen, LayoutGrid, Ticket, Users, Receipt, Wallet, TicketX, HelpCircle, DollarSign, Settings2, BarChart3 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 // Debug flag
@@ -87,15 +87,6 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (hasAdminAccess.value) {
         // Add visual separator
         items.push({ type: 'separator' } as NavItem);
-        
-        // Show all admin links for override users (they bypass permission checks)
-        if (isAdminOverride.value || permissions.value.includes('view all billing')) {
-            items.push({
-                title: 'Billing',
-                href: '/admin/billing',
-                icon: CreditCard,
-            });
-        }
         
         if (isAdminOverride.value || permissions.value.includes('manage pricing')) {
             items.push({
