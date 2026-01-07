@@ -21,36 +21,42 @@ const actions = computed(() => [
         href: '/vouchers/generate',
         icon: Plus,
         variant: 'default' as const,
+        external: false,
     },
     {
         label: 'Top Up Wallet',
         href: '/topup',
         icon: Wallet,
         variant: 'outline' as const,
+        external: false,
     },
     {
         label: 'View Transactions',
         href: '/transactions',
         icon: Receipt,
         variant: 'outline' as const,
+        external: false,
     },
     {
         label: 'View Contacts',
         href: '/contacts',
         icon: Users,
         variant: 'outline' as const,
+        external: false,
     },
     {
         label: 'Redeem Voucher',
         href: redemptionEndpoint.value,
         icon: TicketX,
         variant: 'outline' as const,
+        external: false,
     },
     {
         label: 'Export Reports',
         href: '/transactions/export',
         icon: Download,
         variant: 'outline' as const,
+        external: true, // Use native link for file download
     },
 ]);
 </script>
@@ -69,7 +75,13 @@ const actions = computed(() => [
                     as-child
                     class="h-auto flex-col gap-2 py-4"
                 >
-                    <Link :href="action.href">
+                    <!-- Use native anchor for external/download links -->
+                    <a v-if="action.external" :href="action.href" class="flex flex-col items-center">
+                        <component :is="action.icon" class="h-5 w-5" />
+                        <span class="text-xs">{{ action.label }}</span>
+                    </a>
+                    <!-- Use Inertia Link for internal navigation -->
+                    <Link v-else :href="action.href">
                         <component :is="action.icon" class="h-5 w-5" />
                         <span class="text-xs">{{ action.label }}</span>
                     </Link>
