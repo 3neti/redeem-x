@@ -12,11 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         // Add default_settlement_endpoint to voucher settings
-        DB::table('settings')
-            ->where('group', 'voucher')
-            ->update([
-                'payload' => DB::raw("json_set(payload, '$.default_settlement_endpoint', '/pay')"),
-            ]);
+        DB::table('settings')->insert([
+            'group' => 'voucher',
+            'name' => 'default_settlement_endpoint',
+            'locked' => 0,
+            'payload' => '"/pay"',
+        ]);
     }
 
     /**
@@ -27,8 +28,7 @@ return new class extends Migration
         // Remove default_settlement_endpoint from voucher settings
         DB::table('settings')
             ->where('group', 'voucher')
-            ->update([
-                'payload' => DB::raw("json_remove(payload, '$.default_settlement_endpoint')"),
-            ]);
+            ->where('name', 'default_settlement_endpoint')
+            ->delete();
     }
 };
