@@ -112,6 +112,29 @@ Tests NetBank payment gateway integration via Omnipay framework.
 - OAuth2 with token caching
 - Comprehensive logging
 
+### Managing Feature Flags
+```bash
+# List all feature flags for a user
+php artisan feature:list lester@hurtado.ph
+
+# Enable a feature for a user
+php artisan feature:manage settlement-vouchers user@example.com --enable
+
+# Disable a feature for a user
+php artisan feature:manage settlement-vouchers user@example.com --disable
+
+# Check feature status
+php artisan feature:manage settlement-vouchers user@example.com --status
+```
+Manages per-user feature flags (settlement vouchers, advanced pricing, beta features).
+
+**Available features:**
+- `settlement-vouchers` - Pay-in voucher functionality ("Settle" nav link)
+- `advanced-pricing-mode` - Advanced pricing features
+- `beta-features` - Experimental features
+
+**Important:** See `docs/FEATURE_ENABLEMENT_STRATEGY.md` for complete rollout strategy and best practices.
+
 ### Testing Top-Up (Direct Checkout)
 ```bash
 # Test top-up flow with default amount (₱500)
