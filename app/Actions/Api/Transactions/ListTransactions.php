@@ -80,7 +80,7 @@ class ListTransactions
             // Only show vouchers that were disbursed to banks
             ->where(function($q) {
                 $q->whereNull('metadata->redemption_type')
-                  ->orWhereRaw("(metadata->>'redemption_type') != ?", ['voucher_payment']);
+                  ->orWhereRaw("CAST(metadata->>'redemption_type' AS TEXT) != CAST(? AS TEXT)", ['voucher_payment']);
             })
             ->orderByDesc('redeemed_at');
 
