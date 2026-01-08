@@ -162,16 +162,37 @@ class User extends Authenticatable implements Wallet, Customer
     }
     
     /**
-     * Get the mobile channel value.
+     * Get the mobile channel value formatted for display.
      * 
      * This accessor makes the magic property from HasChannels trait
      * available in JSON serialization (via $appends).
+     * 
+     * Returns mobile in national format for PH (09173011987)
+     * instead of E.164 format (639173011987).
      * 
      * @return string|null
      */
     public function getMobileAttribute(): ?string
     {
-        return $this->getChannelAttribute('mobile');
+        // Get raw mobile value from channels
+        $channel = $this->relationLoaded('channels')
+            ? $this->channels->firstWhere('name', 'mobile')
+            : $this->channels()->where('name', 'mobile')->first();
+        
+        $mobile = $channel?->value;
+        
+        if (!$mobile) {
+            return null;
+        }
+        
+        try {
+            // Format for mobile dialing in Philippines (removes country code, adds leading 0)
+            // E.164: 639173011987 → National: 09173011987
+            return phone($mobile, 'PH')->formatForMobileDialingInCountry('PH');
+        } catch (\Throwable $e) {
+            // If formatting fails, return as-is
+            return $mobile;
+        }
     }
 
     /**
@@ -184,7 +205,12 @@ class User extends Authenticatable implements Wallet, Customer
      */
     public function getWebhookAttribute(): ?string
     {
-        return $this->getChannelAttribute('webhook');
+        // Get raw webhook value from channels
+        $channel = $this->relationLoaded('channels')
+            ? $this->channels->firstWhere('name', 'webhook')
+            : $this->channels()->where('name', 'webhook')->first();
+        
+        return $channel?->value;
     }
 
     /**
