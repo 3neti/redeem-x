@@ -57,7 +57,7 @@ class VoucherSettingsSeeder extends Seeder
             [
                 'group' => 'voucher',
                 'name' => 'default_settlement_endpoint',
-                'payload' => json_encode('/settle'),
+                'payload' => json_encode('/pay'),
                 'locked' => false,
             ],
         ]);

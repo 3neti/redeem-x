@@ -57,12 +57,13 @@ class AppServiceProvider extends ServiceProvider
             return false;
         });
 
-        Feature::define('settlement-vouchers', function (User $user) {
-            // Enable in dev/staging for testing
+        Feature::define('settlement-vouchers', function (?User $user) {
+            // Enable in dev/staging for testing (even without authentication)
             if (app()->environment('local', 'staging')) {
                 return true;
             }
-            // Disabled in production until manually enabled
+            // In production, require user-specific activation
+            // Guests cannot access (returns false)
             return false;
         });
     }

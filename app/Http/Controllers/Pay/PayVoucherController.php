@@ -12,9 +12,22 @@ class PayVoucherController extends Controller
 {
     /**
      * Show pay voucher page
+     * 
+     * Note: This is a public endpoint. Feature check uses global config,
+     * not per-user flags since payers are typically unauthenticated.
      */
     public function index()
     {
+        // Check if settlement vouchers feature is enabled globally
+        // In local/staging: Always enabled
+        // In production: Requires APP_ENV=production + feature enabled in config
+        $enabled = app()->environment('local', 'staging') || 
+                   config('pay.enabled', false);
+        
+        if (!$enabled) {
+            abort(404, 'Settlement vouchers feature is not available');
+        }
+        
         return inertia('Pay/Index', [
             'pay' => config('pay'),
         ]);

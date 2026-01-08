@@ -12,14 +12,9 @@ use Laravel\Pennant\Feature;
 |--------------------------------------------------------------------------
 |
 | Public routes for paying vouchers (payable/settlement types).
-| Protected by feature flag + security middleware stack.
+| Feature flag check moved to controller - routes always registered.
 |
 */
-
-// Feature flag guard - entire pay system only available when enabled
-if (!Feature::active('settlement-vouchers')) {
-    return;
-}
 
 Route::prefix('pay')->name('pay.')->middleware(['web'])->group(function () {
     // Pay page (public UI)

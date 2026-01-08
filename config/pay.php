@@ -4,6 +4,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pay/Settlement Feature Toggle
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable the pay/settlement voucher feature globally.
+    | When disabled, /pay routes return 404.
+    |
+    */
+
+    'enabled' => env('PAY_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Pay Widget Configuration
     |--------------------------------------------------------------------------
     |
