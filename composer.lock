@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c84585eff512979ae7f05c413cf10e9f",
+    "content-hash": "7a03760545cc83709137009c52dd6e80",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -134,17 +134,11 @@
         },
         {
             "name": "3neti/form-handler-location",
-            "version": "v1.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/3neti/form-handler-location.git",
-                "reference": "39254652996a83957581c3ce49aff84999cf2639"
-            },
+            "version": "dev-main",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-handler-location/zipball/39254652996a83957581c3ce49aff84999cf2639",
-                "reference": "39254652996a83957581c3ce49aff84999cf2639",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages/form-handler-location",
+                "reference": "39254652996a83957581c3ce49aff84999cf2639"
             },
             "require": {
                 "3neti/form-flow": "^1.0",
@@ -171,7 +165,22 @@
                     "LBHurtado\\FormHandlerLocation\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerLocation\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "post-install-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan location-handler:install --no-interaction 2>/dev/null || true');\""
+                ],
+                "post-update-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan location-handler:install --no-interaction 2>/dev/null || true');\""
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -182,11 +191,10 @@
                 }
             ],
             "description": "Location capture handler for form flow system",
-            "support": {
-                "issues": "https://github.com/3neti/form-handler-location/issues",
-                "source": "https://github.com/3neti/form-handler-location/tree/v1.1.0"
-            },
-            "time": "2025-12-24T05:49:29+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "3neti/form-handler-otp",
@@ -246,17 +254,11 @@
         },
         {
             "name": "3neti/form-handler-selfie",
-            "version": "v1.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/3neti/form-handler-selfie.git",
-                "reference": "d133399ef6f85dee1348ea502997f3adb126d7dc"
-            },
+            "version": "dev-main",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-handler-selfie/zipball/d133399ef6f85dee1348ea502997f3adb126d7dc",
-                "reference": "d133399ef6f85dee1348ea502997f3adb126d7dc",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages/form-handler-selfie",
+                "reference": "d133399ef6f85dee1348ea502997f3adb126d7dc"
             },
             "require": {
                 "3neti/form-flow": "^1.0",
@@ -283,7 +285,22 @@
                     "LBHurtado\\FormHandlerSelfie\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSelfie\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "post-install-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan selfie-handler:install --no-interaction 2>/dev/null || true');\""
+                ],
+                "post-update-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan selfie-handler:install --no-interaction 2>/dev/null || true');\""
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -294,25 +311,18 @@
                 }
             ],
             "description": "Selfie capture handler for form flow system",
-            "support": {
-                "issues": "https://github.com/3neti/form-handler-selfie/issues",
-                "source": "https://github.com/3neti/form-handler-selfie/tree/v1.0.0"
-            },
-            "time": "2025-12-24T05:01:18+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "3neti/form-handler-signature",
-            "version": "v1.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/3neti/form-handler-signature.git",
-                "reference": "49b4ab30a31505dd38b68348e074a0c2da746764"
-            },
+            "version": "dev-main",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-handler-signature/zipball/49b4ab30a31505dd38b68348e074a0c2da746764",
-                "reference": "49b4ab30a31505dd38b68348e074a0c2da746764",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages/form-handler-signature",
+                "reference": "49b4ab30a31505dd38b68348e074a0c2da746764"
             },
             "require": {
                 "3neti/form-flow": "^1.0",
@@ -339,7 +349,22 @@
                     "LBHurtado\\FormHandlerSignature\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\FormHandlerSignature\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "post-install-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan signature-handler:install --no-interaction 2>/dev/null || true');\""
+                ],
+                "post-update-cmd": [
+                    "@php -r \"file_exists('../../artisan') && system('cd ../.. && php artisan signature-handler:install --no-interaction 2>/dev/null || true');\""
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -350,11 +375,10 @@
                 }
             ],
             "description": "Signature capture handler for form flow system",
-            "support": {
-                "issues": "https://github.com/3neti/form-handler-signature/issues",
-                "source": "https://github.com/3neti/form-handler-signature/tree/v1.1.0"
-            },
-            "time": "2025-12-24T05:49:29+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "3neti/hyperverge",
@@ -3481,11 +3505,11 @@
         },
         {
             "name": "lbhurtado/merchant",
-            "version": "dev-feature/vendor-alias-registry",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/merchant",
-                "reference": "e10440cd5feefd016d3e18658cffe0d314f9f7a1"
+                "reference": "5c07761189e3e7bb95ed15d3a6c4b8241b8a5c72"
             },
             "require": {
                 "illuminate/database": "^11.0|^12.0",
@@ -3517,6 +3541,11 @@
                 "psr-4": {
                     "LBHurtado\\Merchant\\Tests\\": "tests/"
                 }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/pest"
+                ]
             },
             "license": [
                 "proprietary"
@@ -3594,7 +3623,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/vendor-alias-registry",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3653,12 +3682,13 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/payment-gateway",
-                "reference": "6cf26ee27b6d66af8c23c2a0dfc9c85757cdc374"
+                "reference": "9b58003cdd27f9fbadd19e75052ee792792bca1a"
             },
             "require": {
                 "brick/money": "^0.10.1",
                 "laravel/sanctum": "^4.0",
                 "lbhurtado/laravel-model-channel": "dev-main",
+                "lbhurtado/merchant": "dev-main",
                 "lbhurtado/money-issuer": "dev-main",
                 "lbhurtado/wallet": "dev-main",
                 "league/omnipay": "^3.2",
@@ -3778,7 +3808,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/vendor-alias-registry",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
@@ -14730,6 +14760,9 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "3neti/form-handler-location": 20,
+        "3neti/form-handler-selfie": 20,
+        "3neti/form-handler-signature": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,
         "lbhurtado/laravel-model-channel": 20,

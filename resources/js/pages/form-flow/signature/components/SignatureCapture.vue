@@ -17,7 +17,7 @@ export interface SignatureConfig {
 }
 
 export interface SignatureData {
-    image: string;
+    signature: string;
     width: number;
     height: number;
     format: string;
@@ -115,7 +115,7 @@ function handleSubmit() {
     const image = canvasRef.value.toDataURL(format.value, quality.value);
 
     const signatureData: SignatureData = {
-        image,
+        signature: image,
         width: canvasRef.value.width,
         height: canvasRef.value.height,
         format: format.value,

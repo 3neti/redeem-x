@@ -78,16 +78,37 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../packages/form-handler-signature",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../packages/form-handler-selfie",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../packages/form-handler-location",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
         "php": "^8.2",
         "3neti/form-flow": "^1.0",
         "3neti/form-handler-kyc": "^1.0",
-        "3neti/form-handler-location": "^1.1",
+        "3neti/form-handler-location": "@dev",
         "3neti/form-handler-otp": "^1.0",
-        "3neti/form-handler-selfie": "^1.0",
-        "3neti/form-handler-signature": "^1.1",
+        "3neti/form-handler-selfie": "@dev",
+        "3neti/form-handler-signature": "@dev",
         "3neti/hyperverge": "^1.0",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^12.0",
