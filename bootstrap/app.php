@@ -87,4 +87,32 @@ return Application::configure(basePath: dirname(__DIR__))
                 'settlement_rail' => $e->getMessage(),
             ]);
         });
+        
+        // Handle HTTP client exceptions (API failures) in form flows
+        $exceptions->render(function (\Illuminate\Http\Client\RequestException $e, $request) {
+            // Log the actual error for debugging
+            \Illuminate\Support\Facades\Log::error('[FormFlow] External API request failed', [
+                'message' => $e->getMessage(),
+                'status' => $e->response?->status(),
+                'url' => $request->url(),
+                'ip' => $request->ip(),
+            ]);
+            
+            // Show user-friendly message without exposing details
+            $userMessage = 'We\'re experiencing technical difficulties. Please try again later or contact support.';
+            
+            // Return clean error response
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'error' => $userMessage,
+                    'type' => 'service_unavailable',
+                ], 503);
+            }
+            
+            // For web requests (Inertia), return error page
+            return \Inertia\Inertia::render('errors/ServiceUnavailable', [
+                'message' => $userMessage,
+                'support_email' => config('mail.from.address', 'support@example.com'),
+            ])->toResponse($request)->setStatusCode(503);
+        });
     })->create();
