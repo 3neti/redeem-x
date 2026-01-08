@@ -27,7 +27,7 @@ export interface LocationData {
         state?: string | null;
         country?: string | null;
     } | null;
-    snapshot?: string;
+    map?: string;
 }
 
 interface Props {
@@ -144,13 +144,13 @@ async function handleMapImageLoad() {
     
     mapSnapshot.value = await captureMapSnapshot();
     
-    // Update the location with snapshot
+    // Update the location with map snapshot
     if (mapSnapshot.value && location.value) {
-        const locationWithSnapshot = {
+        const locationWithMap = {
             ...location.value,
-            snapshot: mapSnapshot.value,
+            map: mapSnapshot.value,
         };
-        emit('update:modelValue', locationWithSnapshot);
+        emit('update:modelValue', locationWithMap);
     }
 }
 
@@ -167,13 +167,13 @@ function handleSubmit() {
 
     apiError.value = null;
 
-    // Prepare location data with snapshot (if available)
-    const locationWithSnapshot: LocationData = {
+    // Prepare location data with map (if available)
+    const locationWithMap: LocationData = {
         ...location.value,
-        ...(mapSnapshot.value && { snapshot: mapSnapshot.value }),
+        ...(mapSnapshot.value && { map: mapSnapshot.value }),
     };
 
-    emit('submit', locationWithSnapshot);
+    emit('submit', locationWithMap);
 }
 
 function handleCancel() {
