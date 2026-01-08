@@ -41,6 +41,16 @@ class UserSeeder extends Seeder
         // Set mobile number via HasChannels magic property
         $user->mobile = '09173011987';
 
+        // Update Cash Gift campaign with mobile (campaigns created by UserObserver before mobile was set)
+        $user->load('channels'); // Ensure channels are loaded
+        $cashGift = $user->campaigns()->where('name', 'Cash Gift')->first();
+        if ($cashGift) {
+            $instructions = $cashGift->instructions->toArray();
+            $instructions['feedback']['mobile'] = $user->mobile;
+            $cashGift->instructions = $instructions;
+            $cashGift->save();
+        }
+
         // Assign super-admin role (ensure RolePermissionSeeder has run first)
         if (!$user->hasRole('super-admin')) {
             $user->assignRole('super-admin');
