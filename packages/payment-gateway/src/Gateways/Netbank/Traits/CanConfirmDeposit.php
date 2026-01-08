@@ -140,7 +140,12 @@ trait CanConfirmDeposit
         $transaction = TopupWalletAction::run($user, $amountInPesos)->deposit;
         Log::info($logMessage, ['amount_pesos' => $amountInPesos, 'amount_centavos' => $deposit->amount]);
 
-        $transaction->meta = $deposit->toArray();
+        // Store full deposit payload plus simplified sender info for UI
+        $transaction->meta = array_merge($deposit->toArray(), [
+            'sender_name' => $deposit->sender->name,
+            'sender_identifier' => $deposit->sender->accountNumber,
+            'sender_institution' => $deposit->sender->institutionCode,
+        ]);
         $transaction->save();
 
         DepositConfirmed::dispatch($transaction);
