@@ -169,9 +169,52 @@ const redemptionInputs = computed<RedemptionInputs | null>(() => {
 
     // Convert inputs array [{name, value}] to flat object {name: value}
     const inputsObject: RedemptionInputs = {};
+    
+    // Track location and image data for reconstruction
+    let latitude: string | null = null;
+    let longitude: string | null = null;
+    let locationImage: string | null = null;
+    let stepName: string | null = null;
+    let imageData: string | null = null;
+    
     props.voucher.inputs.forEach(input => {
-        inputsObject[input.name] = input.value;
+        // Special handling for location fields
+        if (input.name === 'latitude') {
+            latitude = input.value;
+        } else if (input.name === 'longitude') {
+            longitude = input.value;
+        } else if (input.name === 'image' && input.value.startsWith('data:image/')) {
+            imageData = input.value;
+        } else if (input.name === '_step_name') {
+            stepName = input.value;
+        } else if (!['width', 'height', 'format', 'accuracy', 'timestamp'].includes(input.name)) {
+            // Add non-meta fields to output
+            inputsObject[input.name] = input.value;
+        }
     });
+    
+    // Reconstruct location JSON if lat/lng present
+    if (latitude && longitude) {
+        inputsObject.location = JSON.stringify({
+            latitude: parseFloat(latitude),
+            longitude: parseFloat(longitude),
+            address: {
+                formatted: `${latitude}, ${longitude}`
+            }
+        });
+    }
+    
+    // Assign image to correct field based on step
+    if (imageData) {
+        if (stepName === 'signature_capture') {
+            inputsObject.signature = imageData;
+        } else if (stepName === 'selfie_capture') {
+            inputsObject.selfie = imageData;
+        } else if (stepName === 'location_capture') {
+            // Location map snapshot (not currently shown in separate card)
+            locationImage = imageData;
+        }
+    }
 
     return inputsObject;
 });

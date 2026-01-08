@@ -66,6 +66,11 @@ const staticMapUrl = computed(() => {
 const hasAdditionalInputs = computed(() => {
     return Object.keys(props.redemption).some(key => !['selfie', 'signature', 'location'].includes(key));
 });
+
+const isImageDataUrl = (value: any): boolean => {
+    if (typeof value !== 'string') return false;
+    return value.startsWith('data:image/');
+};
 </script>
 
 <template>
@@ -135,7 +140,15 @@ const hasAdditionalInputs = computed(() => {
                             <dt class="text-sm font-medium text-muted-foreground capitalize">
                                 {{ key.replace(/_/g, ' ') }}
                             </dt>
-                            <dd class="mt-1 text-sm">{{ value }}</dd>
+                            <dd class="mt-1 text-sm">
+                                <img
+                                    v-if="isImageDataUrl(value)"
+                                    :src="value"
+                                    :alt="key"
+                                    class="w-full max-w-md rounded-lg border"
+                                />
+                                <template v-else>{{ value }}</template>
+                            </dd>
                         </template>
                     </div>
                 </dl>
