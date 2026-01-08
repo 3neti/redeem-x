@@ -58,6 +58,16 @@ class User extends Authenticatable implements Wallet, Customer
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'mobile',
+        'webhook',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -151,6 +161,58 @@ class User extends Authenticatable implements Wallet, Customer
             ]);
     }
     
+    /**
+     * Get the mobile channel value formatted for display.
+     * 
+     * This accessor makes the magic property from HasChannels trait
+     * available in JSON serialization (via $appends).
+     * 
+     * Returns mobile in national format for PH (09173011987)
+     * instead of E.164 format (639173011987).
+     * 
+     * @return string|null
+     */
+    public function getMobileAttribute(): ?string
+    {
+        // Get raw mobile value from channels
+        $channel = $this->relationLoaded('channels')
+            ? $this->channels->firstWhere('name', 'mobile')
+            : $this->channels()->where('name', 'mobile')->first();
+        
+        $mobile = $channel?->value;
+        
+        if (!$mobile) {
+            return null;
+        }
+        
+        try {
+            // Format for mobile dialing in Philippines (removes country code, adds leading 0)
+            // E.164: 639173011987 → National: 09173011987
+            return phone($mobile, 'PH')->formatForMobileDialingInCountry('PH');
+        } catch (\Throwable $e) {
+            // If formatting fails, return as-is
+            return $mobile;
+        }
+    }
+
+    /**
+     * Get the webhook channel value.
+     * 
+     * This accessor makes the magic property from HasChannels trait
+     * available in JSON serialization (via $appends).
+     * 
+     * @return string|null
+     */
+    public function getWebhookAttribute(): ?string
+    {
+        // Get raw webhook value from channels
+        $channel = $this->relationLoaded('channels')
+            ? $this->channels->firstWhere('name', 'webhook')
+            : $this->channels()->where('name', 'webhook')->first();
+        
+        return $channel?->value;
+    }
+
     /**
      * Get the mobile number in national format for QR code generation.
      * 

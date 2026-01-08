@@ -7,6 +7,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Laravel\Pennant\Feature;
+use Spatie\LaravelSettings\Exceptions\MissingSettings;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -59,7 +60,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user()?->load(['roles:name', 'permissions:name', 'wallet', 'primaryVendorAlias']),
+                'user' => $request->user()?->load(['roles:name', 'permissions:name', 'wallet', 'primaryVendorAlias', 'channels']),
                 'roles' => $request->user()?->roles->pluck('name')->toArray() ?? [],
                 'permissions' => $permissions,
                 'feature_flags' => $featureFlags,
@@ -80,9 +81,21 @@ class HandleInertiaRequests extends Middleware
             'redeem' => [
                 'widget' => config('redeem.widget'),
             ],
-            'redemption_endpoint' => app(VoucherSettings::class)->default_redemption_endpoint ?? '/disburse',
-            'settlement_endpoint' => app(VoucherSettings::class)->default_settlement_endpoint ?? '/pay',
+            'redemption_endpoint' => $this->getVoucherSetting('default_redemption_endpoint', '/disburse'),
+            'settlement_endpoint' => $this->getVoucherSetting('default_settlement_endpoint', '/pay'),
             'settlement_enabled' => Feature::active('settlement-vouchers'),
         ]);
+    }
+
+    /**
+     * Safely get a voucher setting with fallback.
+     */
+    private function getVoucherSetting(string $key, mixed $default): mixed
+    {
+        try {
+            return app(VoucherSettings::class)->{$key} ?? $default;
+        } catch (MissingSettings $e) {
+            return $default;
+        }
     }
 }
