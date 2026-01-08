@@ -181,7 +181,7 @@ const redemptionInputs = computed<RedemptionInputs | null>(() => {
         } else if (input.name === 'longitude') {
             longitude = input.value;
         } else if (!['width', 'height', 'format', 'accuracy', 'timestamp', '_step_name', 'viewed_at', 'splash_viewed'].includes(input.name)) {
-            // Add non-meta fields to output (selfie, signature, snapshot are already unique)
+            // Add non-meta fields to output (selfie, signature, snapshot all use unique names)
             inputsObject[input.name] = input.value;
         }
     });

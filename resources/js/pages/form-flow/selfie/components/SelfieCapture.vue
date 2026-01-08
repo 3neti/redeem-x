@@ -17,7 +17,7 @@ export interface SelfieConfig {
 }
 
 export interface SelfieData {
-    image: string;
+    selfie: string;
     width: number;
     height: number;
     format: string;
@@ -108,7 +108,7 @@ function handleSubmit() {
     if (!capturedImage.value) return;
     
     const selfieData: SelfieData = {
-        image: capturedImage.value,
+        selfie: capturedImage.value,
         width: canvasRef.value?.width ?? width.value,
         height: canvasRef.value?.height ?? height.value,
         format: format.value,
