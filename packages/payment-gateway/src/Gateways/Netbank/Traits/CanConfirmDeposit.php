@@ -78,7 +78,7 @@ trait CanConfirmDeposit
         // Record sender relationship
         if ($sender && $wallet instanceof \App\Models\User) {
             try {
-                $wallet->recordDepositFrom($sender, $response->amount / 100, [
+                $wallet->recordDepositFrom($sender, $response->amount, [
                     'operation_id' => $response->operationId,
                     'channel' => $response->channel,
                     'reference_number' => $response->referenceNumber,
@@ -90,7 +90,7 @@ trait CanConfirmDeposit
                 Log::info('Sender relationship recorded', [
                     'user_id' => $wallet->id,
                     'contact_id' => $sender->id,
-                    'amount' => $response->amount / 100,
+                    'amount' => $response->amount,
                 ]);
                 
             } catch (\Throwable $e) {
@@ -129,19 +129,15 @@ trait CanConfirmDeposit
 
     protected function transferToWallet(Wallet $user, DepositResponseData $deposit): void
     {
-        // Convert centavos to pesos (NetBank sends 100 = ₱1.00)
-        $amountInPesos = $deposit->amount / 100;
+        // NetBank sends amounts in pesos (e.g., 15 = ₱15.00)
+        $amountInPesos = $deposit->amount;
         
-        [ $logMessage, $transaction ] = match (true) {
-            $user instanceof \LBHurtado\Cash\Models\Cash => [
-                'Treating deposit as loan repayment back into cash wallet',
-                $user->depositFloat($amountInPesos),
-            ],
-            default => [
-                'Treating deposit as user top-up',
-                TopupWalletAction::run($user, $amountInPesos)->deposit,
-            ]
-        };
+        // TODO: Distinguish between top-up and settlement repayment
+        // Current: All deposits treated as user top-up (works for both via manual confirmation)
+        // Future: When QR encodes voucher code, use CheckVoucher to return Cash entity for direct repayment
+        // For now, settlement payments are manually confirmed via /pay/voucher endpoint
+        $logMessage = 'Treating deposit as user top-up';
+        $transaction = TopupWalletAction::run($user, $amountInPesos)->deposit;
         Log::info($logMessage, ['amount_pesos' => $amountInPesos, 'amount_centavos' => $deposit->amount]);
 
         $transaction->meta = $deposit->toArray();
