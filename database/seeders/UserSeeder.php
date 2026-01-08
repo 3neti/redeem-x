@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Laravel\Pennant\Feature;
 
 class UserSeeder extends Seeder
 {
@@ -54,6 +55,17 @@ class UserSeeder extends Seeder
         // Assign super-admin role (ensure RolePermissionSeeder has run first)
         if (!$user->hasRole('super-admin')) {
             $user->assignRole('super-admin');
+        }
+
+        // Activate settlement-vouchers feature if configured
+        // Comma-separated list of emails in SETTLEMENT_VOUCHERS_ENABLED_FOR env variable
+        $settlementEnabledFor = array_filter(
+            array_map('trim', explode(',', env('SETTLEMENT_VOUCHERS_ENABLED_FOR', '')))
+        );
+        
+        if (in_array($user->email, $settlementEnabledFor)) {
+            Feature::for($user)->activate('settlement-vouchers');
+            $this->command->info("  ✓ Activated 'settlement-vouchers' for {$user->email}");
         }
 
         $this->command->info("✅ Admin user created: {$admin->email} (super-admin role)");
