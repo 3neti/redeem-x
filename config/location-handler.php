@@ -22,10 +22,10 @@ return [
     | Options: 'mapbox', 'google'
     |
     | - Mapbox: Requires token, 50,000 requests/month free
-    | - Google: Optional key, basic usage works without key
+    | - Google: Requires API key (no free tier without key due to ORB blocking)
     |
     */
-    'map_provider' => env('LOCATION_HANDLER_MAP_PROVIDER', 'google'),
+    'map_provider' => env('LOCATION_HANDLER_MAP_PROVIDER', 'mapbox'),
     
     /*
     |--------------------------------------------------------------------------
