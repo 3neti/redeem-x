@@ -47,7 +47,7 @@ defineProps<Props>();
                         v-if="campaigns.length === 0"
                         class="text-center py-12 text-muted-foreground"
                     >
-                        No campaigns yet. Create your first campaign to get
+                        No campaigns yet? Create your first campaign to get
                         started.
                     </div>
 
