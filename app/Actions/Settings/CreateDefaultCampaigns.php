@@ -11,26 +11,19 @@ class CreateDefaultCampaigns
 {
     public function handle(User $user): void
     {
-        // 1. Blank Template
-        Campaign::create([
-            'user_id' => $user->id,
-            'name' => 'Blank Template',
-            'slug' => Str::slug('blank-template-' . $user->id),
-            'status' => 'active',
-            'description' => 'Start from scratch with no pre-filled fields',
-            'instructions' => VoucherInstructionsData::generateFromScratch(),
-        ]);
+        // Eager load channels for mobile access
+        $user->load('channels');
 
-        // 2. Standard Campaign
+        // 1. Quick Cash - Instant gratification, no friction
         Campaign::create([
             'user_id' => $user->id,
-            'name' => 'Standard Campaign',
-            'slug' => Str::slug('standard-campaign-' . $user->id),
+            'name' => 'Quick Cash',
+            'slug' => Str::slug('quick-cash-' . $user->id),
             'status' => 'active',
-            'description' => 'Full verification with selfie, signature, location, and contact info',
+            'description' => 'Instant cash voucher - no verification required',
             'instructions' => VoucherInstructionsData::from([
                 'cash' => [
-                    'amount' => 100,
+                    'amount' => 500,
                     'currency' => 'PHP',
                     'validation' => [
                         'secret' => null,
@@ -41,14 +34,83 @@ class CreateDefaultCampaigns
                     ],
                 ],
                 'inputs' => [
-                    'fields' => [
-                        'selfie',
-                        'signature',
-                        'location',
-                        'name',
-                        'email',
-                        'mobile',
+                    'fields' => [],
+                ],
+                'feedback' => [
+                    'email' => null,
+                    'mobile' => null,
+                    'webhook' => null,
+                ],
+                'rider' => [
+                    'message' => null,
+                    'url' => null,
+                ],
+                'count' => 1,
+                'prefix' => '',
+                'mask' => '****',
+                'ttl' => 1,
+            ]),
+        ]);
+
+        // 2. Petty Cash - Basic tracking with location + email
+        Campaign::create([
+            'user_id' => $user->id,
+            'name' => 'Petty Cash',
+            'slug' => Str::slug('petty-cash-' . $user->id),
+            'status' => 'active',
+            'description' => 'Track redemption location and get email notifications',
+            'instructions' => VoucherInstructionsData::from([
+                'cash' => [
+                    'amount' => 1000,
+                    'currency' => 'PHP',
+                    'validation' => [
+                        'secret' => null,
+                        'mobile' => null,
+                        'country' => 'PH',
+                        'location' => null,
+                        'radius' => null,
                     ],
+                ],
+                'inputs' => [
+                    'fields' => ['location'],
+                ],
+                'feedback' => [
+                    'email' => $user->email,
+                    'mobile' => null,
+                    'webhook' => null,
+                ],
+                'rider' => [
+                    'message' => null,
+                    'url' => null,
+                ],
+                'count' => 1,
+                'prefix' => '',
+                'mask' => '****',
+                'ttl' => 3,
+            ]),
+        ]);
+
+        // 3. Cash Gift - Full verification with signature + dual notifications
+        Campaign::create([
+            'user_id' => $user->id,
+            'name' => 'Cash Gift',
+            'slug' => Str::slug('cash-gift-' . $user->id),
+            'status' => 'active',
+            'description' => 'Verified cash gift with signature capture and dual notifications',
+            'instructions' => VoucherInstructionsData::from([
+                'cash' => [
+                    'amount' => 1537,
+                    'currency' => 'PHP',
+                    'validation' => [
+                        'secret' => null,
+                        'mobile' => null,
+                        'country' => 'PH',
+                        'location' => null,
+                        'radius' => null,
+                    ],
+                ],
+                'inputs' => [
+                    'fields' => ['location', 'signature'],
                 ],
                 'feedback' => [
                     'email' => $user->email,
@@ -56,13 +118,13 @@ class CreateDefaultCampaigns
                     'webhook' => null,
                 ],
                 'rider' => [
-                    'message' => 'Thank you for redeeming your voucher!',
+                    'message' => null,
                     'url' => null,
                 ],
                 'count' => 1,
                 'prefix' => '',
                 'mask' => '****',
-                'ttl' => null,
+                'ttl' => 7,
             ]),
         ]);
     }

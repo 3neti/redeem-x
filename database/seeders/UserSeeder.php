@@ -38,6 +38,9 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // Set mobile number via HasChannels magic property
+        $user->mobile = '09173011987';
+
         // Assign super-admin role (ensure RolePermissionSeeder has run first)
         if (!$user->hasRole('super-admin')) {
             $user->assignRole('super-admin');

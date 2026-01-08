@@ -54,6 +54,12 @@ class VoucherSettingsSeeder extends Seeder
                 'payload' => json_encode('/disburse'),
                 'locked' => false,
             ],
+            [
+                'group' => 'voucher',
+                'name' => 'default_settlement_endpoint',
+                'payload' => json_encode('/settle'),
+                'locked' => false,
+            ],
         ]);
 
         $this->command->info('VoucherSettings seeded successfully!');
