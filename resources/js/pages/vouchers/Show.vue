@@ -143,9 +143,12 @@ const isPayableVoucher = computed(() =>
     props.settlement?.type === 'payable' || props.settlement?.type === 'settlement'
 );
 
+// Get redemption endpoint from shared props (configured in VoucherSettings)
+const redemptionEndpoint = computed(() => (page.props as any).redemption_endpoint || '/disburse');
+
 const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
     props.voucher.code, 
-    '/redeem'
+    redemptionEndpoint.value
 );
 
 onMounted(() => {

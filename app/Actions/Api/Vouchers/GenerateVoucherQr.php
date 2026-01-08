@@ -19,8 +19,16 @@ class GenerateVoucherQr
      */
     public function handle(Voucher $voucher): array
     {
+        // Get configurable redemption endpoint from VoucherSettings
+        try {
+            $redemptionEndpoint = app(\App\Settings\VoucherSettings::class)->default_redemption_endpoint ?? '/disburse';
+        } catch (\Spatie\LaravelSettings\Exceptions\MissingSettings $e) {
+            // Fallback if settings not seeded yet
+            $redemptionEndpoint = '/disburse';
+        }
+        
         // Generate redemption URL
-        $redemptionUrl = url("/redeem?code={$voucher->code}");
+        $redemptionUrl = url("{$redemptionEndpoint}?code={$voucher->code}");
 
         // Generate QR code as base64 data URL
         $qrCode = $this->generateQrCode($redemptionUrl);
