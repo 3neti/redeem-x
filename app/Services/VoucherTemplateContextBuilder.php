@@ -171,10 +171,16 @@ class VoucherTemplateContextBuilder
      */
     protected static function buildSettingsContext(): array
     {
-        $settings = app(VoucherSettings::class);
+        try {
+            $settings = app(VoucherSettings::class);
+            $redemptionEndpoint = $settings->default_redemption_endpoint ?? '/disburse';
+        } catch (\Spatie\LaravelSettings\Exceptions\MissingSettings $e) {
+            // Fallback if settings not seeded yet
+            $redemptionEndpoint = '/disburse';
+        }
         
         return [
-            'redemption_endpoint' => $settings->default_redemption_endpoint ?? '/disburse',
+            'redemption_endpoint' => $redemptionEndpoint,
         ];
     }
 

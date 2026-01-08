@@ -276,9 +276,14 @@ class GenerateVouchers
         // Get authenticated user for metadata
         $owner = auth()->user();
         
-        // Get redemption endpoint from settings
-        $settings = app(VoucherSettings::class);
-        $redemptionPath = $settings->default_redemption_endpoint ?? '/disburse';
+        // Get redemption endpoint from settings (with fallback if not seeded)
+        try {
+            $settings = app(VoucherSettings::class);
+            $redemptionPath = $settings->default_redemption_endpoint ?? '/disburse';
+        } catch (\Spatie\LaravelSettings\Exceptions\MissingSettings $e) {
+            // Fallback if settings not seeded yet
+            $redemptionPath = '/disburse';
+        }
         
         // Get redemption URLs
         $redemptionUrls = [
