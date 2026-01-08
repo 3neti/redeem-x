@@ -28,7 +28,7 @@ class PayVoucherController extends Controller
             abort(404, 'Settlement vouchers feature is not available');
         }
         
-        return inertia('Pay/Index', [
+        return inertia('pay/Index', [
             'pay' => config('pay'),
         ]);
     }
