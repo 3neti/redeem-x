@@ -58,6 +58,16 @@ class User extends Authenticatable implements Wallet, Customer
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'mobile',
+        'webhook',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -151,6 +161,32 @@ class User extends Authenticatable implements Wallet, Customer
             ]);
     }
     
+    /**
+     * Get the mobile channel value.
+     * 
+     * This accessor makes the magic property from HasChannels trait
+     * available in JSON serialization (via $appends).
+     * 
+     * @return string|null
+     */
+    public function getMobileAttribute(): ?string
+    {
+        return $this->getChannelAttribute('mobile');
+    }
+
+    /**
+     * Get the webhook channel value.
+     * 
+     * This accessor makes the magic property from HasChannels trait
+     * available in JSON serialization (via $appends).
+     * 
+     * @return string|null
+     */
+    public function getWebhookAttribute(): ?string
+    {
+        return $this->getChannelAttribute('webhook');
+    }
+
     /**
      * Get the mobile number in national format for QR code generation.
      * 
