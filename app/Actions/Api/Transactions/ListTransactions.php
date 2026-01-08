@@ -76,12 +76,6 @@ class ListTransactions
         $query = Voucher::query()
             ->with(['owner'])
             ->whereNotNull('redeemed_at')
-            // Exclude voucher payments (internal wallet transfers)
-            // Only show vouchers that were disbursed to banks
-            ->where(function($q) {
-                $q->whereNull('metadata->redemption_type')
-                  ->orWhereRaw("CAST(metadata->>'redemption_type' AS TEXT) != CAST(? AS TEXT)", ['voucher_payment']);
-            })
             ->orderByDesc('redeemed_at');
 
         // Filter by date range
@@ -112,20 +106,42 @@ class ListTransactions
             $query->whereJsonContains('metadata->disbursement->status', $status);
         }
 
-        $transactions = $query->paginate($perPage);
+        // Get current page from request
+        $currentPage = $request->integer('page', 1);
+        
+        // Fetch all matching vouchers (we'll filter and paginate in PHP)
+        // NOTE: We can't use whereJson comparison for redemption_type due to PostgreSQL
+        // compatibility issues with parameter binding. Filter in PHP instead.
+        $allVouchers = $query->get();
+        
+        // Filter out voucher_payment redemptions in PHP
+        $filteredVouchers = $allVouchers->filter(function ($voucher) {
+            $redemptionType = $voucher->metadata['redemption_type'] ?? null;
+            return $redemptionType !== 'voucher_payment';
+        });
+        
+        // Calculate pagination manually
+        $total = $filteredVouchers->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $offset = ($currentPage - 1) * $perPage;
+        $paginatedVouchers = $filteredVouchers->slice($offset, $perPage)->values();
+        
+        // Calculate from/to indices
+        $from = $total > 0 ? $offset + 1 : null;
+        $to = $total > 0 ? min($offset + $perPage, $total) : null;
 
         // Transform to VoucherData DTOs using DataCollection
-        $transactionData = new DataCollection(VoucherData::class, $transactions->items());
+        $transactionData = new DataCollection(VoucherData::class, $paginatedVouchers->all());
 
         return ApiResponse::success([
             'data' => $transactionData,
             'pagination' => [
-                'current_page' => $transactions->currentPage(),
-                'per_page' => $transactions->perPage(),
-                'total' => $transactions->total(),
-                'last_page' => $transactions->lastPage(),
-                'from' => $transactions->firstItem(),
-                'to' => $transactions->lastItem(),
+                'current_page' => $currentPage,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'from' => $from,
+                'to' => $to,
             ],
             'filters' => [
                 'date_from' => $dateFrom,
