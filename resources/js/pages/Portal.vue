@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
-import VoucherPaymentQR from '@/components/VoucherPaymentQR.vue';
 
 interface Props {
   is_authenticated: boolean;
@@ -420,37 +419,24 @@ const isSuperAdmin = computed(() => {
         </DialogHeader>
         
         <div class="space-y-4">
-          <div class="space-y-4 text-center">
-            <p class="text-sm text-muted-foreground">
-              Scan QR code to add funds via voucher payment:
-            </p>
-            
-            <div class="flex justify-center">
-              <VoucherPaymentQR :show-download="true" />
-            </div>
-            
-            <p class="text-xs text-muted-foreground">
-              Or use bank transfer (admin only)
-            </p>
-          </div>
+          <p class="text-center text-sm text-muted-foreground">
+            Choose a top-up method below:
+          </p>
           
-          <div class="flex gap-2">
+          <div class="flex flex-col gap-2">
             <Button
-              variant="outline"
-              class="flex-1"
               @click="() => { showTopUpModal = false; router.visit('/wallet/qr'); }"
             >
               <QrCode class="mr-2 h-4 w-4" />
-              Wallet QR
+              Scan QR Code to Load Wallet
             </Button>
             <Button
               v-if="isSuperAdmin"
               variant="outline"
-              class="flex-1"
               @click="() => { showTopUpModal = false; router.visit('/topup'); }"
             >
               <CreditCard class="mr-2 h-4 w-4" />
-              Bank Top-Up
+              Bank Transfer (Admin Only)
             </Button>
           </div>
         </div>
