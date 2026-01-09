@@ -150,9 +150,9 @@ const generateSimple = async (amt: number) => {
   
   try {
     const payload = {
-      cash: { amount: amt },
-      inputs: { fields: quickInputs.value },
+      amount: amt,
       count: 1,
+      input_fields: quickInputs.value,
     };
     
     // Generate idempotency key for this request
