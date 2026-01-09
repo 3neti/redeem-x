@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Disburse;
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Controllers\Controller;
+use App\Services\InputFieldMapper;
 use App\Services\VoucherRedemptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,7 +51,8 @@ class DisburseController extends Controller
 {
     public function __construct(
         protected DriverService $driverService,
-        protected FormFlowService $formFlowService
+        protected FormFlowService $formFlowService,
+        protected InputFieldMapper $fieldMapper
     ) {}
     
     /**
@@ -157,6 +159,12 @@ class DisburseController extends Controller
         
         $collectedData = $state['collected_data'] ?? [];
         
+        // Debug: Log collected data structure
+        Log::debug('[DisburseController] Collected data structure', [
+            'voucher' => $voucher->code,
+            'collected_data' => $collectedData,
+        ]);
+        
         // Map form flow data to redemption format
         $flatData = $this->mapCollectedData($collectedData);
         
@@ -172,6 +180,11 @@ class DisburseController extends Controller
         // Create PhoneNumber instance
         $phoneNumber = new \Propaganistas\LaravelPhone\PhoneNumber($mobile, $country);
         
+        // Check for KYC data in form flow
+        $hasKycData = isset($flatData['status']) 
+            && isset($flatData['transaction_id'])
+            && (str_contains($flatData['transaction_id'], 'formflow') || str_contains($flatData['transaction_id'], 'MOCK-KYC'));
+        
         // Prepare bank account data
         $bankAccount = [
             'bank_code' => $flatData['bank_code'] ?? null,
@@ -182,6 +195,11 @@ class DisburseController extends Controller
         $inputs = collect($flatData)
             ->except(['mobile', 'recipient_country', 'bank_code', 'account_number', 'amount', 'settlement_rail'])
             ->toArray();
+        
+        // If KYC data exists in form flow, add kyc_status to inputs for validation
+        if ($hasKycData && $flatData['status'] === 'approved') {
+            $inputs['kyc_status'] = 'approved';
+        }
         
         try {
             // Validate using Unified Validation Gateway
@@ -321,13 +339,7 @@ class DisburseController extends Controller
             }
         }
         
-        // Map form flow field names to voucher input field names
-        // Form flow uses 'otp_code' but InputsSpecification expects 'otp'
-        if (isset($mapped['otp_code'])) {
-            $mapped['otp'] = $mapped['otp_code'];
-            unset($mapped['otp_code']);
-        }
-        
-        return $mapped;
+        // Apply centralized field name mappings
+        return $this->fieldMapper->map($mapped);
     }
 }

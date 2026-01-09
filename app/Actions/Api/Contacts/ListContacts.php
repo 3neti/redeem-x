@@ -29,22 +29,16 @@ class ListContacts
         $query = Contact::query()
             ->orderByDesc('updated_at');
 
-        // Search by name, mobile, or email
+        // Search by mobile only (name/email are schemaless attributes in meta JSON)
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('mobile', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
+            $query->where('mobile', 'like', "%{$search}%");
         }
 
         $contacts = $query->paginate($perPage);
 
-        // Get stats
+        // Get stats (name/email are schemaless, can't query at DB level)
         $stats = [
             'total' => Contact::count(),
-            'withEmail' => Contact::whereNotNull('email')->count(),
-            'withName' => Contact::whereNotNull('name')->count(),
         ];
 
         // Transform to array (ContactData doesn't have email/id, so use array)

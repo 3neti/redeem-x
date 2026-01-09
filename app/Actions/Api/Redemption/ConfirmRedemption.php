@@ -6,6 +6,7 @@ namespace App\Actions\Api\Redemption;
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Responses\ApiResponse;
+use App\Services\InputFieldMapper;
 use App\Services\VoucherRedemptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -65,6 +66,10 @@ class ConfirmRedemption
                 return ApiResponse::error('This voucher has expired', 422);
             }
 
+            // Apply centralized field name mappings
+            $fieldMapper = app(InputFieldMapper::class);
+            $inputs = $fieldMapper->map($inputs);
+            
             // Prepare bank account data
             $bankAccount = [
                 'bank_code' => $bankCode,

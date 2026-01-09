@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\NotifyAdminOfDisbursementFailure;
+use App\Listeners\UpdateContactKycStatus;
 use App\Models\InstructionItem;
 use App\Models\User;
 use App\Observers\InstructionItemObserver;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Pennant\Feature;
+use LBHurtado\Voucher\Events\DisbursementRequested;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Events\DisbursementFailed;
 
@@ -44,6 +46,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(
             DisbursementFailed::class,
             NotifyAdminOfDisbursementFailure::class
+        );
+        
+        // Register KYC status update listener
+        Event::listen(
+            DisbursementRequested::class,
+            UpdateContactKycStatus::class
         );
 
         // Define feature flags

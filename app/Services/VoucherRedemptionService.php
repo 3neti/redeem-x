@@ -90,11 +90,6 @@ class VoucherRedemptionService
         $mobile = $request->input('mobile') ?? $request->input('phone') ?? $request->input('phone_number');
         $inputs = $request->input('inputs', []);
         
-        // Add KYC status from Contact if mobile is provided
-        if ($mobile) {
-            $inputs['kyc_status'] = $this->getKycStatus($mobile);
-        }
-        
         return new RedemptionContext(
             mobile: $mobile,
             secret: $request->input('secret'),
@@ -111,11 +106,6 @@ class VoucherRedemptionService
     {
         $mobile = $data['mobile'] ?? $data['phone'] ?? $data['phone_number'] ?? '';
         $inputs = $data['inputs'] ?? [];
-        
-        // Add KYC status from Contact if mobile is provided
-        if ($mobile) {
-            $inputs['kyc_status'] = $this->getKycStatus($mobile);
-        }
         
         return new RedemptionContext(
             mobile: $mobile,
@@ -186,14 +176,4 @@ class VoucherRedemptionService
     /**
      * Get KYC status for a mobile number.
      */
-    private function getKycStatus(string $mobile): ?string
-    {
-        try {
-            $phoneNumber = PhoneNumberParser::make($mobile);
-            $contact = Contact::fromPhoneNumber($phoneNumber);
-            return $contact->kyc_status;
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
 }
