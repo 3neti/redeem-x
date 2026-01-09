@@ -20,9 +20,9 @@ class PortalController extends Controller
         
         return Inertia::render('Portal', [
             'is_authenticated' => $user !== null,
-            'wallet_balance' => $user?->balance ?? 0,
+            'wallet_balance' => $user?->balanceFloatNum ?? 0,
             'vouchers_count' => $user?->vouchers()->count() ?? 0,
-            'formatted_balance' => $user ? '₱' . number_format($user->balance, 2) : '₱0.00',
+            'formatted_balance' => $user ? '₱' . number_format($user->balanceFloatNum, 2) : '₱0.00',
         ]);
     }
 }

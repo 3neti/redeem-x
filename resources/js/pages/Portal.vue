@@ -33,14 +33,14 @@ const showTopUpModal = ref(false);
 // Quick amounts (borrowed from TopUp page pattern)
 const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
 
-// Available input fields
+// Available input fields (API expects lowercase)
 const availableInputs = [
-  { value: 'OTP', label: 'OTP', icon: '🔢' },
-  { value: 'SELFIE', label: 'Selfie', icon: '📸' },
-  { value: 'LOCATION', label: 'Location', icon: '📍' },
-  { value: 'SIGNATURE', label: 'Signature', icon: '✍️' },
-  { value: 'KYC', label: 'KYC', icon: '🆔' },
-  { value: 'BIRTH_DATE', label: 'Birthday', icon: '🎂' },
+  { value: 'otp', label: 'OTP', icon: '🔢' },
+  { value: 'selfie', label: 'Selfie', icon: '📸' },
+  { value: 'location', label: 'Location', icon: '📍' },
+  { value: 'signature', label: 'Signature', icon: '✍️' },
+  { value: 'kyc', label: 'KYC', icon: '🆔' },
+  { value: 'birth_date', label: 'Birthday', icon: '🎂' },
 ];
 
 const estimatedCost = computed(() => {
@@ -164,11 +164,14 @@ const generateSimple = async (amt: number) => {
       },
     });
     
-    if (response.data.success) {
-      generatedVoucher.value = response.data.voucher;
+    // API wraps data in response.data.data structure
+    const apiData = response.data.data;
+    if (apiData && apiData.vouchers && apiData.vouchers.length > 0) {
+      // API returns array of vouchers, we take the first one
+      generatedVoucher.value = apiData.vouchers[0];
       toast({
         title: 'Voucher created!',
-        description: `Code: ${response.data.voucher.code}`,
+        description: `Code: ${apiData.vouchers[0].code}`,
       });
     }
   } catch (err: any) {
@@ -308,10 +311,10 @@ const isSuperAdmin = computed(() => {
             :key="input.value"
             class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors hover:bg-accent"
             :class="{ 'bg-accent ring-2 ring-primary': quickInputs.includes(input.value) }"
+            @click.prevent="toggleInput(input.value)"
           >
             <Checkbox
               :checked="quickInputs.includes(input.value)"
-              @update:checked="() => toggleInput(input.value)"
             />
             <span class="text-lg">{{ input.icon }}</span>
             <span class="text-sm">{{ input.label }}</span>
