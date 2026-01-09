@@ -155,7 +155,14 @@ const generateSimple = async (amt: number) => {
       count: 1,
     };
     
-    const response = await axios.post('/api/v1/vouchers', payload);
+    // Generate idempotency key for this request
+    const idempotencyKey = `portal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const response = await axios.post('/api/v1/vouchers', payload, {
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    });
     
     if (response.data.success) {
       generatedVoucher.value = response.data.voucher;
@@ -267,15 +274,15 @@ const isSuperAdmin = computed(() => {
           <Input
             v-model="instruction"
             :placeholder="dynamicPlaceholder"
-            class="pr-44 text-lg"
+            class="pr-44 text-lg h-12"
             @keyup.enter="handleSubmit"
             :disabled="loading"
           />
           <Button
             @click="handleSubmit"
             :disabled="!instruction || loading || (amount && estimatedCost > wallet_balance)"
-            class="absolute right-2 top-2 min-w-[140px]"
-            size="default"
+            class="absolute right-1 top-1 min-w-[140px] h-10"
+            size="sm"
             :variant="amount && estimatedCost > wallet_balance ? 'destructive' : 'default'"
           >
             <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
