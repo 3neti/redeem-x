@@ -15,6 +15,10 @@ Route::get('/health', function () {
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');
 
+// Public portal landing page (cash register UI - no authentication required)
+Route::get('/portal', [\App\Http\Controllers\PortalController::class, 'show'])
+    ->name('portal');
+
 // Public voucher inspect page (deprecated): hard redirect to /redeem, preserving ?code
 Route::get('/vouchers/inspect', function () {
     $code = request()->query('code');
