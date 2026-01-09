@@ -365,7 +365,51 @@ const isSuperAdmin = computed(() => {
       </div>
     </div>
     
-    <!-- Top-Up Modal -->
+    <!-- Success Card (after generation) -->
+    <div v-else class="w-full max-w-2xl space-y-6">
+      <Alert class="border-green-500 bg-green-50">
+        <AlertDescription class="text-green-900">
+          ✓ Voucher created successfully!
+        </AlertDescription>
+      </Alert>
+      
+      <!-- Voucher Code Display -->
+      <div class="rounded-lg border-2 border-primary bg-primary/5 p-6 text-center">
+        <p class="mb-2 text-sm font-medium text-muted-foreground">Voucher Code</p>
+        <p class="mb-4 text-4xl font-bold tracking-wider">
+          {{ generatedVoucher.code }}
+        </p>
+        <p class="text-lg text-muted-foreground">
+          Amount: ₱{{ generatedVoucher.amount?.toLocaleString() }}
+        </p>
+      </div>
+      
+      <!-- Share Buttons -->
+      <div class="space-y-2">
+        <p class="text-sm font-medium">Share:</p>
+        <div class="flex gap-2">
+          <Button variant="outline" class="flex-1" @click="copyCode">
+            <Copy class="mr-2 h-4 w-4" />
+            Copy Code
+          </Button>
+          <Button variant="outline" class="flex-1" @click="shareViaSMS">
+            <MessageSquare class="mr-2 h-4 w-4" />
+            SMS
+          </Button>
+          <Button variant="outline" class="flex-1" @click="shareViaWhatsApp">
+            <Share2 class="mr-2 h-4 w-4" />
+            WhatsApp
+          </Button>
+        </div>
+      </div>
+      
+      <!-- Create Another -->
+      <Button class="w-full" size="lg" @click="resetAndCreateAnother">
+        Create Another Voucher
+      </Button>
+    </div>
+    
+    <!-- Top-Up Modal (outside main if/else) -->
     <Dialog v-model:open="showTopUpModal">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
@@ -412,49 +456,5 @@ const isSuperAdmin = computed(() => {
         </div>
       </DialogContent>
     </Dialog>
-    
-    <!-- Success Card (after generation) -->
-    <div v-else class="w-full max-w-2xl space-y-6">
-      <Alert class="border-green-500 bg-green-50">
-        <AlertDescription class="text-green-900">
-          ✓ Voucher created successfully!
-        </AlertDescription>
-      </Alert>
-      
-      <!-- Voucher Code Display -->
-      <div class="rounded-lg border-2 border-primary bg-primary/5 p-6 text-center">
-        <p class="mb-2 text-sm font-medium text-muted-foreground">Voucher Code</p>
-        <p class="mb-4 text-4xl font-bold tracking-wider">
-          {{ generatedVoucher.code }}
-        </p>
-        <p class="text-lg text-muted-foreground">
-          Amount: ₱{{ generatedVoucher.amount?.toLocaleString() }}
-        </p>
-      </div>
-      
-      <!-- Share Buttons -->
-      <div class="space-y-2">
-        <p class="text-sm font-medium">Share:</p>
-        <div class="flex gap-2">
-          <Button variant="outline" class="flex-1" @click="copyCode">
-            <Copy class="mr-2 h-4 w-4" />
-            Copy Code
-          </Button>
-          <Button variant="outline" class="flex-1" @click="shareViaSMS">
-            <MessageSquare class="mr-2 h-4 w-4" />
-            SMS
-          </Button>
-          <Button variant="outline" class="flex-1" @click="shareViaWhatsApp">
-            <Share2 class="mr-2 h-4 w-4" />
-            WhatsApp
-          </Button>
-        </div>
-      </div>
-      
-      <!-- Create Another -->
-      <Button class="w-full" size="lg" @click="resetAndCreateAnother">
-        Create Another Voucher
-      </Button>
-    </div>
   </div>
 </template>
