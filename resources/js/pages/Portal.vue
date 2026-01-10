@@ -76,7 +76,6 @@ const availableInputs = [
   { value: 'location', label: 'Location', icon: '📍' },
   { value: 'signature', label: 'Signature', icon: '✍️' },
   { value: 'kyc', label: 'KYC', icon: '🆔' },
-  { value: 'birth_date', label: 'Birthday', icon: '🎂' },
 ];
 
 // Live pricing using composable (same as vouchers/generate)
@@ -531,17 +530,8 @@ watch(instruction, (val) => {
             </template>
           </Button>
         </div>
-        <p v-if="breakdown && amount" class="text-xs text-muted-foreground">
-          ₱{{ amount.toLocaleString() }} x {{ count }} + ₱{{ (breakdown.total / 100).toFixed(2) }} fee = ₱{{ estimatedCost.toFixed(2) }}
-        </p>
-        <p v-else class="text-xs text-muted-foreground">
-          Enter an amount to see pricing
-        </p>
-      </div>
-      
-      <!-- Quick Inputs -->
-      <div class="space-y-2">
-        <p class="text-sm font-medium">Quick inputs (optional):</p>
+        
+        <!-- Quick Inputs (moved closer to input) -->
         <div class="flex flex-wrap gap-2">
           <label
             v-for="input in availableInputs"
@@ -559,9 +549,9 @@ watch(instruction, (val) => {
         </div>
       </div>
       
-      <!-- Balance & Cost Info -->
-      <div class="flex items-center justify-between">
-        <!-- Balance -->
+      <!-- Consolidated Wallet Transaction Line -->
+      <div class="flex items-center justify-between gap-4">
+        <!-- Left: Wallet Balance -->
         <button
           v-if="is_authenticated"
           @click="showTopUpModal = true"
@@ -579,7 +569,12 @@ watch(instruction, (val) => {
           <span class="text-xs">(Sign in to top up)</span>
         </div>
         
-        <!-- Remaining Balance -->
+        <!-- Middle: Pricing Computation -->
+        <div v-if="breakdown && amount" class="text-xs text-muted-foreground">
+          ₱{{ amount.toLocaleString() }} x {{ count }} + ₱{{ (breakdown.total / 100).toFixed(2) }} fee = ₱{{ estimatedCost.toFixed(2) }}
+        </div>
+        
+        <!-- Right: Balance After -->
         <div v-if="amount && is_authenticated" class="flex items-center gap-2">
           <span 
             class="text-sm"
