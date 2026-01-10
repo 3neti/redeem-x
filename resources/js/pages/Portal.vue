@@ -63,6 +63,15 @@ const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdow
 
 const estimatedCost = computed(() => totalDeduction.value);
 
+const showQuickAmounts = computed(() => !instruction.value && !amount.value);
+
+const formatAmount = (amt: number): string => {
+  if (amt >= 1000) {
+    return `${amt / 1000}K`;
+  }
+  return amt.toString();
+};
+
 const dynamicPlaceholder = computed(() => {
   // Priority 1: Reflect current UI state
   if (amount.value && quickInputs.value.length > 0) {
@@ -277,31 +286,31 @@ watch(instruction, (val) => {
     
     <!-- Main Form (hide after generation) -->
     <div v-if="!generatedVoucher" class="w-full max-w-2xl space-y-6">
-      <!-- Quick Amounts -->
+      <!-- Amount Input with Embedded Quick Amounts -->
       <div class="space-y-2">
-        <p class="text-sm font-medium">Quick amounts:</p>
-        <div class="flex flex-wrap gap-2">
-          <Button
-            v-for="amt in quickAmounts"
-            :key="amt"
-            variant="outline"
-            size="lg"
-            @click="handleQuickAmount(amt)"
-            :class="{ 'ring-2 ring-primary bg-accent': amount === amt }"
-          >
-            ₱{{ amt.toLocaleString() }}
-          </Button>
-        </div>
-      </div>
-      
-      <!-- Amount Input -->
-      <div class="space-y-2">
-        <p class="text-sm font-medium">Or enter amount:</p>
+        <p class="text-sm font-medium">Amount</p>
         <div class="relative">
+          <!-- Quick Amount Chips (inside input field, left side) -->
+          <div v-if="showQuickAmounts" class="absolute left-2 top-1/2 -translate-y-1/2 flex gap-1 z-10">
+            <Button
+              v-for="amt in quickAmounts"
+              :key="amt"
+              variant="ghost"
+              size="sm"
+              @click="handleQuickAmount(amt)"
+              class="h-8 px-2 text-xs font-medium"
+            >
+              {{ formatAmount(amt) }}
+            </Button>
+          </div>
+          
           <Input
             v-model="instruction"
             :placeholder="dynamicPlaceholder"
-            class="pr-44 text-lg h-12"
+            :class="[
+              'text-lg h-12 pr-44',
+              showQuickAmounts ? 'pl-[360px]' : 'pl-3'
+            ]"
             @keyup.enter="handleSubmit"
             :disabled="loading"
           />
