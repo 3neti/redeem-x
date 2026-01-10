@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,11 +44,24 @@ const availableInputs = [
   { value: 'birth_date', label: 'Birthday', icon: '🎂' },
 ];
 
-const estimatedCost = computed(() => {
-  if (!amount.value) return 0;
-  // Rough estimate: amount + 1% service fee + ₱2 gateway fee
-  return amount.value + (amount.value * 0.01) + 2;
-});
+// Live pricing using composable (same as vouchers/generate)
+const instructionsForPricing = computed(() => ({
+  cash: {
+    amount: amount.value || 0,
+    currency: 'PHP',
+  },
+  inputs: {
+    fields: quickInputs.value,
+  },
+  count: 1,
+}));
+
+const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdown(
+  instructionsForPricing,
+  { debounce: 500, autoCalculate: true }
+);
+
+const estimatedCost = computed(() => totalDeduction.value);
 
 const dynamicPlaceholder = computed(() => {
   // Priority 1: Reflect current UI state
@@ -240,6 +254,16 @@ onMounted(() => {
 const isSuperAdmin = computed(() => {
   return page.props.auth?.user?.roles?.includes('super-admin') || false;
 });
+
+// Watch instruction field for amount updates
+watch(instruction, (val) => {
+  const parsed = parseInt(val);
+  if (!isNaN(parsed) && parsed > 0) {
+    amount.value = parsed;
+  } else {
+    amount.value = null;
+  }
+});
 </script>
 
 <template>
@@ -290,15 +314,18 @@ const isSuperAdmin = computed(() => {
           >
             <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
             <template v-else-if="amount">
-              Generate @ ₱{{ estimatedCost.toFixed(0) }}
+              Generate voucher
             </template>
             <template v-else>
               →
             </template>
           </Button>
         </div>
-        <p class="text-xs text-muted-foreground">
-          Hint: "10 vouchers for 500 each" for batch mode (coming soon)
+        <p v-if="breakdown && amount" class="text-xs text-muted-foreground">
+          ₱{{ amount.toLocaleString() }} + ₱{{ (breakdown.total / 100).toFixed(2) }} fee = ₱{{ estimatedCost.toFixed(2) }}
+        </p>
+        <p v-else class="text-xs text-muted-foreground">
+          Enter an amount to see pricing
         </p>
       </div>
       
