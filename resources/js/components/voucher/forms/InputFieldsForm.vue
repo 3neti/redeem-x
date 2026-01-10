@@ -82,14 +82,14 @@ const toggleField = (fieldValue: string) => {
                 >
                     <Checkbox
                         :id="`input_field_${option.value}`"
-                        :checked="isFieldSelected(option.value)"
+                        :model-value="isFieldSelected(option.value)"
                         :disabled="readonly"
-                        @click="() => toggleField(option.value)"
+                        @update:model-value="() => toggleField(option.value)"
                     />
                     <Label
                         :for="`input_field_${option.value}`"
-                        class="text-sm font-normal cursor-pointer"
-                        :class="{ 'cursor-not-allowed opacity-50': readonly }"
+                        class="text-sm font-normal"
+                        :class="readonly ? 'cursor-default' : 'cursor-pointer'"
                     >
                         {{ option.label }}
                     </Label>
