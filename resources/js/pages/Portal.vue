@@ -6,11 +6,14 @@ import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard, RotateCcw, Receipt } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
+import QrDisplay from '@/components/shared/QrDisplay.vue';
+import { useVoucherQr } from '@/composables/useVoucherQr';
+import { useQrShare } from '@/composables/useQrShare';
 
 interface PortalConfig {
   branding?: { show_logo?: boolean; show_icon?: boolean };
@@ -79,7 +82,9 @@ const instruction = ref('');
 const quickInputs = ref<string[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const generatedVoucher = ref<any>(null);
+const generatedVouchers = ref<any[]>([]);
+const generatedVoucher = computed(() => generatedVouchers.value[0] || null);
+const selectedCodes = ref<Set<string>>(new Set());
 const showTopUpModal = ref(false);
 const showConfirmModal = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -194,6 +199,21 @@ const canShare = computed(() => {
 });
 
 const showQuickAmounts = computed(() => !instruction.value && !amount.value);
+
+// QR code generation for single vouchers
+const voucherCode = ref<string>('');
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(voucherCode, redemptionEndpoint.value);
+const { downloadQr } = useQrShare();
+
+const shouldShowQr = computed(() => {
+  return generatedVoucher.value && count.value === 1;
+});
+
+const handleQrClick = () => {
+  if (qrData.value?.qr_code) {
+    downloadQr(qrData.value.qr_code, `voucher-${generatedVoucher.value.code}.png`);
+  }
+};
 
 const formatAmount = (amt: number): string => {
   if (amt >= 1000) {
@@ -366,11 +386,19 @@ const generateSimple = async (amt: number) => {
     // API wraps data in response.data.data structure
     const apiData = response.data.data;
     if (apiData && apiData.vouchers && apiData.vouchers.length > 0) {
-      // API returns array of vouchers, we take the first one
-      generatedVoucher.value = apiData.vouchers[0];
+      // Store all vouchers
+      generatedVouchers.value = apiData.vouchers;
+      
+      // Generate QR code for single voucher
+      if (count.value === 1) {
+        voucherCode.value = apiData.vouchers[0].code;
+        generateQr();
+      }
+      
+      const voucherCount = apiData.vouchers.length;
       toast({
-        title: 'Voucher created!',
-        description: `Code: ${apiData.vouchers[0].code}`,
+        title: `${voucherCount} Voucher${voucherCount > 1 ? 's' : ''} created!`,
+        description: voucherCount === 1 ? `Code: ${apiData.vouchers[0].code}` : `${voucherCount} codes generated`,
       });
     }
   } catch (err: any) {
@@ -385,13 +413,33 @@ const generateSimple = async (amt: number) => {
   }
 };
 
+const toggleCodeSelection = (code: string) => {
+  const newSet = new Set(selectedCodes.value);
+  if (newSet.has(code)) {
+    newSet.delete(code);
+  } else {
+    newSet.add(code);
+  }
+  selectedCodes.value = newSet;
+};
+
+const codesToUse = computed(() => {
+  const selected = Array.from(selectedCodes.value);
+  return selected.length === 0 
+    ? generatedVouchers.value.map(v => v.code) 
+    : selected;
+});
+
 const copyCode = async () => {
-  if (!generatedVoucher.value) return;
+  if (generatedVouchers.value.length === 0) return;
   
-  await navigator.clipboard.writeText(generatedVoucher.value.code);
+  const codes = codesToUse.value.join(', ');
+  await navigator.clipboard.writeText(codes);
+  
+  const count = codesToUse.value.length;
   toast({
     title: 'Copied!',
-    description: 'Voucher code copied to clipboard',
+    description: `${count} code${count > 1 ? 's' : ''} copied to clipboard`,
   });
 };
 
@@ -408,19 +456,21 @@ const shareViaWhatsApp = () => {
 };
 
 const handleShare = async () => {
-  if (!generatedVoucher.value) return;
+  if (generatedVouchers.value.length === 0) return;
+  
+  const codes = codesToUse.value.join(', ');
+  const text = `Redeem at: ${window.location.origin}${redemptionEndpoint.value}\nCodes: ${codes}`;
   
   const shareData = {
-    title: 'Voucher Code',
-    text: `Your voucher code: ${generatedVoucher.value.code}`,
-    url: `${window.location.origin}${redemptionEndpoint.value}?code=${generatedVoucher.value.code}`,
+    title: codesToUse.value.length > 1 ? 'Voucher Codes' : 'Voucher Code',
+    text: text,
   };
   
   try {
     await navigator.share(shareData);
     toast({
       title: 'Shared!',
-      description: 'Voucher shared successfully',
+      description: `${codesToUse.value.length} code${codesToUse.value.length > 1 ? 's' : ''} shared`,
     });
   } catch (err: any) {
     if (err.name !== 'AbortError') {
@@ -430,7 +480,8 @@ const handleShare = async () => {
 };
 
 const resetAndCreateAnother = () => {
-  generatedVoucher.value = null;
+  generatedVouchers.value = [];
+  selectedCodes.value.clear();
   amount.value = null;
   count.value = 1;
   tempAmount.value = '';
@@ -555,7 +606,7 @@ const handleInputClick = (event: MouseEvent) => {
 const handleGlobalKeyDown = (event: KeyboardEvent) => {
   // Don't capture if user is typing in another input or modal is open
   const target = event.target as HTMLElement;
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || generatedVoucher.value || showTopUpModal.value || showPayeeModal.value) {
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || generatedVouchers.value.length > 0 || showTopUpModal.value || showPayeeModal.value) {
     return;
   }
   
@@ -601,6 +652,7 @@ const isSuperAdmin = computed(() => {
   return page.props.auth?.user?.roles?.includes('super-admin') || false;
 });
 
+
 // Sync temp values when instruction changes externally (e.g., quick amounts)
 watch(instruction, (val) => {
   const parsed = parseMaskedInput(val);
@@ -634,31 +686,35 @@ watch(payeeType, (newType, oldType) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col items-center justify-center p-6">
+  <div class="flex min-h-screen flex-col items-center justify-center p-4 md:p-6">
     <!-- Header -->
-    <Sparkles class="mb-6 h-16 w-16 text-primary" />
-    <h1 class="mb-2 text-4xl font-bold">{{ pageTitle }}</h1>
-    <p class="mb-8 text-muted-foreground">
+    <Sparkles class="mb-4 md:mb-6 h-12 md:h-16 w-12 md:w-16 text-primary" />
+    <h1 class="mb-2 text-2xl md:text-4xl font-bold">{{ pageTitle }}</h1>
+    <p class="mb-6 md:mb-8 text-sm md:text-base text-muted-foreground">
       {{ pageSubtitle }}
     </p>
     
     <!-- Main Form (hide after generation) -->
-    <div v-if="!generatedVoucher" class="w-full max-w-2xl space-y-6">
+    <div v-if="generatedVouchers.length === 0" class="w-full max-w-2xl space-y-6">
       <!-- Amount Input with Embedded Quick Amounts + Payee Display -->
       <div class="space-y-2">
         <p class="text-sm font-medium">{{ config?.labels?.amount_label || 'Amount' }}</p>
-        <div class="flex gap-2">
-          <!-- Amount Input (fixed width to prevent shifting) -->
-          <div class="relative" style="width: 520px; flex-shrink: 0;">
-          <!-- Quick Amount Chips (inside input field, left side) -->
-          <div v-if="showQuickAmounts" class="absolute left-2 top-1/2 -translate-y-1/2 flex gap-1 z-10">
+        <div class="flex flex-col md:flex-row gap-2">
+          <!-- Amount Input (full-width on mobile, fixed on desktop) -->
+          <div class="relative w-full md:w-[520px] md:flex-shrink-0">
+          <!-- Quick Amount Chips (inside input field, left side, horizontally scrollable) -->
+          <div 
+            v-if="showQuickAmounts" 
+            class="absolute left-2 top-1/2 -translate-y-1/2 gap-1 z-10 flex overflow-x-auto scrollbar-hide"
+            style="max-width: calc(100% - 120px); scroll-behavior: smooth;"
+          >
             <Button
               v-for="amt in quickAmounts"
               :key="amt"
               variant="ghost"
               size="sm"
               @click="handleQuickAmount(amt)"
-              class="h-8 px-2 text-xs font-medium"
+              class="h-8 px-2 text-xs font-medium flex-shrink-0"
             >
               {{ formatAmount(amt) }}
             </Button>
@@ -669,8 +725,8 @@ watch(payeeType, (newType, oldType) => {
             v-model="instruction"
             :class="[
               'text-lg h-12 ring-2 ring-primary/50',
-              showQuickAmounts ? 'pl-[360px]' : 'pl-3',
-              amount ? 'pr-[220px]' : 'pr-[160px]'
+              showQuickAmounts ? 'md:pl-[360px] pl-3' : 'pl-3',
+              amount ? 'pr-[160px] md:pr-[220px]' : 'pr-[100px] md:pr-[160px]'
             ]"
             @keyup.enter="handleSubmit"
             @keydown="handleKeyDown"
@@ -683,7 +739,8 @@ watch(payeeType, (newType, oldType) => {
             @click="resetInput"
             variant="ghost"
             size="sm"
-            class="absolute right-[152px] top-1 h-10 w-10 p-0"
+            class="absolute top-1 h-10 w-10 p-0"
+            :class="amount ? 'right-[102px] md:right-[152px]' : 'hidden'"
             :title="config?.labels?.reset_button_title || 'Reset input'"
           >
             <RotateCcw class="h-4 w-4" />
@@ -691,13 +748,15 @@ watch(payeeType, (newType, oldType) => {
           <Button
             @click="handleSubmit"
             :disabled="!instruction || loading || (amount && estimatedCost > wallet_balance)"
-            class="absolute right-1 top-1 min-w-[140px] h-10"
+            class="absolute right-1 top-1 h-10"
+            :class="amount ? 'w-[90px] md:min-w-[140px]' : 'w-[90px] md:min-w-[140px]'"
             size="sm"
             :variant="amount && estimatedCost > wallet_balance ? 'destructive' : 'default'"
           >
-            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 v-if="loading" class="h-4 w-4 animate-spin" :class="amount ? '' : 'md:mr-2'" />
             <template v-else-if="amount">
-              {{ config?.labels?.generate_button_text || 'Generate voucher' }}
+              <span class="hidden md:inline">{{ config?.labels?.generate_button_text || 'Generate voucher' }}</span>
+              <span class="md:hidden">Generate</span>
             </template>
             <template v-else>
               →
@@ -705,8 +764,8 @@ watch(payeeType, (newType, oldType) => {
           </Button>
           </div>
           
-          <!-- Payee Display Field (fixed width to prevent shifting) -->
-          <div class="relative" style="width: 144px; flex-shrink: 0;">
+          <!-- Payee Display Field (full-width on mobile, fixed on desktop) -->
+          <div class="relative w-full md:w-[144px] md:flex-shrink-0">
             <div
               @click="showPayeeModal = true"
               class="flex h-12 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -729,28 +788,26 @@ watch(payeeType, (newType, oldType) => {
         
         <!-- Quick Inputs (moved closer to input) -->
         <div class="flex flex-wrap gap-2">
-          <label
+          <Button
             v-for="input in availableInputs"
             :key="input.value"
+            variant="outline"
+            size="sm"
+            :disabled="input.value === 'otp' && otpInputState.disabled"
             :class="[
-              'flex items-center gap-2 rounded-md border px-3 py-2 transition-colors',
-              input.value === 'otp' && otpInputState.disabled ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer hover:bg-accent',
-              quickInputs.includes(input.value) ? 'bg-accent ring-2 ring-primary' : ''
+              'px-2 md:px-3',
+              quickInputs.includes(input.value) && 'bg-accent border-primary ring-2 ring-primary',
             ]"
-            @click.prevent="input.value === 'otp' && otpInputState.disabled ? null : toggleInput(input.value)"
+            @click="toggleInput(input.value)"
           >
-            <Checkbox
-              :checked="quickInputs.includes(input.value)"
-              :disabled="input.value === 'otp' && otpInputState.disabled"
-            />
-            <span class="text-lg">{{ input.icon }}</span>
-            <span class="text-sm">{{ input.label }}</span>
-          </label>
+            <span class="hidden md:inline">{{ input.icon }}</span>
+            {{ input.label }}
+          </Button>
         </div>
       </div>
       
       <!-- Consolidated Wallet Transaction Line -->
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
         <!-- Left: Wallet Balance -->
         <button
           v-if="is_authenticated"
@@ -769,8 +826,8 @@ watch(payeeType, (newType, oldType) => {
           <span class="text-xs">(Sign in to top up)</span>
         </div>
         
-        <!-- Middle: Pricing Computation -->
-        <div v-if="breakdown && amount" class="text-xs text-muted-foreground">
+        <!-- Middle: Pricing Computation (hide on mobile for simplicity) -->
+        <div v-if="breakdown && amount" class="hidden md:block text-xs text-muted-foreground">
           ₱{{ amount.toLocaleString() }} x {{ count }} + ₱{{ (breakdown.total / 100).toFixed(2) }} fee = ₱{{ estimatedCost.toFixed(2) }}
         </div>
         
@@ -809,21 +866,77 @@ watch(payeeType, (newType, oldType) => {
     <!-- Success Card (after generation) -->
     <div v-else class="w-full max-w-2xl space-y-6">
       <!-- Voucher Code Display -->
-      <div class="rounded-xl border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10 p-8 text-center shadow-lg">
-        <p class="mb-6 text-5xl font-bold tracking-widest text-foreground">
-          {{ generatedVoucher.code }}
-        </p>
-        <div class="flex items-center justify-center gap-2">
-          <Sparkles class="h-5 w-5 text-primary" />
-          <p class="text-2xl font-semibold text-primary">
-            ₱{{ generatedVoucher.amount?.toLocaleString() }}
+      <div class="rounded-xl border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10 p-6 md:p-8 text-center shadow-lg">
+        <!-- Single Voucher -->
+        <div v-if="generatedVouchers.length === 1">
+          <p class="mb-4 md:mb-6 text-3xl md:text-5xl font-bold tracking-widest text-foreground break-all">
+            {{ generatedVouchers[0].code }}
           </p>
+          <div class="flex items-center justify-center gap-2">
+            <Sparkles class="h-5 w-5 text-primary" />
+            <p class="text-xl md:text-2xl font-semibold text-primary">
+              ₱{{ generatedVouchers[0].amount?.toLocaleString() }}
+            </p>
+          </div>
+        </div>
+        
+        <!-- Multiple Vouchers -->
+        <div v-else>
+          <div 
+            class="flex gap-2 overflow-x-auto scrollbar-hide mb-4"
+            style="scroll-behavior: smooth;"
+          >
+            <div 
+              v-for="voucher in generatedVouchers" 
+              :key="voucher.code"
+              @click="toggleCodeSelection(voucher.code)"
+              class="flex-shrink-0 rounded-lg border-2 px-4 py-3 cursor-pointer transition-all duration-200 hover:scale-105"
+              :class="[
+                selectedCodes.has(voucher.code) 
+                  ? 'bg-green-500/20 border-green-500 ring-2 ring-green-500' 
+                  : 'bg-primary/5 border-primary/30'
+              ]"
+            >
+              <p class="font-mono text-lg font-bold tracking-wide">
+                {{ voucher.code }}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center justify-center gap-2">
+            <Sparkles class="h-5 w-5 text-primary" />
+            <p class="text-xl md:text-2xl font-semibold text-primary">
+              {{ generatedVouchers.length }} × ₱{{ generatedVouchers[0].amount?.toLocaleString() }}
+            </p>
+          </div>
         </div>
       </div>
       
+      <!-- QR Code Section (single voucher only) -->
+      <Card v-if="shouldShowQr">
+        <CardHeader>
+          <CardTitle>Redemption QR Code</CardTitle>
+          <CardDescription>
+            Click to download • Scan to redeem
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="flex justify-center">
+          <div 
+            class="w-full max-w-sm cursor-pointer transition-opacity hover:opacity-80" 
+            @click="handleQrClick"
+            :class="{ 'cursor-not-allowed opacity-50': !qrData?.qr_code }"
+          >
+            <QrDisplay
+              :qr-code="qrData?.qr_code ?? null"
+              :loading="qrLoading"
+              :error="qrError"
+            />
+          </div>
+        </CardContent>
+      </Card>
+      
       <!-- Share Buttons -->
       <div class="space-y-2">
-        <p class="text-sm font-medium">{{ config?.success?.share_section_label || 'Share:' }}</p>
+        <p v-if="config?.success?.share_section_label !== ''" class="text-sm font-medium">{{ config?.success?.share_section_label || 'Share:' }}</p>
         <div class="flex gap-2">
           <Button variant="outline" class="flex-1" @click="copyCode">
             <Copy class="mr-2 h-4 w-4" />
