@@ -185,10 +185,9 @@ const toggleInput = (input: string) => {
 };
 
 const handleSubmit = async () => {
-  const input = instruction.value.trim();
-  
-  if (!input) {
-    error.value = 'Please enter an amount or instruction';
+  // Use parsed amount from state machine instead of raw instruction
+  if (!amount.value) {
+    error.value = 'Please enter an amount';
     return;
   }
   
@@ -197,7 +196,7 @@ const handleSubmit = async () => {
     sessionStorage.setItem('intended_voucher', JSON.stringify({
       amount: amount.value,
       inputs: quickInputs.value,
-      instruction: input,
+      instruction: instruction.value,
     }));
     
     router.visit('/login', {
@@ -218,16 +217,8 @@ const handleSubmit = async () => {
     return;
   }
   
-  // STEP 3: Generate
-  if (/^\d+$/.test(input)) {
-    await generateSimple(parseInt(input));
-  } else {
-    toast({
-      title: 'Advanced parsing coming soon',
-      description: 'For now, please enter a numeric amount',
-      variant: 'destructive',
-    });
-  }
+  // STEP 3: Generate using parsed amount
+  await generateSimple(amount.value);
 };
 
 const generateSimple = async (amt: number) => {
