@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -24,12 +24,47 @@ const { toast } = useToast();
 
 // Form state
 const amount = ref<number | null>(null);
+const count = ref<number>(1);
 const instruction = ref('');
 const quickInputs = ref<string[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const generatedVoucher = ref<any>(null);
 const showTopUpModal = ref(false);
+const inputRef = ref<HTMLInputElement | null>(null);
+
+/**
+ * STATE MACHINE INPUT MASKING
+ * 
+ * Calculator-style input with amount × count format (e.g., "100 x 1")
+ * 
+ * Key Concepts:
+ * - editMode: 'amount' | 'count' - determines which value is being edited
+ * - tempAmount/tempCount: digit accumulators (empty = "select all" behavior)
+ * - Global keyboard capture: works without clicking input field first
+ * 
+ * State Flow:
+ * 1. Numeric keys → append to current mode's accumulator
+ * 2. Non-numeric keys → toggle mode (character not shown)
+ * 3. Backspace → remove last digit from accumulator
+ * 4. Mode toggle resets accumulator → next digit replaces (select-all)
+ * 
+ * Example:
+ * Click "100"     → "100 x 1" (tempAmount='', ready for replace)
+ * Type: 2         → "2 x 1" (first digit replaces)
+ * Type: 0         → "20 x 1" (append)
+ * Type: 5         → "205 x 1" (append)
+ * Type: x         → "205 x 1" (toggle to count, tempCount='')
+ * Type: 3         → "205 x 3" (first digit replaces)
+ * Type: space     → "205 x 3" (toggle to amount, tempAmount='')
+ * Type: 1         → "1 x 3" (select-all, count sticky!)
+ * 
+ * See: docs/PORTAL_INPUT_MASKING.md for full documentation
+ */
+type EditMode = 'amount' | 'count';
+const editMode = ref<EditMode>('amount');
+const tempAmount = ref<string>(''); // Accumulator for digits
+const tempCount = ref<string>('1');
 
 // Quick amounts (borrowed from TopUp page pattern)
 const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
@@ -53,7 +88,7 @@ const instructionsForPricing = computed(() => ({
   inputs: {
     fields: quickInputs.value,
   },
-  count: 1,
+  count: count.value,
 }));
 
 const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdown(
@@ -72,14 +107,41 @@ const formatAmount = (amt: number): string => {
   return amt.toString();
 };
 
+// Input masking utilities
+const formatMaskedInput = (rawInput: string): string => {
+  const digits = rawInput.replace(/\D/g, '');
+  if (!digits) return '';
+  
+  // Parse: first 1-6 digits = amount, next 1-3 = count
+  const match = /^(\d{1,6})(\d{1,3})?$/.exec(digits);
+  if (!match) return rawInput;
+  
+  const amt = match[1];
+  const cnt = match[2] || '1';
+  
+  return `${amt} x ${cnt}`;
+};
+
+const parseMaskedInput = (maskedValue: string): { amount: number; count: number } | null => {
+  const match = /^(\d+)\s*x\s*(\d+)$/i.exec(maskedValue);
+  if (!match) return null;
+  
+  return {
+    amount: parseInt(match[1]),
+    count: parseInt(match[2]),
+  };
+};
+
 const dynamicPlaceholder = computed(() => {
   // Priority 1: Reflect current UI state
   if (amount.value && quickInputs.value.length > 0) {
-    return `Press Enter for ₱${amount.value.toLocaleString()} with ${quickInputs.value.length} input(s)`;
+    const voucherText = count.value === 1 ? 'voucher' : 'vouchers';
+    return `Press Enter for ${count.value} ₱${amount.value.toLocaleString()} ${voucherText} with ${quickInputs.value.length} input(s)`;
   }
   
   if (amount.value) {
-    return `Press Enter to generate ₱${amount.value.toLocaleString()} voucher`;
+    const voucherText = count.value === 1 ? 'voucher' : 'vouchers';
+    return `Press Enter to generate ${count.value} ₱${amount.value.toLocaleString()} ${voucherText}`;
   }
   
   if (quickInputs.value.length > 0) {
@@ -104,7 +166,14 @@ const dynamicPlaceholder = computed(() => {
 
 const handleQuickAmount = (amt: number) => {
   amount.value = amt;
-  instruction.value = amt.toString();
+  count.value = 1;
+  tempAmount.value = ''; // Reset accumulator so next digit replaces (select-all behavior)
+  tempCount.value = '1';
+  editMode.value = 'amount';
+  instruction.value = `${amt} x 1`;
+  
+  // Important: Set display to show current value while accumulator is reset
+  // This way the display shows "100 x 1" but tempAmount is "" ready for next digit
 };
 
 const toggleInput = (input: string) => {
@@ -168,13 +237,18 @@ const generateSimple = async (amt: number) => {
     return;
   }
   
+  if (count.value < 1) {
+    error.value = 'Count must be at least 1';
+    return;
+  }
+  
   loading.value = true;
   error.value = null;
   
   try {
     const payload = {
       amount: amt,
-      count: 1,
+      count: count.value,
       input_fields: quickInputs.value,
     };
     
@@ -234,9 +308,123 @@ const shareViaWhatsApp = () => {
 const resetAndCreateAnother = () => {
   generatedVoucher.value = null;
   amount.value = null;
+  count.value = 1;
+  tempAmount.value = '';
+  tempCount.value = '1';
+  editMode.value = 'amount';
   instruction.value = '';
   quickInputs.value = [];
   error.value = null;
+};
+
+// State machine: Handle keyboard input with amount/count mode toggle
+const handleKeyDown = (event: KeyboardEvent) => {
+  const key = event.key;
+  
+  // Check if numeric (0-9)
+  const isNumeric = /^[0-9]$/.test(key);
+  
+  if (isNumeric) {
+    event.preventDefault();
+    
+    if (editMode.value === 'amount') {
+      // If accumulator is empty, this is first digit (replace behavior)
+      // Otherwise append
+      if (tempAmount.value === '') {
+        // First digit after quick amount or mode toggle
+        tempAmount.value = key;
+      } else {
+        // Append to existing
+        tempAmount.value += key;
+      }
+      amount.value = parseInt(tempAmount.value);
+    } else {
+      // Count mode
+      if (tempCount.value === '') {
+        tempCount.value = key;
+      } else {
+        tempCount.value += key;
+      }
+      count.value = parseInt(tempCount.value);
+    }
+    
+    // Update display (always use temp accumulators)
+    instruction.value = `${tempAmount.value} x ${tempCount.value}`;
+  } else if (key === 'Backspace') {
+    event.preventDefault();
+    
+    if (editMode.value === 'amount') {
+      // If accumulator is empty, populate from display first
+      if (tempAmount.value === '' && amount.value) {
+        tempAmount.value = amount.value.toString();
+      }
+      // Remove last digit from amount
+      tempAmount.value = tempAmount.value.slice(0, -1);
+      amount.value = tempAmount.value ? parseInt(tempAmount.value) : null;
+      
+      // If amount is now null, clear instruction to show quick amounts
+      if (!amount.value) {
+        instruction.value = '';
+        return;
+      }
+    } else {
+      // If accumulator is empty, populate from display first
+      if (tempCount.value === '' && count.value) {
+        tempCount.value = count.value.toString();
+      }
+      // Remove last digit from count
+      tempCount.value = tempCount.value.slice(0, -1);
+      if (!tempCount.value) tempCount.value = '1';
+      count.value = parseInt(tempCount.value);
+    }
+    
+    instruction.value = `${tempAmount.value || amount.value} x ${tempCount.value}`;
+  } else if (key === 'Enter') {
+    // Let Enter propagate for form submission
+    return;
+  } else {
+    // Any other key (x, space, letters, etc.) = toggle mode
+    event.preventDefault();
+    
+    if (editMode.value === 'amount') {
+      // Switch to count mode
+      editMode.value = 'count';
+      tempCount.value = ''; // Reset count accumulator (next digit replaces)
+    } else {
+      // Switch back to amount mode
+      editMode.value = 'amount';
+      tempAmount.value = ''; // Reset amount accumulator (next digit replaces)
+    }
+  }
+};
+
+// Click handler: determine mode based on click position
+const handleInputClick = (event: MouseEvent) => {
+  const input = event.target as HTMLInputElement;
+  const cursorPos = input.selectionStart || 0;
+  const xPos = input.value.indexOf(' x ');
+  
+  if (xPos > -1) {
+    if (cursorPos > xPos + 2) {
+      // Clicked in count area
+      editMode.value = 'count';
+    } else {
+      // Clicked in amount area
+      editMode.value = 'amount';
+    }
+  }
+};
+
+// Global keyboard capture for calculator-like UX
+const handleGlobalKeyDown = (event: KeyboardEvent) => {
+  // Don't capture if user is typing in another input or modal is open
+  const target = event.target as HTMLElement;
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || generatedVoucher.value || showTopUpModal.value) {
+    return;
+  }
+  
+  // Forward to our handler
+  handleKeyDown(event);
 };
 
 // Restore intended action after login
@@ -258,19 +446,28 @@ onMounted(() => {
       console.error('Failed to restore intended action:', e);
     }
   }
+  
+  // Attach global keyboard listener
+  window.addEventListener('keydown', handleGlobalKeyDown);
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeyDown);
 });
 
 const isSuperAdmin = computed(() => {
   return page.props.auth?.user?.roles?.includes('super-admin') || false;
 });
 
-// Watch instruction field for amount updates
+// Sync temp values when instruction changes externally (e.g., quick amounts)
 watch(instruction, (val) => {
-  const parsed = parseInt(val);
-  if (!isNaN(parsed) && parsed > 0) {
-    amount.value = parsed;
-  } else {
-    amount.value = null;
+  const parsed = parseMaskedInput(val);
+  if (parsed) {
+    amount.value = parsed.amount;
+    count.value = parsed.count;
+    tempAmount.value = parsed.amount.toString();
+    tempCount.value = parsed.count.toString();
   }
 });
 </script>
@@ -305,14 +502,18 @@ watch(instruction, (val) => {
           </div>
           
           <Input
+            ref="inputRef"
             v-model="instruction"
             :placeholder="dynamicPlaceholder"
             :class="[
-              'text-lg h-12 pr-44',
+              'text-lg h-12 pr-44 ring-2 ring-primary/50',
               showQuickAmounts ? 'pl-[360px]' : 'pl-3'
             ]"
             @keyup.enter="handleSubmit"
+            @keydown="handleKeyDown"
+            @click="handleInputClick"
             :disabled="loading"
+            readonly
           />
           <Button
             @click="handleSubmit"
@@ -331,7 +532,7 @@ watch(instruction, (val) => {
           </Button>
         </div>
         <p v-if="breakdown && amount" class="text-xs text-muted-foreground">
-          ₱{{ amount.toLocaleString() }} + ₱{{ (breakdown.total / 100).toFixed(2) }} fee = ₱{{ estimatedCost.toFixed(2) }}
+          ₱{{ amount.toLocaleString() }} x {{ count }} + ₱{{ (breakdown.total / 100).toFixed(2) }} fee = ₱{{ estimatedCost.toFixed(2) }}
         </p>
         <p v-else class="text-xs text-muted-foreground">
           Enter an amount to see pricing
