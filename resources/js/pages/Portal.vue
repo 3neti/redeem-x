@@ -98,6 +98,10 @@ const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdow
 
 const estimatedCost = computed(() => totalDeduction.value);
 
+const canShare = computed(() => {
+  return typeof navigator !== 'undefined' && 'share' in navigator;
+});
+
 const showQuickAmounts = computed(() => !instruction.value && !amount.value);
 
 const formatAmount = (amt: number): string => {
@@ -305,6 +309,28 @@ const shareViaWhatsApp = () => {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
 
+const handleShare = async () => {
+  if (!generatedVoucher.value) return;
+  
+  const shareData = {
+    title: 'Voucher Code',
+    text: `Your voucher code: ${generatedVoucher.value.code}`,
+    url: `${window.location.origin}/redeem?code=${generatedVoucher.value.code}`,
+  };
+  
+  try {
+    await navigator.share(shareData);
+    toast({
+      title: 'Shared!',
+      description: 'Voucher shared successfully',
+    });
+  } catch (err: any) {
+    if (err.name !== 'AbortError') {
+      console.error('Share failed:', err);
+    }
+  }
+};
+
 const resetAndCreateAnother = () => {
   generatedVoucher.value = null;
   amount.value = null;
@@ -488,9 +514,9 @@ watch(instruction, (val) => {
   <div class="flex min-h-screen flex-col items-center justify-center p-6">
     <!-- Header -->
     <Sparkles class="mb-6 h-16 w-16 text-primary" />
-    <h1 class="mb-2 text-4xl font-bold">Create a voucher instantly</h1>
+    <h1 class="mb-2 text-4xl font-bold">Portal</h1>
     <p class="mb-8 text-muted-foreground">
-      Select amount or describe what you need
+      Generate vouchers instantly
     </p>
     
     <!-- Main Form (hide after generation) -->
@@ -630,21 +656,17 @@ watch(instruction, (val) => {
     
     <!-- Success Card (after generation) -->
     <div v-else class="w-full max-w-2xl space-y-6">
-      <Alert class="border-green-500 bg-green-50">
-        <AlertDescription class="text-green-900">
-          ✓ Voucher created successfully!
-        </AlertDescription>
-      </Alert>
-      
       <!-- Voucher Code Display -->
-      <div class="rounded-lg border-2 border-primary bg-primary/5 p-6 text-center">
-        <p class="mb-2 text-sm font-medium text-muted-foreground">Voucher Code</p>
-        <p class="mb-4 text-4xl font-bold tracking-wider">
+      <div class="rounded-xl border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10 p-8 text-center shadow-lg">
+        <p class="mb-6 text-5xl font-bold tracking-widest text-foreground">
           {{ generatedVoucher.code }}
         </p>
-        <p class="text-lg text-muted-foreground">
-          Amount: ₱{{ generatedVoucher.amount?.toLocaleString() }}
-        </p>
+        <div class="flex items-center justify-center gap-2">
+          <Sparkles class="h-5 w-5 text-primary" />
+          <p class="text-2xl font-semibold text-primary">
+            ₱{{ generatedVoucher.amount?.toLocaleString() }}
+          </p>
+        </div>
       </div>
       
       <!-- Share Buttons -->
@@ -655,21 +677,31 @@ watch(instruction, (val) => {
             <Copy class="mr-2 h-4 w-4" />
             Copy Code
           </Button>
-          <Button variant="outline" class="flex-1" @click="shareViaSMS">
-            <MessageSquare class="mr-2 h-4 w-4" />
-            SMS
-          </Button>
-          <Button variant="outline" class="flex-1" @click="shareViaWhatsApp">
+          <Button 
+            v-if="canShare"
+            variant="outline" 
+            class="flex-1" 
+            @click="handleShare"
+          >
             <Share2 class="mr-2 h-4 w-4" />
-            WhatsApp
+            Share
           </Button>
         </div>
       </div>
       
-      <!-- Create Another -->
+      <!-- Actions -->
       <Button class="w-full" size="lg" @click="resetAndCreateAnother">
         Create Another Voucher
       </Button>
+      
+      <div class="text-center">
+        <Button
+          variant="link"
+          @click="router.visit('/dashboard')"
+        >
+          Go to Dashboard →
+        </Button>
+      </div>
     </div>
     
     <!-- Top-Up Modal (outside main if/else) -->
