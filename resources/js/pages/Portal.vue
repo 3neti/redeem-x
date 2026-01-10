@@ -369,13 +369,13 @@ watch(instruction, (val) => {
           <span class="text-xs">(Sign in to top up)</span>
         </div>
         
-        <!-- Estimated Cost -->
-        <div v-if="amount" class="flex items-center gap-2">
+        <!-- Remaining Balance -->
+        <div v-if="amount && is_authenticated" class="flex items-center gap-2">
           <span 
             class="text-sm"
             :class="estimatedCost > wallet_balance ? 'text-destructive font-medium' : 'text-muted-foreground'"
           >
-            Est. cost: ~₱{{ estimatedCost.toFixed(2) }}
+            Balance after: ₱{{ (wallet_balance - estimatedCost).toFixed(2) }}
           </span>
           <AlertCircle 
             v-if="estimatedCost > wallet_balance" 
