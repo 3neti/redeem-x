@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard, RotateCcw } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
 
@@ -31,6 +31,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const generatedVoucher = ref<any>(null);
 const showTopUpModal = ref(false);
+const showConfirmModal = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 
 /**
@@ -217,7 +218,16 @@ const handleSubmit = async () => {
     return;
   }
   
-  // STEP 3: Generate using parsed amount
+  // STEP 3: Show confirmation modal
+  // TODO: Make confirmation optional via user preference
+  // - Add user setting: confirm_portal_generation (boolean)
+  // - Check setting before showing modal
+  // - Allow power users to skip confirmation
+  showConfirmModal.value = true;
+};
+
+const confirmGeneration = async () => {
+  showConfirmModal.value = false;
   await generateSimple(amount.value);
 };
 
@@ -694,6 +704,74 @@ watch(instruction, (val) => {
             </Button>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+    
+    <!-- Confirmation Modal -->
+    <Dialog v-model:open="showConfirmModal">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <div class="flex items-center gap-3">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Sparkles class="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <DialogTitle class="text-xl">
+                Generate {{ count === 1 ? 'voucher' : `${count} vouchers` }}?
+              </DialogTitle>
+              <DialogDescription class="mt-1">
+                Please confirm the details below
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+        
+        <!-- Cost Breakdown Card -->
+        <div class="space-y-3 rounded-lg border bg-muted/50 p-4">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-muted-foreground">Amount</span>
+            <span class="font-mono text-base font-semibold">₱{{ amount?.toLocaleString() }} × {{ count }}</span>
+          </div>
+          
+          <div class="flex items-center justify-between border-t pt-3">
+            <span class="text-sm text-muted-foreground">Total Cost</span>
+            <span class="font-mono text-base font-semibold">₱{{ estimatedCost.toFixed(2) }}</span>
+          </div>
+          
+          <div class="flex items-center justify-between border-t pt-3">
+            <span class="text-sm font-medium">Balance After</span>
+            <span 
+              class="font-mono text-lg font-bold"
+              :class="estimatedCost > wallet_balance ? 'text-destructive' : 'text-primary'"
+            >
+              ₱{{ (wallet_balance - estimatedCost).toFixed(2) }}
+            </span>
+          </div>
+          
+          <div v-if="quickInputs.length > 0" class="border-t pt-3">
+            <div class="text-sm text-muted-foreground mb-2">Required Inputs:</div>
+            <div class="flex flex-wrap gap-2">
+              <span 
+                v-for="input in quickInputs" 
+                :key="input"
+                class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
+              >
+                {{ input }}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter class="gap-2 sm:gap-2">
+          <DialogClose as-child>
+            <Button variant="outline" class="flex-1 sm:flex-initial">Cancel</Button>
+          </DialogClose>
+          <Button @click="confirmGeneration" :disabled="loading" class="flex-1 sm:flex-initial">
+            <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+            <Sparkles v-else class="mr-2 h-4 w-4" />
+            {{ loading ? 'Generating...' : 'Confirm' }}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </div>
