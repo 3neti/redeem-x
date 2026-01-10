@@ -5,22 +5,72 @@ import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard, RotateCcw } from 'lucide-vue-next';
+import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard, RotateCcw, Receipt } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
+
+interface PortalConfig {
+  branding?: { show_logo?: boolean; show_icon?: boolean };
+  labels?: Record<string, string | boolean>;
+  quick_amounts?: { enabled?: boolean; amounts?: number[] };
+  inputs?: { enabled?: boolean; available?: Record<string, any> };
+  success?: Record<string, string | boolean>;
+  modals?: Record<string, Record<string, string>>;
+}
 
 interface Props {
   is_authenticated: boolean;
   wallet_balance: number;
   vouchers_count: number;
   formatted_balance: string;
+  redemption_endpoint?: string;
+  page_title?: string;
+  page_subtitle?: string;
+  config?: PortalConfig;
 }
 
 const props = defineProps<Props>();
 const page = usePage();
 const { toast } = useToast();
+
+// Get redemption endpoint from props or shared state
+const redemptionEndpoint = computed(() => 
+  props.redemption_endpoint || (page.props as any).redemption_endpoint || '/disburse'
+);
+
+// Get configurable title/subtitle
+const pageTitle = computed(() => props.page_title || (page.props as any).app_name || 'Portal');
+const pageSubtitle = computed(() => props.page_subtitle || 'Generate vouchers instantly');
+
+// Configurable quick amounts
+const quickAmounts = computed(() => {
+  if (props.config?.quick_amounts?.enabled === false) return [];
+  return props.config?.quick_amounts?.amounts || [100, 200, 500, 1000, 2000, 5000];
+});
+
+// Configurable available inputs
+const availableInputs = computed(() => {
+  if (props.config?.inputs?.enabled === false) return [];
+  
+  const inputs = props.config?.inputs?.available || {
+    otp: { enabled: true, label: 'OTP', icon: '🔢' },
+    selfie: { enabled: true, label: 'Selfie', icon: '📸' },
+    location: { enabled: true, label: 'Location', icon: '📍' },
+    signature: { enabled: true, label: 'Signature', icon: '✍️' },
+    kyc: { enabled: true, label: 'KYC', icon: '🆔' },
+  };
+  
+  return Object.entries(inputs)
+    .filter(([_, config]) => (config as any).enabled !== false)
+    .map(([key, config]) => ({
+      value: key,
+      label: (config as any).label || key.toUpperCase(),
+      icon: (config as any).icon || '📋',
+    }));
+});
 
 // Form state
 const amount = ref<number | null>(null);
@@ -67,17 +117,58 @@ const editMode = ref<EditMode>('amount');
 const tempAmount = ref<string>(''); // Accumulator for digits
 const tempCount = ref<string>('1');
 
-// Quick amounts (borrowed from TopUp page pattern)
-const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
+// Quick amounts and available inputs are now computed properties from config (lines 47-72)
 
-// Available input fields (API expects lowercase)
-const availableInputs = [
-  { value: 'otp', label: 'OTP', icon: '🔢' },
-  { value: 'selfie', label: 'Selfie', icon: '📸' },
-  { value: 'location', label: 'Location', icon: '📍' },
-  { value: 'signature', label: 'Signature', icon: '✍️' },
-  { value: 'kyc', label: 'KYC', icon: '🆔' },
-];
+// Payee field state (bank check metaphor: blank/CASH, mobile, or vendor alias)
+const payee = ref<string>(''); // Default to CASH (anyone)
+const showPayeeModal = ref(false);
+const autoAddedFields = ref<Set<string>>(new Set()); // Track auto-added fields (for disable logic)
+
+interface VendorAlias {
+  id: number;
+  alias: string;
+  status: string;
+}
+
+const vendorAliases = ref<VendorAlias[]>([]);
+
+// Smart payee detection (same logic as CreateV2.vue)
+const payeeType = computed(() => {
+  const normalized = payee.value.trim();
+  if (!normalized || normalized.toUpperCase() === 'CASH') return 'anyone';
+  if (/^(\+|09|\+63)/.test(normalized)) return 'mobile';
+  return 'vendor';
+});
+
+const normalizedPayee = computed(() => {
+  const normalized = payee.value.trim();
+  return normalized.toUpperCase() === 'CASH' ? '' : normalized;
+});
+
+const payeeDisplayValue = computed(() => {
+  return payee.value.trim() || 'CASH';
+});
+
+const payeeContextHelp = computed(() => {
+  switch (payeeType.value) {
+    case 'anyone': return 'Anyone can redeem';
+    case 'mobile': return `Restricted to: ${normalizedPayee.value}`;
+    case 'vendor': return `Merchant: ${normalizedPayee.value}`;
+    default: return 'Anyone can redeem';
+  }
+});
+
+// Computed state for OTP checkbox (auto-add + read-only when mobile payee)
+const otpInputState = computed(() => {
+  const isMobileValidation = payeeType.value === 'mobile';
+  const isInFields = quickInputs.value.includes('otp');
+  const isAutoAdded = autoAddedFields.value.has('otp');
+  
+  return {
+    checked: isInFields,
+    disabled: isMobileValidation && isAutoAdded,
+  };
+});
 
 // Live pricing using composable (same as vouchers/generate)
 const instructionsForPricing = computed(() => ({
@@ -181,6 +272,11 @@ const handleQuickAmount = (amt: number) => {
 };
 
 const toggleInput = (input: string) => {
+  // Don't allow toggling OTP if it's disabled (auto-added by mobile payee)
+  if (input === 'otp' && otpInputState.value.disabled) {
+    return;
+  }
+  
   const index = quickInputs.value.indexOf(input);
   if (index > -1) {
     quickInputs.value.splice(index, 1);
@@ -254,6 +350,8 @@ const generateSimple = async (amt: number) => {
       amount: amt,
       count: count.value,
       input_fields: quickInputs.value,
+      validation_mobile: payeeType.value === 'mobile' ? normalizedPayee.value : undefined,
+      validation_payable: payeeType.value === 'vendor' ? normalizedPayee.value : undefined,
     };
     
     // Generate idempotency key for this request
@@ -315,7 +413,7 @@ const handleShare = async () => {
   const shareData = {
     title: 'Voucher Code',
     text: `Your voucher code: ${generatedVoucher.value.code}`,
-    url: `${window.location.origin}/redeem?code=${generatedVoucher.value.code}`,
+    url: `${window.location.origin}${redemptionEndpoint.value}?code=${generatedVoucher.value.code}`,
   };
   
   try {
@@ -457,7 +555,7 @@ const handleInputClick = (event: MouseEvent) => {
 const handleGlobalKeyDown = (event: KeyboardEvent) => {
   // Don't capture if user is typing in another input or modal is open
   const target = event.target as HTMLElement;
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || generatedVoucher.value || showTopUpModal.value) {
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || generatedVoucher.value || showTopUpModal.value || showPayeeModal.value) {
     return;
   }
   
@@ -485,6 +583,11 @@ onMounted(() => {
     }
   }
   
+  // Load vendor aliases
+  axios.get('/settings/vendor-aliases/list').then(response => {
+    vendorAliases.value = response.data.aliases || [];
+  }).catch(err => console.error('Failed to load vendor aliases:', err));
+  
   // Attach global keyboard listener
   window.addEventListener('keydown', handleGlobalKeyDown);
 });
@@ -508,23 +611,45 @@ watch(instruction, (val) => {
     tempCount.value = parsed.count.toString();
   }
 });
+
+// Auto-add OTP when mobile payee (same logic as CreateV2.vue)
+watch(payeeType, (newType, oldType) => {
+  if (newType === 'mobile' && oldType !== 'mobile') {
+    // Mobile validation enabled - auto-add OTP if not present
+    if (!quickInputs.value.includes('otp')) {
+      quickInputs.value.push('otp');
+      autoAddedFields.value.add('otp');
+    }
+  } else if (newType !== 'mobile' && oldType === 'mobile') {
+    // Mobile validation disabled - remove OTP if auto-added
+    if (autoAddedFields.value.has('otp')) {
+      const index = quickInputs.value.indexOf('otp');
+      if (index > -1) {
+        quickInputs.value.splice(index, 1);
+      }
+      autoAddedFields.value.delete('otp');
+    }
+  }
+});
 </script>
 
 <template>
   <div class="flex min-h-screen flex-col items-center justify-center p-6">
     <!-- Header -->
     <Sparkles class="mb-6 h-16 w-16 text-primary" />
-    <h1 class="mb-2 text-4xl font-bold">Portal</h1>
+    <h1 class="mb-2 text-4xl font-bold">{{ pageTitle }}</h1>
     <p class="mb-8 text-muted-foreground">
-      Generate vouchers instantly
+      {{ pageSubtitle }}
     </p>
     
     <!-- Main Form (hide after generation) -->
     <div v-if="!generatedVoucher" class="w-full max-w-2xl space-y-6">
-      <!-- Amount Input with Embedded Quick Amounts -->
+      <!-- Amount Input with Embedded Quick Amounts + Payee Display -->
       <div class="space-y-2">
-        <p class="text-sm font-medium">Amount</p>
-        <div class="relative">
+        <p class="text-sm font-medium">{{ config?.labels?.amount_label || 'Amount' }}</p>
+        <div class="flex gap-2">
+          <!-- Amount Input (fixed width to prevent shifting) -->
+          <div class="relative" style="width: 520px; flex-shrink: 0;">
           <!-- Quick Amount Chips (inside input field, left side) -->
           <div v-if="showQuickAmounts" class="absolute left-2 top-1/2 -translate-y-1/2 flex gap-1 z-10">
             <Button
@@ -543,8 +668,9 @@ watch(instruction, (val) => {
             ref="inputRef"
             v-model="instruction"
             :class="[
-              'text-lg h-12 pr-56 ring-2 ring-primary/50',
-              showQuickAmounts ? 'pl-[360px]' : 'pl-3'
+              'text-lg h-12 ring-2 ring-primary/50',
+              showQuickAmounts ? 'pl-[360px]' : 'pl-3',
+              amount ? 'pr-[220px]' : 'pr-[160px]'
             ]"
             @keyup.enter="handleSubmit"
             @keydown="handleKeyDown"
@@ -557,8 +683,8 @@ watch(instruction, (val) => {
             @click="resetInput"
             variant="ghost"
             size="sm"
-            class="absolute right-[168px] top-1 h-10 w-10 p-0"
-            title="Reset input"
+            class="absolute right-[152px] top-1 h-10 w-10 p-0"
+            :title="config?.labels?.reset_button_title || 'Reset input'"
           >
             <RotateCcw class="h-4 w-4" />
           </Button>
@@ -571,25 +697,51 @@ watch(instruction, (val) => {
           >
             <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
             <template v-else-if="amount">
-              Generate voucher
+              {{ config?.labels?.generate_button_text || 'Generate voucher' }}
             </template>
             <template v-else>
               →
             </template>
           </Button>
+          </div>
+          
+          <!-- Payee Display Field (fixed width to prevent shifting) -->
+          <div class="relative" style="width: 144px; flex-shrink: 0;">
+            <div
+              @click="showPayeeModal = true"
+              class="flex h-12 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              role="button"
+              tabindex="0"
+            >
+              <Receipt v-if="config?.payee?.show_icon !== false" class="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              <div class="flex-1 overflow-hidden">
+                <div v-if="config?.payee?.show_label !== false" class="text-xs text-muted-foreground">{{ config?.payee?.label || 'Payee' }}</div>
+                <div class="text-sm font-medium truncate">{{ payeeDisplayValue }}</div>
+              </div>
+            </div>
+          </div>
         </div>
+        
+        <!-- Contextual help text below both fields -->
+        <p class="text-xs text-muted-foreground">
+          {{ payeeContextHelp }}
+        </p>
         
         <!-- Quick Inputs (moved closer to input) -->
         <div class="flex flex-wrap gap-2">
           <label
             v-for="input in availableInputs"
             :key="input.value"
-            class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors hover:bg-accent"
-            :class="{ 'bg-accent ring-2 ring-primary': quickInputs.includes(input.value) }"
-            @click.prevent="toggleInput(input.value)"
+            :class="[
+              'flex items-center gap-2 rounded-md border px-3 py-2 transition-colors',
+              input.value === 'otp' && otpInputState.disabled ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer hover:bg-accent',
+              quickInputs.includes(input.value) ? 'bg-accent ring-2 ring-primary' : ''
+            ]"
+            @click.prevent="input.value === 'otp' && otpInputState.disabled ? null : toggleInput(input.value)"
           >
             <Checkbox
               :checked="quickInputs.includes(input.value)"
+              :disabled="input.value === 'otp' && otpInputState.disabled"
             />
             <span class="text-lg">{{ input.icon }}</span>
             <span class="text-sm">{{ input.label }}</span>
@@ -644,12 +796,12 @@ watch(instruction, (val) => {
       </Alert>
       
       <!-- Advanced Mode Link -->
-      <div class="text-center">
+      <div v-if="config?.labels?.show_advanced_mode_link !== false" class="text-center">
         <Button
           variant="link"
           @click="router.visit('/vouchers/generate')"
         >
-          Need more options? →
+          {{ config?.labels?.advanced_mode_link_text || 'Need more options? →' }}
         </Button>
       </div>
     </div>
@@ -671,11 +823,11 @@ watch(instruction, (val) => {
       
       <!-- Share Buttons -->
       <div class="space-y-2">
-        <p class="text-sm font-medium">Share:</p>
+        <p class="text-sm font-medium">{{ config?.success?.share_section_label || 'Share:' }}</p>
         <div class="flex gap-2">
           <Button variant="outline" class="flex-1" @click="copyCode">
             <Copy class="mr-2 h-4 w-4" />
-            Copy Code
+            {{ config?.success?.copy_button_text || 'Copy Code' }}
           </Button>
           <Button 
             v-if="canShare"
@@ -684,31 +836,94 @@ watch(instruction, (val) => {
             @click="handleShare"
           >
             <Share2 class="mr-2 h-4 w-4" />
-            Share
+            {{ config?.success?.share_button_text || 'Share' }}
           </Button>
         </div>
       </div>
       
       <!-- Actions -->
       <Button class="w-full" size="lg" @click="resetAndCreateAnother">
-        Create Another Voucher
+        {{ config?.success?.create_another_button_text || 'Create Another Voucher' }}
       </Button>
       
-      <div class="text-center">
+      <div v-if="config?.success?.show_dashboard_link !== false" class="text-center">
         <Button
           variant="link"
           @click="router.visit('/dashboard')"
         >
-          Go to Dashboard →
+          {{ config?.success?.dashboard_link_text || 'Go to Dashboard →' }}
         </Button>
       </div>
     </div>
+    
+    <!-- Payee Edit Modal -->
+    <Dialog v-model:open="showPayeeModal">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{{ config?.modals?.payee?.title || 'Edit Payee' }}</DialogTitle>
+          <DialogDescription>
+            {{ config?.modals?.payee?.description || 'Specify who can redeem this voucher' }}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <Label for="payee-input">
+              {{ config?.modals?.payee?.label || 'Payee' }}
+            </Label>
+            <Input
+              id="payee-input"
+              v-model="payee"
+              :placeholder="config?.modals?.payee?.placeholder || 'CASH (anyone), mobile number, or vendor alias'"
+              list="vendor-aliases-datalist"
+              autofocus
+            />
+            <datalist id="vendor-aliases-datalist">
+              <option v-for="alias in vendorAliases" :key="alias.id" :value="alias.alias" />
+            </datalist>
+            <p class="text-xs text-muted-foreground">
+              {{ payeeContextHelp }}
+            </p>
+          </div>
+          
+          <!-- Quick Presets -->
+          <div v-if="vendorAliases.length > 0" class="space-y-2">
+            <Label class="text-xs">Quick Presets:</Label>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                @click="payee = ''"
+              >
+                Anyone (CASH)
+              </Button>
+              <Button
+                v-for="alias in vendorAliases.slice(0, 3)"
+                :key="alias.id"
+                variant="outline"
+                size="sm"
+                @click="payee = alias.alias"
+              >
+                {{ alias.alias }}
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <DialogClose as-child>
+            <Button variant="outline">{{ config?.modals?.payee?.cancel_text || 'Cancel' }}</Button>
+          </DialogClose>
+          <Button @click="showPayeeModal = false">{{ config?.modals?.payee?.save_text || 'Save' }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     
     <!-- Top-Up Modal (outside main if/else) -->
     <Dialog v-model:open="showTopUpModal">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Top Up Wallet</DialogTitle>
+          <DialogTitle>{{ config?.modals?.top_up?.title || 'Top Up Wallet' }}</DialogTitle>
           <DialogDescription>
             Current balance: {{ formatted_balance }}
           </DialogDescription>
@@ -724,7 +939,7 @@ watch(instruction, (val) => {
               @click="() => { showTopUpModal = false; router.visit('/wallet/qr'); }"
             >
               <QrCode class="mr-2 h-4 w-4" />
-              Scan QR Code to Load Wallet
+              {{ config?.modals?.top_up?.qr_button_text || 'Scan QR Code to Load Wallet' }}
             </Button>
             <Button
               v-if="isSuperAdmin"
@@ -732,7 +947,7 @@ watch(instruction, (val) => {
               @click="() => { showTopUpModal = false; router.visit('/topup'); }"
             >
               <CreditCard class="mr-2 h-4 w-4" />
-              Bank Transfer (Admin Only)
+              {{ config?.modals?.top_up?.bank_button_text || 'Bank Transfer (Admin Only)' }}
             </Button>
           </div>
         </div>
@@ -749,10 +964,13 @@ watch(instruction, (val) => {
             </div>
             <div>
               <DialogTitle class="text-xl">
-                Generate {{ count === 1 ? 'voucher' : `${count} vouchers` }}?
+                {{ count === 1 
+                  ? (config?.modals?.confirm?.title_single || 'Generate voucher?')
+                  : (config?.modals?.confirm?.title_multiple || 'Generate {count} vouchers?').replace('{count}', count.toString())
+                }}
               </DialogTitle>
               <DialogDescription class="mt-1">
-                Please confirm the details below
+                {{ config?.modals?.confirm?.description || 'Please confirm the details below' }}
               </DialogDescription>
             </div>
           </div>
@@ -760,18 +978,27 @@ watch(instruction, (val) => {
         
         <!-- Cost Breakdown Card -->
         <div class="space-y-3 rounded-lg border bg-muted/50 p-4">
+          <!-- Payee info (NEW - above Amount) -->
+          <div class="flex items-center justify-between pb-3 border-b">
+            <span class="text-sm text-muted-foreground">{{ config?.modals?.confirm?.payee_label || 'Payee' }}</span>
+            <div class="flex items-center gap-2">
+              <Receipt class="h-4 w-4 text-muted-foreground" />
+              <span class="font-mono text-base font-semibold">{{ payeeDisplayValue }}</span>
+            </div>
+          </div>
+          
           <div class="flex items-center justify-between">
-            <span class="text-sm text-muted-foreground">Amount</span>
+            <span class="text-sm text-muted-foreground">{{ config?.modals?.confirm?.amount_label || 'Amount' }}</span>
             <span class="font-mono text-base font-semibold">₱{{ amount?.toLocaleString() }} × {{ count }}</span>
           </div>
           
           <div class="flex items-center justify-between border-t pt-3">
-            <span class="text-sm text-muted-foreground">Total Cost</span>
+            <span class="text-sm text-muted-foreground">{{ config?.modals?.confirm?.total_cost_label || 'Total Cost' }}</span>
             <span class="font-mono text-base font-semibold">₱{{ estimatedCost.toFixed(2) }}</span>
           </div>
           
           <div class="flex items-center justify-between border-t pt-3">
-            <span class="text-sm font-medium">Balance After</span>
+            <span class="text-sm font-medium">{{ config?.modals?.confirm?.balance_after_label || 'Balance After' }}</span>
             <span 
               class="font-mono text-lg font-bold"
               :class="estimatedCost > wallet_balance ? 'text-destructive' : 'text-primary'"
@@ -781,7 +1008,7 @@ watch(instruction, (val) => {
           </div>
           
           <div v-if="quickInputs.length > 0" class="border-t pt-3">
-            <div class="text-sm text-muted-foreground mb-2">Required Inputs:</div>
+            <div class="text-sm text-muted-foreground mb-2">{{ config?.modals?.confirm?.required_inputs_label || 'Required Inputs:' }}</div>
             <div class="flex flex-wrap gap-2">
               <span 
                 v-for="input in quickInputs" 
@@ -796,12 +1023,12 @@ watch(instruction, (val) => {
         
         <DialogFooter class="gap-2 sm:gap-2">
           <DialogClose as-child>
-            <Button variant="outline" class="flex-1 sm:flex-initial">Cancel</Button>
+            <Button variant="outline" class="flex-1 sm:flex-initial">{{ config?.modals?.confirm?.cancel_button_text || 'Cancel' }}</Button>
           </DialogClose>
           <Button @click="confirmGeneration" :disabled="loading" class="flex-1 sm:flex-initial">
             <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
             <Sparkles v-else class="mr-2 h-4 w-4" />
-            {{ loading ? 'Generating...' : 'Confirm' }}
+            {{ loading ? (config?.modals?.confirm?.generating_text || 'Generating...') : (config?.modals?.confirm?.confirm_button_text || 'Confirm') }}
           </Button>
         </DialogFooter>
       </DialogContent>

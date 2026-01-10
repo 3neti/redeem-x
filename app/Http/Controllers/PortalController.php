@@ -23,6 +23,9 @@ class PortalController extends Controller
             'wallet_balance' => $user?->balanceFloatNum ?? 0,
             'vouchers_count' => $user?->vouchers()->count() ?? 0,
             'formatted_balance' => $user ? '₱' . number_format($user->balanceFloatNum, 2) : '₱0.00',
+            'page_title' => config('portal.title', 'Portal'),
+            'page_subtitle' => config('portal.subtitle', 'Generate vouchers instantly'),
+            'config' => config('portal'),
         ]);
     }
 }
