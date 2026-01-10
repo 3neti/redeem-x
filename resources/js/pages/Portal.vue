@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard } from 'lucide-vue-next';
+import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard, RotateCcw } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
 
 interface Props {
@@ -316,6 +316,18 @@ const resetAndCreateAnother = () => {
   error.value = null;
 };
 
+// Reset input field (preserves checkbox selections)
+const resetInput = () => {
+  amount.value = null;
+  count.value = 1;
+  tempAmount.value = '';
+  tempCount.value = '1';
+  editMode.value = 'amount';
+  instruction.value = '';
+  error.value = null;
+  // Note: Does NOT reset quickInputs (preserves user selections)
+};
+
 // State machine: Handle keyboard input with amount/count mode toggle
 const handleKeyDown = (event: KeyboardEvent) => {
   const key = event.key;
@@ -503,9 +515,8 @@ watch(instruction, (val) => {
           <Input
             ref="inputRef"
             v-model="instruction"
-            :placeholder="dynamicPlaceholder"
             :class="[
-              'text-lg h-12 pr-44 ring-2 ring-primary/50',
+              'text-lg h-12 pr-56 ring-2 ring-primary/50',
               showQuickAmounts ? 'pl-[360px]' : 'pl-3'
             ]"
             @keyup.enter="handleSubmit"
@@ -514,6 +525,16 @@ watch(instruction, (val) => {
             :disabled="loading"
             readonly
           />
+          <Button
+            v-if="amount"
+            @click="resetInput"
+            variant="ghost"
+            size="sm"
+            class="absolute right-[168px] top-1 h-10 w-10 p-0"
+            title="Reset input"
+          >
+            <RotateCcw class="h-4 w-4" />
+          </Button>
           <Button
             @click="handleSubmit"
             :disabled="!instruction || loading || (amount && estimatedCost > wallet_balance)"
