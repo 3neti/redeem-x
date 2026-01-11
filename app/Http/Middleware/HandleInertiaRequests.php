@@ -83,6 +83,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'redemption_endpoint' => $this->getVoucherSetting('default_redemption_endpoint', '/disburse'),
             'settlement_endpoint' => $this->getVoucherSetting('default_settlement_endpoint', '/pay'),
+            'portal_endpoint' => $this->getVoucherSetting('default_portal_endpoint', '/portal'),
             'settlement_enabled' => Feature::active('settlement-vouchers'),
         ]);
     }

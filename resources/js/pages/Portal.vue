@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Sparkles, Copy, MessageSquare, Share2, Wallet, ChevronDown, AlertCircle, QrCode, CreditCard, RotateCcw, Receipt } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
@@ -85,6 +86,11 @@ const error = ref<string | null>(null);
 const generatedVouchers = ref<any[]>([]);
 const generatedVoucher = computed(() => generatedVouchers.value[0] || null);
 const selectedCodes = ref<Set<string>>(new Set());
+
+// Settlement voucher state
+const voucherType = ref<string>('redeemable');
+const targetAmount = ref<number | null>(null);
+
 const showTopUpModal = ref(false);
 const showConfirmModal = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -163,6 +169,22 @@ const payeeContextHelp = computed(() => {
   }
 });
 
+// Settlement voucher computed properties
+const isAmountDisabled = computed(() => {
+  return voucherType.value === 'payable';
+});
+
+const showSettlementSection = computed(() => {
+  return payeeType.value === 'anyone';
+});
+
+const targetAmountHelpText = computed(() => {
+  if (voucherType.value === 'settlement') {
+    return 'Syncs with amount above (editable)';
+  }
+  return 'Total amount to collect before voucher closes';
+});
+
 // Computed state for OTP checkbox (auto-add + read-only when mobile payee)
 const otpInputState = computed(() => {
   const isMobileValidation = payeeType.value === 'mobile';
@@ -202,7 +224,13 @@ const showQuickAmounts = computed(() => !instruction.value && !amount.value);
 
 // QR code generation for single vouchers
 const voucherCode = ref<string>('');
-const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(voucherCode, redemptionEndpoint.value);
+const qrEndpoint = computed(() => {
+  if (voucherType.value === 'payable') {
+    return (page.props as any).settlement_endpoint || '/pay';
+  }
+  return redemptionEndpoint.value;
+});
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(voucherCode, qrEndpoint);
 const { downloadQr } = useQrShare();
 
 const shouldShowQr = computed(() => {
@@ -307,7 +335,8 @@ const toggleInput = (input: string) => {
 
 const handleSubmit = async () => {
   // Use parsed amount from state machine instead of raw instruction
-  if (!amount.value) {
+  // Allow amount=0 for payable vouchers, but require amount for others
+  if (!amount.value && amount.value !== 0) {
     error.value = 'Please enter an amount';
     return;
   }
@@ -352,7 +381,8 @@ const confirmGeneration = async () => {
 };
 
 const generateSimple = async (amt: number) => {
-  if (amt < 1) {
+  // Allow amount=0 for payable vouchers only
+  if (amt < 1 && voucherType.value !== 'payable') {
     error.value = 'Amount must be at least ₱1';
     return;
   }
@@ -372,6 +402,9 @@ const generateSimple = async (amt: number) => {
       input_fields: quickInputs.value,
       validation_mobile: payeeType.value === 'mobile' ? normalizedPayee.value : undefined,
       validation_payable: payeeType.value === 'vendor' ? normalizedPayee.value : undefined,
+      // Settlement fields (only when CASH payee and not redeemable)
+      voucher_type: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? voucherType.value : undefined,
+      target_amount: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? targetAmount.value : undefined,
     };
     
     // Generate idempotency key for this request
@@ -459,7 +492,19 @@ const handleShare = async () => {
   if (generatedVouchers.value.length === 0) return;
   
   const codes = codesToUse.value.join(', ');
-  const text = `Redeem at: ${window.location.origin}${redemptionEndpoint.value}\nCodes: ${codes}`;
+  let text = '';
+  
+  if (voucherType.value === 'payable') {
+    const url = `${window.location.origin}${(page.props as any).settlement_endpoint || '/pay'}`;
+    text = `Pay at: ${url}\nCode${codes.includes(',') ? 's' : ''}: ${codes}`;
+  } else if (voucherType.value === 'settlement') {
+    const redeemUrl = `${window.location.origin}${redemptionEndpoint.value}`;
+    const settleUrl = `${window.location.origin}${(page.props as any).settlement_endpoint || '/pay'}`;
+    text = `Redeem at: ${redeemUrl}\nSettle at: ${settleUrl}\nCode${codes.includes(',') ? 's' : ''}: ${codes}`;
+  } else {
+    const url = `${window.location.origin}${redemptionEndpoint.value}`;
+    text = `Redeem at: ${url}\nCode${codes.includes(',') ? 's' : ''}: ${codes}`;
+  }
   
   const shareData = {
     title: codesToUse.value.length > 1 ? 'Voucher Codes' : 'Voucher Code',
@@ -484,11 +529,15 @@ const resetAndCreateAnother = () => {
   selectedCodes.value.clear();
   amount.value = null;
   count.value = 1;
+  payee.value = '';
+  voucherType.value = 'redeemable';
+  targetAmount.value = null;
   tempAmount.value = '';
   tempCount.value = '1';
   editMode.value = 'amount';
   instruction.value = '';
   quickInputs.value = [];
+  autoAddedFields.value.clear();
   error.value = null;
 };
 
@@ -664,8 +713,53 @@ watch(instruction, (val) => {
   }
 });
 
+// Voucher type behavior
+watch(voucherType, (newType, oldType) => {
+  if (newType === 'payable') {
+    // Payable: Set amount to 0, read-only
+    amount.value = 0;
+    setTimeout(() => {
+      const targetInput = document.getElementById('portal-target-amount') as HTMLInputElement;
+      if (targetInput) targetInput.focus();
+    }, 100);
+  } else if (newType === 'settlement') {
+    // Settlement: Restore default if coming from payable
+    if (amount.value === 0) {
+      amount.value = null;
+    }
+    // Sync target amount with current amount
+    targetAmount.value = amount.value;
+    setTimeout(() => {
+      const amountInput = document.getElementById('portal-amount') as HTMLInputElement;
+      if (amountInput) {
+        amountInput.focus();
+        amountInput.select();
+      }
+    }, 100);
+  } else if (newType === 'redeemable') {
+    // Redeemable: Reset to default
+    targetAmount.value = null;
+    if (amount.value === 0) {
+      amount.value = null;
+    }
+  }
+});
+
+// Settlement: Sync target amount when amount changes
+watch(amount, (newAmount) => {
+  if (voucherType.value === 'settlement' && newAmount !== null) {
+    targetAmount.value = newAmount;
+  }
+});
+
 // Auto-add OTP when mobile payee (same logic as CreateV2.vue)
 watch(payeeType, (newType, oldType) => {
+  // Reset settlement fields when leaving CASH mode
+  if (oldType === 'anyone' && newType !== 'anyone') {
+    voucherType.value = 'redeemable';
+    targetAmount.value = null;
+  }
+  
   if (newType === 'mobile' && oldType !== 'mobile') {
     // Mobile validation enabled - auto-add OTP if not present
     if (!quickInputs.value.includes('otp')) {
@@ -681,6 +775,13 @@ watch(payeeType, (newType, oldType) => {
       }
       autoAddedFields.value.delete('otp');
     }
+  }
+});
+
+// Watch voucher type to regenerate QR with correct endpoint
+watch(voucherType, () => {
+  if (generatedVouchers.value.length === 1 && voucherCode.value) {
+    generateQr();
   }
 });
 </script>
@@ -720,7 +821,9 @@ watch(payeeType, (newType, oldType) => {
             </Button>
           </div>
           
+          <!-- Redeemable Voucher Input (state machine) -->
           <Input
+            v-if="voucherType === 'redeemable'"
             ref="inputRef"
             v-model="instruction"
             :class="[
@@ -731,6 +834,32 @@ watch(payeeType, (newType, oldType) => {
             @keyup.enter="handleSubmit"
             @keydown="handleKeyDown"
             @click="handleInputClick"
+            :disabled="loading"
+            readonly
+          />
+          
+          <!-- Payable Voucher Display (amount always 0, shows target) -->
+          <Input
+            v-else-if="voucherType === 'payable'"
+            :value="targetAmount ? `Target: ₱${targetAmount.toLocaleString()}` : 'Click Payee to set target amount'"
+            :class="[
+              'text-lg h-12 ring-2 ring-primary/50 pl-3',
+              'pr-[100px] md:pr-[160px]'
+            ]"
+            @keyup.enter="handleSubmit"
+            :disabled="loading"
+            readonly
+          />
+          
+          <!-- Settlement Voucher Display (shows amount and target) -->
+          <Input
+            v-else-if="voucherType === 'settlement'"
+            :value="amount && targetAmount ? `₱${amount.toLocaleString()} → ₱${targetAmount.toLocaleString()}` : 'Click Payee to set amount'"
+            :class="[
+              'text-lg h-12 ring-2 ring-primary/50 pl-3',
+              'pr-[100px] md:pr-[160px]'
+            ]"
+            @keyup.enter="handleSubmit"
             :disabled="loading"
             readonly
           />
@@ -971,23 +1100,22 @@ watch(payeeType, (newType, oldType) => {
     
     <!-- Payee Edit Modal -->
     <Dialog v-model:open="showPayeeModal">
-      <DialogContent class="sm:max-w-md">
+      <DialogContent class="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{{ config?.modals?.payee?.title || 'Edit Payee' }}</DialogTitle>
+          <DialogTitle>Edit Voucher Details</DialogTitle>
           <DialogDescription>
-            {{ config?.modals?.payee?.description || 'Specify who can redeem this voucher' }}
+            Configure payee, amount, and voucher type
           </DialogDescription>
         </DialogHeader>
         
         <div class="space-y-4">
+          <!-- Payee Field -->
           <div class="space-y-2">
-            <Label for="payee-input">
-              {{ config?.modals?.payee?.label || 'Payee' }}
-            </Label>
+            <Label for="payee-input">Payee</Label>
             <Input
               id="payee-input"
               v-model="payee"
-              :placeholder="config?.modals?.payee?.placeholder || 'CASH (anyone), mobile number, or vendor alias'"
+              placeholder="CASH (anyone), mobile number, or vendor alias"
               list="vendor-aliases-datalist"
               autofocus
             />
@@ -999,15 +1127,86 @@ watch(payeeType, (newType, oldType) => {
             </p>
           </div>
           
-          <!-- Quick Presets -->
-          <div v-if="vendorAliases.length > 0" class="space-y-2">
+          <!-- Amount Field (only for CASH/anyone) -->
+          <div v-if="showSettlementSection" class="pt-4 border-t space-y-4">
+            <div class="space-y-2">
+              <Label for="portal-amount">Amount (₱)</Label>
+              <Input
+                id="portal-amount"
+                type="number"
+                v-model.number="amount"
+                :min="1"
+                :step="1"
+                :disabled="isAmountDisabled"
+                :readonly="isAmountDisabled"
+                :class="{ 'opacity-60 cursor-not-allowed': isAmountDisabled }"
+                placeholder="Enter amount"
+              />
+              <p v-if="voucherType === 'payable'" class="text-xs text-muted-foreground">
+                Payable vouchers have no initial amount - set target amount instead
+              </p>
+              <p v-else-if="voucherType === 'settlement'" class="text-xs text-muted-foreground">
+                Settlement amount syncs to target amount (loan principal)
+              </p>
+            </div>
+            
+            <!-- Voucher Type Radio Group -->
+            <div class="space-y-2">
+              <Label>Voucher Type</Label>
+              <RadioGroup v-model="voucherType" class="space-y-2">
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem value="redeemable" id="portal-type-redeemable" />
+                  <Label for="portal-type-redeemable" class="font-normal cursor-pointer">
+                    <div>
+                      <div class="font-medium">Redeemable (Default)</div>
+                      <div class="text-xs text-muted-foreground">Standard one-time redemption voucher</div>
+                    </div>
+                  </Label>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem value="payable" id="portal-type-payable" />
+                  <Label for="portal-type-payable" class="font-normal cursor-pointer">
+                    <div>
+                      <div class="font-medium">Payable</div>
+                      <div class="text-xs text-muted-foreground">Accepts payments until target amount reached</div>
+                    </div>
+                  </Label>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem value="settlement" id="portal-type-settlement" />
+                  <Label for="portal-type-settlement" class="font-normal cursor-pointer">
+                    <div>
+                      <div class="font-medium">Settlement</div>
+                      <div class="text-xs text-muted-foreground">Enterprise settlement instrument (multi-payment)</div>
+                    </div>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <!-- Target Amount Field (for payable/settlement) -->
+            <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
+              <Label for="portal-target-amount">Target Amount (₱)</Label>
+              <Input
+                id="portal-target-amount"
+                type="number"
+                v-model.number="targetAmount"
+                :min="1"
+                :step="0.01"
+                placeholder="Enter target amount"
+                required
+              />
+              <p class="text-xs text-muted-foreground">
+                {{ targetAmountHelpText }}
+              </p>
+            </div>
+          </div>
+          
+          <!-- Quick Presets (vendor aliases) -->
+          <div v-if="vendorAliases.length > 0" class="pt-4 border-t space-y-2">
             <Label class="text-xs">Quick Presets:</Label>
             <div class="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                @click="payee = ''"
-              >
+              <Button variant="outline" size="sm" @click="payee = ''">
                 Anyone (CASH)
               </Button>
               <Button
@@ -1025,9 +1224,9 @@ watch(payeeType, (newType, oldType) => {
         
         <DialogFooter>
           <DialogClose as-child>
-            <Button variant="outline">{{ config?.modals?.payee?.cancel_text || 'Cancel' }}</Button>
+            <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <Button @click="showPayeeModal = false">{{ config?.modals?.payee?.save_text || 'Save' }}</Button>
+          <Button @click="showPayeeModal = false">Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

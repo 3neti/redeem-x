@@ -10,7 +10,8 @@ Route::get('login', function (AuthKitLoginRequest $request) {
 })->middleware(['guest'])->name('login');
 
 Route::get('authenticate', function (AuthKitAuthenticationRequest $request) {
-    return tap(to_route('dashboard'), fn () => $request->authenticate());
+    $homeRoute = app(\App\Settings\VoucherSettings::class)->default_home_route ?? 'portal';
+    return tap(to_route($homeRoute), fn () => $request->authenticate());
 })->middleware(['guest']);
 
 Route::post('logout', function (AuthKitLogoutRequest $request) {

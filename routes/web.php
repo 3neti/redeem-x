@@ -16,7 +16,13 @@ Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::cl
     ->name('load.public');
 
 // Public portal landing page (cash register UI - no authentication required)
-Route::get('/portal', [\App\Http\Controllers\PortalController::class, 'show'])
+// Dynamic endpoint from VoucherSettings (default: /portal)
+try {
+    $portalEndpoint = app(\App\Settings\VoucherSettings::class)->default_portal_endpoint ?? '/portal';
+} catch (\Exception $e) {
+    $portalEndpoint = '/portal'; // Fallback if settings not yet migrated
+}
+Route::get($portalEndpoint, [\App\Http\Controllers\PortalController::class, 'show'])
     ->name('portal');
 
 // Public voucher inspect page (deprecated): hard redirect to /redeem, preserving ?code

@@ -137,7 +137,7 @@ return [
     */
 
     'success' => [
-        'share_section_label' => env('PORTAL_SUCCESS_SHARE_LABEL', 'Share:'),
+        'share_section_label' => env('PORTAL_SUCCESS_SHARE_LABEL', ''),
         'copy_button_text' => env('PORTAL_SUCCESS_COPY_BUTTON_TEXT', 'Copy Code'),
         'share_button_text' => env('PORTAL_SUCCESS_SHARE_BUTTON_TEXT', 'Share'),
         'create_another_button_text' => env('PORTAL_SUCCESS_CREATE_ANOTHER_TEXT', 'Create Another Voucher'),

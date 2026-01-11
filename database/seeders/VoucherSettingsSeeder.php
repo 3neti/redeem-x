@@ -60,6 +60,18 @@ class VoucherSettingsSeeder extends Seeder
                 'payload' => json_encode('/pay'),
                 'locked' => false,
             ],
+            [
+                'group' => 'voucher',
+                'name' => 'default_portal_endpoint',
+                'payload' => json_encode('/portal'),
+                'locked' => false,
+            ],
+            [
+                'group' => 'voucher',
+                'name' => 'default_home_route',
+                'payload' => json_encode('portal'),
+                'locked' => false,
+            ],
         ]);
 
         $this->command->info('VoucherSettings seeded successfully!');

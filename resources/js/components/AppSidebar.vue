@@ -20,7 +20,7 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { BookOpen, LayoutGrid, Ticket, Users, Receipt, Wallet, TicketX, HelpCircle, DollarSign, Settings2, BarChart3, CircleDollarSign } from 'lucide-vue-next';
+import { BookOpen, LayoutGrid, Ticket, Users, Receipt, Wallet, TicketX, HelpCircle, DollarSign, Settings2, BarChart3, CircleDollarSign, Package } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 // Debug flag
@@ -110,10 +110,16 @@ const mainNavItems = computed<NavItem[]>(() => {
 
 const redemptionEndpoint = computed(() => page.props.redemption_endpoint || '/disburse');
 const settlementEndpoint = computed(() => page.props.settlement_endpoint || '/pay');
+const portalEndpoint = computed(() => page.props.portal_endpoint || '/portal');
 const settlementEnabled = computed(() => page.props.settlement_enabled ?? false);
 
 const footerNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
+        {
+            title: 'Portal',
+            href: portalEndpoint.value,
+            icon: Package,
+        },
         {
             title: 'Redeem',
             href: redemptionEndpoint.value,

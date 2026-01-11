@@ -136,7 +136,15 @@ withDefaults(
                     <ul class="flex gap-3 text-sm leading-normal">
                         <li>
                             <a
-                                :href="$page.props.preferences?.default_redemption_endpoint || '/disburse'"
+                                v-if="$page.props.auth.user"
+                                :href="$page.props.portal_endpoint"
+                                class="inline-block rounded-sm border border-black bg-[#1b1b18] px-5 py-1.5 text-sm leading-normal text-white hover:border-black hover:bg-black dark:border-[#eeeeec] dark:bg-[#eeeeec] dark:text-[#1C1C1A] dark:hover:border-white dark:hover:bg-white"
+                            >
+                                Generate Now
+                            </a>
+                            <a
+                                v-else
+                                :href="$page.props.redemption_endpoint"
                                 class="inline-block rounded-sm border border-black bg-[#1b1b18] px-5 py-1.5 text-sm leading-normal text-white hover:border-black hover:bg-black dark:border-[#eeeeec] dark:bg-[#eeeeec] dark:text-[#1C1C1A] dark:hover:border-white dark:hover:bg-white"
                             >
                                 Redeem now

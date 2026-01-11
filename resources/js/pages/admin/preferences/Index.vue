@@ -7,6 +7,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -19,6 +20,8 @@ interface Props {
         default_success_message: string;
         default_redemption_endpoint: string;
         default_settlement_endpoint: string;
+        default_portal_endpoint: string;
+        default_home_route: string;
     };
     status?: string;
 }
@@ -157,6 +160,50 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Path where users settle/pay vouchers (e.g., /pay, /settle). Must start with / and contain only lowercase letters and hyphens.
                         </p>
                         <InputError class="mt-2" :message="errors.default_settlement_endpoint" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="default_portal_endpoint">Portal Endpoint</Label>
+                        <Input
+                            id="default_portal_endpoint"
+                            type="text"
+                            class="mt-1 block w-full"
+                            name="default_portal_endpoint"
+                            :default-value="preferences.default_portal_endpoint"
+                            required
+                            pattern="^\/[a-z-]+$"
+                            placeholder="/portal"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            URL path for the portal voucher generation page (e.g., /portal, /cashier). Must start with / and contain only lowercase letters and hyphens.
+                        </p>
+                        <InputError class="mt-2" :message="errors.default_portal_endpoint" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Default Home Route</Label>
+                        <RadioGroup
+                            name="default_home_route"
+                            :default-value="preferences.default_home_route"
+                            class="flex flex-col gap-3"
+                        >
+                            <div class="flex items-center space-x-2">
+                                <RadioGroupItem value="portal" id="home-portal" />
+                                <Label for="home-portal" class="font-normal cursor-pointer">
+                                    Portal (Cash Register)
+                                </Label>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <RadioGroupItem value="dashboard" id="home-dashboard" />
+                                <Label for="home-dashboard" class="font-normal cursor-pointer">
+                                    Dashboard
+                                </Label>
+                            </div>
+                        </RadioGroup>
+                        <p class="text-sm text-muted-foreground">
+                            Route users land on after login
+                        </p>
+                        <InputError class="mt-2" :message="errors.default_home_route" />
                     </div>
 
                     <div class="flex items-center gap-4">
