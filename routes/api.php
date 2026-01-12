@@ -87,6 +87,9 @@ Route::prefix('v1')
         // Settings API
         require base_path('routes/api/settings.php');
 
+        // Bank Accounts API
+        require base_path('routes/api/bank-accounts.php');
+
         // Contact management API
         require base_path('routes/api/contacts.php');
 
