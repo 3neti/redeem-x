@@ -5,6 +5,7 @@ import { edit } from '@/routes/profile';
 import { useForm, Head, usePage, router } from '@inertiajs/vue3';
 import axios from '@/lib/axios';
 
+import BankAccountsSection from '@/components/settings/BankAccountsSection.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
@@ -428,6 +429,11 @@ onMounted(() => {
                         </Button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Bank Accounts Section -->
+            <div class="flex flex-col space-y-6 border-t pt-6">
+                <BankAccountsSection />
             </div>
 
             <!-- Feature Flags Section (Super Admin Only) -->
