@@ -22,6 +22,7 @@ interface Props {
         default_settlement_endpoint: string;
         default_portal_endpoint: string;
         default_home_route: string;
+        auto_disburse_minimum: number;
     };
     status?: string;
 }
@@ -204,6 +205,26 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Route users land on after login
                         </p>
                         <InputError class="mt-2" :message="errors.default_home_route" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="auto_disburse_minimum">Auto-Disburse Minimum Amount (PHP)</Label>
+                        <Input
+                            id="auto_disburse_minimum"
+                            type="number"
+                            class="mt-1 block w-full"
+                            name="auto_disburse_minimum"
+                            :default-value="preferences.auto_disburse_minimum"
+                            required
+                            min="1"
+                            max="100000"
+                            step="1"
+                            placeholder="25"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Minimum amount (in PHP) required to trigger automatic bank disbursement when settlement vouchers are fully paid. Amounts below this threshold will only transfer to wallet. For testing, set to 50.
+                        </p>
+                        <InputError class="mt-2" :message="errors.auto_disburse_minimum" />
                     </div>
 
                     <div class="flex items-center gap-4">

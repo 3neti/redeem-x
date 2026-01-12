@@ -45,6 +45,7 @@ class User extends Authenticatable implements Wallet, Customer
         'workos_id',
         'avatar',
         'ui_preferences',
+        'bank_accounts',
     ];
 
     /**
@@ -84,6 +85,7 @@ class User extends Authenticatable implements Wallet, Customer
             'signature_secret' => 'string',
             'signature_enabled' => 'boolean',
             'ui_preferences' => 'array',
+            'bank_accounts' => 'array',
         ];
     }
 
@@ -295,5 +297,141 @@ class User extends Authenticatable implements Wallet, Customer
                 'metadata' => json_encode([$metadata]),
             ]);
         }
+    }
+
+    /**
+     * Get all bank accounts for this user.
+     * 
+     * @return array Array of bank account objects
+     */
+    public function getBankAccounts(): array
+    {
+        return $this->bank_accounts ?? [];
+    }
+
+    /**
+     * Add a bank account for this user.
+     * 
+     * @param string $bankCode Bank code (e.g., 'GXCHPHM2XXX', 'BOPIPHMM')
+     * @param string $accountNumber Account number or mobile number
+     * @param string|null $label Optional label (e.g., 'Primary GCash', 'BPI Savings')
+     * @param bool $isDefault Whether this should be the default account
+     * @return array The newly created bank account
+     */
+    public function addBankAccount(string $bankCode, string $accountNumber, ?string $label = null, bool $isDefault = false): array
+    {
+        $accounts = $this->getBankAccounts();
+        
+        // If this is the first account or marked as default, make it default
+        if ($isDefault || empty($accounts)) {
+            // Unset default flag from all existing accounts
+            foreach ($accounts as &$account) {
+                $account['is_default'] = false;
+            }
+        }
+        
+        $newAccount = [
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'bank_code' => $bankCode,
+            'account_number' => $accountNumber,
+            'label' => $label,
+            'is_default' => $isDefault || empty($accounts),
+            'created_at' => now()->toIso8601String(),
+        ];
+        
+        $accounts[] = $newAccount;
+        $this->bank_accounts = $accounts;
+        $this->save();
+        
+        return $newAccount;
+    }
+
+    /**
+     * Remove a bank account by ID.
+     * 
+     * @param string $id Bank account UUID
+     * @return bool Whether the account was removed
+     */
+    public function removeBankAccount(string $id): bool
+    {
+        $accounts = $this->getBankAccounts();
+        $filtered = array_filter($accounts, fn($account) => $account['id'] !== $id);
+        
+        if (count($filtered) === count($accounts)) {
+            return false; // Account not found
+        }
+        
+        $this->bank_accounts = array_values($filtered);
+        $this->save();
+        
+        return true;
+    }
+
+    /**
+     * Get the default bank account.
+     * 
+     * @return array|null Default bank account or null if none set
+     */
+    public function getDefaultBankAccount(): ?array
+    {
+        $accounts = $this->getBankAccounts();
+        
+        foreach ($accounts as $account) {
+            if ($account['is_default'] ?? false) {
+                return $account;
+            }
+        }
+        
+        // If no default set but accounts exist, return first one
+        return !empty($accounts) ? $accounts[0] : null;
+    }
+
+    /**
+     * Set a bank account as default by ID.
+     * 
+     * @param string $id Bank account UUID
+     * @return bool Whether the default was set
+     */
+    public function setDefaultBankAccount(string $id): bool
+    {
+        $accounts = $this->getBankAccounts();
+        $found = false;
+        
+        foreach ($accounts as &$account) {
+            if ($account['id'] === $id) {
+                $account['is_default'] = true;
+                $found = true;
+            } else {
+                $account['is_default'] = false;
+            }
+        }
+        
+        if (!$found) {
+            return false;
+        }
+        
+        $this->bank_accounts = $accounts;
+        $this->save();
+        
+        return true;
+    }
+
+    /**
+     * Get a bank account by ID.
+     * 
+     * @param string $id Bank account UUID
+     * @return array|null Bank account or null if not found
+     */
+    public function getBankAccountById(string $id): ?array
+    {
+        $accounts = $this->getBankAccounts();
+        
+        foreach ($accounts as $account) {
+            if ($account['id'] === $id) {
+                return $account;
+            }
+        }
+        
+        return null;
     }
 }

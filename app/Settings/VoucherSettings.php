@@ -14,6 +14,7 @@ class VoucherSettings extends Settings
     public string $default_settlement_endpoint;
     public string $default_portal_endpoint;
     public string $default_home_route;
+    public int $auto_disburse_minimum;
 
     public static function group(): string
     {

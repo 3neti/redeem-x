@@ -29,6 +29,7 @@ class PreferencesController extends Controller
                 'default_settlement_endpoint' => $settings->default_settlement_endpoint,
                 'default_portal_endpoint' => $settings->default_portal_endpoint,
                 'default_home_route' => $settings->default_home_route,
+                'auto_disburse_minimum' => $settings->auto_disburse_minimum,
             ],
             'status' => $request->session()->get('status'),
         ]);
@@ -48,6 +49,7 @@ class PreferencesController extends Controller
             'default_settlement_endpoint' => ['required', 'string', 'regex:/^\/[a-z-]+$/'],
             'default_portal_endpoint' => ['required', 'string', 'regex:/^\/[a-z-]+$/'],
             'default_home_route' => ['required', 'string', 'in:portal,dashboard'],
+            'auto_disburse_minimum' => ['required', 'integer', 'min:1', 'max:10000'],
         ]);
 
         $settings->default_amount = (int) $request->default_amount;
@@ -58,6 +60,7 @@ class PreferencesController extends Controller
         $settings->default_settlement_endpoint = $request->default_settlement_endpoint;
         $settings->default_portal_endpoint = $request->default_portal_endpoint;
         $settings->default_home_route = $request->default_home_route;
+        $settings->auto_disburse_minimum = (int) $request->auto_disburse_minimum;
         
         $settings->save();
 
@@ -82,6 +85,7 @@ class PreferencesController extends Controller
             $settings->default_settlement_endpoint = '/pay';
             $settings->default_portal_endpoint = '/portal';
             $settings->default_home_route = 'portal';
+            $settings->auto_disburse_minimum = 25;
             $settings->save();
         }
     }

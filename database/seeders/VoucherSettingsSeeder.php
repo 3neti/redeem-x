@@ -72,6 +72,12 @@ class VoucherSettingsSeeder extends Seeder
                 'payload' => json_encode('portal'),
                 'locked' => false,
             ],
+            [
+                'group' => 'voucher',
+                'name' => 'auto_disburse_minimum',
+                'payload' => json_encode(25),
+                'locked' => false,
+            ],
         ]);
 
         $this->command->info('VoucherSettings seeded successfully!');
