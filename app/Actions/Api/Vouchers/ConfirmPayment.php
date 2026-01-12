@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions\Api\Vouchers;
 
 use App\Models\PaymentRequest;
+use App\Services\DisbursementService;
+use App\Settings\VoucherSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +40,10 @@ class ConfirmPayment
     #[BodyParameter('amount', description: 'Payment amount in PHP (manual mode)', type: 'number', example: 100)]
     #[BodyParameter('payment_id', description: 'Optional payment reference ID (manual mode)', type: 'string', example: 'GCASH-123456')]
     #[BodyParameter('payer', description: 'Optional payer mobile/email (manual mode)', type: 'string', example: '09171234567')]
-    public function __invoke(Request $request): JsonResponse
+    #[BodyParameter('disburse_now', description: 'Auto-disburse to bank account (optional)', type: 'boolean', example: false)]
+    #[BodyParameter('bank_account_id', description: 'Bank account UUID to disburse to (required if disburse_now=true)', type: 'string', example: 'uuid-123')]
+    #[BodyParameter('remember_choice', description: 'Remember disbursement choice for future payments (optional)', type: 'boolean', example: false)]
+    public function __invoke(Request $request, DisbursementService $disbursementService, VoucherSettings $settings): JsonResponse
     {
         $request->validate([
             'payment_request_id' => ['nullable', 'integer', 'exists:payment_requests,id'],
@@ -46,6 +51,9 @@ class ConfirmPayment
             'amount' => ['required_without:payment_request_id', 'numeric', 'min:0.01'],
             'payment_id' => ['nullable', 'string'],
             'payer' => ['nullable', 'string'],
+            'disburse_now' => ['nullable', 'boolean'],
+            'bank_account_id' => ['required_if:disburse_now,true', 'nullable', 'string'],
+            'remember_choice' => ['nullable', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -178,6 +186,17 @@ class ConfirmPayment
             }
 
             DB::commit();
+            
+            // Auto-disbursement logic (if requested)
+            $disbursementResult = null;
+            if ($request->boolean('disburse_now')) {
+                $disbursementResult = $this->handleAutoDisbursement(
+                    $request,
+                    $voucher,
+                    $amountInMajorUnits,
+                    $disbursementService
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -187,6 +206,7 @@ class ConfirmPayment
                     'payment_id' => $paymentId,
                     'new_paid_total' => $voucher->fresh()->getPaidTotal(),
                     'remaining' => $voucher->fresh()->getRemaining(),
+                    'disbursement' => $disbursementResult,
                 ],
             ]);
 
@@ -198,5 +218,67 @@ class ConfirmPayment
                 'message' => 'Failed to confirm payment: ' . $e->getMessage(),
             ], 500);
         }
+    }
+    
+    /**
+     * Handle auto-disbursement after payment confirmation.
+     * 
+     * @param Request $request
+     * @param Voucher $voucher
+     * @param float $amount
+     * @param DisbursementService $disbursementService
+     * @return array|null Disbursement result or null
+     */
+    protected function handleAutoDisbursement(
+        Request $request,
+        Voucher $voucher,
+        float $amount,
+        DisbursementService $disbursementService
+    ): ?array {
+        $user = $request->user();
+        $bankAccountId = $request->input('bank_account_id');
+        
+        // Get bank account
+        $bankAccount = $user->getBankAccountById($bankAccountId);
+        if (!$bankAccount) {
+            return [
+                'success' => false,
+                'message' => 'Bank account not found',
+            ];
+        }
+        
+        // Check if voucher is fully paid
+        if ($voucher->fresh()->getRemaining() > 0) {
+            return [
+                'success' => false,
+                'message' => 'Voucher not fully paid yet. Auto-disbursement only works for fully paid vouchers.',
+            ];
+        }
+        
+        // Perform disbursement
+        $result = $disbursementService->disburse(
+            $user,
+            $amount,
+            [
+                'bank_code' => $bankAccount['bank_code'],
+                'account_number' => $bankAccount['account_number'],
+            ],
+            null, // Auto-select rail
+            [
+                'voucher_code' => $voucher->code,
+                'payment_type' => 'settlement',
+            ]
+        );
+        
+        // Save user preference if requested
+        if ($request->boolean('remember_choice')) {
+            $preferences = $user->ui_preferences ?? [];
+            $preferences['auto_disburse_on_settlement'] = true;
+            $preferences['auto_disburse_bank_account_id'] = $bankAccountId;
+            $user->ui_preferences = $preferences;
+            $user->save();
+        }
+        
+        return $result;
     }
 }
