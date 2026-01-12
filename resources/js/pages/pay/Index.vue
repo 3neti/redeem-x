@@ -28,6 +28,7 @@ const paymentMarkedDone = ref(false)
 function handleQuoteLoaded(quoteData: any) {
   quote.value = quoteData
   voucherCode.value = quoteData.voucher_code
+  amount.value = quoteData.remaining.toString()
 }
 
 async function getQuote() {
@@ -64,6 +65,7 @@ async function getQuote() {
     }
 
     quote.value = data
+    amount.value = data.remaining.toString()
   } catch (err: any) {
     error.value = err.message || 'Network error'
   } finally {

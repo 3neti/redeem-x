@@ -135,6 +135,20 @@ const payee = ref<string>(''); // Default to CASH (anyone)
 const showPayeeModal = ref(false);
 const autoAddedFields = ref<Set<string>>(new Set()); // Track auto-added fields (for disable logic)
 
+// Modal state snapshot for Cancel/Save
+const modalSnapshot = ref<{
+  amount: number | null;
+  voucherType: string;
+  targetAmount: number | null;
+  payee: string;
+  instruction: string;
+  tempAmount: string;
+  tempCount: string;
+} | null>(null);
+
+// Flag to prevent watchers from interfering during snapshot restoration
+const isRestoringSnapshot = ref(false);
+
 interface VendorAlias {
   id: number;
   alias: string;
@@ -220,7 +234,46 @@ const canShare = computed(() => {
   return typeof navigator !== 'undefined' && 'share' in navigator;
 });
 
-const showQuickAmounts = computed(() => !instruction.value && !amount.value);
+const isPayeeButtonDisabled = computed(() => {
+  return amount.value === null || amount.value === undefined;
+});
+
+const isSaveButtonDisabled = computed(() => {
+  if (voucherType.value === 'payable') {
+    return !targetAmount.value || targetAmount.value <= 0;
+  }
+  if (voucherType.value === 'settlement') {
+    return !amount.value || !targetAmount.value || amount.value <= 0 || targetAmount.value <= 0;
+  }
+  return false; // Redeemable - always enabled
+});
+
+const isGenerateButtonDisabled = computed(() => {
+  if (loading.value) return true;
+  
+  if (voucherType.value === 'redeemable') {
+    return !instruction.value || (amount.value && estimatedCost.value > props.wallet_balance);
+  }
+  if (voucherType.value === 'payable') {
+    return !targetAmount.value || targetAmount.value <= 0;
+  }
+  if (voucherType.value === 'settlement') {
+    return !amount.value || !targetAmount.value || amount.value <= 0 || targetAmount.value <= 0;
+  }
+  return true;
+});
+
+const showQuickAmounts = computed(() => {
+  // Only show quick amounts for redeemable type when no instruction/amount
+  return voucherType.value === 'redeemable' && !instruction.value && !amount.value;
+});
+
+const settlementDisplayValue = computed(() => {
+  if (amount.value && targetAmount.value) {
+    return `₱${amount.value.toLocaleString()} → ₱${targetAmount.value.toLocaleString()}`;
+  }
+  return 'Click Payee to set amount';
+});
 
 // QR code generation for single vouchers
 const voucherCode = ref<string>('');
@@ -553,6 +606,73 @@ const resetInput = () => {
   // Note: Does NOT reset quickInputs (preserves user selections)
 };
 
+// Handle modal open - capture snapshot
+const handleOpenPayeeModal = () => {
+  modalSnapshot.value = {
+    amount: amount.value,
+    voucherType: voucherType.value,
+    targetAmount: targetAmount.value,
+    payee: payee.value,
+    instruction: instruction.value,
+    tempAmount: tempAmount.value,
+    tempCount: tempCount.value,
+  };
+  showPayeeModal.value = true;
+};
+
+// Handle modal cancel - restore snapshot
+const handleCancelModal = () => {
+  if (modalSnapshot.value) {
+    isRestoringSnapshot.value = true;
+    amount.value = modalSnapshot.value.amount;
+    voucherType.value = modalSnapshot.value.voucherType;
+    targetAmount.value = modalSnapshot.value.targetAmount;
+    payee.value = modalSnapshot.value.payee;
+    instruction.value = modalSnapshot.value.instruction;
+    tempAmount.value = modalSnapshot.value.tempAmount;
+    tempCount.value = modalSnapshot.value.tempCount;
+    modalSnapshot.value = null;
+    isRestoringSnapshot.value = false;
+  }
+  showPayeeModal.value = false;
+};
+
+// Handle modal save - sync instruction and close
+const handleSaveModal = () => {
+  isRestoringSnapshot.value = true;
+  
+  // Sync instruction field for payable/settlement types
+  if (voucherType.value === 'payable') {
+    // Payable always has amount = 0
+    amount.value = 0;
+    instruction.value = '0 x 1';
+    tempAmount.value = '0';
+    tempCount.value = '1';
+  } else if (voucherType.value === 'settlement') {
+    // Settlement: ensure amount and instruction are synced
+    // If no amount, use snapshot amount (user switched to settlement but didn't edit)
+    if (!amount.value && modalSnapshot.value?.amount) {
+      amount.value = modalSnapshot.value.amount;
+    }
+    if (amount.value) {
+      instruction.value = `${amount.value} x ${count.value}`;
+      tempAmount.value = amount.value.toString();
+      tempCount.value = count.value.toString();
+    }
+  } else if (voucherType.value === 'redeemable') {
+    // Redeemable: ensure instruction is synced
+    if (amount.value) {
+      instruction.value = `${amount.value} x ${count.value}`;
+      tempAmount.value = amount.value.toString();
+      tempCount.value = count.value.toString();
+    }
+  }
+  
+  modalSnapshot.value = null;
+  isRestoringSnapshot.value = false;
+  showPayeeModal.value = false;
+};
+
 // State machine: Handle keyboard input with amount/count mode toggle
 const handleKeyDown = (event: KeyboardEvent) => {
   const key = event.key;
@@ -704,6 +824,9 @@ const isSuperAdmin = computed(() => {
 
 // Sync temp values when instruction changes externally (e.g., quick amounts)
 watch(instruction, (val) => {
+  // Don't run watcher during snapshot restoration
+  if (isRestoringSnapshot.value) return;
+  
   const parsed = parseMaskedInput(val);
   if (parsed) {
     amount.value = parsed.amount;
@@ -715,6 +838,9 @@ watch(instruction, (val) => {
 
 // Voucher type behavior
 watch(voucherType, (newType, oldType) => {
+  // Don't run watcher during snapshot restoration
+  if (isRestoringSnapshot.value) return;
+  
   if (newType === 'payable') {
     // Payable: Set amount to 0, read-only
     amount.value = 0;
@@ -723,17 +849,17 @@ watch(voucherType, (newType, oldType) => {
       if (targetInput) targetInput.focus();
     }, 100);
   } else if (newType === 'settlement') {
-    // Settlement: Restore default if coming from payable
-    if (amount.value === 0) {
-      amount.value = null;
-    }
-    // Sync target amount with current amount
-    targetAmount.value = amount.value;
+    // Settlement: Clear amount to force user to enter values
+    // This ensures the display is always correct after switching
+    const previousAmount = amount.value;
+    amount.value = null;
+    targetAmount.value = null;
+    
+    // Focus on amount input to prompt user
     setTimeout(() => {
       const amountInput = document.getElementById('portal-amount') as HTMLInputElement;
       if (amountInput) {
         amountInput.focus();
-        amountInput.select();
       }
     }, 100);
   } else if (newType === 'redeemable') {
@@ -854,7 +980,7 @@ watch(voucherType, () => {
           <!-- Settlement Voucher Display (shows amount and target) -->
           <Input
             v-else-if="voucherType === 'settlement'"
-            :value="amount && targetAmount ? `₱${amount.toLocaleString()} → ₱${targetAmount.toLocaleString()}` : 'Click Payee to set amount'"
+            :value="settlementDisplayValue"
             :class="[
               'text-lg h-12 ring-2 ring-primary/50 pl-3',
               'pr-[100px] md:pr-[160px]'
@@ -876,14 +1002,14 @@ watch(voucherType, () => {
           </Button>
           <Button
             @click="handleSubmit"
-            :disabled="!instruction || loading || (amount && estimatedCost > wallet_balance)"
+            :disabled="isGenerateButtonDisabled"
             class="absolute right-1 top-1 h-10"
             :class="amount ? 'w-[90px] md:min-w-[140px]' : 'w-[90px] md:min-w-[140px]'"
             size="sm"
             :variant="amount && estimatedCost > wallet_balance ? 'destructive' : 'default'"
           >
-            <Loader2 v-if="loading" class="h-4 w-4 animate-spin" :class="amount ? '' : 'md:mr-2'" />
-            <template v-else-if="amount">
+            <Loader2 v-if="loading" class="h-4 w-4 animate-spin" :class="amount || targetAmount ? '' : 'md:mr-2'" />
+            <template v-else-if="amount || targetAmount">
               <span class="hidden md:inline">{{ config?.labels?.generate_button_text || 'Generate voucher' }}</span>
               <span class="md:hidden">Generate</span>
             </template>
@@ -896,10 +1022,16 @@ watch(voucherType, () => {
           <!-- Payee Display Field (full-width on mobile, fixed on desktop) -->
           <div class="relative w-full md:w-[144px] md:flex-shrink-0">
             <div
-              @click="showPayeeModal = true"
-              class="flex h-12 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @click="!isPayeeButtonDisabled && handleOpenPayeeModal()"
+              :class="[
+                'flex h-12 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-2 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                isPayeeButtonDisabled 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'cursor-pointer hover:bg-accent hover:text-accent-foreground'
+              ]"
               role="button"
-              tabindex="0"
+              :tabindex="isPayeeButtonDisabled ? -1 : 0"
+              :aria-disabled="isPayeeButtonDisabled"
             >
               <Receipt v-if="config?.payee?.show_icon !== false" class="h-4 w-4 flex-shrink-0 text-muted-foreground" />
               <div class="flex-1 overflow-hidden">
@@ -1223,10 +1355,8 @@ watch(voucherType, () => {
         </div>
         
         <DialogFooter>
-          <DialogClose as-child>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button @click="showPayeeModal = false">Save</Button>
+          <Button variant="outline" @click="handleCancelModal">Cancel</Button>
+          <Button @click="handleSaveModal" :disabled="isSaveButtonDisabled">Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
