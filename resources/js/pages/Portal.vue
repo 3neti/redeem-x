@@ -275,6 +275,36 @@ const settlementDisplayValue = computed(() => {
   return 'Click Payee to set amount';
 });
 
+const confirmModalTitle = computed(() => {
+  const voucherText = count.value === 1 ? 'voucher' : 'vouchers';
+  
+  if (voucherType.value === 'payable') {
+    return count.value === 1 
+      ? 'Create payment voucher?' 
+      : `Create ${count.value} payment ${voucherText}?`;
+  }
+  
+  if (voucherType.value === 'settlement') {
+    return count.value === 1 
+      ? 'Create settlement voucher?' 
+      : `Create ${count.value} settlement ${voucherText}?`;
+  }
+  
+  // Redeemable (default)
+  return count.value === 1 
+    ? 'Generate voucher?' 
+    : `Generate ${count.value} ${voucherText}?`;
+});
+
+const voucherTypeDisplay = computed(() => {
+  switch (voucherType.value) {
+    case 'payable': return 'Payable';
+    case 'settlement': return 'Settlement';
+    case 'redeemable': return 'Redeemable';
+    default: return 'Redeemable';
+  }
+});
+
 // QR code generation for single vouchers
 const voucherCode = ref<string>('');
 const qrEndpoint = computed(() => {
@@ -1406,10 +1436,7 @@ watch(voucherType, () => {
             </div>
             <div>
               <DialogTitle class="text-xl">
-                {{ count === 1 
-                  ? (config?.modals?.confirm?.title_single || 'Generate voucher?')
-                  : (config?.modals?.confirm?.title_multiple || 'Generate {count} vouchers?').replace('{count}', count.toString())
-                }}
+                {{ confirmModalTitle }}
               </DialogTitle>
               <DialogDescription class="mt-1">
                 {{ config?.modals?.confirm?.description || 'Please confirm the details below' }}
@@ -1420,7 +1447,7 @@ watch(voucherType, () => {
         
         <!-- Cost Breakdown Card -->
         <div class="space-y-3 rounded-lg border bg-muted/50 p-4">
-          <!-- Payee info (NEW - above Amount) -->
+          <!-- Payee info -->
           <div class="flex items-center justify-between pb-3 border-b">
             <span class="text-sm text-muted-foreground">{{ config?.modals?.confirm?.payee_label || 'Payee' }}</span>
             <div class="flex items-center gap-2">
@@ -1429,14 +1456,33 @@ watch(voucherType, () => {
             </div>
           </div>
           
+          <!-- Voucher Type -->
           <div class="flex items-center justify-between">
+            <span class="text-sm text-muted-foreground">Voucher Type</span>
+            <span class="font-mono text-base font-semibold">{{ voucherTypeDisplay }}</span>
+          </div>
+          
+          <!-- Amount (hidden for payable) -->
+          <div v-if="voucherType !== 'payable'" class="flex items-center justify-between">
             <span class="text-sm text-muted-foreground">{{ config?.modals?.confirm?.amount_label || 'Amount' }}</span>
             <span class="font-mono text-base font-semibold">₱{{ amount?.toLocaleString() }} × {{ count }}</span>
           </div>
           
+          <!-- Target Amount (only for payable/settlement) -->
+          <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="flex items-center justify-between">
+            <span class="text-sm text-muted-foreground">Target Amount</span>
+            <span class="font-mono text-base font-semibold">₱{{ targetAmount?.toLocaleString() }}</span>
+          </div>
+          
+          <!-- Current Balance -->
+          <div class="flex items-center justify-between border-t pt-3">
+            <span class="text-sm text-muted-foreground">Current Balance</span>
+            <span class="font-mono text-base font-semibold">{{ formatted_balance }}</span>
+          </div>
+          
           <div class="flex items-center justify-between border-t pt-3">
             <span class="text-sm text-muted-foreground">{{ config?.modals?.confirm?.total_cost_label || 'Total Cost' }}</span>
-            <span class="font-mono text-base font-semibold">₱{{ estimatedCost.toFixed(2) }}</span>
+            <span class="font-mono text-base font-semibold">₱{{ estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
           </div>
           
           <div class="flex items-center justify-between border-t pt-3">
@@ -1445,7 +1491,7 @@ watch(voucherType, () => {
               class="font-mono text-lg font-bold"
               :class="estimatedCost > wallet_balance ? 'text-destructive' : 'text-primary'"
             >
-              ₱{{ (wallet_balance - estimatedCost).toFixed(2) }}
+              ₱{{ (wallet_balance - estimatedCost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
             </span>
           </div>
           
