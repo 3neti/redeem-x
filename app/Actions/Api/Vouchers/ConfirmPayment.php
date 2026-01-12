@@ -61,17 +61,34 @@ class ConfirmPayment
         
         // Mode 1: Confirm from PaymentRequest (QR payment)
         if ($paymentRequestId) {
+            Log::info('[ConfirmPayment] Looking up payment request', [
+                'payment_request_id' => $paymentRequestId,
+            ]);
+            
             $paymentRequest = PaymentRequest::with('voucher.owner')->find($paymentRequestId);
             
             if (!$paymentRequest) {
+                Log::warning('[ConfirmPayment] Payment request not found', [
+                    'payment_request_id' => $paymentRequestId,
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment request not found',
                 ], 404);
             }
             
+            Log::info('[ConfirmPayment] Payment request found', [
+                'payment_request_id' => $paymentRequestId,
+                'status' => $paymentRequest->status,
+                'voucher_code' => $paymentRequest->voucher->code ?? 'N/A',
+            ]);
+            
             // Check if payment request is awaiting confirmation
             if ($paymentRequest->status !== 'awaiting_confirmation') {
+                Log::warning('[ConfirmPayment] Payment request already processed', [
+                    'payment_request_id' => $paymentRequestId,
+                    'current_status' => $paymentRequest->status,
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment request is not awaiting confirmation',
@@ -130,12 +147,26 @@ class ConfirmPayment
         try {
             DB::beginTransaction();
 
-            // Get cash entity (voucher's wallet)
+            // Get or create cash entity (voucher's wallet)
+            // Settlement vouchers don't have cash entity until first payment
             $cash = $voucher->cash;
-            if (!$cash || !$cash->wallet) {
+            if (!$cash) {
+                Log::info('[ConfirmPayment] Creating cash entity for first payment', [
+                    'voucher_code' => $voucher->code,
+                ]);
+                
+                $cash = \LBHurtado\Cash\Models\Cash::create([
+                    'amount' => 0,
+                    'currency' => 'PHP',
+                ]);
+                $voucher->cashable()->associate($cash);
+                $voucher->save();
+            }
+            
+            if (!$cash->wallet) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Voucher has no wallet',
+                    'message' => 'Voucher wallet not initialized',
                 ], 500);
             }
             
@@ -188,14 +219,41 @@ class ConfirmPayment
             DB::commit();
             
             // Auto-disbursement logic (if requested)
+            // NOTE: This runs AFTER commit, so payment is already confirmed
+            // If disbursement fails, payment still succeeds
             $disbursementResult = null;
             if ($request->boolean('disburse_now')) {
-                $disbursementResult = $this->handleAutoDisbursement(
-                    $request,
-                    $voucher,
-                    $amountInMajorUnits,
-                    $disbursementService
-                );
+                try {
+                    Log::info('[ConfirmPayment] Attempting auto-disbursement', [
+                        'voucher_code' => $voucher->code,
+                        'amount' => $amountInMajorUnits,
+                        'bank_account_id' => $request->input('bank_account_id'),
+                    ]);
+                    
+                    $disbursementResult = $this->handleAutoDisbursement(
+                        $request,
+                        $voucher,
+                        $amountInMajorUnits,
+                        $disbursementService
+                    );
+                    
+                    Log::info('[ConfirmPayment] Auto-disbursement completed', [
+                        'success' => $disbursementResult['success'] ?? false,
+                        'message' => $disbursementResult['message'] ?? 'N/A',
+                    ]);
+                } catch (\Throwable $e) {
+                    // Disbursement failed, but payment already confirmed
+                    Log::error('[ConfirmPayment] Auto-disbursement exception', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    
+                    $disbursementResult = [
+                        'success' => false,
+                        'message' => 'Disbursement failed: ' . $e->getMessage(),
+                        'error' => 'exception',
+                    ];
+                }
             }
 
             return response()->json([
@@ -265,6 +323,7 @@ class ConfirmPayment
             ],
             null, // Auto-select rail
             [
+                'voucher_id' => $voucher->id,
                 'voucher_code' => $voucher->code,
                 'payment_type' => 'settlement',
             ]

@@ -353,6 +353,8 @@ const instructionsFormData = computed(() => {
                     <VoucherDetailsTabContent 
                         :voucher="voucher" 
                         :redemption="redemptionInputs"
+                        :voucher-type="settlement?.type"
+                        :available-balance="settlement?.available_balance ?? 0"
                     />
                     
                     <!-- Payments (for payable/settlement vouchers) -->
@@ -396,10 +398,13 @@ const instructionsFormData = computed(() => {
                 <VoucherOwnerView v-if="voucher.owner" :owner="voucher.owner" />
 
                 <!-- QR Code Section -->
-                <!-- Show only for unredeemed, unexpired vouchers (redemption QR only) -->
+                <!-- Show redemption QR based on voucher type: -->
+                <!-- - Payable: Never show (payment-only) -->
+                <!-- - Settlement: Show only if available_balance > 0 (can redeem collected funds) -->
+                <!-- - Regular: Show if unredeemed and unexpired -->
                 <!-- Payment QRs are generated in /pay page, not here -->
                 <div 
-                    v-if="!voucher.is_redeemed && !voucher.is_expired" 
+                    v-if="!voucher.is_redeemed && !voucher.is_expired && settlement?.type !== 'payable' && (!settlement || settlement.available_balance > 0)" 
                     class="grid gap-6 md:grid-cols-2"
                 >
                     <!-- QR Display -->

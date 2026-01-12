@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { ArrowDownLeft, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useToast } from '@/components/ui/toast/use-toast'
+import AutoDisbursementModal from './AutoDisbursementModal.vue'
 
 interface Props {
     voucherCode: string
@@ -50,6 +51,10 @@ const pendingRequests = ref<PendingPaymentRequest[]>([])
 const loadingPending = ref(false)
 const pendingError = ref<string | null>(null)
 const confirmingRequestId = ref<number | null>(null)
+
+// Auto-disbursement modal state
+const showDisbursementModal = ref(false)
+const pendingPaymentForDisbursement = ref<PendingPaymentRequest | null>(null)
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -106,52 +111,29 @@ const fetchPaymentHistory = async () => {
 }
 
 const confirmPendingPayment = async (paymentRequestId: number) => {
-    confirmingRequestId.value = paymentRequestId
+    // Find the payment request to get the amount
+    const request = pendingRequests.value.find(r => r.id === paymentRequestId)
+    if (!request) return
     
-    try {
-        const csrfToken = (page.props as any).csrf_token || 
-                          document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        
-        const response = await fetch('/api/v1/vouchers/confirm-payment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-                payment_request_id: paymentRequestId,
-            }),
-        })
-        
-        const data = await response.json()
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to confirm payment')
-        }
-        
-        toast({
-            title: 'Payment Confirmed',
-            description: `Payment has been credited to this voucher`,
-        })
-        
-        // Refresh pending payments and history
-        await fetchPendingPayments()
-        historyLoaded.value = false
-        await fetchPaymentHistory()
-        
-        // Reload page to update settlement details
-        window.location.reload()
-        
-    } catch (err: any) {
-        toast({
-            title: 'Confirmation Failed',
-            description: err.message || 'Failed to confirm payment',
-            variant: 'destructive',
-        })
-    } finally {
-        confirmingRequestId.value = null
-    }
+    // Store the request and show modal
+    pendingPaymentForDisbursement.value = request
+    showDisbursementModal.value = true
+}
+
+const handleDisbursementConfirmed = async () => {
+    // Refresh data after disbursement
+    toast({
+        title: 'Payment Confirmed',
+        description: `Payment has been processed`,
+    })
+    
+    // Refresh pending payments and history
+    await fetchPendingPayments()
+    historyLoaded.value = false
+    await fetchPaymentHistory()
+    
+    // Reload page to update settlement details
+    window.location.reload()
 }
 
 // Auto-load data on mount
@@ -276,4 +258,14 @@ fetchPaymentHistory()
             </div>
         </CardContent>
     </Card>
+    
+    <!-- Auto-Disbursement Modal -->
+    <AutoDisbursementModal
+        v-if="pendingPaymentForDisbursement"
+        v-model:open="showDisbursementModal"
+        :voucher-code="voucherCode"
+        :amount="pendingPaymentForDisbursement.amount"
+        :payment-request-id="pendingPaymentForDisbursement.id"
+        @confirmed="handleDisbursementConfirmed"
+    />
 </template>

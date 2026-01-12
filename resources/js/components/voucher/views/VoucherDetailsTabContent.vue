@@ -40,6 +40,8 @@ interface RedemptionData {
 interface Props {
     voucher: VoucherData;
     redemption?: RedemptionData | null;
+    voucherType?: string;
+    availableBalance?: number;
 }
 
 const props = defineProps<Props>();
@@ -48,7 +50,11 @@ const props = defineProps<Props>();
 <template>
     <div class="space-y-6">
         <!-- Voucher Details -->
-        <VoucherDetailsView :voucher="voucher" />
+        <VoucherDetailsView 
+            :voucher="voucher" 
+            :voucher-type="voucherType"
+            :available-balance="availableBalance"
+        />
 
         <!-- Redemption Information (if redeemed) -->
         <VoucherRedemptionView

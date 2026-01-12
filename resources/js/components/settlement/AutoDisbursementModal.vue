@@ -49,6 +49,7 @@ const bankAccounts = ref<BankAccount[]>([]);
 const selectedBankAccountId = ref<string>('');
 const rememberChoice = ref(false);
 const disbursing = ref(false);
+const processing = ref(false); // Prevent double-clicks
 const error = ref<string | null>(null);
 
 // Computed
@@ -80,49 +81,113 @@ const loadBankAccounts = async () => {
 };
 
 const handleTransferToWallet = async () => {
-    // Just close - payment already confirmed
-    emit('update:open', false);
-    emit('confirmed');
-};
-
-const handleDisburseToBank = async () => {
-    if (!selectedBankAccountId.value) {
-        error.value = 'Please select a bank account';
+    if (processing.value) {
+        console.log('[AutoDisbursementModal] Already processing, ignoring click');
         return;
     }
-
+    
+    console.log('[AutoDisbursementModal] Transfer to Wallet clicked', {
+        paymentRequestId: props.paymentRequestId,
+        voucherCode: props.voucherCode,
+        amount: props.amount,
+    });
+    
+    processing.value = true;
     disbursing.value = true;
     error.value = null;
 
     try {
-        const { data } = await axios.post('/api/v1/vouchers/confirm-payment', {
+        const payload = {
+            payment_request_id: props.paymentRequestId,
+            voucher_code: props.voucherCode,
+            amount: props.amount,
+            disburse_now: false, // Just confirm, don't disburse
+        };
+        
+        console.log('[AutoDisbursementModal] Sending confirm-payment request', payload);
+        const { data } = await axios.post('/api/v1/vouchers/confirm-payment', payload);
+
+        console.log('[AutoDisbursementModal] Transfer to Wallet response', data);
+        
+        if (data.success) {
+            console.log('[AutoDisbursementModal] Success - closing modal');
+            emit('update:open', false);
+            emit('confirmed');
+        } else {
+            console.log('[AutoDisbursementModal] Failed -', data.message);
+            error.value = data.message || 'Failed to confirm payment';
+        }
+    } catch (err: any) {
+        console.error('[AutoDisbursementModal] Confirmation error:', err);
+        error.value = err.response?.data?.message || err.message || 'Failed to confirm payment';
+    } finally {
+        disbursing.value = false;
+        processing.value = false;
+    }
+};
+
+const handleDisburseToBank = async () => {
+    if (processing.value) {
+        console.log('[AutoDisbursementModal] Already processing, ignoring click');
+        return;
+    }
+    
+    if (!selectedBankAccountId.value) {
+        error.value = 'Please select a bank account';
+        return;
+    }
+    
+    console.log('[AutoDisbursementModal] Disburse to Bank clicked', {
+        paymentRequestId: props.paymentRequestId,
+        voucherCode: props.voucherCode,
+        amount: props.amount,
+        bankAccountId: selectedBankAccountId.value,
+        rememberChoice: rememberChoice.value,
+    });
+
+    processing.value = true;
+    disbursing.value = true;
+    error.value = null;
+
+    try {
+        const payload = {
             payment_request_id: props.paymentRequestId,
             voucher_code: props.voucherCode,
             amount: props.amount,
             disburse_now: true,
             bank_account_id: selectedBankAccountId.value,
             remember_choice: rememberChoice.value,
-        });
+        };
+        
+        console.log('[AutoDisbursementModal] Sending disburse request', payload);
+        const { data } = await axios.post('/api/v1/vouchers/confirm-payment', payload);
 
+        console.log('[AutoDisbursementModal] Disburse to Bank response', data);
+        
         if (data.success) {
             const disbursement = data.data?.disbursement;
+            console.log('[AutoDisbursementModal] Disbursement result', disbursement);
             
             if (disbursement?.success) {
+                console.log('[AutoDisbursementModal] Disbursement success - closing modal');
                 // Success - close modal and notify
                 emit('update:open', false);
                 emit('confirmed');
             } else {
+                console.log('[AutoDisbursementModal] Disbursement failed', disbursement?.message);
                 // Disbursement failed, but payment was confirmed
                 error.value = disbursement?.message || 'Disbursement failed. Payment was confirmed but funds remain in wallet.';
             }
         } else {
+            console.log('[AutoDisbursementModal] API call failed', data.message);
             error.value = data.message || 'Failed to process disbursement';
         }
     } catch (err: any) {
-        console.error('Disbursement error:', err);
+        console.error('[AutoDisbursementModal] Disbursement error:', err);
         error.value = err.response?.data?.message || err.message || 'Failed to process disbursement';
     } finally {
         disbursing.value = false;
+        processing.value = false;
     }
 };
 
@@ -149,9 +214,9 @@ onMounted(() => {
     <Dialog :open="open" @update:open="(val) => $emit('update:open', val)">
         <DialogContent class="sm:max-w-[500px]">
             <DialogHeader>
-                <DialogTitle>Payment Confirmed</DialogTitle>
+                <DialogTitle>Confirm Payment</DialogTitle>
                 <DialogDescription>
-                    How would you like to receive the funds?
+                    Choose where you want to receive the funds after confirmation.
                 </DialogDescription>
             </DialogHeader>
 
@@ -230,18 +295,19 @@ onMounted(() => {
                     type="button"
                     variant="outline"
                     @click="handleTransferToWallet"
-                    :disabled="disbursing"
+                    :disabled="processing || disbursing"
                     class="flex-1"
                 >
-                    <Wallet class="h-4 w-4 mr-2" />
-                    Transfer to Wallet
+                    <Loader2 v-if="disbursing" class="h-4 w-4 mr-2 animate-spin" />
+                    <Wallet v-else class="h-4 w-4 mr-2" />
+                    {{ disbursing ? 'Confirming...' : 'Transfer to Wallet' }}
                 </Button>
 
                 <!-- Disburse to Bank Button -->
                 <Button
                     type="button"
                     @click="handleDisburseToBank"
-                    :disabled="!hasAccounts || !selectedBankAccountId || disbursing"
+                    :disabled="!hasAccounts || !selectedBankAccountId || processing || disbursing"
                     class="flex-1"
                 >
                     <Loader2 v-if="disbursing" class="h-4 w-4 mr-2 animate-spin" />

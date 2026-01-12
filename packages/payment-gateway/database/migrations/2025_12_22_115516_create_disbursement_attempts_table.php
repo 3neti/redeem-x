@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('disbursement_attempts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('voucher_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('voucher_id')->nullable()->constrained()->cascadeOnDelete(); // Nullable for settlement disbursements
             $table->foreignId('user_id')->nullable()->constrained(); // Voucher issuer
             $table->string('voucher_code')->index();
             $table->decimal('amount', 10, 2);

@@ -29,9 +29,18 @@ interface VoucherData {
 
 interface Props {
     voucher: VoucherData;
+    voucherType?: string;
+    availableBalance?: number;
 }
 
 const props = defineProps<Props>();
+
+const showRedemptionLink = computed(() => {
+    if (props.voucher.is_redeemed || props.voucher.is_expired) return false;
+    if (props.voucherType === 'payable') return false;
+    if (props.voucherType === 'settlement' && (props.availableBalance ?? 0) <= 0) return false;
+    return true;
+});
 
 const page = usePage();
 const copied = ref(false);
@@ -102,7 +111,7 @@ const copyRedeemLink = async () => {
                         <Copy v-else class="h-4 w-4" />
                     </Button>
                 </div>
-                <div v-if="!voucher.is_redeemed && !voucher.is_expired" class="space-y-2">
+                <div v-if="showRedemptionLink" class="space-y-2">
                     <div class="text-sm font-medium">Redemption Link</div>
                     <div class="flex items-center gap-2">
                         <code class="flex-1 truncate rounded-md bg-muted px-4 py-2 text-sm">
