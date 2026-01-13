@@ -90,6 +90,8 @@ return [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
                 'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'timeout' => env('LOG_SOCKET_TIMEOUT', 60), // Increase from default 10s
+                'writingTimeout' => env('LOG_SOCKET_WRITE_TIMEOUT', 60), // Increase write timeout
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
@@ -100,9 +102,11 @@ return [
             'handler' => StreamHandler::class,
             'handler_with' => [
                 'stream' => 'php://stderr',
+                'bubble' => true,
             ],
             'formatter' => env('LOG_STDERR_FORMATTER'),
             'processors' => [PsrLogMessageProcessor::class],
+            'tap' => [\App\Logging\StderrTap::class], // Increase buffer and timeout
         ],
 
         'syslog' => [
@@ -125,6 +129,12 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'async' => [
+            'driver' => 'custom',
+            'via' => \App\Logging\AsyncLogger::class,
+            'channels' => ['daily'], // Or whatever channel you're using in production
         ],
 
     ],
