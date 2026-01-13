@@ -938,6 +938,62 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 
 ## Important Notes
 
+### Configuration Data in Migrations
+**CRITICAL: This project uses migrations for configuration data, not seeders.**
+
+**When adding settings to VoucherSettings or any Spatie Settings class:**
+
+1. ✅ **ALWAYS create a migration** - Never add to seeders
+2. ✅ **Use insertOrIgnore()** - Ensure idempotency
+3. ✅ **Implement down()** - Enable rollback capability
+4. ✅ **Use config() fallbacks** - Don't hardcode environment-specific values
+5. ✅ **Descriptive migration names** - e.g., `add_auto_disburse_minimum_to_voucher_settings`
+6. ✅ **Group related settings** - Add multiple related settings in one migration
+
+**Why migrations instead of seeders?**
+- Settings are **required configuration** - app crashes without them
+- `php artisan migrate` always runs in production, `db:seed` never does
+- Guaranteed execution order and idempotency
+- Rollback support for failed deployments
+- Team coordination - new settings added automatically on `git pull` + `migrate`
+
+**Example:**
+```php
+// ✅ CORRECT: Migration with insertOrIgnore()
+return new class extends Migration {
+    public function up(): void {
+        DB::table('settings')->insertOrIgnore([
+            'group' => 'voucher',
+            'name' => 'new_setting',
+            'payload' => json_encode(config('default.value', 50)),
+            'locked' => false,
+        ]);
+    }
+    
+    public function down(): void {
+        DB::table('settings')
+            ->where('name', 'new_setting')
+            ->delete();
+    }
+};
+```
+
+```php
+// ❌ WRONG: Adding to seeder
+class VoucherSettingsSeeder extends Seeder {
+    public function run(): void {
+        DB::table('settings')->insert([...]);
+    }
+}
+```
+
+**Historical context:**
+- `VoucherSettingsSeeder` is deprecated (see deprecation notice in file)
+- All voucher settings now managed via migrations
+- Seeders are for test/demo data only, never for required configuration
+
+**See full documentation:** `docs/CONFIGURATION_DATA_IN_MIGRATIONS.md`
+
 ### AI Development with Laravel Boost
 This project uses Laravel Boost to provide AI agents (Claude Code, PhpStorm Junie, etc.) with contextual understanding of the codebase.
 
