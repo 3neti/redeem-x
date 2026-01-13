@@ -36,4 +36,14 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the user should have a mobile number.
+     */
+    public function withMobile(string $mobile = '09173011987'): static
+    {
+        return $this->afterCreating(function ($user) use ($mobile) {
+            $user->setChannel('mobile', $mobile);
+        });
+    }
 }

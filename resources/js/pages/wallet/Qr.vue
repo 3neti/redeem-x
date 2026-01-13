@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage, router } from '@inertiajs/vue3';
 import type { BreadcrumbItem } from '@/types';
 import { useQrGeneration } from '@/composables/useQrGeneration';
 import QrDisplay from '@/components/shared/QrDisplay.vue';
@@ -17,7 +17,8 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-vue-next';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { RefreshCcw, AlertCircle } from 'lucide-vue-next';
 import axios from '@/lib/axios';
 import MerchantAmountSettings from '@/components/MerchantAmountSettings.vue';
 import MerchantNameTemplateComposer from '@/components/MerchantNameTemplateComposer.vue';
@@ -28,6 +29,12 @@ const page = usePage();
 
 // Load configuration
 const config = page.props.loadWalletConfig || {};
+
+// Check onboarding redirect
+const props = defineProps<{
+    reason?: string;
+    return_to?: string;
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Wallet', href: '/wallet' },
@@ -54,6 +61,45 @@ const merchantInfo = ref({
     name: '',
     city: '',
 });
+
+// Polling for balance changes (onboarding redirect)
+const pollingInterval = ref<number | null>(null);
+const currentBalance = ref<number>(0);
+const shouldPoll = computed(() => props.reason === 'insufficient_balance' && props.return_to && currentBalance.value <= 0);
+const showOnboardingAlert = computed(() => props.reason === 'insufficient_balance' && currentBalance.value <= 0);
+
+const checkBalance = async () => {
+    try {
+        const { data } = await axios.get('/api/v1/wallet/balance');
+        const balance = data.data?.balance || 0;
+        currentBalance.value = balance;
+        
+        console.log('[Qr.vue] Balance checked:', balance, 'Return to:', props.return_to);
+        
+        if (balance > 0 && props.return_to) {
+            console.log('[Qr.vue] Balance > 0, triggering redirect');
+            
+            // Balance is now positive - redirect back to original destination
+            if (pollingInterval.value) {
+                clearInterval(pollingInterval.value);
+            }
+            
+            toast({
+                title: 'Wallet Funded!',
+                description: 'Your wallet has been credited. Continuing...',
+            });
+            
+            setTimeout(() => {
+                console.log('[Qr.vue] Redirecting to:', props.return_to);
+                router.visit(props.return_to!);
+            }, 1000);
+        } else {
+            console.log('[Qr.vue] No redirect - balance:', data.balance, 'return_to:', props.return_to);
+        }
+    } catch (e) {
+        console.error('[Qr.vue] Balance check failed:', e);
+    }
+};
 
 const loadMerchant = async () => {
     try {
@@ -87,8 +133,28 @@ const saveAmountSettings = async () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     loadMerchant();
+    
+    // If in onboarding flow, check balance first
+    if (props.reason === 'insufficient_balance' && props.return_to) {
+        // Check balance immediately
+        await checkBalance();
+        
+        // Only start polling if balance is still zero
+        if (currentBalance.value <= 0) {
+            pollingInterval.value = window.setInterval(() => {
+                checkBalance();
+            }, 3000);
+        }
+    }
+});
+
+onUnmounted(() => {
+    // Clean up polling on component unmount
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value);
+    }
 });
 </script>
 
@@ -97,6 +163,18 @@ onMounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto max-w-7xl space-y-6 p-6">
+            <!-- Onboarding Alert -->
+            <Alert v-if="showOnboardingAlert" variant="destructive" class="border-orange-500 bg-orange-50">
+                <AlertCircle class="h-4 w-4" />
+                <AlertTitle>Wallet Balance Required</AlertTitle>
+                <AlertDescription>
+                    You need funds in your wallet to generate vouchers. Generate a QR code below and share it with someone to receive payment, or use a voucher code if you have one.
+                    <span v-if="shouldPoll" class="block mt-2 text-xs text-orange-700 font-medium">
+                        ⏱️ Watching for payments... You'll be redirected automatically when funds arrive.
+                    </span>
+                </AlertDescription>
+            </Alert>
+            
             <!-- Page Header -->
             <div class="flex items-center justify-between">
                 <Heading

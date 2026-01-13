@@ -16,7 +16,7 @@ class TopUpController extends Controller
     /**
      * Display top-up page.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         
@@ -43,6 +43,8 @@ class TopUpController extends Controller
             'recentTopUps' => $recentTopUps,
             'pendingTopUps' => $pendingTopUps,
             'isSuperAdmin' => $user->hasRole('super-admin'),
+            'reason' => $request->query('reason'),
+            'return_to' => $request->query('return_to'),
         ]);
     }
 

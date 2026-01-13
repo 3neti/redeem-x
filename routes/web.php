@@ -15,15 +15,7 @@ Route::get('/health', function () {
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');
 
-// Public portal landing page (cash register UI - no authentication required)
-// Dynamic endpoint from VoucherSettings (default: /portal)
-try {
-    $portalEndpoint = app(\App\Settings\VoucherSettings::class)->default_portal_endpoint ?? '/portal';
-} catch (\Exception $e) {
-    $portalEndpoint = '/portal'; // Fallback if settings not yet migrated
-}
-Route::get($portalEndpoint, [\App\Http\Controllers\PortalController::class, 'show'])
-    ->name('portal');
+// Portal route moved to authenticated group below (requires mobile + balance)
 
 // Public voucher inspect page (deprecated): hard redirect to /redeem, preserving ?code
 Route::get('/vouchers/inspect', function () {
@@ -53,6 +45,11 @@ Route::middleware([
     'auth',
     ValidateSessionWithWorkOS::class,
 ])->group(function () {
+    // Portal landing page (requires onboarding: mobile + balance)
+    Route::get('/portal', [\App\Http\Controllers\PortalController::class, 'show'])
+        ->middleware(['requires.mobile', 'requires.balance'])
+        ->name('portal');
+    
     Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
         ->name('dashboard');
 
@@ -131,7 +128,7 @@ Route::middleware([
                 'saved_mode' => $savedMode, // Pass saved mode to frontend
                 'settlement_enabled' => \Laravel\Pennant\Feature::active('settlement-vouchers'),
             ]);
-        })->name('generate.create');
+        })->middleware(['requires.mobile', 'requires.balance'])->name('generate.create');
         
         // Legacy UI route (always uses Create.vue)
         Route::get('generate/legacy', fn () => Inertia::render('vouchers/generate/Create', [
@@ -172,6 +169,7 @@ Route::middleware([
         
         // Bulk voucher generation (SPA - no controller needed)
         Route::get('generate/bulk', fn () => Inertia::render('vouchers/generate/BulkCreate'))
+            ->middleware(['requires.mobile', 'requires.balance'])
             ->name('generate.bulk');
         
         // Show specific voucher (must be last - catches everything)
@@ -201,6 +199,7 @@ Route::middleware([
     // Top-Up routes (bank-based external money)
     Route::prefix('topup')->name('topup.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'index'])
+            ->middleware('requires.mobile')
             ->name('index');
         Route::post('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'store'])
             ->middleware('role:super-admin')

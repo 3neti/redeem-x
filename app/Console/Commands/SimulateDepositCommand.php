@@ -11,7 +11,8 @@ class SimulateDepositCommand extends Command
                             {user? : Mobile/email of recipient, or leave empty to use first user}
                             {amount=100 : Amount in PHP (default: 100)}
                             {--sender-name=TEST SENDER : Sender name}
-                            {--sender-institution=GXCHPHM2XXX : Sender institution code}';
+                            {--sender-institution=GXCHPHM2XXX : Sender institution code}
+                            {--force : Skip confirmation prompt}';
 
     protected $description = 'Simulate a deposit confirmation webhook for testing';
 
@@ -24,9 +25,13 @@ class SimulateDepositCommand extends Command
 
         // Find user by mobile or email, or use first user
         if ($userIdentifier) {
-            $user = \App\Models\User::where('mobile', $userIdentifier)
-                ->orWhere('email', $userIdentifier)
-                ->first();
+            // Try email first
+            $user = \App\Models\User::where('email', $userIdentifier)->first();
+            
+            // If not found by email, try mobile via HasChannels trait
+            if (!$user) {
+                $user = \App\Models\User::findByMobile($userIdentifier);
+            }
         } else {
             $user = \App\Models\User::first();
         }
@@ -56,7 +61,7 @@ class SimulateDepositCommand extends Command
         
         $payload = [
             'alias' => '91500',
-            'amount' => (int) ($amount * 100), // Convert to centavos
+            'amount' => (int) $amount, // Keep in major units (pesos)
             'channel' => 'INSTAPAY',
             'commandId' => $commandId,
             'externalTransferStatus' => 'SETTLED',
@@ -85,7 +90,7 @@ class SimulateDepositCommand extends Command
         $this->line(json_encode($payload, JSON_PRETTY_PRINT));
         $this->newLine();
 
-        if (!$this->confirm('Send this webhook to confirm deposit?', true)) {
+        if (!$this->option('force') && !$this->confirm('Send this webhook to confirm deposit?', true)) {
             $this->info('Cancelled.');
             return self::SUCCESS;
         }

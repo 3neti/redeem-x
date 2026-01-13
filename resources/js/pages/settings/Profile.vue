@@ -25,7 +25,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
-import { Loader2, Lock, Unlock } from 'lucide-vue-next';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, Lock, Unlock, AlertCircle } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -41,6 +42,8 @@ interface Feature {
 interface Props {
     status?: string;
     available_features?: Feature[];
+    reason?: string;
+    return_to?: string;
 }
 
 const props = defineProps<Props>();
@@ -57,6 +60,10 @@ const user = page.props.auth.user;
 
 const { toast } = useToast();
 
+// Check if user was redirected here for onboarding
+const isMobileRequired = computed(() => props.reason === 'mobile_required');
+const mobileInputRef = ref<HTMLInputElement | null>(null);
+
 // Profile form
 const profileForm = useForm({
     name: user.name,
@@ -66,13 +73,21 @@ const profileForm = useForm({
 });
 
 const saveProfile = () => {
-    profileForm.patch(update.url(), {
+    // Build URL with return_to parameter if it exists
+    let url = update.url();
+    if (props.return_to) {
+        url += `?return_to=${encodeURIComponent(props.return_to)}`;
+    }
+    
+    profileForm.patch(url, {
         preserveScroll: true,
         onSuccess: () => {
             toast({
                 title: 'Saved',
                 description: 'Profile updated successfully',
             });
+            
+            // Backend will handle redirect via return_to parameter
         },
     });
 };
@@ -201,6 +216,18 @@ const toggleFeatureFlag = async (feature: Feature) => {
 
 onMounted(() => {
     loadMerchantProfile();
+    
+    // Auto-focus mobile field if redirected for onboarding
+    if (isMobileRequired.value && !profileForm.mobile) {
+        // Use nextTick to ensure DOM is ready
+        setTimeout(() => {
+            const mobileInput = document.getElementById('mobile') as HTMLInputElement;
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
+    }
 });
 </script>
 
@@ -210,6 +237,15 @@ onMounted(() => {
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
+                <!-- Onboarding Alert -->
+                <Alert v-if="isMobileRequired" variant="destructive" class="border-red-500">
+                    <AlertCircle class="h-4 w-4" />
+                    <AlertTitle>Mobile Number Required</AlertTitle>
+                    <AlertDescription>
+                        Please add your mobile number to continue. It's required for generating QR codes and receiving payments via InstaPay.
+                    </AlertDescription>
+                </Alert>
+                
                 <HeadingSmall
                     title="Profile information"
                     description="Update your name and email address"
@@ -264,18 +300,25 @@ onMounted(() => {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="mobile">Mobile Number *</Label>
+                        <Label for="mobile" :class="{ 'text-red-600': isMobileRequired }">
+                            Mobile Number *
+                            <span v-if="isMobileRequired" class="text-red-600 font-semibold"> (Required to continue)</span>
+                        </Label>
                         <Input
                             id="mobile"
+                            ref="mobileInputRef"
                             type="tel"
-                            class="mt-1 block w-full"
+                            :class="[
+                                'mt-1 block w-full',
+                                isMobileRequired && !profileForm.mobile ? 'border-red-500 ring-red-500 focus-visible:ring-red-500' : ''
+                            ]"
                             name="mobile"
                             v-model="profileForm.mobile"
                             required
                             autocomplete="tel"
                             placeholder="09171234567"
                         />
-                        <p class="text-sm text-muted-foreground">
+                        <p class="text-sm" :class="isMobileRequired ? 'text-red-600 font-medium' : 'text-muted-foreground'">
                             Philippine mobile number (required for QR code generation)
                         </p>
                         <InputError class="mt-2" :message="profileForm.errors.mobile" />

@@ -29,6 +29,8 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
             'available_features' => $availableFeatures,
+            'reason' => $request->query('reason'),
+            'return_to' => $request->query('return_to'),
         ]);
     }
     
@@ -85,7 +87,18 @@ class ProfileController extends Controller
             $user->setChannel('webhook', null);
         }
 
-        return to_route('profile.edit');
+        // Check for return_to parameter (from middleware redirects)
+        if ($returnTo = $request->query('return_to')) {
+            return redirect($returnTo)->with('flash', [
+                'type' => 'success',
+                'message' => 'Profile updated! Continuing to your destination.',
+            ]);
+        }
+
+        return to_route('profile.edit')->with('flash', [
+            'type' => 'success',
+            'message' => 'Profile updated successfully.',
+        ]);
     }
     
     /**

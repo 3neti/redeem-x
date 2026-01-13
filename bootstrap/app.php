@@ -62,6 +62,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ip.whitelist' => \App\Http\Middleware\CheckIpWhitelist::class,
             'signature.verify' => \App\Http\Middleware\VerifyRequestSignature::class,
             'rate.limit.advanced' => \App\Http\Middleware\AdvancedRateLimiting::class,
+            'requires.mobile' => \App\Http\Middleware\RequiresMobile::class,
+            'requires.balance' => \App\Http\Middleware\RequiresWalletBalance::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

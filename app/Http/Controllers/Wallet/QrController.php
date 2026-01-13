@@ -16,6 +16,8 @@ class QrController extends Controller
     {
         return Inertia::render('wallet/Qr', [
             'loadWalletConfig' => config('load-wallet'),
+            'reason' => $request->query('reason'),
+            'return_to' => $request->query('return_to'),
         ]);
     }
 }
