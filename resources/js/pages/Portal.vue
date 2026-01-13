@@ -575,22 +575,49 @@ const handleShare = async () => {
   if (generatedVouchers.value.length === 0) return;
   
   const codes = codesToUse.value.join(', ');
+  const isSingleCode = codesToUse.value.length === 1;
   let text = '';
   
+  // Format amount helper
+  const formatAmount = (amt: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amt);
+  };
+  
   if (voucherType.value === 'payable') {
-    const url = `${window.location.origin}${(page.props as any).settlement_endpoint || '/pay'}`;
-    text = `Pay at: ${url}\nCode${codes.includes(',') ? 's' : ''}: ${codes}`;
+    const baseUrl = `${window.location.origin}${(page.props as any).settlement_endpoint || '/pay'}`;
+    if (isSingleCode) {
+      text = `You may pay from\n\n${baseUrl}?code=${codes}`;
+    } else {
+      text = `Pay at: ${baseUrl}\nCodes: ${codes}`;
+    }
   } else if (voucherType.value === 'settlement') {
     const redeemUrl = `${window.location.origin}${redemptionEndpoint.value}`;
     const settleUrl = `${window.location.origin}${(page.props as any).settlement_endpoint || '/pay'}`;
-    text = `Redeem at: ${redeemUrl}\nSettle at: ${settleUrl}\nCode${codes.includes(',') ? 's' : ''}: ${codes}`;
+    if (isSingleCode) {
+      const voucherAmount = generatedVouchers.value[0]?.amount || amount.value;
+      const amountText = voucherAmount ? ` ${formatAmount(voucherAmount)}` : '';
+      text = `You may redeem${amountText} from\n\n${redeemUrl}?code=${codes}\n\nOr settle at\n${settleUrl}?code=${codes}`;
+    } else {
+      text = `Redeem at: ${redeemUrl}\nSettle at: ${settleUrl}\nCodes: ${codes}`;
+    }
   } else {
-    const url = `${window.location.origin}${redemptionEndpoint.value}`;
-    text = `Redeem at: ${url}\nCode${codes.includes(',') ? 's' : ''}: ${codes}`;
+    const baseUrl = `${window.location.origin}${redemptionEndpoint.value}`;
+    if (isSingleCode) {
+      const voucherAmount = generatedVouchers.value[0]?.amount || amount.value;
+      const amountText = voucherAmount ? ` ${formatAmount(voucherAmount)}` : '';
+      text = `You may redeem${amountText} from\n\n${baseUrl}?code=${codes}`;
+    } else {
+      text = `Redeem at: ${baseUrl}\nCodes: ${codes}`;
+    }
   }
   
   const shareData = {
-    title: codesToUse.value.length > 1 ? 'Voucher Codes' : 'Voucher Code',
+    title: '',
     text: text,
   };
   
