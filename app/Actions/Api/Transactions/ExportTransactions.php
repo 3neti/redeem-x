@@ -69,6 +69,7 @@ class ExportTransactions
             'status' => ['nullable', 'string', 'max:50'],
         ]);
 
+        $user = $request->user();
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
         $search = $request->input('search');
@@ -76,7 +77,7 @@ class ExportTransactions
         $rail = $request->input('rail');
         $status = $request->input('status');
 
-        $query = Voucher::query()
+        $query = $user->vouchers()
             ->whereNotNull('redeemed_at')
             ->orderByDesc('redeemed_at');
 

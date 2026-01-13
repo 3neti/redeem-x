@@ -51,10 +51,11 @@ class GetTransactionStats
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
         
+        $user = $request->user();
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
-        $query = Voucher::whereNotNull('redeemed_at');
+        $query = $user->vouchers()->whereNotNull('redeemed_at');
 
         // Apply date filters
         if ($dateFrom) {
@@ -73,12 +74,12 @@ class GetTransactionStats
         });
 
         // Today's transactions
-        $todayTransactions = Voucher::whereNotNull('redeemed_at')
+        $todayTransactions = $user->vouchers()->whereNotNull('redeemed_at')
             ->whereDate('redeemed_at', today())
             ->count();
 
         // This month's transactions
-        $monthTransactions = Voucher::whereNotNull('redeemed_at')
+        $monthTransactions = $user->vouchers()->whereNotNull('redeemed_at')
             ->whereMonth('redeemed_at', now()->month)
             ->whereYear('redeemed_at', now()->year)
             ->count();

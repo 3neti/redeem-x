@@ -28,7 +28,7 @@ class GetDashboardStats
         $voucherStats = $this->getVoucherStats($user);
 
         // Transaction Stats (Disbursements)
-        $transactionStats = $this->getTransactionStats();
+        $transactionStats = $this->getTransactionStats($user);
 
         // Deposit Stats
         $depositStats = $this->getDepositStats($user);
@@ -87,18 +87,18 @@ class GetDashboardStats
         ];
     }
 
-    private function getTransactionStats(): array
+    private function getTransactionStats($user): array
     {
-        $today = Voucher::whereNotNull('redeemed_at')
+        $today = $user->vouchers()->whereNotNull('redeemed_at')
             ->whereDate('redeemed_at', today())
             ->count();
 
-        $thisMonth = Voucher::whereNotNull('redeemed_at')
+        $thisMonth = $user->vouchers()->whereNotNull('redeemed_at')
             ->whereMonth('redeemed_at', now()->month)
             ->whereYear('redeemed_at', now()->year)
             ->count();
 
-        $vouchers = Voucher::whereNotNull('redeemed_at')
+        $vouchers = $user->vouchers()->whereNotNull('redeemed_at')
             ->whereMonth('redeemed_at', now()->month)
             ->whereYear('redeemed_at', now()->year)
             ->get();

@@ -65,6 +65,7 @@ class ListTransactions
             'status' => ['nullable', 'string', 'max:50'],
         ]);
         
+        $user = $request->user();
         $perPage = min($request->integer('per_page', 20), 100);
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
@@ -73,7 +74,7 @@ class ListTransactions
         $rail = $request->input('rail');
         $status = $request->input('status');
 
-        $query = Voucher::query()
+        $query = $user->vouchers()
             ->with(['owner'])
             ->whereNotNull('redeemed_at')
             ->orderByDesc('redeemed_at');
