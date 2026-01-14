@@ -195,6 +195,10 @@ const isAmountDisabled = computed(() => {
 });
 
 const showSettlementSection = computed(() => {
+  return true; // Always show section, fields handle own visibility
+});
+
+const showPayableOption = computed(() => {
   return payeeType.value === 'anyone';
 });
 
@@ -993,6 +997,13 @@ watch(payeeType, (newType, oldType) => {
   }
 });
 
+// Clear payee when switching to payable (payable is always "anyone")
+watch(voucherType, (newType) => {
+  if (newType === 'payable' && payee.value) {
+    payee.value = ''; // Clear payee when switching to payable
+  }
+});
+
 // Watch voucher type to regenerate QR with correct endpoint
 watch(voucherType, () => {
   if (generatedVouchers.value.length === 1 && voucherCode.value) {
@@ -1378,7 +1389,7 @@ watch(voucherType, () => {
                     </div>
                   </Label>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div v-if="showPayableOption" class="flex items-center space-x-2">
                   <RadioGroupItem value="payable" id="portal-type-payable" />
                   <Label for="portal-type-payable" class="font-normal cursor-pointer">
                     <div>
