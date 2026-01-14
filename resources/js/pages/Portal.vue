@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast/use-toast';
 import QrDisplay from '@/components/shared/QrDisplay.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { useQrShare } from '@/composables/useQrShare';
+import SmartJsonTextarea from '@/components/SmartJsonTextarea.vue';
 
 interface PortalConfig {
   branding?: { show_logo?: boolean; show_icon?: boolean };
@@ -243,22 +244,9 @@ const isPayeeButtonDisabled = computed(() => {
   return amount.value === null || amount.value === undefined;
 });
 
-const isValidExternalMetadata = computed(() => {
-  const json = externalMetadataJson.value.trim();
-  if (!json) return true; // Empty is valid (optional)
-  
-  try {
-    JSON.parse(json);
-    return true;
-  } catch {
-    return false;
-  }
-});
-
 const isSaveButtonDisabled = computed(() => {
   if (voucherType.value === 'payable') {
-    const hasInvalidMetadata = !isValidExternalMetadata.value;
-    return !targetAmount.value || targetAmount.value <= 0 || hasInvalidMetadata;
+    return !targetAmount.value || targetAmount.value <= 0;
   }
   if (voucherType.value === 'settlement') {
     return !amount.value || !targetAmount.value || amount.value <= 0 || targetAmount.value <= 0;
@@ -1352,24 +1340,6 @@ watch(voucherType, () => {
             </p>
           </div>
           
-          <!-- External Metadata (payable only) -->
-          <div v-if="voucherType === 'payable'" class="space-y-2">
-            <Label for="external-metadata">External Metadata (Optional)</Label>
-            <Textarea
-              id="external-metadata"
-              v-model="externalMetadataJson"
-              placeholder='{"reference":"REF-001", "project_name":"Product X", "invoice_number":"INV-2026-001"}'
-              rows="4"
-              class="font-mono text-sm"
-            />
-            <p class="text-xs text-muted-foreground">
-              Freeform JSON for tracking (e.g., reference code, invoice number, project name)
-            </p>
-            <p v-if="!isValidExternalMetadata" class="text-xs text-destructive">
-              ⚠ Invalid JSON format
-            </p>
-          </div>
-          
           <!-- Amount Field (only for CASH/anyone) -->
           <div v-if="showSettlementSection" class="pt-4 border-t space-y-4">
             <div class="space-y-2">
@@ -1443,6 +1413,16 @@ watch(voucherType, () => {
                 {{ targetAmountHelpText }}
               </p>
             </div>
+            
+            <!-- External Metadata (payable only) -->
+            <SmartJsonTextarea
+              v-if="voucherType === 'payable'"
+              v-model="externalMetadataJson"
+              label="External Metadata (Optional)"
+              placeholder='Enter reference code or JSON like {"reference":"REF-001"}'
+              help-text="Enter a reference code (auto-formatted to JSON) or write custom JSON"
+              :rows="4"
+            />
           </div>
           
           <!-- Quick Presets (vendor aliases) -->
