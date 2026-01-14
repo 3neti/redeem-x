@@ -198,6 +198,14 @@ const showSettlementSection = computed(() => {
   return payeeType.value === 'anyone';
 });
 
+const amountFieldLabel = computed(() => {
+  return 'Disbursement Amount (₱)';
+});
+
+const targetAmountLabel = computed(() => {
+  return 'Payment Amount (₱)';
+});
+
 const targetAmountHelpText = computed(() => {
   if (voucherType.value === 'settlement') {
     return 'Syncs with amount above (editable)';
@@ -1342,23 +1350,17 @@ watch(voucherType, () => {
           
           <!-- Amount Field (only for CASH/anyone) -->
           <div v-if="showSettlementSection" class="pt-4 border-t space-y-4">
-            <div class="space-y-2">
-              <Label for="portal-amount">Amount (₱)</Label>
+            <div v-if="voucherType !== 'payable'" class="space-y-2">
+              <Label for="portal-amount">{{ amountFieldLabel }}</Label>
               <Input
                 id="portal-amount"
                 type="number"
                 v-model.number="amount"
                 :min="1"
                 :step="1"
-                :disabled="isAmountDisabled"
-                :readonly="isAmountDisabled"
-                :class="{ 'opacity-60 cursor-not-allowed': isAmountDisabled }"
                 placeholder="Enter amount"
               />
-              <p v-if="voucherType === 'payable'" class="text-xs text-muted-foreground">
-                Payable vouchers have no initial amount - set target amount instead
-              </p>
-              <p v-else-if="voucherType === 'settlement'" class="text-xs text-muted-foreground">
+              <p v-if="voucherType === 'settlement'" class="text-xs text-muted-foreground">
                 Settlement amount syncs to target amount (loan principal)
               </p>
             </div>
@@ -1399,7 +1401,7 @@ watch(voucherType, () => {
             
             <!-- Target Amount Field (for payable/settlement) -->
             <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
-              <Label for="portal-target-amount">Target Amount (₱)</Label>
+              <Label for="portal-target-amount">{{ targetAmountLabel }}</Label>
               <Input
                 id="portal-target-amount"
                 type="number"
@@ -1414,11 +1416,11 @@ watch(voucherType, () => {
               </p>
             </div>
             
-            <!-- External Metadata (payable only) -->
+            <!-- External Metadata (payable and settlement) -->
             <SmartJsonTextarea
-              v-if="voucherType === 'payable'"
+              v-if="voucherType === 'payable' || voucherType === 'settlement'"
               v-model="externalMetadataJson"
-              label="External Metadata (Optional)"
+              label="Reference"
               placeholder='Enter reference code or JSON like {"reference":"REF-001"}'
               help-text="Enter a reference code (auto-formatted to JSON) or write custom JSON"
               :rows="4"
