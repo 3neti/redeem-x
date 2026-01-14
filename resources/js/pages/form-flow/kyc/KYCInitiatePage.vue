@@ -22,6 +22,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// Set to true for local debugging
+const DEBUG = false;
+
 // Debug: Generate expected callback URL format
 const debugCallbackUrl = computed(() => {
     const cleanFlowId = props.flow_id.replace(/\./g, '-');
@@ -111,7 +114,7 @@ const continueFlow = () => {
                         </Alert>
                         
                         <!-- Debug: Show callback URL in real mode -->
-                        <Alert v-if="!config?.use_fake" class="border-yellow-200 bg-yellow-50">
+                        <Alert v-if="DEBUG && !config?.use_fake" class="border-yellow-200 bg-yellow-50">
                             <AlertCircle class="h-4 w-4 text-yellow-600" />
                             <AlertDescription class="text-yellow-800 text-xs">
                                 <strong>Debug (Real Mode):</strong> After completing KYC, if not redirected, manually visit:
