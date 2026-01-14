@@ -4,6 +4,7 @@ import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
 import PayWidget from '@/components/PayWidget.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { ChevronDown } from 'lucide-vue-next'
 
 interface Props {
     initial_code?: string | null;
@@ -23,6 +24,7 @@ const paymentQr = ref<any>(null)
 const qrLoading = ref(false)
 const markingDone = ref(false)
 const paymentMarkedDone = ref(false)
+const showExternalMetadata = ref(false)
 
 // Handle quote loaded from PayWidget
 function handleQuoteLoaded(quoteData: any) {
@@ -245,12 +247,21 @@ function formatCurrency(amount: number) {
                 <span class="capitalize">{{ quote.voucher_type }}</span>
               </div>
               
-              <!-- External Metadata (if present) -->
+              <!-- External Metadata (collapsible if present) -->
               <div v-if="quote.external_metadata && Object.keys(quote.external_metadata).length > 0" class="border-t pt-3 space-y-2">
-                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Payment Details</div>
-                <div v-for="(value, key) in quote.external_metadata" :key="key" class="flex justify-between">
-                  <span class="text-gray-600 capitalize">{{ key.replace(/_/g, ' ') }}:</span>
-                  <span class="font-medium">{{ value }}</span>
+                <button
+                  @click="showExternalMetadata = !showExternalMetadata"
+                  class="w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition"
+                >
+                  <span>Payment Details</span>
+                  <ChevronDown 
+                    class="h-3 w-3 transition-transform" 
+                    :class="{ 'rotate-180': showExternalMetadata }"
+                  />
+                </button>
+                
+                <div v-if="showExternalMetadata" class="space-y-1">
+                  <pre class="overflow-x-auto rounded-md bg-gray-100 p-3 text-xs"><code>{{ JSON.stringify(quote.external_metadata, null, 2) }}</code></pre>
                 </div>
               </div>
               

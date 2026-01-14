@@ -13,6 +13,7 @@ import ErrorBoundary from '@/components/ErrorBoundary.vue';
 import QrDisplay from '@/components/shared/QrDisplay.vue';
 import VoucherQrSharePanel from '@/components/voucher/VoucherQrSharePanel.vue';
 import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
+import ExternalMetadataCard from '@/components/voucher/ExternalMetadataCard.vue';
 import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
 import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
 import SettlementDetailsCard from '@/components/settlement/SettlementDetailsCard.vue';
@@ -115,6 +116,7 @@ interface Props {
     voucher: VoucherProp;
     input_field_options: VoucherInputFieldOption[];
     settlement?: SettlementData;
+    external_metadata?: Record<string, any> | null;
 }
 
 const props = defineProps<Props>();
@@ -355,6 +357,13 @@ const instructionsFormData = computed(() => {
                         :redemption="redemptionInputs"
                         :voucher-type="settlement?.type"
                         :available-balance="settlement?.available_balance ?? 0"
+                    />
+                    
+                    <!-- External Metadata (if present) -->
+                    <ExternalMetadataCard 
+                        :metadata="external_metadata"
+                        title="Payment Details"
+                        description="Reference information for this voucher"
                     />
                     
                     <!-- Payments (for payable/settlement vouchers) -->
