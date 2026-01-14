@@ -4,6 +4,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -92,6 +93,7 @@ const selectedCodes = ref<Set<string>>(new Set());
 // Settlement voucher state
 const voucherType = ref<string>('redeemable');
 const targetAmount = ref<number | null>(null);
+const interestRate = ref<number>(0); // Default 0% interest
 
 const showTopUpModal = ref(false);
 const showConfirmModal = ref(false);
@@ -150,6 +152,7 @@ const modalSnapshot = ref<{
   tempAmount: string;
   tempCount: string;
   externalMetadataJson: string;
+  interestRate: number;
 } | null>(null);
 
 // Flag to prevent watchers from interfering during snapshot restoration
@@ -212,7 +215,7 @@ const targetAmountLabel = computed(() => {
 
 const targetAmountHelpText = computed(() => {
   if (voucherType.value === 'settlement') {
-    return 'Syncs with amount above (editable)';
+    return 'Calculated: Amount × (1 + Interest Rate %)';
   }
   return 'Total amount to collect before voucher closes';
 });
@@ -673,6 +676,7 @@ const resetAndCreateAnother = () => {
   payee.value = '';
   voucherType.value = 'redeemable';
   targetAmount.value = null;
+  interestRate.value = 0;
   externalMetadataJson.value = '';
   tempAmount.value = '';
   tempCount.value = '1';
@@ -706,6 +710,7 @@ const handleOpenPayeeModal = () => {
     tempAmount: tempAmount.value,
     tempCount: tempCount.value,
     externalMetadataJson: externalMetadataJson.value,
+    interestRate: interestRate.value,
   };
   showPayeeModal.value = true;
 };
@@ -722,6 +727,7 @@ const handleCancelModal = () => {
     tempAmount.value = modalSnapshot.value.tempAmount;
     tempCount.value = modalSnapshot.value.tempCount;
     externalMetadataJson.value = modalSnapshot.value.externalMetadataJson;
+    interestRate.value = modalSnapshot.value.interestRate;
     modalSnapshot.value = null;
     isRestoringSnapshot.value = false;
   }
@@ -945,6 +951,7 @@ watch(voucherType, (newType, oldType) => {
     const previousAmount = amount.value;
     amount.value = null;
     targetAmount.value = null;
+    interestRate.value = 0;
     externalMetadataJson.value = ''; // Clear metadata when leaving payable
     
     // Focus on amount input to prompt user
@@ -957,6 +964,7 @@ watch(voucherType, (newType, oldType) => {
   } else if (newType === 'redeemable') {
     // Redeemable: Reset to default
     targetAmount.value = null;
+    interestRate.value = 0;
     externalMetadataJson.value = ''; // Clear metadata when leaving payable
     if (amount.value === 0) {
       amount.value = null;
@@ -964,10 +972,17 @@ watch(voucherType, (newType, oldType) => {
   }
 });
 
-// Settlement: Sync target amount when amount changes
+// Settlement: Calculate target amount with interest when amount changes
 watch(amount, (newAmount) => {
   if (voucherType.value === 'settlement' && newAmount !== null) {
-    targetAmount.value = newAmount;
+    targetAmount.value = parseFloat((newAmount * (1 + interestRate.value / 100)).toFixed(2));
+  }
+});
+
+// Settlement: Recalculate target amount when interest rate changes
+watch(interestRate, (newRate) => {
+  if (voucherType.value === 'settlement' && amount.value !== null) {
+    targetAmount.value = parseFloat((amount.value * (1 + newRate / 100)).toFixed(2));
   }
 });
 
@@ -1361,18 +1376,45 @@ watch(voucherType, () => {
           
           <!-- Amount Field (only for CASH/anyone) -->
           <div v-if="showSettlementSection" class="pt-4 border-t space-y-4">
-            <div v-if="voucherType !== 'payable'" class="space-y-2">
+            <!-- Redeemable: Amount only -->
+            <div v-if="voucherType === 'redeemable'" class="space-y-2">
               <Label for="portal-amount">{{ amountFieldLabel }}</Label>
-              <Input
+              <NumberInput
                 id="portal-amount"
-                type="number"
-                v-model.number="amount"
+                v-model="amount"
                 :min="1"
                 :step="1"
                 placeholder="Enter amount"
               />
-              <p v-if="voucherType === 'settlement'" class="text-xs text-muted-foreground">
-                Settlement amount syncs to target amount (loan principal)
+            </div>
+            
+            <!-- Settlement: Amount + Interest Rate (side-by-side) -->
+            <div v-if="voucherType === 'settlement'" class="space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="space-y-2">
+                  <Label for="portal-amount">Loan Amount (₱)</Label>
+                  <NumberInput
+                    id="portal-amount"
+                    v-model="amount"
+                    :min="1"
+                    :step="1"
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <Label for="portal-interest">Interest Rate (%)</Label>
+                  <NumberInput
+                    id="portal-interest"
+                    v-model="interestRate"
+                    :min="0"
+                    :max="100"
+                    :step="0.01"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Target amount: ₱{{ targetAmount?.toLocaleString() || '0' }} (principal + {{ interestRate }}% interest)
               </p>
             </div>
             
@@ -1413,14 +1455,12 @@ watch(voucherType, () => {
             <!-- Target Amount Field (for payable/settlement) -->
             <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
               <Label for="portal-target-amount">{{ targetAmountLabel }}</Label>
-              <Input
+              <NumberInput
                 id="portal-target-amount"
-                type="number"
-                v-model.number="targetAmount"
+                v-model="targetAmount"
                 :min="1"
                 :step="0.01"
                 placeholder="Enter target amount"
-                required
               />
               <p class="text-xs text-muted-foreground">
                 {{ targetAmountHelpText }}
@@ -1432,7 +1472,6 @@ watch(voucherType, () => {
               v-if="voucherType === 'payable' || voucherType === 'settlement'"
               v-model="externalMetadataJson"
               label="Reference"
-              placeholder='Enter reference code or JSON like {"reference":"REF-001"}'
               help-text="Enter a reference code (auto-formatted to JSON) or write custom JSON"
               :rows="4"
             />
