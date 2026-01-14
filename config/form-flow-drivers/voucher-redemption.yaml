@@ -38,7 +38,7 @@ steps:
     handler: "form"
     step_name: "wallet_info"
     title: "Wallet Information"
-    description: "Redeeming voucher {{ code }} - {{ amount | format_money }} from {{ owner_name }}"
+    description: "Redeeming voucher {{ code }} from {{ owner_name }}"
     config:
       auto_sync:
         enabled: true
@@ -49,38 +49,52 @@ steps:
           - "INSTAPAY"
         debounce_ms: 1500
     fields:
+      # Summary badges - readonly context fields
       - name: "amount"
         type: "number"
         label: "Amount"
         default: "{{ amount }}"
         readonly: true
         required: true
+        variant: "readonly-badge"  # NEW: Display as badge in summary
       - name: "settlement_rail"
         type: "settlement_rail"
         label: "Payment Method"
         default: "INSTAPAY"
         required: true
-      - name: "mobile"
-        type: "text"
-        label: "Mobile Number"
-        placeholder: "+639171234567"
-        required: true
+        variant: "readonly-badge"  # NEW: Display as badge in summary
       - name: "recipient_country"
         type: "recipient_country"
         label: "Country"
         default: "PH"
         readonly: true
         required: true
+        variant: "readonly-badge"  # NEW: Display as badge in summary
+      
+      # Hero field - Primary action
+      - name: "mobile"
+        type: "text"
+        label: "Mobile Number"
+        placeholder: "09171234567"
+        required: true
+        emphasis: "hero"  # NEW: Large, prominent styling
+        help_text: "Enter your mobile number to receive the cash"  # NEW: Helper text
+      
+      # Grouped fields - Bank account details
       - name: "bank_code"
         type: "bank_account"
-        label: "Bank/EMI"
+        label: "Bank/Wallet"
         default: "GXCHPHM2XXX"
         required: true
+        group: "bank_details"  # NEW: Group with account_number
+        help_text: "Select your bank or e-wallet provider"  # NEW: Helper text
       - name: "account_number"
         type: "text"
         label: "Account Number"
-        placeholder: "1234567890"
+        placeholder: "09171234567"
         required: true
+        group: "bank_details"  # NEW: Group with bank_code
+        help_text: "For GCash/InstaPay, account number will auto-fill from your mobile"  # NEW: Helper text
   
   # Step 1: KYC verification (MUST be before BIO for auto-population)
   kyc:

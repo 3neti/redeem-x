@@ -7,11 +7,11 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
 interface Props {
-    content: string;
-    timeout?: number;
-    title?: string;
     flow_id: string;
     step_index: number;
+    title?: string;
+    content: string;
+    timeout?: number;
     button_label?: string;
 }
 

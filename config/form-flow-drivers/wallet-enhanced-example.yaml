@@ -1,0 +1,93 @@
+# Example: Enhanced Wallet Form with Split Layout UI
+# This demonstrates the new UI metadata fields introduced for visual hierarchy
+# 
+# New field properties:
+#   - emphasis: "hero" | "normal" - Makes field prominent with large styling
+#   - group: string - Groups related fields in a fieldset
+#   - help_text: string - Explanatory text shown below field
+#   - variant: "readonly-badge" | "normal" - Displays readonly fields as summary badges
+
+driver:
+  name: "wallet-enhanced-example"
+  version: "1.0"
+  source: "LBHurtado\\Voucher\\Models\\Voucher"
+  target: "LBHurtado\\FormFlowManager\\Data\\FormFlowInstructionsData"
+
+mappings: {}
+
+reference_id: "disburse-{{ code }}-{{ timestamp }}"
+
+steps:
+  wallet_info:
+    handler: "form"
+    step_name: "wallet_information"
+    title: "Wallet Information"
+    description: "Enter your details to receive the cash"
+    config:
+      # Auto-sync configuration for GCash users
+      auto_sync:
+        enabled: true
+        source_field: "mobile"
+        target_field: "account_number"
+        condition_field: "bank_account"
+        condition_values:
+          - "GXCHPHM2XXX"  # GCash SWIFT code
+        debounce_ms: 1500
+      
+      fields:
+        # Summary badges at top (readonly info)
+        - name: "amount"
+          type: "number"
+          label: "Amount"
+          default: "{{ amount }}"
+          readonly: true
+          variant: "readonly-badge"  # NEW: Shows as badge in summary section
+        
+        - name: "settlement_rail"
+          type: "settlement_rail"
+          label: "Settlement Method"
+          default: "INSTAPAY"
+          readonly: true
+          variant: "readonly-badge"  # NEW: Shows as badge in summary section
+        
+        - name: "recipient_country"
+          type: "recipient_country"
+          label: "Country"
+          default: "PH"
+          readonly: true
+          variant: "readonly-badge"  # NEW: Shows as badge in summary section
+        
+        # Hero field - Mobile Number (PRIMARY ACTION)
+        - name: "mobile"
+          type: "text"
+          label: "Mobile Number"
+          placeholder: "+63 917 123 4567"
+          required: true
+          emphasis: "hero"  # NEW: Large, prominent styling
+          help_text: "Enter your mobile number to receive the cash"  # NEW: Helper text
+          validation:
+            - "regex:/^(\\+639|09)\\d{9}$/"
+        
+        # Bank account fields grouped together (SECONDARY ACTION)
+        - name: "bank_account"
+          type: "bank_account"
+          label: "Bank/E-Wallet"
+          required: true
+          group: "bank_details"  # NEW: Groups fields in fieldset
+          help_text: "Select your bank or e-wallet provider"  # NEW: Helper text
+          default: "GXCHPHM2XXX"  # Default to GCash
+        
+        - name: "account_number"
+          type: "text"
+          label: "Account Number"
+          placeholder: "Enter account number"
+          required: true
+          group: "bank_details"  # NEW: Groups with bank_account field
+          help_text: "For GCash, account number will auto-fill from your mobile number"  # NEW: Helper text
+          validation:
+            - "string"
+            - "max:50"
+
+callbacks:
+  on_complete: "{{ base_url }}/api/vouchers/redeem/complete"
+  on_cancel: "{{ base_url }}/redeem/cancelled"

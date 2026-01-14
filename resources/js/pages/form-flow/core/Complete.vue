@@ -4,8 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import { Separator } from '@/components/ui/separator';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-vue-next';
 import { computed, ref, onUnmounted } from 'vue';
+import { useFormFlowSummary } from '@/composables/useFormFlowSummary';
 
 interface Props {
     flow_id: string;
@@ -121,6 +123,13 @@ onUnmounted(() => {
         clearTimeout(redirectTimeout);
     }
 });
+
+// Data summary transformation
+const { flattenCollectedData, groupDataBySection } = useFormFlowSummary();
+const dataSections = computed(() => {
+    const flattened = flattenCollectedData(props.state.collected_data);
+    return groupDataBySection(flattened);
+});
 </script>
 
 <template>
@@ -222,15 +231,33 @@ onUnmounted(() => {
                         <p class="text-lg font-mono">{{ state.reference_id }}</p>
                     </div>
 
-                    <!-- Collected Data Summary -->
-                    <div>
-                        <h3 class="font-semibold mb-3">Collected Data</h3>
-                        <div class="space-y-2">
-                            <div v-for="(data, index) in state.collected_data" :key="index" class="bg-muted/50 p-3 rounded">
-                                <p class="text-sm font-medium text-muted-foreground mb-2">Step {{ index + 1 }}</p>
-                                <pre class="text-xs overflow-auto">{{ JSON.stringify(data, null, 2) }}</pre>
+                    <!-- Data Summary -->
+                    <div class="space-y-4">
+                        <h3 class="font-semibold mb-3">Summary</h3>
+                        
+                        <!-- Section Cards -->
+                        <div v-for="section in dataSections" :key="section.title" class="border rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <component :is="section.icon" class="h-5 w-5 text-muted-foreground" />
+                                <h4 class="font-medium">{{ section.title }}</h4>
+                            </div>
+                            
+                            <Separator class="mb-3" />
+                            
+                            <!-- Field Grid -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div v-for="field in section.fields" :key="field.key" class="space-y-1">
+                                    <p class="text-sm text-muted-foreground">{{ field.label }}</p>
+                                    <p class="text-base font-medium">{{ field.value }}</p>
+                                </div>
                             </div>
                         </div>
+                        
+                        <!-- Debug Toggle -->
+                        <details class="mt-4">
+                            <summary class="text-xs text-muted-foreground cursor-pointer hover:text-foreground">View raw data (debug)</summary>
+                            <pre class="text-xs mt-2 p-2 bg-muted rounded overflow-auto">{{ JSON.stringify(state.collected_data, null, 2) }}</pre>
+                        </details>
                     </div>
 
                     <!-- Callback Status -->
