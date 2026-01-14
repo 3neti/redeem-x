@@ -206,11 +206,11 @@ const showPayableOption = computed(() => {
 });
 
 const amountFieldLabel = computed(() => {
-  return 'Disbursement Amount (₱)';
+  return 'Disbursement Amount';
 });
 
 const targetAmountLabel = computed(() => {
-  return 'Payment Amount (₱)';
+  return 'Payment Amount';
 });
 
 const targetAmountHelpText = computed(() => {
@@ -1382,6 +1382,7 @@ watch(voucherType, () => {
               <NumberInput
                 id="portal-amount"
                 v-model="amount"
+                prefix="₱"
                 :min="1"
                 :step="1"
                 placeholder="Enter amount"
@@ -1392,20 +1393,22 @@ watch(voucherType, () => {
             <div v-if="voucherType === 'settlement'" class="space-y-2">
               <div class="grid grid-cols-2 gap-2">
                 <div class="space-y-2">
-                  <Label for="portal-amount">Loan Amount (₱)</Label>
+                  <Label for="portal-amount">Loan Amount</Label>
                   <NumberInput
                     id="portal-amount"
                     v-model="amount"
+                    prefix="₱"
                     :min="1"
                     :step="1"
                     placeholder="Enter amount"
                   />
                 </div>
                 <div class="space-y-2">
-                  <Label for="portal-interest">Interest Rate (%)</Label>
+                  <Label for="portal-interest">Interest Rate</Label>
                   <NumberInput
                     id="portal-interest"
                     v-model="interestRate"
+                    suffix="%"
                     :min="0"
                     :max="100"
                     :step="0.01"
@@ -1458,6 +1461,7 @@ watch(voucherType, () => {
               <NumberInput
                 id="portal-target-amount"
                 v-model="targetAmount"
+                prefix="₱"
                 :min="1"
                 :step="0.01"
                 placeholder="Enter target amount"

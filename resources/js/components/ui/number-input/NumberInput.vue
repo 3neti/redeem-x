@@ -15,6 +15,8 @@ const props = withDefaults(defineProps<{
   readonly?: boolean
   hideSpinner?: boolean
   selectOnFocus?: boolean
+  prefix?: string
+  suffix?: string
   class?: HTMLAttributes['class']
 }>(), {
   hideSpinner: true,
@@ -42,22 +44,43 @@ const inputClasses = computed(() => cn(
   'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
   'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
   props.hideSpinner && '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+  props.prefix && 'pl-8',
+  props.suffix && 'pr-8',
   props.class,
 ))
 </script>
 
 <template>
-  <input
-    v-model.number="modelValue"
-    type="number"
-    :min="min"
-    :max="max"
-    :step="step"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    :readonly="readonly"
-    :class="inputClasses"
-    @focus="handleFocus"
-    data-slot="number-input"
-  >
+  <div class="relative">
+    <!-- Prefix -->
+    <span
+      v-if="prefix"
+      class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base md:text-sm"
+    >
+      {{ prefix }}
+    </span>
+    
+    <!-- Input -->
+    <input
+      v-model.number="modelValue"
+      type="number"
+      :min="min"
+      :max="max"
+      :step="step"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :readonly="readonly"
+      :class="inputClasses"
+      @focus="handleFocus"
+      data-slot="number-input"
+    >
+    
+    <!-- Suffix -->
+    <span
+      v-if="suffix"
+      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base md:text-sm"
+    >
+      {{ suffix }}
+    </span>
+  </div>
 </template>
