@@ -244,7 +244,17 @@ function formatCurrency(amount: number) {
                 <span class="text-gray-600">Type:</span>
                 <span class="capitalize">{{ quote.voucher_type }}</span>
               </div>
-              <div class="flex justify-between">
+              
+              <!-- External Metadata (if present) -->
+              <div v-if="quote.external_metadata && Object.keys(quote.external_metadata).length > 0" class="border-t pt-3 space-y-2">
+                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Payment Details</div>
+                <div v-for="(value, key) in quote.external_metadata" :key="key" class="flex justify-between">
+                  <span class="text-gray-600 capitalize">{{ key.replace(/_/g, ' ') }}:</span>
+                  <span class="font-medium">{{ value }}</span>
+                </div>
+              </div>
+              
+              <div class="flex justify-between" :class="{ 'border-t pt-3': quote.external_metadata && Object.keys(quote.external_metadata).length > 0 }">
                 <span class="text-gray-600">Target Amount:</span>
                 <span class="font-semibold">{{ formatCurrency(quote.target_amount) }}</span>
               </div>

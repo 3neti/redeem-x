@@ -69,6 +69,7 @@ class PayVoucherController extends Controller
             'min_amount' => $minAmount,
             'max_amount' => $maxAmount,
             'allow_partial' => $voucher->rules['allow_partial_payments'] ?? true,
+            'external_metadata' => $voucher->external_metadata, // Freeform JSON for display
         ]);
     }
 

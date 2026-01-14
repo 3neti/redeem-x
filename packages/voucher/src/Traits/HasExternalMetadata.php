@@ -2,35 +2,41 @@
 
 namespace LBHurtado\Voucher\Traits;
 
-use LBHurtado\Voucher\Data\ExternalMetadataData;
-
 /**
  * Trait HasExternalMetadata
  * 
  * Provides external metadata functionality for Voucher model.
- * Allows external systems to attach their own metadata to vouchers
- * using the existing metadata JSON field.
+ * Allows storing completely freeform JSON metadata for external tracking.
+ * 
+ * Use cases:
+ * - Reference codes (invoicing/billing)
+ * - Project tracking
+ * - Custom identifiers
+ * - Any LLM-processable data
  * 
  * @property array $metadata
  */
 trait HasExternalMetadata
 {
     /**
-     * Get external metadata as DTO
+     * Get external metadata as array (freeform)
+     * 
+     * Returns the raw metadata array for maximum flexibility.
+     * No schema constraints - perfect for LLM processing.
+     * 
+     * @return array|null
      */
-    public function getExternalMetadataAttribute(): ?ExternalMetadataData
+    public function getExternalMetadataAttribute(): ?array
     {
-        if (!isset($this->metadata['external'])) {
-            return null;
-        }
-        
-        return ExternalMetadataData::from($this->metadata['external']);
+        return $this->metadata['external'] ?? null;
     }
 
     /**
-     * Set external metadata from DTO or array
+     * Set external metadata from array
+     * 
+     * @param array|null $value Freeform JSON data
      */
-    public function setExternalMetadataAttribute(ExternalMetadataData|array|null $value): void
+    public function setExternalMetadataAttribute(?array $value): void
     {
         if ($value === null) {
             $metadata = $this->metadata ?? [];
@@ -40,9 +46,7 @@ trait HasExternalMetadata
         }
         
         $metadata = $this->metadata ?? [];
-        $metadata['external'] = $value instanceof ExternalMetadataData 
-            ? $value->toArray() 
-            : $value;
+        $metadata['external'] = $value;
         $this->metadata = $metadata;
     }
 
