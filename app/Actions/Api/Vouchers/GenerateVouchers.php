@@ -95,6 +95,7 @@ class GenerateVouchers
     #[BodyParameter('preview_message', description: '*optional* - Custom message to display in voucher inspection/preview.', type: 'string', example: 'This voucher is for event attendees only.')]
     #[BodyParameter('validation_location', description: '*optional* - Location validation settings. Object with: required (bool), target_lat (float -90 to 90), target_lng (float -180 to 180), radius_meters (int 1-10000), on_failure ("block"|"warn"). Enforces GPS radius restrictions.', type: 'object', example: ['required' => true, 'target_lat' => 14.5995, 'target_lng' => 120.9842, 'radius_meters' => 1000, 'on_failure' => 'block'])]
     #[BodyParameter('validation_time', description: '*optional* - Time validation settings. Object with: window (object with start_time HH:mm, end_time HH:mm, timezone), limit_minutes (int 1-1440 max time to redeem after generation), track_duration (bool). Enforces time restrictions.', type: 'object', example: ['limit_minutes' => 1440, 'track_duration' => true])]
+    #[BodyParameter('external_metadata', description: '*optional* - Freeform JSON object for tracking payable vouchers (e.g., reference codes, invoice numbers, project names). Stored in metadata->external field. Queryable via whereExternal() scope.', type: 'object', example: ['reference' => 'REF-001', 'invoice_number' => 'INV-2026-001', 'project_name' => 'Product X'])]
     public function asController(ActionRequest $request): JsonResponse
     {
         // Get validated data (ActionRequest auto-validates with rules() method)
@@ -115,14 +116,26 @@ class GenerateVouchers
         // Generate vouchers using package action
         $vouchers = BaseGenerateVouchers::run($instructions);
         
-        // Store idempotency key in vouchers (if provided by middleware)
+        // Store idempotency key and external metadata in vouchers (if provided)
         $idempotencyKey = $request->header('Idempotency-Key');
-        if ($idempotencyKey) {
-            foreach ($vouchers as $voucher) {
-                $voucher->update([
-                    'idempotency_key' => $idempotencyKey,
-                    'idempotency_created_at' => now(),
-                ]);
+        $externalMetadata = $validated['external_metadata'] ?? null;
+        
+        foreach ($vouchers as $voucher) {
+            $updateData = [];
+            
+            if ($idempotencyKey) {
+                $updateData['idempotency_key'] = $idempotencyKey;
+                $updateData['idempotency_created_at'] = now();
+            }
+            
+            if (!empty($updateData)) {
+                $voucher->update($updateData);
+            }
+            
+            // Set external metadata using trait accessor (stores in metadata->external)
+            if ($externalMetadata) {
+                $voucher->external_metadata = $externalMetadata;
+                $voucher->save();
             }
         }
         
@@ -236,6 +249,9 @@ class GenerateVouchers
             'preview_enabled' => 'nullable|boolean',
             'preview_scope' => 'nullable|string|in:full,requirements_only,none',
             'preview_message' => 'nullable|string|max:500',
+            
+            // External metadata (freeform JSON for payable vouchers)
+            'external_metadata' => 'nullable|array',
             
             // Location validation
             'validation_location' => 'nullable|array',

@@ -41,6 +41,7 @@ class VoucherController extends Controller
         $data = [
             'voucher' => VoucherData::fromModel($voucher),
             'input_field_options' => VoucherInputField::options(),
+            'external_metadata' => $voucher->external_metadata, // Freeform JSON metadata
         ];
 
         // Add settlement data if feature is enabled

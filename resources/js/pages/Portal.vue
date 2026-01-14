@@ -4,6 +4,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -135,6 +136,9 @@ const payee = ref<string>(''); // Default to CASH (anyone)
 const showPayeeModal = ref(false);
 const autoAddedFields = ref<Set<string>>(new Set()); // Track auto-added fields (for disable logic)
 
+// External metadata for payable vouchers (freeform JSON)
+const externalMetadataJson = ref<string>('');
+
 // Modal state snapshot for Cancel/Save
 const modalSnapshot = ref<{
   amount: number | null;
@@ -144,6 +148,7 @@ const modalSnapshot = ref<{
   instruction: string;
   tempAmount: string;
   tempCount: string;
+  externalMetadataJson: string;
 } | null>(null);
 
 // Flag to prevent watchers from interfering during snapshot restoration
@@ -238,9 +243,22 @@ const isPayeeButtonDisabled = computed(() => {
   return amount.value === null || amount.value === undefined;
 });
 
+const isValidExternalMetadata = computed(() => {
+  const json = externalMetadataJson.value.trim();
+  if (!json) return true; // Empty is valid (optional)
+  
+  try {
+    JSON.parse(json);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
 const isSaveButtonDisabled = computed(() => {
   if (voucherType.value === 'payable') {
-    return !targetAmount.value || targetAmount.value <= 0;
+    const hasInvalidMetadata = !isValidExternalMetadata.value;
+    return !targetAmount.value || targetAmount.value <= 0 || hasInvalidMetadata;
   }
   if (voucherType.value === 'settlement') {
     return !amount.value || !targetAmount.value || amount.value <= 0 || targetAmount.value <= 0;
@@ -479,6 +497,17 @@ const generateSimple = async (amt: number) => {
   error.value = null;
   
   try {
+    // Parse external metadata for payable vouchers
+    let parsedExternalMetadata = undefined;
+    if (voucherType.value === 'payable' && externalMetadataJson.value.trim()) {
+      try {
+        parsedExternalMetadata = JSON.parse(externalMetadataJson.value.trim());
+      } catch {
+        // Invalid JSON - should not happen due to validation, but handle gracefully
+        parsedExternalMetadata = undefined;
+      }
+    }
+    
     const payload = {
       amount: amt,
       count: count.value,
@@ -488,6 +517,8 @@ const generateSimple = async (amt: number) => {
       // Settlement fields (only when CASH payee and not redeemable)
       voucher_type: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? voucherType.value : undefined,
       target_amount: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? targetAmount.value : undefined,
+      // External metadata (only for payable vouchers)
+      external_metadata: parsedExternalMetadata,
     };
     
     // Generate idempotency key for this request
@@ -642,6 +673,7 @@ const resetAndCreateAnother = () => {
   payee.value = '';
   voucherType.value = 'redeemable';
   targetAmount.value = null;
+  externalMetadataJson.value = '';
   tempAmount.value = '';
   tempCount.value = '1';
   editMode.value = 'amount';
@@ -673,6 +705,7 @@ const handleOpenPayeeModal = () => {
     instruction: instruction.value,
     tempAmount: tempAmount.value,
     tempCount: tempCount.value,
+    externalMetadataJson: externalMetadataJson.value,
   };
   showPayeeModal.value = true;
 };
@@ -688,6 +721,7 @@ const handleCancelModal = () => {
     instruction.value = modalSnapshot.value.instruction;
     tempAmount.value = modalSnapshot.value.tempAmount;
     tempCount.value = modalSnapshot.value.tempCount;
+    externalMetadataJson.value = modalSnapshot.value.externalMetadataJson;
     modalSnapshot.value = null;
     isRestoringSnapshot.value = false;
   }
@@ -911,6 +945,7 @@ watch(voucherType, (newType, oldType) => {
     const previousAmount = amount.value;
     amount.value = null;
     targetAmount.value = null;
+    externalMetadataJson.value = ''; // Clear metadata when leaving payable
     
     // Focus on amount input to prompt user
     setTimeout(() => {
@@ -922,6 +957,7 @@ watch(voucherType, (newType, oldType) => {
   } else if (newType === 'redeemable') {
     // Redeemable: Reset to default
     targetAmount.value = null;
+    externalMetadataJson.value = ''; // Clear metadata when leaving payable
     if (amount.value === 0) {
       amount.value = null;
     }
@@ -1298,8 +1334,8 @@ watch(voucherType, () => {
         </DialogHeader>
         
         <div class="space-y-4">
-          <!-- Payee Field -->
-          <div class="space-y-2">
+          <!-- Payee Field (hidden for payable) -->
+          <div v-if="voucherType !== 'payable'" class="space-y-2">
             <Label for="payee-input">Payee</Label>
             <Input
               id="payee-input"
@@ -1313,6 +1349,24 @@ watch(voucherType, () => {
             </datalist>
             <p class="text-xs text-muted-foreground">
               {{ payeeContextHelp }}
+            </p>
+          </div>
+          
+          <!-- External Metadata (payable only) -->
+          <div v-if="voucherType === 'payable'" class="space-y-2">
+            <Label for="external-metadata">External Metadata (Optional)</Label>
+            <Textarea
+              id="external-metadata"
+              v-model="externalMetadataJson"
+              placeholder='{"reference":"REF-001", "project_name":"Product X", "invoice_number":"INV-2026-001"}'
+              rows="4"
+              class="font-mono text-sm"
+            />
+            <p class="text-xs text-muted-foreground">
+              Freeform JSON for tracking (e.g., reference code, invoice number, project name)
+            </p>
+            <p v-if="!isValidExternalMetadata" class="text-xs text-destructive">
+              ⚠ Invalid JSON format
             </p>
           </div>
           

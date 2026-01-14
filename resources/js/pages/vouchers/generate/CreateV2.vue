@@ -210,6 +210,19 @@ watch(selectedCampaignId, async (campaignId) => {
             const match = inst.ttl.match(/P(\d+)D/);
             ttlDays.value = match ? parseInt(match[1]) : props.config.basic_settings.ttl.default;
         }
+        
+        // Populate settlement voucher fields from campaign (if exists)
+        if (inst.voucher_type) {
+            voucherType.value = inst.voucher_type;
+            targetAmount.value = inst.target_amount || null;
+        }
+        
+        // Populate external metadata from campaign metadata (if exists)
+        if (inst.metadata?.external_metadata) {
+            externalMetadataJson.value = JSON.stringify(inst.metadata.external_metadata, null, 2);
+        } else {
+            externalMetadataJson.value = '';
+        }
     } catch (err) {
         console.error('Failed to load campaign:', err);
     }
@@ -256,6 +269,7 @@ const feeStrategy = ref<string>('absorb');
 const voucherType = ref<string>('redeemable'); // redeemable, payable, settlement
 const targetAmount = ref<number | null>(null);
 const settlementRules = ref<any>(null); // Optional JSON rules
+const externalMetadataJson = ref<string>(''); // Freeform JSON for payable vouchers
 
 // Rail fees for preview (must match config/omnipay.php)
 const railFees = { INSTAPAY: 10, PESONET: 25 };
@@ -335,6 +349,18 @@ const showDisbursementSettings = computed(() => {
 
 const isAmountDisabled = computed(() => {
     return voucherType.value === 'payable';
+});
+
+const isValidExternalMetadata = computed(() => {
+    const json = externalMetadataJson.value.trim();
+    if (!json) return true; // Empty is valid (optional)
+    
+    try {
+        JSON.parse(json);
+        return true;
+    } catch {
+        return false;
+    }
 });
 
 const contextualHelpText = computed(() => {
@@ -522,6 +548,7 @@ watch(voucherType, (newType, oldType) => {
         }
         // Populate target amount with current amount
         targetAmount.value = amount.value;
+        externalMetadataJson.value = ''; // Clear metadata when leaving payable
         // Focus and select amount field
         setTimeout(() => {
             const amountInput = document.getElementById('amount') as HTMLInputElement;
@@ -534,6 +561,7 @@ watch(voucherType, (newType, oldType) => {
         // Redeemable: Restore default amount, enable editing
         amount.value = props.config.basic_settings.amount.default;
         targetAmount.value = null;
+        externalMetadataJson.value = ''; // Clear metadata when leaving payable
     }
 });
 
@@ -748,6 +776,17 @@ const handleSubmit = async () => {
 
     validationErrors.value = {};
     
+    // Parse external metadata for payable vouchers
+    let parsedExternalMetadata = undefined;
+    if (voucherType.value === 'payable' && externalMetadataJson.value.trim()) {
+        try {
+            parsedExternalMetadata = JSON.parse(externalMetadataJson.value.trim());
+        } catch {
+            // Invalid JSON - should not happen due to validation, but handle gracefully
+            parsedExternalMetadata = undefined;
+        }
+    }
+    
     const payload = {
         amount: amount.value,
         count: count.value,
@@ -780,6 +819,8 @@ const handleSubmit = async () => {
         voucher_type: (props.settlement_enabled && voucherType.value !== 'redeemable') ? voucherType.value : undefined,
         target_amount: (props.settlement_enabled && voucherType.value !== 'redeemable') ? targetAmount.value : undefined,
         rules: (props.settlement_enabled && settlementRules.value) ? settlementRules.value : undefined,
+        // External metadata (only for payable vouchers)
+        external_metadata: parsedExternalMetadata,
     };
     
     const result = await generateVouchers(payload);
@@ -1000,6 +1041,24 @@ const handleSubmit = async () => {
                                         Total amount to collect before voucher closes
                                     </p>
                                     <InputError :message="validationErrors.target_amount" />
+                                </div>
+                                
+                                <!-- External Metadata (payable only) -->
+                                <div v-if="voucherType === 'payable'" class="space-y-2">
+                                    <Label for="external_metadata">External Metadata (Optional)</Label>
+                                    <Textarea
+                                        id="external_metadata"
+                                        v-model="externalMetadataJson"
+                                        placeholder='{"reference":"REF-001", "project_name":"Product X", "invoice_number":"INV-2026-001"}'
+                                        rows="4"
+                                        class="font-mono text-sm"
+                                    />
+                                    <p class="text-xs text-muted-foreground">
+                                        Freeform JSON for tracking (e.g., reference code, invoice number, project name)
+                                    </p>
+                                    <p v-if="!isValidExternalMetadata" class="text-xs text-destructive">
+                                        ⚠ Invalid JSON format
+                                    </p>
                                 </div>
                             </div>
 
