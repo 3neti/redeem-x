@@ -1399,22 +1399,38 @@ watch(voucherType, () => {
         </DialogHeader>
         
         <div class="space-y-4">
-          <!-- Payee Field (hidden for payable) -->
-          <div v-if="voucherType !== 'payable'" class="space-y-2">
-            <Label for="payee-input">Payee</Label>
-            <Input
-              id="payee-input"
-              v-model="payee"
-              placeholder="CASH (anyone), mobile number, or vendor alias"
-              list="vendor-aliases-datalist"
-              autofocus
-            />
-            <datalist id="vendor-aliases-datalist">
-              <option v-for="alias in vendorAliases" :key="alias.id" :value="alias.alias" />
-            </datalist>
-            <p class="text-xs text-muted-foreground">
-              {{ payeeContextHelp }}
-            </p>
+          <!-- Voucher Type Radio Group -->
+          <div v-if="showSettlementSection" class="space-y-2">
+            <Label>Voucher Type</Label>
+            <RadioGroup v-model="voucherType" class="space-y-2">
+              <div class="flex items-center space-x-2">
+                <RadioGroupItem value="redeemable" id="portal-type-redeemable" />
+                <Label for="portal-type-redeemable" class="font-normal cursor-pointer">
+                  <div>
+                    <div class="font-medium">Redeemable (Default)</div>
+                    <div class="text-xs text-muted-foreground">Standard one-time redemption voucher</div>
+                  </div>
+                </Label>
+              </div>
+              <div v-if="showPayableOption" class="flex items-center space-x-2">
+                <RadioGroupItem value="payable" id="portal-type-payable" />
+                <Label for="portal-type-payable" class="font-normal cursor-pointer">
+                  <div>
+                    <div class="font-medium">Payable</div>
+                    <div class="text-xs text-muted-foreground">Accepts payments until target amount reached</div>
+                  </div>
+                </Label>
+              </div>
+              <div class="flex items-center space-x-2">
+                <RadioGroupItem value="settlement" id="portal-type-settlement" />
+                <Label for="portal-type-settlement" class="font-normal cursor-pointer">
+                  <div>
+                    <div class="font-medium">Settlement</div>
+                    <div class="text-xs text-muted-foreground">Enterprise settlement instrument (multi-payment)</div>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
           
           <!-- Amount Field (only for CASH/anyone) -->
@@ -1464,40 +1480,6 @@ watch(voucherType, () => {
               </p>
             </div>
             
-            <!-- Voucher Type Radio Group -->
-            <div class="space-y-2">
-              <Label>Voucher Type</Label>
-              <RadioGroup v-model="voucherType" class="space-y-2">
-                <div class="flex items-center space-x-2">
-                  <RadioGroupItem value="redeemable" id="portal-type-redeemable" />
-                  <Label for="portal-type-redeemable" class="font-normal cursor-pointer">
-                    <div>
-                      <div class="font-medium">Redeemable (Default)</div>
-                      <div class="text-xs text-muted-foreground">Standard one-time redemption voucher</div>
-                    </div>
-                  </Label>
-                </div>
-                <div v-if="showPayableOption" class="flex items-center space-x-2">
-                  <RadioGroupItem value="payable" id="portal-type-payable" />
-                  <Label for="portal-type-payable" class="font-normal cursor-pointer">
-                    <div>
-                      <div class="font-medium">Payable</div>
-                      <div class="text-xs text-muted-foreground">Accepts payments until target amount reached</div>
-                    </div>
-                  </Label>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <RadioGroupItem value="settlement" id="portal-type-settlement" />
-                  <Label for="portal-type-settlement" class="font-normal cursor-pointer">
-                    <div>
-                      <div class="font-medium">Settlement</div>
-                      <div class="text-xs text-muted-foreground">Enterprise settlement instrument (multi-payment)</div>
-                    </div>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-            
             <!-- Target Amount Field (for payable/settlement) -->
             <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
               <Label for="portal-target-amount">{{ targetAmountLabel }}</Label>
@@ -1511,6 +1493,24 @@ watch(voucherType, () => {
               />
               <p class="text-xs text-muted-foreground">
                 {{ targetAmountHelpText }}
+              </p>
+            </div>
+            
+            <!-- Payee Field (hidden for payable) -->
+            <div v-if="voucherType !== 'payable'" class="space-y-2">
+              <Label for="payee-input">Payee</Label>
+              <Input
+                id="payee-input"
+                v-model="payee"
+                placeholder="CASH (anyone), mobile number, or vendor alias"
+                list="vendor-aliases-datalist"
+                autofocus
+              />
+              <datalist id="vendor-aliases-datalist">
+                <option v-for="alias in vendorAliases" :key="alias.id" :value="alias.alias" />
+              </datalist>
+              <p class="text-xs text-muted-foreground">
+                {{ payeeContextHelp }}
               </p>
             </div>
             
