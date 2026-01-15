@@ -178,6 +178,7 @@ class GenerateVouchers
             foreach ($vouchers as $voucher) {
                 foreach ($files as $file) {
                     $voucher->addMedia($file)
+                        ->withCustomProperties(['visibility' => 'public'])
                         ->toMediaCollection('voucher_attachments');
                 }
             }

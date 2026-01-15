@@ -88,7 +88,10 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
         $disk = config('voucher.attachments.disk', 'public');
 
         $this->addMediaCollection('voucher_attachments')
-            ->useDisk($disk);
+            ->useDisk($disk)
+            ->acceptsFile(function ($file) {
+                return true; // Accept all file types configured in validation
+            });
 
         $this->addMediaCollection('voucher_invoice')
             ->singleFile()
