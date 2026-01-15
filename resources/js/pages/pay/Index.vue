@@ -4,7 +4,7 @@ import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
 import PayWidget from '@/components/PayWidget.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { ChevronDown } from 'lucide-vue-next'
+import { ChevronDown, FileText, Download } from 'lucide-vue-next'
 
 interface Props {
     initial_code?: string | null;
@@ -262,6 +262,27 @@ function formatCurrency(amount: number) {
                 
                 <div v-if="showExternalMetadata" class="space-y-1">
                   <pre class="overflow-x-auto rounded-md bg-gray-100 p-3 text-xs"><code>{{ JSON.stringify(quote.external_metadata, null, 2) }}</code></pre>
+                </div>
+              </div>
+              
+              <!-- Attachments -->
+              <div v-if="quote.attachments && quote.attachments.length > 0" class="border-t pt-3 space-y-2">
+                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Attachments</div>
+                <div class="space-y-2">
+                  <a
+                    v-for="attachment in quote.attachments"
+                    :key="attachment.id"
+                    :href="attachment.url"
+                    target="_blank"
+                    class="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded hover:bg-gray-50 hover:border-blue-300 transition group"
+                  >
+                    <FileText class="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-gray-900 truncate">{{ attachment.file_name }}</div>
+                      <div class="text-xs text-gray-500">{{ attachment.human_readable_size }}</div>
+                    </div>
+                    <Download class="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
+                  </a>
                 </div>
               </div>
               

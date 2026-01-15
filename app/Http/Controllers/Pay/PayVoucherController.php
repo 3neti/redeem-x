@@ -60,6 +60,18 @@ class PayVoucherController extends Controller
         $minAmount = $voucher->rules['min_payment_amount'] ?? 1.00;
         $maxAmount = min($remaining, $voucher->rules['max_payment_amount'] ?? $remaining);
 
+        // Get attachments
+        $attachments = $voucher->getMedia('voucher_attachments')->map(function ($media) {
+            return [
+                'id' => $media->id,
+                'file_name' => $media->file_name,
+                'mime_type' => $media->mime_type,
+                'size' => $media->size,
+                'human_readable_size' => $media->human_readable_size,
+                'url' => $media->getUrl(),
+            ];
+        });
+
         return response()->json([
             'voucher_code' => $voucher->code,
             'voucher_type' => $voucher->voucher_type->value,
@@ -70,6 +82,7 @@ class PayVoucherController extends Controller
             'max_amount' => $maxAmount,
             'allow_partial' => $voucher->rules['allow_partial_payments'] ?? true,
             'external_metadata' => $voucher->external_metadata, // Freeform JSON for display
+            'attachments' => $attachments,
         ]);
     }
 
