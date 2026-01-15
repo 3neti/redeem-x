@@ -85,7 +85,7 @@ return [
         // Amount field
         'show_amount' => env('GENERATE_VOUCHER_SHOW_AMOUNT', true),
         'amount' => [
-            'label' => env('GENERATE_VOUCHER_AMOUNT_LABEL', 'Amount (PHP)'),
+            'label' => env('GENERATE_VOUCHER_AMOUNT_LABEL', 'Amount'),
             'default' => env('GENERATE_VOUCHER_AMOUNT_DEFAULT', 50),
             'min' => env('GENERATE_VOUCHER_AMOUNT_MIN', 0),
             'step' => env('GENERATE_VOUCHER_AMOUNT_STEP', '0.01'),
