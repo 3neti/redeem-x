@@ -85,20 +85,13 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
      */
     public function registerMediaCollections(): void
     {
-        // Read max file size from config (in KB), default 2MB
-        $maxSizeKb = config('voucher.attachments.max_file_size_kb', 2048);
-        $maxSizeBytes = $maxSizeKb * 1024;
         $disk = config('voucher.attachments.disk', 'public');
 
         $this->addMediaCollection('voucher_attachments')
-            ->acceptsMimeTypes(config('voucher.attachments.allowed_mimes', ['image/jpeg', 'image/png', 'application/pdf']))
-            ->maxFilesize($maxSizeBytes)
             ->useDisk($disk);
 
         $this->addMediaCollection('voucher_invoice')
             ->singleFile()
-            ->acceptsMimeTypes(config('voucher.attachments.allowed_mimes', ['image/jpeg', 'image/png', 'application/pdf']))
-            ->maxFilesize($maxSizeBytes)
             ->useDisk($disk);
     }
 

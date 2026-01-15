@@ -142,6 +142,9 @@ const autoAddedFields = ref<Set<string>>(new Set()); // Track auto-added fields 
 // External metadata for payable vouchers (freeform JSON)
 const externalMetadataJson = ref<string>('');
 
+// File attachments
+const selectedFiles = ref<File[]>([]);
+
 // Modal state snapshot for Cancel/Save
 const modalSnapshot = ref<{
   amount: number | null;
@@ -511,27 +514,54 @@ const generateSimple = async (amt: number) => {
       }
     }
     
-    const payload = {
-      amount: amt,
-      count: count.value,
-      input_fields: quickInputs.value,
-      validation_mobile: payeeType.value === 'mobile' ? normalizedPayee.value : undefined,
-      validation_payable: payeeType.value === 'vendor' ? normalizedPayee.value : undefined,
-      // Settlement fields (only when CASH payee and not redeemable)
-      voucher_type: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? voucherType.value : undefined,
-      target_amount: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? targetAmount.value : undefined,
-      // External metadata (only for payable vouchers)
-      external_metadata: parsedExternalMetadata,
+    // Use FormData if files are attached, otherwise use regular JSON
+    let requestData;
+    let headers: Record<string, string> = {
+      'Idempotency-Key': `portal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    // Generate idempotency key for this request
-    const idempotencyKey = `portal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    if (selectedFiles.value.length > 0) {
+      // Use FormData for file uploads
+      const formData = new FormData();
+      formData.append('amount', amt.toString());
+      formData.append('count', count.value.toString());
+      quickInputs.value.forEach((field, index) => {
+        formData.append(`input_fields[${index}]`, field);
+      });
+      if (payeeType.value === 'mobile' && normalizedPayee.value) {
+        formData.append('validation_mobile', normalizedPayee.value);
+      }
+      if (payeeType.value === 'vendor' && normalizedPayee.value) {
+        formData.append('validation_payable', normalizedPayee.value);
+      }
+      if (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') {
+        formData.append('voucher_type', voucherType.value);
+        if (targetAmount.value) {
+          formData.append('target_amount', targetAmount.value.toString());
+        }
+      }
+      if (parsedExternalMetadata) {
+        formData.append('external_metadata', JSON.stringify(parsedExternalMetadata));
+      }
+      selectedFiles.value.forEach((file, index) => {
+        formData.append(`attachments[${index}]`, file);
+      });
+      requestData = formData;
+    } else {
+      // Use regular JSON payload
+      requestData = {
+        amount: amt,
+        count: count.value,
+        input_fields: quickInputs.value,
+        validation_mobile: payeeType.value === 'mobile' ? normalizedPayee.value : undefined,
+        validation_payable: payeeType.value === 'vendor' ? normalizedPayee.value : undefined,
+        voucher_type: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? voucherType.value : undefined,
+        target_amount: (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') ? targetAmount.value : undefined,
+        external_metadata: parsedExternalMetadata,
+      };
+    }
     
-    const response = await axios.post('/api/v1/vouchers', payload, {
-      headers: {
-        'Idempotency-Key': idempotencyKey,
-      },
-    });
+    const response = await axios.post('/api/v1/vouchers', requestData, { headers });
     
     // API wraps data in response.data.data structure
     const apiData = response.data.data;
@@ -668,6 +698,13 @@ const handleShare = async () => {
   }
 };
 
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files) {
+    selectedFiles.value = Array.from(target.files).slice(0, 5); // Max 5 files
+  }
+};
+
 const resetAndCreateAnother = () => {
   generatedVouchers.value = [];
   selectedCodes.value.clear();
@@ -678,6 +715,7 @@ const resetAndCreateAnother = () => {
   targetAmount.value = null;
   interestRate.value = 0;
   externalMetadataJson.value = '';
+  selectedFiles.value = [];
   tempAmount.value = '';
   tempCount.value = '1';
   editMode.value = 'amount';
@@ -1479,6 +1517,28 @@ watch(voucherType, () => {
               help-text="Enter a reference code (auto-formatted to JSON) or write custom JSON"
               :rows="4"
             />
+            
+            <!-- File Attachments -->
+            <div class="space-y-2">
+              <Label for="attachments">Attachments (Optional)</Label>
+              <Input
+                id="attachments"
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,application/pdf"
+                @change="handleFileSelect"
+                class="cursor-pointer"
+              />
+              <p class="text-xs text-muted-foreground">
+                Upload invoices, receipts, or photos (max 5 files, 2MB each)
+              </p>
+              <div v-if="selectedFiles.length > 0" class="space-y-1">
+                <div v-for="(file, index) in selectedFiles" :key="index" class="text-xs flex items-center gap-2">
+                  <span class="truncate">{{ file.name }}</span>
+                  <span class="text-muted-foreground">({{ (file.size / 1024).toFixed(1) }}KB)</span>
+                </div>
+              </div>
+            </div>
           </div>
           
           <!-- Quick Presets (vendor aliases) -->

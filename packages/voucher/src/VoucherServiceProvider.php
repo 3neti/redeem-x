@@ -25,11 +25,6 @@ class VoucherServiceProvider extends ServiceProvider
             __DIR__ . '/../config/voucher-pipeline.php',
             'voucher-pipeline'
         );
-
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/voucher.php',
-            'voucher'
-        );
     }
 
     /**
@@ -51,10 +46,6 @@ class VoucherServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__ . '/../config/voucher-pipeline.php' => config_path('voucher-pipeline.php'),
-        ], 'config');
-
-        $this->publishes([
-            __DIR__ . '/../config/voucher.php' => config_path('voucher.php'),
         ], 'config');
     }
 }
