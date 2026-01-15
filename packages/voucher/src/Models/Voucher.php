@@ -22,6 +22,8 @@ use LBHurtado\Voucher\Traits\HasValidationResults;
 use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Enums\VoucherState;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * Class Voucher.
@@ -48,13 +50,14 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
  * @method int getKey()
  */
 #[ObservedBy([VoucherObserver::class])]
-class Voucher extends BaseVoucher implements InputInterface
+class Voucher extends BaseVoucher implements InputInterface, HasMedia
 {
     use WithData;
     use HasInputs;
     use HasExternalMetadata;
     use HasVoucherTiming;
     use HasValidationResults;
+    use InteractsWithMedia;
 
     protected string $dataClass = VoucherData::class;
 
@@ -75,6 +78,28 @@ class Voucher extends BaseVoucher implements InputInterface
 
     public function getRouteKeyName() {
         return "code";
+    }
+
+    /**
+     * Register media collections for voucher attachments.
+     */
+    public function registerMediaCollections(): void
+    {
+        // Read max file size from config (in KB), default 2MB
+        $maxSizeKb = config('voucher.attachments.max_file_size_kb', 2048);
+        $maxSizeBytes = $maxSizeKb * 1024;
+        $disk = config('voucher.attachments.disk', 'public');
+
+        $this->addMediaCollection('voucher_attachments')
+            ->acceptsMimeTypes(config('voucher.attachments.allowed_mimes', ['image/jpeg', 'image/png', 'application/pdf']))
+            ->maxFilesize($maxSizeBytes)
+            ->useDisk($disk);
+
+        $this->addMediaCollection('voucher_invoice')
+            ->singleFile()
+            ->acceptsMimeTypes(config('voucher.attachments.allowed_mimes', ['image/jpeg', 'image/png', 'application/pdf']))
+            ->maxFilesize($maxSizeBytes)
+            ->useDisk($disk);
     }
 
     /**
