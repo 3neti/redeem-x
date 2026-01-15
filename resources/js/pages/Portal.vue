@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -982,10 +982,12 @@ watch(voucherType, (newType, oldType) => {
   if (newType === 'payable') {
     // Payable: Set amount to 0, read-only
     amount.value = 0;
-    setTimeout(() => {
-      const targetInput = document.getElementById('portal-target-amount') as HTMLInputElement;
-      if (targetInput) targetInput.focus();
-    }, 100);
+    nextTick(() => {
+      const targetContainer = document.getElementById('portal-target-amount');
+      // NumberInput wraps the actual input in a div, query the input inside
+      const targetInput = targetContainer?.querySelector('input') as HTMLInputElement;
+      targetInput?.focus();
+    });
   } else if (newType === 'settlement') {
     // Settlement: Clear amount to force user to enter values
     // This ensures the display is always correct after switching
@@ -996,12 +998,12 @@ watch(voucherType, (newType, oldType) => {
     externalMetadataJson.value = ''; // Clear metadata when leaving payable
     
     // Focus on amount input to prompt user
-    setTimeout(() => {
-      const amountInput = document.getElementById('portal-amount') as HTMLInputElement;
-      if (amountInput) {
-        amountInput.focus();
-      }
-    }, 100);
+    nextTick(() => {
+      const amountContainer = document.getElementById('portal-amount');
+      // NumberInput wraps the actual input in a div, query the input inside
+      const amountInput = amountContainer?.querySelector('input') as HTMLInputElement;
+      amountInput?.focus();
+    });
   } else if (newType === 'redeemable') {
     // Redeemable: Reset to default
     targetAmount.value = null;
