@@ -171,6 +171,17 @@ class GenerateVouchers
                 }
             }
         }
+        
+        // Attach uploaded files to vouchers
+        if ($request->hasFile('attachments')) {
+            $files = $request->file('attachments');
+            foreach ($vouchers as $voucher) {
+                foreach ($files as $file) {
+                    $voucher->addMedia($file)
+                        ->toMediaCollection('voucher_attachments');
+                }
+            }
+        }
 
         // Transform to VoucherData DTOs using DataCollection
         $voucherData = new DataCollection(VoucherData::class, $vouchers->all());
@@ -252,6 +263,10 @@ class GenerateVouchers
             
             // External metadata (freeform JSON for payable vouchers)
             'external_metadata' => 'nullable|array',
+            
+            // File attachments
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'file|mimes:jpeg,jpg,png,pdf|max:' . config('voucher.attachments.max_file_size_kb', 2048),
             
             // Location validation
             'validation_location' => 'nullable|array',
