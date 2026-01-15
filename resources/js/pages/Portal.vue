@@ -541,7 +541,10 @@ const generateSimple = async (amt: number) => {
         }
       }
       if (parsedExternalMetadata) {
-        formData.append('external_metadata', JSON.stringify(parsedExternalMetadata));
+        // Append external_metadata as nested form fields
+        Object.keys(parsedExternalMetadata).forEach((key) => {
+          formData.append(`external_metadata[${key}]`, parsedExternalMetadata[key]);
+        });
       }
       selectedFiles.value.forEach((file, index) => {
         formData.append(`attachments[${index}]`, file);
