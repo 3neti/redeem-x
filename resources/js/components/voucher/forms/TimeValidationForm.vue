@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NumberInput } from '@/components/ui/number-input';
 import { Clock } from 'lucide-vue-next';
 
 interface TimeWindow {
@@ -316,12 +317,12 @@ const timezones = [
 
                 <div v-if="durationLimitEnabled" class="space-y-4 pl-4 border-l-2">
                     <div class="space-y-2">
-                        <Label for="limit_minutes">Maximum Duration (minutes)</Label>
-                        <Input
+                        <Label for="limit_minutes">Maximum Duration</Label>
+                        <NumberInput
                             id="limit_minutes"
-                            type="number"
                             :model-value="localValue?.limit_minutes ?? 10"
                             @update:model-value="updateField('limit_minutes', $event ? parseInt($event) : null)"
+                            suffix="minutes"
                             :min="1"
                             :max="1440"
                             placeholder="10"

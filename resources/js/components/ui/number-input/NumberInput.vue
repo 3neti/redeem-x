@@ -35,7 +35,10 @@ const modelValue = useVModel(props, 'modelValue', emits, {
 
 const handleFocus = (event: FocusEvent) => {
   if (props.selectOnFocus && !props.readonly) {
-    (event.target as HTMLInputElement).select()
+    // Use nextTick to ensure DOM is updated before selecting
+    requestAnimationFrame(() => {
+      (event.target as HTMLInputElement).select()
+    })
   }
 }
 
