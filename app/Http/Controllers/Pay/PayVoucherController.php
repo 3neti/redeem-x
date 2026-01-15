@@ -28,8 +28,11 @@ class PayVoucherController extends Controller
             abort(404, 'Settlement vouchers feature is not available');
         }
         
+        $code = request()->query('code');
+        
         return inertia('pay/Index', [
             'pay' => config('pay'),
+            'initial_code' => $code,
         ]);
     }
 
