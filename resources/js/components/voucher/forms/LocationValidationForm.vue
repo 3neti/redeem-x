@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NumberInput } from '@/components/ui/number-input';
 import { MapPin } from 'lucide-vue-next';
 
 interface LocationValidation {
@@ -189,50 +190,47 @@ const useCurrentLocation = () => {
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-2">
                         <Label for="target_lat">Latitude</Label>
-                        <Input
+                        <NumberInput
                             id="target_lat"
-                            type="text"
-                            inputmode="decimal"
-                            :model-value="localValue?.target_lat ?? ''"
-                            @update:model-value="updateField('target_lat', $event ? parseFloat($event) : null)"
+                            :model-value="localValue?.target_lat ?? null"
+                            @update:model-value="updateField('target_lat', $event)"
+                            suffix="-90 to 90"
+                            :step="0.000001"
+                            :min="-90"
+                            :max="90"
                             placeholder="14.5995"
                             :readonly="readonly"
                             :required="enabled"
                         />
                         <InputError :message="validationErrors['validation.location.target_lat']" />
-                        <p class="text-xs text-muted-foreground">
-                            -90 to 90
-                        </p>
                     </div>
 
                     <div class="space-y-2">
                         <Label for="target_lng">Longitude</Label>
-                        <Input
+                        <NumberInput
                             id="target_lng"
-                            type="text"
-                            inputmode="decimal"
-                            :model-value="localValue?.target_lng ?? ''"
-                            @update:model-value="updateField('target_lng', $event ? parseFloat($event) : null)"
+                            :model-value="localValue?.target_lng ?? null"
+                            @update:model-value="updateField('target_lng', $event)"
+                            suffix="-180 to 180"
+                            :step="0.000001"
+                            :min="-180"
+                            :max="180"
                             placeholder="120.9842"
                             :readonly="readonly"
                             :required="enabled"
                         />
                         <InputError :message="validationErrors['validation.location.target_lng']" />
-                        <p class="text-xs text-muted-foreground">
-                            -180 to 180
-                        </p>
                     </div>
                 </div>
             </div>
 
             <!-- Radius -->
             <div class="space-y-2">
-                <Label for="radius">Allowed Radius (kilometers)</Label>
-                <Input
+                <Label for="radius">Allowed Radius</Label>
+                <NumberInput
                     id="radius"
-                    type="text"
-                    inputmode="decimal"
-                    v-model.number="radiusKm"
+                    v-model="radiusKm"
+                    suffix="km"
                     placeholder="0.5"
                     :readonly="readonly"
                     :required="enabled"

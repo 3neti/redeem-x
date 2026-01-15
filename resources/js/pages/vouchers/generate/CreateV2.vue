@@ -4,6 +4,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -928,11 +929,11 @@ const handleSubmit = async () => {
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div v-if="config.basic_settings.show_amount" class="space-y-2">
                                     <Label for="amount">{{ config.basic_settings.amount.label }}</Label>
-                                    <Input
+                                    <NumberInput
                                         id="amount"
-                                        type="number"
                                         name="amount"
-                                        v-model.number="amount"
+                                        v-model="amount"
+                                        prefix="₱"
                                         :min="config.basic_settings.amount.min"
                                         :step="config.basic_settings.amount.step"
                                         :disabled="isAmountDisabled"
@@ -951,11 +952,10 @@ const handleSubmit = async () => {
 
                                 <div v-if="config.basic_settings.show_quantity" class="space-y-2">
                                     <Label for="count">{{ config.basic_settings.quantity.label }}</Label>
-                                    <Input
+                                    <NumberInput
                                         id="count"
-                                        type="number"
                                         name="count"
-                                        v-model.number="count"
+                                        v-model="count"
                                         :min="config.basic_settings.quantity.min"
                                         required
                                     />
@@ -1024,11 +1024,11 @@ const handleSubmit = async () => {
 
                                 <!-- Target Amount (shown for payable/settlement types) -->
                                 <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
-                                    <Label for="target_amount">Target Amount (₱)</Label>
-                                    <Input
+                                    <Label for="target_amount">Target Amount</Label>
+                                    <NumberInput
                                         id="target_amount"
-                                        type="number"
-                                        v-model.number="targetAmount"
+                                        v-model="targetAmount"
+                                        prefix="₱"
                                         :min="1"
                                         :step="0.01"
                                         placeholder="Enter target amount"
@@ -1093,11 +1093,11 @@ const handleSubmit = async () => {
 
                                 <div v-if="config.basic_settings.show_ttl" class="space-y-2">
                                     <Label for="ttl_days">{{ config.basic_settings.ttl.label }}</Label>
-                                    <Input
+                                    <NumberInput
                                         id="ttl_days"
-                                        type="number"
                                         name="ttl_days"
-                                        v-model.number="ttlDays"
+                                        v-model="ttlDays"
+                                        suffix="days"
                                         :min="config.basic_settings.ttl.min"
                                         :placeholder="config.basic_settings.ttl.placeholder"
                                     />
@@ -1415,12 +1415,12 @@ const handleSubmit = async () => {
                             </div>
 
                             <div class="space-y-2">
-                                <Label for="rider_redirect_timeout">Redirect Timeout (seconds)</Label>
-                                <Input
+                                <Label for="rider_redirect_timeout">Redirect Timeout</Label>
+                                <NumberInput
                                     id="rider_redirect_timeout"
                                     name="rider_redirect_timeout"
-                                    type="number"
-                                    v-model.number="riderRedirectTimeout"
+                                    v-model="riderRedirectTimeout"
+                                    suffix="s"
                                     placeholder="10"
                                     :min="0"
                                     :max="300"
@@ -1448,12 +1448,12 @@ const handleSubmit = async () => {
                             </div>
 
                             <div class="space-y-2">
-                                <Label for="rider_splash_timeout">Splash Timeout (seconds)</Label>
-                                <Input
+                                <Label for="rider_splash_timeout">Splash Timeout</Label>
+                                <NumberInput
                                     id="rider_splash_timeout"
                                     name="rider_splash_timeout"
-                                    type="number"
-                                    v-model.number="riderSplashTimeout"
+                                    v-model="riderSplashTimeout"
+                                    suffix="s"
                                     placeholder="5"
                                     :min="0"
                                     :max="60"
