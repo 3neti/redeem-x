@@ -28,6 +28,7 @@ import { useGenerateMode } from '@/composables/useGenerateMode';
 import { Switch } from '@/components/ui/switch';
 import axios from 'axios';
 import { list as vendorAliasesList } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 
 // Debug flag - set to false to suppress console logs
 const DEBUG = false;
@@ -1347,13 +1348,10 @@ const handleSubmit = async () => {
 
                             <div v-if="config.feedback_channels.show_mobile" class="space-y-2">
                                 <Label for="feedback_mobile">{{ config.feedback_channels.mobile.label }}</Label>
-                                <Input
-                                    id="feedback_mobile"
-                                    name="feedback_mobile"
+                                <PhoneInput
                                     v-model="feedbackMobile"
-                                    :placeholder="config.feedback_channels.mobile.placeholder"
+                                    :error="validationErrors.feedback_mobile"
                                 />
-                                <InputError :message="validationErrors.feedback_mobile" />
                             </div>
 
                             <div v-if="config.feedback_channels.show_webhook" class="space-y-2">

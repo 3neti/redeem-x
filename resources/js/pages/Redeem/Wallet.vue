@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-vue-next';
 import BankSelect from '@/components/BankSelect.vue';
 import AppLogo from '@/components/AppLogo.vue';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 
 interface VoucherData {
     code: string;
@@ -389,17 +390,13 @@ onMounted(async () => {
                             <!-- Mobile Number -->
                             <div ref="mobileInputWrapper" class="space-y-2">
                                 <Label for="mobile">{{ config?.contact_payment?.mobile_label || 'Mobile Number' }} *</Label>
-                                <Input
-                                    id="mobile"
+                                <PhoneInput
                                     v-model="form.mobile"
-                                    type="tel"
-                                    :placeholder="config?.contact_payment?.mobile_placeholder || '+63 917 123 4567'"
-                                    required
+                                    :error="Array.isArray(validationErrors.mobile) ? validationErrors.mobile[0] : validationErrors.mobile"
+                                    :required="true"
                                     :disabled="loading"
+                                    :placeholder="config?.contact_payment?.mobile_placeholder || 'Enter mobile number'"
                                 />
-                                <p v-if="validationErrors.mobile" class="text-sm text-red-600">
-                                    {{ Array.isArray(validationErrors.mobile) ? validationErrors.mobile[0] : validationErrors.mobile }}
-                                </p>
                                 <p v-if="config?.contact_payment?.mobile_hint" class="text-xs text-muted-foreground">
                                     {{ config?.contact_payment?.mobile_hint }}
                                 </p>

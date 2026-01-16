@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Send } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import type { FeedbackInstruction } from '@/types/voucher';
 
 interface Props {
@@ -65,15 +66,12 @@ const updateField = (field: keyof FeedbackInstruction, value: string | null) => 
 
             <div class="space-y-2">
                 <Label for="feedback_mobile">Mobile Number</Label>
-                <Input
-                    id="feedback_mobile"
+                <PhoneInput
                     v-model="localValue.mobile"
-                    type="tel"
-                    placeholder="+639171234567"
+                    :error="validationErrors['feedback.mobile']"
                     :readonly="readonly"
-                    @input="(e) => updateField('mobile', (e.target as HTMLInputElement).value)"
+                    placeholder="0917 123 4567"
                 />
-                <InputError :message="validationErrors['feedback.mobile']" />
                 <p class="text-xs text-muted-foreground">
                     Receive SMS notifications (Philippine mobile number)
                 </p>

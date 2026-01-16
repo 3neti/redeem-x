@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/InputError.vue';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import type { CashValidation } from '@/types/voucher';
 import { index as vendorAliasesIndex } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
 
@@ -82,15 +83,12 @@ onMounted(async () => {
 
         <div class="space-y-2">
             <Label for="validation_mobile">Validation Mobile Number</Label>
-            <Input
-                id="validation_mobile"
+            <PhoneInput
                 v-model="localValue.mobile"
-                type="tel"
-                placeholder="+639171234567"
+                :error="validationErrors['cash.validation.mobile']"
                 :readonly="readonly"
-                @input="(e) => updateField('mobile', (e.target as HTMLInputElement).value)"
+                placeholder="0917 123 4567"
             />
-            <InputError :message="validationErrors['cash.validation.mobile']" />
             <p class="text-xs text-muted-foreground">
                 Philippine mobile number format required
             </p>

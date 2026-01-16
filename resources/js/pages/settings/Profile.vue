@@ -13,6 +13,7 @@ import MerchantAmountSettings from '@/components/MerchantAmountSettings.vue';
 import MerchantNameTemplateComposer from '@/components/MerchantNameTemplateComposer.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -304,24 +305,14 @@ onMounted(() => {
                             Mobile Number *
                             <span v-if="isMobileRequired" class="text-red-600 font-semibold"> (Required to continue)</span>
                         </Label>
-                        <Input
-                            id="mobile"
-                            ref="mobileInputRef"
-                            type="tel"
-                            :class="[
-                                'mt-1 block w-full',
-                                isMobileRequired && !profileForm.mobile ? 'border-red-500 ring-red-500 focus-visible:ring-red-500' : ''
-                            ]"
-                            name="mobile"
+                        <PhoneInput
                             v-model="profileForm.mobile"
-                            required
-                            autocomplete="tel"
-                            placeholder="09171234567"
+                            :error="profileForm.errors.mobile"
+                            :required="true"
                         />
                         <p class="text-sm" :class="isMobileRequired ? 'text-red-600 font-medium' : 'text-muted-foreground'">
                             Philippine mobile number (required for QR code generation)
                         </p>
-                        <InputError class="mt-2" :message="profileForm.errors.mobile" />
                     </div>
 
                     <div class="grid gap-2">
