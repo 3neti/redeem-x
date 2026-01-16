@@ -60,10 +60,8 @@ onMounted(() => {
             :default-country="'PH'"
             :only-countries="['PH']"
             :disabled="disabled"
-            :dropdown-options="{ disabled: true }"
             :input-options="{
                 placeholder: placeholder,
-                readonly: readonly,
                 required: required,
             }"
             :valid-characters-only="true"

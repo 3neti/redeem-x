@@ -71,6 +71,7 @@ const updateField = (field: keyof FeedbackInstruction, value: string | null) => 
                     :error="validationErrors['feedback.mobile']"
                     :readonly="readonly"
                     placeholder="0917 123 4567"
+                    @update:model-value="(value) => updateField('mobile', value)"
                 />
                 <p class="text-xs text-muted-foreground">
                     Receive SMS notifications (Philippine mobile number)
