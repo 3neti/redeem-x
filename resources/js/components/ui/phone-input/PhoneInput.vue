@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { VueTelInput } from 'vue-tel-input';
 import 'vue-tel-input/vue-tel-input.css';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ interface Props {
     readonly?: boolean;
     required?: boolean;
     placeholder?: string;
+    autofocus?: boolean;
     class?: string;
 }
 
@@ -20,12 +21,15 @@ const props = withDefaults(defineProps<Props>(), {
     disabled: false,
     readonly: false,
     required: false,
-    placeholder: '0917 123 4567',
+    placeholder: '09181234567',
+    autofocus: false,
 });
 
 const emit = defineEmits<{
     'update:modelValue': [value: string];
 }>();
+
+const inputRef = ref<InstanceType<typeof VueTelInput>>();
 
 const handleInput = (phone: string, phoneObject: any) => {
     // Emit E.164 format if valid, otherwise emit the formatted number
@@ -35,16 +39,28 @@ const handleInput = (phone: string, phoneObject: any) => {
         emit('update:modelValue', phone);
     }
 };
+
+onMounted(() => {
+    if (props.autofocus && inputRef.value) {
+        // Find the actual input element and focus it
+        const input = (inputRef.value.$el as HTMLElement)?.querySelector('input');
+        if (input) {
+            input.focus();
+        }
+    }
+});
 </script>
 
 <template>
     <div :class="cn('w-full', props.class)">
         <VueTelInput
+            ref="inputRef"
             :model-value="modelValue"
             mode="national"
             :default-country="'PH'"
             :only-countries="['PH']"
             :disabled="disabled"
+            :dropdown-options="{ disabled: true }"
             :input-options="{
                 placeholder: placeholder,
                 readonly: readonly,

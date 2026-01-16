@@ -73,9 +73,9 @@ steps:
       
       # Hero field - Primary action
       - name: "mobile"
-        type: "text"
+        type: "tel"
         label: "Mobile Number"
-        placeholder: "09171234567"
+        placeholder: "09181234567"
         required: true
         emphasis: "hero"  # NEW: Large, prominent styling
         help_text: "Enter your mobile number to receive the cash"  # NEW: Helper text
@@ -91,7 +91,7 @@ steps:
       - name: "account_number"
         type: "text"
         label: "Account Number"
-        placeholder: "09171234567"
+        placeholder: "09181234567"
         required: true
         group: "bank_details"  # NEW: Group with bank_code
         help_text: "For GCash/InstaPay, account number will auto-fill from your mobile"  # NEW: Helper text

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
 import { CountrySelect, SettlementRailSelect, BankEMISelect } from '@/components/financial';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 
 interface FieldDefinition {
     name: string;
@@ -329,7 +330,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                             
                             <!-- Hero field input with larger styling -->
                             <Input
-                                v-if="field.type === 'text' || field.type === 'email' || field.type === 'tel'"
+                                v-if="field.type === 'text' || field.type === 'email'"
                                 :id="field.name"
                                 v-model="formData[field.name]"
                                 :type="field.type"
@@ -341,6 +342,19 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                     'py-4 text-lg ring-2 ring-primary/20 focus-visible:ring-4 focus-visible:ring-primary/30 transition-all',
                                     { 'border-destructive ring-destructive/20': errors[field.name] }
                                 ]"
+                                autofocus
+                            />
+                            
+                            <!-- Hero phone input with larger styling -->
+                            <PhoneInput
+                                v-else-if="field.type === 'tel'"
+                                v-model="formData[field.name]"
+                                :error="errors[field.name]"
+                                :placeholder="getFieldPlaceholder(field)"
+                                :required="field.required"
+                                :readonly="field.readonly"
+                                :disabled="field.disabled"
+                                :class="'ring-2 ring-primary/20 focus-within:ring-4 focus-within:ring-primary/30 transition-all'"
                                 autofocus
                             />
                             
@@ -389,6 +403,28 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                             :readonly="field.readonly"
                                             :disabled="field.disabled"
                                             :class="{ 'border-destructive': errors[field.name] }"
+                                        />
+                                        <p v-if="field.help_text" class="text-xs text-muted-foreground">
+                                            {{ field.help_text }}
+                                        </p>
+                                        <p v-if="errors[field.name]" class="text-sm text-destructive">
+                                            {{ errors[field.name] }}
+                                        </p>
+                                    </template>
+                                    
+                                    <!-- Phone Input -->
+                                    <template v-else-if="field.type === 'tel'">
+                                        <Label :for="field.name" :class="{ 'text-destructive': errors[field.name] }">
+                                            {{ getFieldLabel(field) }}
+                                            <span v-if="field.required" class="text-destructive">*</span>
+                                        </Label>
+                                        <PhoneInput
+                                            v-model="formData[field.name]"
+                                            :error="errors[field.name]"
+                                            :placeholder="getFieldPlaceholder(field)"
+                                            :required="field.required"
+                                            :readonly="field.readonly"
+                                            :disabled="field.disabled"
                                         />
                                         <p v-if="field.help_text" class="text-xs text-muted-foreground">
                                             {{ field.help_text }}
@@ -480,6 +516,25 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 :readonly="field.readonly"
                                 :disabled="field.disabled"
                                 :class="{ 'border-destructive': errors[field.name] }"
+                            />
+                            <p v-if="errors[field.name]" class="text-sm text-destructive">
+                                {{ errors[field.name] }}
+                            </p>
+                        </div>
+                        
+                        <!-- Phone Input -->
+                        <div v-else-if="field.type === 'tel'">
+                            <Label :for="field.name" :class="{ 'text-destructive': errors[field.name] }">
+                                {{ getFieldLabel(field) }}
+                                <span v-if="field.required" class="text-destructive">*</span>
+                            </Label>
+                            <PhoneInput
+                                v-model="formData[field.name]"
+                                :error="errors[field.name]"
+                                :placeholder="getFieldPlaceholder(field)"
+                                :required="field.required"
+                                :readonly="field.readonly"
+                                :disabled="field.disabled"
                             />
                             <p v-if="errors[field.name]" class="text-sm text-destructive">
                                 {{ errors[field.name] }}
