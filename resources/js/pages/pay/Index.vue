@@ -4,7 +4,8 @@ import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
 import PayWidget from '@/components/PayWidget.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { ChevronDown, FileText, Download } from 'lucide-vue-next'
+import { useQrShare } from '@/composables/useQrShare'
+import { ChevronDown, FileText, Download, Info } from 'lucide-vue-next'
 
 interface Props {
     initial_code?: string | null;
@@ -14,6 +15,7 @@ defineProps<Props>()
 
 const page = usePage()
 const { toast } = useToast()
+const { downloadQr } = useQrShare()
 const voucherCode = ref('')
 const amount = ref('')
 const quote = ref<any>(null)
@@ -214,6 +216,14 @@ function formatCurrency(amount: number) {
     currency: 'PHP',
   }).format(amount)
 }
+
+function handleDownloadQr() {
+  if (paymentQr.value?.qr_code) {
+    const timestamp = new Date().getTime()
+    const filename = `payment-qr-${quote.value.voucher_code}-${timestamp}.png`
+    downloadQr(paymentQr.value.qr_code, filename)
+  }
+}
 </script>
 
 <template>
@@ -363,6 +373,25 @@ function formatCurrency(amount: number) {
                   :loading="qrLoading"
                   :error="error"
                 />
+              </div>
+            </div>
+            
+            <!-- Download Button -->
+            <button
+              @click="handleDownloadQr"
+              :disabled="!paymentQr?.qr_code"
+              class="w-full bg-gray-100 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+            >
+              <Download class="h-5 w-5" />
+              Download QR Code
+            </button>
+            
+            <!-- Mobile Usage Instructions -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div class="text-sm text-blue-800">
+                <strong class="block mb-1">Using a mobile device?</strong>
+                <p>Download this QR code, then upload it in your GCash or Maya app to complete the payment.</p>
               </div>
             </div>
             
