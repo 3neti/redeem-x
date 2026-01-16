@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, unref, type MaybeRef } from 'vue';
 import QRCode from 'qrcode';
 
 export interface VoucherQrData {
@@ -7,7 +7,7 @@ export interface VoucherQrData {
     voucher_code: string;   // Just the code
 }
 
-export function useVoucherQr(voucherCode: string, redemptionPath: string = '/disburse') {
+export function useVoucherQr(voucherCode: MaybeRef<string>, redemptionPath: MaybeRef<string> = '/disburse') {
     const qrData = ref<VoucherQrData | null>(null);
     const loading = ref(false);
     const error = ref<string | null>(null);
@@ -17,7 +17,10 @@ export function useVoucherQr(voucherCode: string, redemptionPath: string = '/dis
         error.value = null;
 
         try {
-            const redemptionUrl = `${window.location.origin}${redemptionPath}?code=${voucherCode}`;
+            // Unwrap reactive values at generation time
+            const code = unref(voucherCode);
+            const path = unref(redemptionPath);
+            const redemptionUrl = `${window.location.origin}${path}?code=${code}`;
             
             // Generate QR code as data URL
             const qrCode = await QRCode.toDataURL(redemptionUrl, {
@@ -32,7 +35,7 @@ export function useVoucherQr(voucherCode: string, redemptionPath: string = '/dis
             qrData.value = {
                 qr_code: qrCode,
                 redemption_url: redemptionUrl,
-                voucher_code: voucherCode,
+                voucher_code: code,
             };
         } catch (err: any) {
             error.value = err.message || 'Failed to generate QR code';
