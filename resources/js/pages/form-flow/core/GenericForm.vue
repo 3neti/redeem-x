@@ -17,7 +17,7 @@ import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 
 interface FieldDefinition {
     name: string;
-    type: 'text' | 'email' | 'date' | 'number' | 'textarea' | 'select' | 'checkbox' | 'file' | 'recipient_country' | 'settlement_rail' | 'bank_account';
+    type: 'text' | 'email' | 'date' | 'number' | 'textarea' | 'select' | 'checkbox' | 'file' | 'recipient_country' | 'settlement_rail' | 'bank_account' | 'tel' | 'hidden';
     label?: string;
     placeholder?: string;
     required?: boolean;
@@ -160,9 +160,25 @@ if (props.auto_sync?.enabled) {
 // Computed properties
 const pageTitle = computed(() => props.title || 'Form');
 
+// Extract issuer name and voucher code from description
+const issuerName = computed(() => {
+    if (!props.description) return null;
+    // Extract from "Redeeming voucher CODE from ISSUER_NAME"
+    const match = props.description.match(/from (.+)$/);
+    return match ? match[1] : null;
+});
+
+const voucherCode = computed(() => {
+    if (!props.description) return null;
+    // Extract from "Redeeming voucher CODE from ..."
+    const match = props.description.match(/voucher (\S+)/);
+    return match ? match[1] : null;
+});
+
 // Field organization by UI metadata
+// Hide amount badge since we show it in progress flow
 const summaryFields = computed(() => 
-    props.fields.filter(f => f.variant === 'readonly-badge')
+    props.fields.filter(f => f.variant === 'readonly-badge' && f.name !== 'amount')
 );
 
 const heroFields = computed(() => 
@@ -299,11 +315,18 @@ function getFieldPlaceholder(field: FieldDefinition): string {
         <Card>
             <CardHeader>
                 <CardTitle>{{ title }}</CardTitle>
-                <CardDescription v-if="description" class="text-base" v-html="description.replace(/voucher (\S+)/i, 'voucher <strong>$1</strong>').replace(/₱[\d,]+\.\d{2}/, '<strong>$&</strong>').replace(/from (.+)$/, 'from <strong>$1</strong>')">
-                </CardDescription>
             </CardHeader>
             <CardContent>
                 <form @submit.prevent="handleSubmit" class="space-y-6">
+                    <!-- Hidden fields (not visible but needed for auto-sync conditions) -->
+                    <input
+                        v-for="field in props.fields.filter(f => f.type === 'hidden')"
+                        :key="field.name"
+                        type="hidden"
+                        :name="field.name"
+                        v-model="formData[field.name]"
+                    />
+                    
                     <!-- Summary Badges Section -->
                     <div v-if="summaryFields.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                         <div v-for="field in summaryFields" :key="field.name" class="flex flex-col">
@@ -354,12 +377,23 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 :required="field.required"
                                 :readonly="field.readonly"
                                 :disabled="field.disabled"
-                                :class="'ring-2 ring-primary/20 focus-within:ring-4 focus-within:ring-primary/30 transition-all'"
+                                :class="'ring-2 ring-primary/20 focus-within:ring-4 focus-within:ring-primary/30 transition-all [&_input]:text-center [&_input]:placeholder:text-center'"
                                 autofocus
                             />
                             
-                            <!-- Help text -->
-                            <p v-if="field.help_text" class="text-sm text-muted-foreground">
+                            <!-- Transaction badges below mobile field -->
+                            <div v-if="field.name === 'mobile' && issuerName" class="flex flex-wrap items-center gap-1.5 mt-2">
+                                <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                    {{ issuerName }}
+                                </Badge>
+                                <span class="text-muted-foreground text-xs">•</span>
+                                <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                    {{ formatBadgeValue(props.fields.find(f => f.name === 'amount')) }}
+                                </Badge>
+                            </div>
+                            
+                            <!-- Help text (hide for mobile field since badges replace it) -->
+                            <p v-if="field.help_text && field.name !== 'mobile'" class="text-sm text-muted-foreground">
                                 {{ field.help_text }}
                             </p>
                             
@@ -373,8 +407,10 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                     <!-- Separator before grouped/normal fields -->
                     <div v-if="(heroFields.length > 0) && (Object.keys(groupedFields).length > 0 || normalFields.length > 0)" class="relative my-8">
                         <Separator />
-                        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4">
-                            <span class="text-sm text-muted-foreground font-medium">Bank Account Details</span>
+                        <div v-if="voucherCode" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
+                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-bold">
+                                {{ voucherCode }}
+                            </Badge>
                         </div>
                     </div>
 
@@ -402,7 +438,10 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                             :step="field.step"
                                             :readonly="field.readonly"
                                             :disabled="field.disabled"
-                                            :class="{ 'border-destructive': errors[field.name] }"
+                                            :class="[
+                                                { 'border-destructive': errors[field.name] },
+                                                field.name === 'account_number' ? 'font-bold text-lg tracking-widest text-center placeholder:text-center' : ''
+                                            ]"
                                         />
                                         <p v-if="field.help_text" class="text-xs text-muted-foreground">
                                             {{ field.help_text }}

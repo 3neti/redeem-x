@@ -57,19 +57,13 @@ steps:
         readonly: true
         required: true
         variant: "readonly-badge"  # NEW: Display as badge in summary
+      
+      # Hidden field - Required for auto-sync condition
+      # TODO: Get from voucher once driver supports settlement_rail variable
       - name: "settlement_rail"
-        type: "settlement_rail"
-        label: "Payment Method"
+        type: "hidden"
         default: "INSTAPAY"
-        required: true
-        variant: "readonly-badge"  # NEW: Display as badge in summary
-      - name: "recipient_country"
-        type: "recipient_country"
-        label: "Country"
-        default: "PH"
-        readonly: true
-        required: true
-        variant: "readonly-badge"  # NEW: Display as badge in summary
+        required: false
       
       # Hero field - Primary action
       - name: "mobile"
@@ -87,7 +81,7 @@ steps:
         default: "GXCHPHM2XXX"
         required: true
         group: "bank_details"  # NEW: Group with account_number
-        help_text: "Select your bank or e-wallet provider"  # NEW: Helper text
+        help_text: "INSTAPAY"  # Payment method indicator
       - name: "account_number"
         type: "text"
         label: "Account Number"

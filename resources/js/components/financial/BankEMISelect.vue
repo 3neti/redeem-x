@@ -53,7 +53,7 @@ const otherBanks = computed(() => {
 
 <template>
     <Select v-model="localValue" :disabled="disabled">
-        <SelectTrigger>
+        <SelectTrigger class="font-bold text-lg">
             <SelectValue placeholder="Select bank or EMI" />
         </SelectTrigger>
         <SelectContent>
