@@ -225,12 +225,6 @@ const dataSections = computed(() => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-6">
-                    <!-- Reference ID -->
-                    <div class="bg-muted p-4 rounded-lg">
-                        <p class="text-sm font-medium text-muted-foreground">Reference ID</p>
-                        <p class="text-lg font-mono">{{ state.reference_id }}</p>
-                    </div>
-
                     <!-- Data Summary -->
                     <div class="space-y-4">
                         <h3 class="font-semibold mb-3">Summary</h3>
@@ -255,15 +249,19 @@ const dataSections = computed(() => {
                         
                         <!-- Debug Toggle -->
                         <details class="mt-4">
-                            <summary class="text-xs text-muted-foreground cursor-pointer hover:text-foreground">View raw data (debug)</summary>
+                            <summary class="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Raw Data</summary>
                             <pre class="text-xs mt-2 p-2 bg-muted rounded overflow-auto">{{ JSON.stringify(state.collected_data, null, 2) }}</pre>
                         </details>
                     </div>
 
-                    <!-- Callback Status -->
-                    <div v-if="callback_triggered" class="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 class="h-4 w-4 text-green-500" />
-                        <span>Callback notification sent</span>
+                    <!-- Reference ID (Beautified) -->
+                    <div class="border-2 border-primary/20 bg-primary/5 p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="space-y-1">
+                                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reference ID</p>
+                                <p class="text-base font-mono font-semibold text-foreground">{{ state.reference_id }}</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Actions -->

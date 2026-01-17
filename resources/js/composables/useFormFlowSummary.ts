@@ -119,7 +119,7 @@ export function useFormFlowSummary() {
         
         if (walletFields.length > 0) {
             sections.push({
-                title: 'Wallet Information',
+                title: 'Redemption Details',
                 icon: Wallet,
                 fields: walletFields
             })
