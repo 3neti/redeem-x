@@ -124,7 +124,20 @@ if (props.auto_sync?.enabled) {
         // Only sync if not manually overridden and condition is met
         if (!manualOverrides.value[target_field] && shouldSync && formData.value[source_field]) {
             isAutoSyncing = true;
-            formData.value[target_field] = formData.value[source_field];
+            
+            // Transform E.164 (+639173011987) to national format (09173011987) for account_number
+            if (source_field === 'mobile' && target_field === 'account_number') {
+                const e164 = formData.value[source_field];
+                if (e164 && e164.startsWith('+63')) {
+                    // Convert +639173011987 → 09173011987
+                    formData.value[target_field] = '0' + e164.substring(3);
+                } else {
+                    formData.value[target_field] = e164;
+                }
+            } else {
+                formData.value[target_field] = formData.value[source_field];
+            }
+            
             // Reset flag after Vue updates
             setTimeout(() => { isAutoSyncing = false; }, 0);
         }
