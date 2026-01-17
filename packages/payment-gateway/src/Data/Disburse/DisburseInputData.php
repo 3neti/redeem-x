@@ -27,7 +27,11 @@ class DisburseInputData extends Data
         public ?string     $voucher_code = null,
         public ?int        $user_id = null,
         public ?string     $mobile = null,
-    ) {}
+    ) {
+        // Sanitize account number: strip all non-numeric characters
+        // Handles cases like '0 917 301 1987', '0917-301-1987', '+639173011987'
+        $this->account_number = preg_replace('/[^0-9]/', '', $account_number);
+    }
 
     public static function fromVoucher(
         Voucher $voucher,
