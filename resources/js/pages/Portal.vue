@@ -18,6 +18,7 @@ import QrDisplay from '@/components/shared/QrDisplay.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { useQrShare } from '@/composables/useQrShare';
 import SmartJsonTextarea from '@/components/SmartJsonTextarea.vue';
+import NumericKeypad from '@/components/NumericKeypad.vue';
 
 interface PortalConfig {
   branding?: { show_logo?: boolean; show_icon?: boolean };
@@ -97,40 +98,33 @@ const interestRate = ref<number>(0); // Default 0% interest
 
 const showTopUpModal = ref(false);
 const showConfirmModal = ref(false);
+const showAmountKeypad = ref(false);
+const showCountKeypad = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 
-/**
- * STATE MACHINE INPUT MASKING
- * 
- * Calculator-style input with amount × count format (e.g., "100 x 1")
- * 
- * Key Concepts:
- * - editMode: 'amount' | 'count' - determines which value is being edited
- * - tempAmount/tempCount: digit accumulators (empty = "select all" behavior)
- * - Global keyboard capture: works without clicking input field first
- * 
- * State Flow:
- * 1. Numeric keys → append to current mode's accumulator
- * 2. Non-numeric keys → toggle mode (character not shown)
- * 3. Backspace → remove last digit from accumulator
- * 4. Mode toggle resets accumulator → next digit replaces (select-all)
- * 
- * Example:
- * Click "100"     → "100 x 1" (tempAmount='', ready for replace)
- * Type: 2         → "2 x 1" (first digit replaces)
- * Type: 0         → "20 x 1" (append)
- * Type: 5         → "205 x 1" (append)
- * Type: x         → "205 x 1" (toggle to count, tempCount='')
- * Type: 3         → "205 x 3" (first digit replaces)
- * Type: space     → "205 x 3" (toggle to amount, tempAmount='')
- * Type: 1         → "1 x 3" (select-all, count sticky!)
- * 
- * See: docs/PORTAL_INPUT_MASKING.md for full documentation
- */
-type EditMode = 'amount' | 'count';
-const editMode = ref<EditMode>('amount');
-const tempAmount = ref<string>(''); // Accumulator for digits
-const tempCount = ref<string>('1');
+// Numeric keypad handlers
+const openAmountKeypad = () => {
+  showAmountKeypad.value = true;
+};
+
+const openCountKeypad = () => {
+  showCountKeypad.value = true;
+};
+
+const confirmAmount = (value: number) => {
+  amount.value = value;
+  count.value = count.value || 1; // Ensure count is set
+  instruction.value = `${value} x ${count.value}`; // Update display for pricing
+  showAmountKeypad.value = false;
+};
+
+const confirmCount = (value: number) => {
+  count.value = value;
+  if (amount.value) {
+    instruction.value = `${amount.value} x ${value}`; // Update display for pricing
+  }
+  showCountKeypad.value = false;
+};
 
 // Quick amounts and available inputs are now computed properties from config (lines 47-72)
 
@@ -152,8 +146,6 @@ const modalSnapshot = ref<{
   targetAmount: number | null;
   payee: string;
   instruction: string;
-  tempAmount: string;
-  tempCount: string;
   externalMetadataJson: string;
   interestRate: number;
 } | null>(null);
@@ -417,13 +409,7 @@ const dynamicPlaceholder = computed(() => {
 const handleQuickAmount = (amt: number) => {
   amount.value = amt;
   count.value = 1;
-  tempAmount.value = ''; // Reset accumulator so next digit replaces (select-all behavior)
-  tempCount.value = '1';
-  editMode.value = 'amount';
   instruction.value = `${amt} x 1`;
-  
-  // Important: Set display to show current value while accumulator is reset
-  // This way the display shows "100 x 1" but tempAmount is "" ready for next digit
 };
 
 const toggleInput = (input: string) => {
@@ -719,9 +705,6 @@ const resetAndCreateAnother = () => {
   interestRate.value = 0;
   externalMetadataJson.value = '';
   selectedFiles.value = [];
-  tempAmount.value = '';
-  tempCount.value = '1';
-  editMode.value = 'amount';
   instruction.value = '';
   quickInputs.value = [];
   autoAddedFields.value.clear();
@@ -732,9 +715,6 @@ const resetAndCreateAnother = () => {
 const resetInput = () => {
   amount.value = null;
   count.value = 1;
-  tempAmount.value = '';
-  tempCount.value = '1';
-  editMode.value = 'amount';
   instruction.value = '';
   error.value = null;
   // Note: Does NOT reset quickInputs (preserves user selections)
@@ -748,8 +728,6 @@ const handleOpenPayeeModal = () => {
     targetAmount: targetAmount.value,
     payee: payee.value,
     instruction: instruction.value,
-    tempAmount: tempAmount.value,
-    tempCount: tempCount.value,
     externalMetadataJson: externalMetadataJson.value,
     interestRate: interestRate.value,
   };
@@ -765,8 +743,6 @@ const handleCancelModal = () => {
     targetAmount.value = modalSnapshot.value.targetAmount;
     payee.value = modalSnapshot.value.payee;
     instruction.value = modalSnapshot.value.instruction;
-    tempAmount.value = modalSnapshot.value.tempAmount;
-    tempCount.value = modalSnapshot.value.tempCount;
     externalMetadataJson.value = modalSnapshot.value.externalMetadataJson;
     interestRate.value = modalSnapshot.value.interestRate;
     modalSnapshot.value = null;
@@ -784,8 +760,6 @@ const handleSaveModal = () => {
     // Payable always has amount = 0
     amount.value = 0;
     instruction.value = '0 x 1';
-    tempAmount.value = '0';
-    tempCount.value = '1';
   } else if (voucherType.value === 'settlement') {
     // Settlement: ensure amount and instruction are synced
     // If no amount, use snapshot amount (user switched to settlement but didn't edit)
@@ -794,131 +768,17 @@ const handleSaveModal = () => {
     }
     if (amount.value) {
       instruction.value = `${amount.value} x ${count.value}`;
-      tempAmount.value = amount.value.toString();
-      tempCount.value = count.value.toString();
     }
   } else if (voucherType.value === 'redeemable') {
     // Redeemable: ensure instruction is synced
     if (amount.value) {
       instruction.value = `${amount.value} x ${count.value}`;
-      tempAmount.value = amount.value.toString();
-      tempCount.value = count.value.toString();
     }
   }
   
   modalSnapshot.value = null;
   isRestoringSnapshot.value = false;
   showPayeeModal.value = false;
-};
-
-// State machine: Handle keyboard input with amount/count mode toggle
-const handleKeyDown = (event: KeyboardEvent) => {
-  const key = event.key;
-  
-  // Check if numeric (0-9)
-  const isNumeric = /^[0-9]$/.test(key);
-  
-  if (isNumeric) {
-    event.preventDefault();
-    
-    if (editMode.value === 'amount') {
-      // If accumulator is empty, this is first digit (replace behavior)
-      // Otherwise append
-      if (tempAmount.value === '') {
-        // First digit after quick amount or mode toggle
-        tempAmount.value = key;
-      } else {
-        // Append to existing
-        tempAmount.value += key;
-      }
-      amount.value = parseInt(tempAmount.value);
-    } else {
-      // Count mode
-      if (tempCount.value === '') {
-        tempCount.value = key;
-      } else {
-        tempCount.value += key;
-      }
-      count.value = parseInt(tempCount.value);
-    }
-    
-    // Update display (always use temp accumulators)
-    instruction.value = `${tempAmount.value} x ${tempCount.value}`;
-  } else if (key === 'Backspace') {
-    event.preventDefault();
-    
-    if (editMode.value === 'amount') {
-      // If accumulator is empty, populate from display first
-      if (tempAmount.value === '' && amount.value) {
-        tempAmount.value = amount.value.toString();
-      }
-      // Remove last digit from amount
-      tempAmount.value = tempAmount.value.slice(0, -1);
-      amount.value = tempAmount.value ? parseInt(tempAmount.value) : null;
-      
-      // If amount is now null, clear instruction to show quick amounts
-      if (!amount.value) {
-        instruction.value = '';
-        return;
-      }
-    } else {
-      // If accumulator is empty, populate from display first
-      if (tempCount.value === '' && count.value) {
-        tempCount.value = count.value.toString();
-      }
-      // Remove last digit from count
-      tempCount.value = tempCount.value.slice(0, -1);
-      if (!tempCount.value) tempCount.value = '1';
-      count.value = parseInt(tempCount.value);
-    }
-    
-    instruction.value = `${tempAmount.value || amount.value} x ${tempCount.value}`;
-  } else if (key === 'Enter') {
-    // Let Enter propagate for form submission
-    return;
-  } else {
-    // Any other key (x, space, letters, etc.) = toggle mode
-    event.preventDefault();
-    
-    if (editMode.value === 'amount') {
-      // Switch to count mode
-      editMode.value = 'count';
-      tempCount.value = ''; // Reset count accumulator (next digit replaces)
-    } else {
-      // Switch back to amount mode
-      editMode.value = 'amount';
-      tempAmount.value = ''; // Reset amount accumulator (next digit replaces)
-    }
-  }
-};
-
-// Click handler: determine mode based on click position
-const handleInputClick = (event: MouseEvent) => {
-  const input = event.target as HTMLInputElement;
-  const cursorPos = input.selectionStart || 0;
-  const xPos = input.value.indexOf(' x ');
-  
-  if (xPos > -1) {
-    if (cursorPos > xPos + 2) {
-      // Clicked in count area
-      editMode.value = 'count';
-    } else {
-      // Clicked in amount area
-      editMode.value = 'amount';
-    }
-  }
-};
-
-// Global keyboard capture for calculator-like UX
-const handleGlobalKeyDown = (event: KeyboardEvent) => {
-  // Don't capture if user is typing in another input or modal is open
-  const target = event.target as HTMLElement;
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || generatedVouchers.value.length > 0 || showTopUpModal.value || showPayeeModal.value) {
-    return;
-  }
-  
-  // Forward to our handler
-  handleKeyDown(event);
 };
 
 // Restore intended action after login
@@ -945,33 +805,10 @@ onMounted(() => {
   axios.get('/settings/vendor-aliases/list').then(response => {
     vendorAliases.value = response.data.aliases || [];
   }).catch(err => console.error('Failed to load vendor aliases:', err));
-  
-  // Attach global keyboard listener
-  window.addEventListener('keydown', handleGlobalKeyDown);
-});
-
-// Cleanup on unmount
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeyDown);
 });
 
 const isSuperAdmin = computed(() => {
   return page.props.auth?.user?.roles?.includes('super-admin') || false;
-});
-
-
-// Sync temp values when instruction changes externally (e.g., quick amounts)
-watch(instruction, (val) => {
-  // Don't run watcher during snapshot restoration
-  if (isRestoringSnapshot.value) return;
-  
-  const parsed = parseMaskedInput(val);
-  if (parsed) {
-    amount.value = parsed.amount;
-    count.value = parsed.count;
-    tempAmount.value = parsed.amount.toString();
-    tempCount.value = parsed.count.toString();
-  }
 });
 
 // Voucher type behavior
@@ -1085,13 +922,11 @@ watch(voucherType, () => {
       <div class="space-y-2">
         <p class="text-sm font-medium">{{ config?.labels?.amount_label || 'Amount' }}</p>
         <div class="flex flex-col md:flex-row gap-2">
-          <!-- Amount Input (full-width on mobile, fixed on desktop) -->
-          <div class="relative w-full md:w-[520px] md:flex-shrink-0">
-          <!-- Quick Amount Chips (inside input field, left side, horizontally scrollable) -->
+          <!-- Quick Amount Chips (shown above buttons on mobile) -->
           <div 
             v-if="showQuickAmounts" 
-            class="absolute left-2 top-1/2 -translate-y-1/2 gap-1 z-10 flex overflow-x-auto scrollbar-hide"
-            style="max-width: calc(100% - 120px); scroll-behavior: smooth;"
+            class="flex gap-1 overflow-x-auto scrollbar-hide pb-2 md:hidden"
+            style="scroll-behavior: smooth;"
           >
             <Button
               v-for="amt in quickAmounts"
@@ -1105,76 +940,105 @@ watch(voucherType, () => {
             </Button>
           </div>
           
-          <!-- Redeemable Voucher Input (state machine) -->
-          <Input
-            v-if="voucherType === 'redeemable'"
-            ref="inputRef"
-            v-model="instruction"
-            :class="[
-              'text-lg h-12 ring-2 ring-primary/50',
-              showQuickAmounts ? 'md:pl-[360px] pl-3' : 'pl-3',
-              amount ? 'pr-[160px] md:pr-[220px]' : 'pr-[100px] md:pr-[160px]'
-            ]"
-            @keyup.enter="handleSubmit"
-            @keydown="handleKeyDown"
-            @click="handleInputClick"
-            :disabled="loading"
-            readonly
-          />
-          
-          <!-- Payable Voucher Display (amount always 0, shows target) -->
-          <Input
-            v-else-if="voucherType === 'payable'"
-            :value="targetAmount ? `Target: ₱${targetAmount.toLocaleString()}` : 'Click Payee to set target amount'"
-            :class="[
-              'text-lg h-12 ring-2 ring-primary/50 pl-3',
-              'pr-[100px] md:pr-[160px]'
-            ]"
-            @keyup.enter="handleSubmit"
-            :disabled="loading"
-            readonly
-          />
-          
-          <!-- Settlement Voucher Display (shows amount and target) -->
-          <Input
-            v-else-if="voucherType === 'settlement'"
-            :value="settlementDisplayValue"
-            :class="[
-              'text-lg h-12 ring-2 ring-primary/50 pl-3',
-              'pr-[100px] md:pr-[160px]'
-            ]"
-            @keyup.enter="handleSubmit"
-            :disabled="loading"
-            readonly
-          />
-          <Button
-            v-if="amount"
-            @click="resetInput"
-            variant="ghost"
-            size="sm"
-            class="absolute top-1 h-10 w-10 p-0"
-            :class="amount ? 'right-[102px] md:right-[152px]' : 'hidden'"
-            :title="config?.labels?.reset_button_title || 'Reset input'"
-          >
-            <RotateCcw class="h-4 w-4" />
-          </Button>
-          <Button
-            @click="handleSubmit"
-            :disabled="isGenerateButtonDisabled"
-            class="absolute right-1 top-1 h-10"
-            :class="amount ? 'w-[90px] md:min-w-[140px]' : 'w-[90px] md:min-w-[140px]'"
-            size="sm"
-            :variant="amount && estimatedCost > wallet_balance ? 'destructive' : 'default'"
-          >
-            <Loader2 v-if="loading" class="h-4 w-4 animate-spin" :class="amount || targetAmount ? '' : 'md:mr-2'" />
-            <template v-else-if="amount || targetAmount">
-              <span class="hidden md:inline">{{ config?.labels?.generate_button_text || 'Generate voucher' }}</span>
-              <span class="md:hidden">Generate</span>
-            </template>
-            <template v-else>
-              →
-            </template>
-          </Button>
+          <!-- Amount and Count Buttons Container -->
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <!-- Quick Amount Chips (desktop - left side) -->
+            <div 
+              v-if="showQuickAmounts" 
+              class="hidden md:flex gap-1"
+            >
+              <Button
+                v-for="amt in quickAmounts"
+                :key="amt"
+                variant="ghost"
+                size="sm"
+                @click="handleQuickAmount(amt)"
+                class="h-10 px-2 text-xs font-medium flex-shrink-0"
+              >
+                {{ formatAmount(amt) }}
+              </Button>
+            </div>
+            
+            <!-- Amount Button -->
+            <Button
+              v-if="voucherType === 'redeemable'"
+              @click="openAmountKeypad"
+              variant="outline"
+              size="lg"
+              class="h-12 flex-1 md:flex-initial md:min-w-[140px] text-lg font-semibold"
+              :disabled="loading"
+            >
+              {{ amount ? `₱${amount.toLocaleString()}` : 'Amount' }}
+            </Button>
+            
+            <!-- Payable Display -->
+            <Button
+              v-else-if="voucherType === 'payable'"
+              @click="handleOpenPayeeModal"
+              variant="outline"
+              size="lg"
+              class="h-12 flex-1 md:flex-initial md:min-w-[220px] text-base"
+              :disabled="loading"
+            >
+              {{ targetAmount ? `Target: ₱${targetAmount.toLocaleString()}` : 'Set target' }}
+            </Button>
+            
+            <!-- Settlement Display -->
+            <Button
+              v-else-if="voucherType === 'settlement'"
+              @click="handleOpenPayeeModal"
+              variant="outline"
+              size="lg"
+              class="h-12 flex-1 md:flex-initial md:min-w-[220px] text-base"
+              :disabled="loading"
+            >
+              {{ settlementDisplayValue }}
+            </Button>
+            
+            <!-- Multiply Symbol -->
+            <span v-if="voucherType === 'redeemable' && amount" class="text-lg text-muted-foreground">×</span>
+            
+            <!-- Count Button (only for redeemable) -->
+            <Button
+              v-if="voucherType === 'redeemable' && amount"
+              @click="openCountKeypad"
+              variant="outline"
+              size="lg"
+              class="h-12 min-w-[60px] text-lg font-semibold"
+              :disabled="loading"
+            >
+              {{ count }}
+            </Button>
+            
+            <!-- Reset Button -->
+            <Button
+              v-if="amount"
+              @click="resetInput"
+              variant="ghost"
+              size="sm"
+              class="h-12 w-12 p-0 flex-shrink-0"
+              :title="config?.labels?.reset_button_title || 'Reset input'"
+            >
+              <RotateCcw class="h-4 w-4" />
+            </Button>
+            
+            <!-- Generate Button -->
+            <Button
+              @click="handleSubmit"
+              :disabled="isGenerateButtonDisabled"
+              size="lg"
+              class="h-12 flex-shrink-0"
+              :variant="amount && estimatedCost > wallet_balance ? 'destructive' : 'default'"
+            >
+              <Loader2 v-if="loading" class="h-4 w-4 animate-spin mr-2" />
+              <template v-else-if="amount || targetAmount">
+                <span class="hidden md:inline">{{ config?.labels?.generate_button_text || 'Generate' }}</span>
+                <span class="md:hidden">Go</span>
+              </template>
+              <template v-else>
+                →
+              </template>
+            </Button>
           </div>
           
           <!-- Payee Display Field (full-width on mobile, fixed on desktop) -->
@@ -1703,5 +1567,24 @@ watch(voucherType, () => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    
+    <!-- Numeric Keypad Modals -->
+    <NumericKeypad
+      :open="showAmountKeypad"
+      @update:open="(val) => showAmountKeypad = val"
+      @confirm="confirmAmount"
+      :model-value="amount"
+      mode="amount"
+      :min="1"
+    />
+    
+    <NumericKeypad
+      :open="showCountKeypad"
+      @update:open="(val) => showCountKeypad = val"
+      @confirm="confirmCount"
+      :model-value="count"
+      mode="count"
+      :min="1"
+    />
   </div>
 </template>
