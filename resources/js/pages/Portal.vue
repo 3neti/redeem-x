@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
+import NumberInputWithKeypad from '@/components/NumberInputWithKeypad.vue';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -1302,12 +1303,13 @@ watch(voucherType, () => {
             <!-- Redeemable: Amount only -->
             <div v-if="voucherType === 'redeemable'" class="space-y-2">
               <Label for="portal-amount">{{ amountFieldLabel }}</Label>
-              <NumberInput
+              <NumberInputWithKeypad
                 id="portal-amount"
                 v-model="amount"
                 prefix="₱"
                 :min="1"
                 :step="1"
+                :allow-decimal="false"
                 placeholder="Enter amount"
               />
             </div>
@@ -1317,24 +1319,26 @@ watch(voucherType, () => {
               <div class="grid grid-cols-2 gap-2">
                 <div class="space-y-2">
                   <Label for="portal-amount">Loan Amount</Label>
-                  <NumberInput
+                  <NumberInputWithKeypad
                     id="portal-amount"
                     v-model="amount"
                     prefix="₱"
                     :min="1"
                     :step="1"
+                    :allow-decimal="false"
                     placeholder="Enter amount"
                   />
                 </div>
                 <div class="space-y-2">
                   <Label for="portal-interest">Interest Rate</Label>
-                  <NumberInput
+                  <NumberInputWithKeypad
                     id="portal-interest"
                     v-model="interestRate"
                     suffix="%"
                     :min="0"
                     :max="100"
                     :step="0.01"
+                    :allow-decimal="true"
                     placeholder="0"
                   />
                 </div>
@@ -1347,12 +1351,13 @@ watch(voucherType, () => {
             <!-- Target Amount Field (for payable/settlement) -->
             <div v-if="voucherType === 'payable' || voucherType === 'settlement'" class="space-y-2">
               <Label for="portal-target-amount">{{ targetAmountLabel }}</Label>
-              <NumberInput
+              <NumberInputWithKeypad
                 id="portal-target-amount"
                 v-model="targetAmount"
                 prefix="₱"
                 :min="1"
                 :step="0.01"
+                :allow-decimal="true"
                 placeholder="Enter target amount"
               />
               <p class="text-xs text-muted-foreground">

@@ -12,11 +12,13 @@ interface Props {
   min?: number;
   max?: number;
   open: boolean;
+  allowDecimal?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
   min: 1,
+  allowDecimal: false,
 });
 
 const emit = defineEmits<{
@@ -38,8 +40,9 @@ watch(() => props.open, (isOpen) => {
 
 // Computed current value
 const currentValue = computed(() => {
-  const num = parseInt(digits.value) || 0;
-  return num;
+  if (!digits.value) return 0;
+  const num = props.allowDecimal ? parseFloat(digits.value) : parseInt(digits.value);
+  return isNaN(num) ? 0 : num;
 });
 
 // Formatted display
@@ -48,13 +51,20 @@ const displayValue = computed(() => {
     return props.mode === 'amount' ? '₱0' : '0';
   }
   
-  const num = currentValue.value;
+  // Show raw input while typing (preserves decimal point)
+  const displayNum = digits.value;
   
   if (props.mode === 'amount') {
+    // For amounts, format with proper decimal places
+    const num = currentValue.value;
+    if (props.allowDecimal && digits.value.includes('.')) {
+      return `₱${displayNum}`;
+    }
     return `₱${num.toLocaleString()}`;
   }
   
   // Count mode
+  const num = currentValue.value;
   const voucherText = num === 1 ? 'voucher' : 'vouchers';
   return `${num} ${voucherText}`;
 });
@@ -80,11 +90,32 @@ const canConfirm = computed(() => {
 
 // Handle digit press
 const pressDigit = (digit: number) => {
-  // Prevent leading zeros
+  // Prevent leading zeros (unless decimal point exists)
   if (digits.value === '' && digit === 0) return;
   
   // Append digit
   digits.value += digit.toString();
+  
+  // Haptic feedback if supported
+  if ('vibrate' in navigator) {
+    navigator.vibrate(10);
+  }
+};
+
+// Handle decimal point press
+const pressDecimal = () => {
+  // Only allow if decimals are enabled
+  if (!props.allowDecimal) return;
+  
+  // Prevent multiple decimal points
+  if (digits.value.includes('.')) return;
+  
+  // If empty, prepend zero
+  if (digits.value === '') {
+    digits.value = '0.';
+  } else {
+    digits.value += '.';
+  }
   
   // Haptic feedback if supported
   if ('vibrate' in navigator) {
@@ -122,6 +153,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
   if (event.key >= '0' && event.key <= '9') {
     event.preventDefault();
     pressDigit(parseInt(event.key));
+  }
+  // Decimal point
+  else if ((event.key === '.' || event.key === ',') && props.allowDecimal) {
+    event.preventDefault();
+    pressDecimal();
   }
   // Backspace
   else if (event.key === 'Backspace') {
@@ -170,72 +206,101 @@ watch(() => props.open, (isOpen) => {
         </div>
       </div>
       
-      <!-- Keypad Grid (3x4) -->
-      <div class="grid grid-cols-3 gap-2">
-        <!-- Row 1: 1, 2, 3 -->
-        <Button
-          v-for="digit in [1, 2, 3]"
-          :key="`digit-${digit}`"
-          @click="pressDigit(digit)"
-          variant="outline"
-          size="lg"
-          class="h-14 text-xl font-semibold"
-        >
-          {{ digit }}
-        </Button>
+      <!-- Keypad Grid -->
+      <div class="space-y-2">
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Row 1: 1, 2, 3 -->
+          <Button
+            v-for="digit in [1, 2, 3]"
+            :key="`digit-${digit}`"
+            @click="pressDigit(digit)"
+            variant="outline"
+            size="lg"
+            class="h-14 text-xl font-semibold"
+          >
+            {{ digit }}
+          </Button>
+          
+          <!-- Row 2: 4, 5, 6 -->
+          <Button
+            v-for="digit in [4, 5, 6]"
+            :key="`digit-${digit}`"
+            @click="pressDigit(digit)"
+            variant="outline"
+            size="lg"
+            class="h-14 text-xl font-semibold"
+          >
+            {{ digit }}
+          </Button>
+          
+          <!-- Row 3: 7, 8, 9 -->
+          <Button
+            v-for="digit in [7, 8, 9]"
+            :key="`digit-${digit}`"
+            @click="pressDigit(digit)"
+            variant="outline"
+            size="lg"
+            class="h-14 text-xl font-semibold"
+          >
+            {{ digit }}
+          </Button>
+          
+          <!-- Row 4: Backspace, 0, Decimal/Confirm -->
+          <Button
+            @click="pressBackspace"
+            variant="outline"
+            size="lg"
+            class="h-14"
+            :disabled="!digits"
+          >
+            <Delete class="h-5 w-5" />
+          </Button>
+          
+          <Button
+            @click="pressDigit(0)"
+            variant="outline"
+            size="lg"
+            class="h-14 text-xl font-semibold"
+          >
+            0
+          </Button>
+          
+          <!-- Decimal point button (only if allowDecimal) -->
+          <Button
+            v-if="allowDecimal"
+            @click="pressDecimal"
+            variant="outline"
+            size="lg"
+            class="h-14 text-xl font-semibold"
+            :disabled="digits.includes('.')"
+          >
+            .
+          </Button>
+          
+          <!-- Confirm button (when no decimal) -->
+          <Button
+            v-else
+            @click="confirm"
+            variant="default"
+            size="lg"
+            class="h-14"
+            :disabled="!canConfirm"
+          >
+            <Check class="h-5 w-5" />
+          </Button>
+        </div>
         
-        <!-- Row 2: 4, 5, 6 -->
+        <!-- Full-width confirm button (when decimal enabled) -->
         <Button
-          v-for="digit in [4, 5, 6]"
-          :key="`digit-${digit}`"
-          @click="pressDigit(digit)"
-          variant="outline"
-          size="lg"
-          class="h-14 text-xl font-semibold"
-        >
-          {{ digit }}
-        </Button>
-        
-        <!-- Row 3: 7, 8, 9 -->
-        <Button
-          v-for="digit in [7, 8, 9]"
-          :key="`digit-${digit}`"
-          @click="pressDigit(digit)"
-          variant="outline"
-          size="lg"
-          class="h-14 text-xl font-semibold"
-        >
-          {{ digit }}
-        </Button>
-        
-        <!-- Row 4: Backspace, 0, Confirm -->
-        <Button
-          @click="pressBackspace"
-          variant="outline"
-          size="lg"
-          class="h-14"
-          :disabled="!digits"
-        >
-          <Delete class="h-5 w-5" />
-        </Button>
-        
-        <Button
-          @click="pressDigit(0)"
-          variant="outline"
-          size="lg"
-          class="h-14 text-xl font-semibold"
-        >
-          0
-        </Button>
-        
-        <Button
+          v-if="allowDecimal"
           @click="confirm"
           variant="default"
           size="lg"
-          class="h-14"
+          class="h-14 w-full"
           :disabled="!canConfirm"
         >
-          <Check class="h-5 w-5" />
+          <Check class="h-5 w-5 mr-2" />
+          Confirm
         </Button>
       </div>
       
