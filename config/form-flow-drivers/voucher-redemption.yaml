@@ -37,7 +37,7 @@ steps:
   wallet:
     handler: "form"
     step_name: "wallet_info"
-    title: "Wallet Information"
+    title: "Redemption Details"
     description: "Redeeming voucher {{ code }} from {{ owner_name }}"
     config:
       auto_sync:
@@ -74,21 +74,20 @@ steps:
         emphasis: "hero"  # NEW: Large, prominent styling
         help_text: "Enter your mobile number to receive the cash"  # NEW: Helper text
       
-      # Grouped fields - Bank account details
+      # Grouped fields - Endorsement details
       - name: "bank_code"
         type: "bank_account"
         label: "Bank/Wallet"
         default: "GXCHPHM2XXX"
         required: true
-        group: "bank_details"  # NEW: Group with account_number
+        group: "endorsement"  # NEW: Group with account_number
         help_text: "INSTAPAY"  # Payment method indicator
       - name: "account_number"
         type: "text"
         label: "Account Number"
         placeholder: "09181234567"
         required: true
-        group: "bank_details"  # NEW: Group with bank_code
-        help_text: "For GCash/InstaPay, account number will auto-fill from your mobile"  # NEW: Helper text
+        group: "endorsement"  # NEW: Group with bank_code
   
   # Step 1: KYC verification (MUST be before BIO for auto-population)
   kyc:

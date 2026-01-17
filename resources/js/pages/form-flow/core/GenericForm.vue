@@ -377,7 +377,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 :required="field.required"
                                 :readonly="field.readonly"
                                 :disabled="field.disabled"
-                                :class="'ring-2 ring-primary/20 focus-within:ring-4 focus-within:ring-primary/30 transition-all [&_input]:text-center [&_input]:placeholder:text-center'"
+                                :class="'ring-2 ring-primary/20 focus-within:ring-4 focus-within:ring-primary/30 transition-all [&_input]:font-bold [&_input]:text-lg [&_input]:tracking-widest [&_input]:text-center [&_input]:placeholder:text-center'"
                                 autofocus
                             />
                             
