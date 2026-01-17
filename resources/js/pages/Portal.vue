@@ -96,6 +96,7 @@ const selectedCodes = ref<Set<string>>(new Set());
 const voucherType = ref<string>('redeemable');
 const targetAmount = ref<number | null>(null);
 const interestRate = ref<number>(0); // Default 0% interest
+const preservedAmount = ref<number | null>(null); // Preserve amount during modal type switching
 
 const showTopUpModal = ref(false);
 const showConfirmModal = ref(false);
@@ -278,6 +279,10 @@ const isGenerateButtonDisabled = computed(() => {
     return !amount.value || !targetAmount.value || amount.value <= 0 || targetAmount.value <= 0;
   }
   return true;
+});
+
+const isSaveAndGenerateDisabled = computed(() => {
+  return isSaveButtonDisabled.value || isGenerateButtonDisabled.value || loading.value;
 });
 
 const showQuickAmounts = computed(() => {
@@ -723,6 +728,21 @@ const resetInput = () => {
 
 // Handle modal open - capture snapshot
 const handleOpenPayeeModal = () => {
+  // Preserve the original amount for the modal session
+  // This allows switching between types without losing the initial amount
+  if (amount.value && amount.value > 0) {
+    preservedAmount.value = amount.value;
+  }
+  
+  // Sync amount to targetAmount if we have an amount and targetAmount is not set
+  // This handles the case where user sets amount on main page before opening modal
+  if (amount.value && amount.value > 0 && !targetAmount.value) {
+    // For payable: amount from main page becomes target amount
+    if (voucherType.value === 'payable') {
+      targetAmount.value = amount.value;
+    }
+  }
+  
   modalSnapshot.value = {
     amount: amount.value,
     voucherType: voucherType.value,
@@ -749,6 +769,7 @@ const handleCancelModal = () => {
     modalSnapshot.value = null;
     isRestoringSnapshot.value = false;
   }
+  preservedAmount.value = null; // Clear preserved amount on cancel
   showPayeeModal.value = false;
 };
 
@@ -778,8 +799,41 @@ const handleSaveModal = () => {
   }
   
   modalSnapshot.value = null;
+  preservedAmount.value = null; // Clear preserved amount on save
   isRestoringSnapshot.value = false;
   showPayeeModal.value = false;
+};
+
+// Handle save and generate - combines save logic with immediate generation
+const handleSaveAndGenerate = async () => {
+  isRestoringSnapshot.value = true;
+  
+  // Sync instruction field (same as handleSaveModal)
+  if (voucherType.value === 'payable') {
+    amount.value = 0;
+    instruction.value = '0 x 1';
+  } else if (voucherType.value === 'settlement') {
+    if (!amount.value && modalSnapshot.value?.amount) {
+      amount.value = modalSnapshot.value.amount;
+    }
+    if (amount.value) {
+      instruction.value = `${amount.value} x ${count.value}`;
+    }
+  } else if (voucherType.value === 'redeemable') {
+    if (amount.value) {
+      instruction.value = `${amount.value} x ${count.value}`;
+    }
+  }
+  
+  // Clear modal state
+  modalSnapshot.value = null;
+  preservedAmount.value = null;
+  isRestoringSnapshot.value = false;
+  showPayeeModal.value = false;
+  
+  // Wait for modal to close, then trigger generation
+  await nextTick();
+  await handleSubmit();
 };
 
 // Restore intended action after login
@@ -818,7 +872,14 @@ watch(voucherType, (newType, oldType) => {
   if (isRestoringSnapshot.value) return;
   
   if (newType === 'payable') {
-    // Payable: Set amount to 0, read-only
+    // Payable: Preserve current amount in targetAmount before clearing
+    if (amount.value && amount.value > 0 && !targetAmount.value) {
+      targetAmount.value = amount.value;
+    } else if (!targetAmount.value && preservedAmount.value) {
+      // Restore from preserved amount if switching back to payable
+      targetAmount.value = preservedAmount.value;
+    }
+    // Set amount to 0, read-only
     amount.value = 0;
     nextTick(() => {
       const targetContainer = document.getElementById('portal-target-amount');
@@ -827,10 +888,10 @@ watch(voucherType, (newType, oldType) => {
       targetInput?.focus();
     });
   } else if (newType === 'settlement') {
-    // Settlement: Clear amount to force user to enter values
-    // This ensures the display is always correct after switching
-    const previousAmount = amount.value;
-    amount.value = null;
+    // Settlement: Restore preserved amount or keep current amount
+    if (!amount.value && preservedAmount.value) {
+      amount.value = preservedAmount.value;
+    }
     targetAmount.value = null;
     interestRate.value = 0;
     externalMetadataJson.value = ''; // Clear metadata when leaving payable
@@ -843,13 +904,15 @@ watch(voucherType, (newType, oldType) => {
       amountInput?.focus();
     });
   } else if (newType === 'redeemable') {
-    // Redeemable: Reset to default
+    // Redeemable: Restore preserved amount if blank
+    if (amount.value === 0 || amount.value === null) {
+      if (preservedAmount.value) {
+        amount.value = preservedAmount.value;
+      }
+    }
     targetAmount.value = null;
     interestRate.value = 0;
     externalMetadataJson.value = ''; // Clear metadata when leaving payable
-    if (amount.value === 0) {
-      amount.value = null;
-    }
   }
 });
 
@@ -858,12 +921,26 @@ watch(amount, (newAmount) => {
   if (voucherType.value === 'settlement' && newAmount !== null) {
     targetAmount.value = parseFloat((newAmount * (1 + interestRate.value / 100)).toFixed(2));
   }
+  
+  // Update preserved amount when user manually edits amount in modal
+  // Only update if modal is open and not during snapshot restoration
+  if (showPayeeModal.value && !isRestoringSnapshot.value && newAmount && newAmount > 0) {
+    preservedAmount.value = newAmount;
+  }
 });
 
 // Settlement: Recalculate target amount when interest rate changes
 watch(interestRate, (newRate) => {
   if (voucherType.value === 'settlement' && amount.value !== null) {
     targetAmount.value = parseFloat((amount.value * (1 + newRate / 100)).toFixed(2));
+  }
+});
+
+// Update preserved amount when user edits targetAmount in payable mode
+watch(targetAmount, (newTarget) => {
+  // Only update if modal is open, in payable mode, not restoring, and user manually edited
+  if (showPayeeModal.value && !isRestoringSnapshot.value && voucherType.value === 'payable' && newTarget && newTarget > 0) {
+    preservedAmount.value = newTarget;
   }
 });
 
@@ -1310,6 +1387,7 @@ watch(voucherType, () => {
                 :min="1"
                 :step="1"
                 :allow-decimal="false"
+                :keypad-title="amountFieldLabel"
                 placeholder="Enter amount"
               />
             </div>
@@ -1326,6 +1404,7 @@ watch(voucherType, () => {
                     :min="1"
                     :step="1"
                     :allow-decimal="false"
+                    keypad-title="Loan Amount"
                     placeholder="Enter amount"
                   />
                 </div>
@@ -1339,6 +1418,7 @@ watch(voucherType, () => {
                     :max="100"
                     :step="0.01"
                     :allow-decimal="true"
+                    keypad-title="Interest Rate"
                     placeholder="0"
                   />
                 </div>
@@ -1358,6 +1438,7 @@ watch(voucherType, () => {
                 :min="1"
                 :step="0.01"
                 :allow-decimal="true"
+                :keypad-title="targetAmountLabel"
                 placeholder="Enter target amount"
               />
               <p class="text-xs text-muted-foreground">
@@ -1437,7 +1518,11 @@ watch(voucherType, () => {
         
         <DialogFooter>
           <Button variant="outline" @click="handleCancelModal">Cancel</Button>
-          <Button @click="handleSaveModal" :disabled="isSaveButtonDisabled">Save</Button>
+          <Button variant="outline" @click="handleSaveModal" :disabled="isSaveButtonDisabled">Save</Button>
+          <Button @click="handleSaveAndGenerate" :disabled="isSaveAndGenerateDisabled">
+            <Sparkles class="mr-2 h-4 w-4" />
+            Generate
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

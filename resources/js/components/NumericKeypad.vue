@@ -13,6 +13,7 @@ interface Props {
   max?: number;
   open: boolean;
   allowDecimal?: boolean;
+  title?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -70,7 +71,11 @@ const displayValue = computed(() => {
 });
 
 // Title based on mode
-const title = computed(() => {
+const displayTitle = computed(() => {
+  // Use custom title if provided
+  if (props.title) return props.title;
+  
+  // Fall back to mode-based title
   return props.mode === 'amount' ? 'Enter Amount' : 'Enter Quantity';
 });
 
@@ -192,7 +197,7 @@ watch(() => props.open, (isOpen) => {
   <Dialog :open="open" @update:open="(val) => emit('update:open', val)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ title }}</DialogTitle>
+        <DialogTitle>{{ displayTitle }}</DialogTitle>
         <DialogDescription>{{ description }}</DialogDescription>
       </DialogHeader>
       

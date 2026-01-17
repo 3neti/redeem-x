@@ -15,6 +15,7 @@ interface Props {
   suffix?: string;
   allowDecimal?: boolean;
   keypadMode?: 'amount' | 'count';
+  keypadTitle?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -39,7 +40,11 @@ const effectiveKeypadMode = computed(() => {
 });
 
 // Determine keypad title based on context
-const keypadTitle = computed(() => {
+const effectiveKeypadTitle = computed(() => {
+  // Use custom title if provided
+  if (props.keypadTitle) return props.keypadTitle;
+  
+  // Fall back to context-based title
   if (props.suffix === '%') return 'Enter Percentage';
   if (props.prefix === '₱') return 'Enter Amount';
   return 'Enter Value';
@@ -83,6 +88,7 @@ const handleConfirm = (value: number) => {
       :min="min"
       :max="max"
       :allow-decimal="allowDecimal"
+      :title="effectiveKeypadTitle"
     />
   </div>
 </template>
