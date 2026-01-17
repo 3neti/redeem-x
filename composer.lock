@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3b0a89f59d0abc17b87d781bc0957d28",
+    "content-hash": "e18797c01833105e6aa6d07a7d380a41",
     "packages": [
         {
             "name": "3neti/form-flow",
-            "version": "v1.3.0",
+            "version": "v1.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/3neti/form-flow.git",
-                "reference": "d0b56027882839d7272afb9ee6d59acea1d4d0d8"
+                "reference": "cee003ab6208d541826e5cd0792371b3c27a7b42"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-flow/zipball/d0b56027882839d7272afb9ee6d59acea1d4d0d8",
-                "reference": "d0b56027882839d7272afb9ee6d59acea1d4d0d8",
+                "url": "https://api.github.com/repos/3neti/form-flow/zipball/cee003ab6208d541826e5cd0792371b3c27a7b42",
+                "reference": "cee003ab6208d541826e5cd0792371b3c27a7b42",
                 "shasum": ""
             },
             "require": {
@@ -70,9 +70,9 @@
             ],
             "support": {
                 "issues": "https://github.com/3neti/form-flow/issues",
-                "source": "https://github.com/3neti/form-flow/tree/v1.3.0"
+                "source": "https://github.com/3neti/form-flow/tree/v1.4.0"
             },
-            "time": "2026-01-16T08:47:32+00:00"
+            "time": "2026-01-17T04:00:38+00:00"
         },
         {
             "name": "3neti/form-handler-kyc",
@@ -3750,7 +3750,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
+            "version": "dev-feature/wallet-ui-redesign",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3935,7 +3935,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-main",
+            "version": "dev-feature/wallet-ui-redesign",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
