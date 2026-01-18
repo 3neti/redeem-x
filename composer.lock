@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "01519c3394bf85ba858eb670decd38f3",
+    "content-hash": "c6f2f842ccd6e4106b7c99aec9869404",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -3750,7 +3750,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
+            "version": "dev-feature/utility-bill-payment-collection",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3935,7 +3935,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-main",
+            "version": "dev-feature/utility-bill-payment-collection",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",

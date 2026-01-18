@@ -89,6 +89,7 @@
         "3neti/form-handler-selfie": "^1.0.1",
         "3neti/form-handler-signature": "^1.1.1",
         "3neti/hyperverge": "^1.0",
+        "endroid/qr-code": "^6.1",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^12.0",
         "laravel/pennant": "^1.18",

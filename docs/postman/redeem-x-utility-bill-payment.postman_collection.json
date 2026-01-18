@@ -1,0 +1,345 @@
+{
+  "info": {
+    "name": "Redeem-X API - Utility Bill Payment",
+    "_postman_id": "utility-bill-payment-v1",
+    "description": "Postman collection for utility companies to generate payable vouchers with QR codes for bill payment.\n\n## Use Case\n1. Utility company generates payable voucher with invoice details via API\n2. API returns voucher code and QR code image (base64)\n3. QR code is printed on physical invoice\n4. Customer scans QR → lands on `/pay?code=XXX` → pays via wallet app (GCash/Maya/BDO)\n5. Utility tracks payments via voucher reference data\n\n## Features\n- **Payable Vouchers**: Accept partial payments up to target amount\n- **Invoice Metadata**: Store invoice #, account #, customer info, dates\n- **QR Code Generation**: Base64 data URI suitable for PDF embedding\n- **Payment Tracking**: Query payment status and history\n\n## Setup\n\n### Authentication (Chrome Interceptor Method)\n1. Install [Postman Interceptor](https://chrome.google.com/webstore/detail/postman-interceptor) Chrome extension\n2. Open Postman Desktop → Click satellite icon (bottom right)\n3. Enable \"Interceptor\" and \"Sync cookies\"\n4. Log into your Redeem-X instance in Chrome (e.g., http://redeem-x.test)\n5. Run \"Get CSRF Token\" request first\n6. The `access_token` will be auto-populated from browser cookies\n\n### Variables\n- `base_url`: Your API base URL (default: `http://redeem-x.test`)\n- `access_token`: Auto-populated from browser session\n- `voucher_code`: Auto-populated after generation\n\n## Prerequisites\n- Chrome Interceptor extension installed and enabled\n- Active browser session (logged in via WorkOS)\n- Sufficient wallet balance to generate vouchers\n- QR code generation: Uses `endroid/qr-code` (already installed) or client-side `qrcode` npm package\n\n## Best Practices for High Volume (Millions/month)\n- Use base64 data URI from API response\n- Decode and embed directly in PDF invoices\n- Cache QR codes if same voucher needs multiple prints\n- Use batch generation for multiple invoices\n\n## API Documentation\nSee `docs/API.md` for complete endpoint reference.\n\n## Related Collections\n- `redeem-x-voucher-generation.postman_collection.json` - Full voucher generation examples\n- `redeem-x-e2e-generation-billing.postman_collection.json` - Billing flow testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://redeem-x.test",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "voucher_code",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup (Run First)",
+      "item": [
+        {
+          "name": "Get CSRF Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"CSRF token retrieved\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "    console.log('✓ CSRF token synced from browser');",
+                  "    console.log('  Interceptor is working correctly');",
+                  "    console.log('  You can now run the other requests');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sanctum/csrf-cookie",
+              "host": ["{{base_url}}"],
+              "path": ["sanctum", "csrf-cookie"]
+            },
+            "description": "**Run this first!**\n\nRetrieves CSRF token from browser session via Chrome Interceptor.\n\n**Prerequisites:**\n1. Chrome Interceptor extension installed\n2. Interceptor enabled in Postman (satellite icon, bottom right)\n3. Logged into {{base_url}} in Chrome browser\n\n**What this does:**\n- Syncs authentication cookies from browser to Postman\n- Required for all subsequent API calls\n\n**Troubleshooting:**\n- If this fails with 401/403, refresh your browser login\n- Verify Interceptor is enabled (green icon)\n- Check you're logged in at the correct URL"
+          }
+        }
+      ],
+      "description": "**IMPORTANT: Run this folder first!**\n\nSyncs authentication from browser session via Chrome Interceptor.\n\nThis collection uses Laravel Sanctum SPA authentication with WorkOS, which means:\n- No username/password login endpoint\n- Authentication is handled by browser cookies\n- Postman Interceptor syncs cookies from Chrome\n\nAfter running \"Get CSRF Token\", you're authenticated and can run other requests."
+    },
+    {
+      "name": "01 - Generate Payable Voucher",
+      "item": [
+        {
+          "name": "Generate Payable Voucher with Invoice Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Voucher created successfully\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    pm.expect(jsonData.data.vouchers).to.be.an('array');",
+                  "    pm.expect(jsonData.data.vouchers.length).to.equal(1);",
+                  "    ",
+                  "    // Save voucher code for next requests",
+                  "    const code = jsonData.data.vouchers[0].code;",
+                  "    pm.collectionVariables.set('voucher_code', code);",
+                  "    ",
+                  "    console.log('✓ Payable voucher created');",
+                  "    console.log('  Code:', code);",
+                  "    console.log('  Target Amount:', jsonData.data.vouchers[0].target_amount, 'PHP');",
+                  "    console.log('  Payment URL:', pm.collectionVariables.get('base_url') + '/pay?code=' + code);",
+                  "    ",
+                  "    // Display invoice metadata",
+                  "    const metadata = jsonData.data.vouchers[0].metadata?.external;",
+                  "    if (metadata) {",
+                  "        console.log('  Invoice #:', metadata.invoice_number);",
+                  "        console.log('  Account #:', metadata.account_number);",
+                  "        console.log('  Customer:', metadata.customer_name);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$randomUUID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voucher_type\": \"payable\",\n  \"amount\": 0,\n  \"target_amount\": 2500.00,\n  \"count\": 1,\n  \"external_metadata\": {\n    \"invoice_number\": \"INV-2026-001234\",\n    \"account_number\": \"ACC-789456\",\n    \"customer_name\": \"Juan Dela Cruz\",\n    \"customer_address\": \"123 Main St, Makati City, Metro Manila\",\n    \"invoice_date\": \"2026-01-15\",\n    \"due_date\": \"2026-02-15\",\n    \"billing_period\": \"December 2025\",\n    \"previous_balance\": 0,\n    \"current_charges\": 2500.00,\n    \"service_type\": \"Electricity\"\n  },\n  \"feedback_email\": \"billing@utility.com\",\n  \"ttl_days\": 60,\n  \"prefix\": \"BILL\",\n  \"mask\": \"***-***\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate a payable voucher with invoice details.\n\n**Key Fields:**\n- `voucher_type`: \"payable\" - Allows multiple payments up to target amount\n- `amount`: 0 - Payable vouchers start at zero, customer adds payments\n- `target_amount`: Full invoice amount to be collected\n- `external_metadata`: Invoice details (invoice #, account #, customer info, dates)\n- `feedback_email`: Email to receive payment notifications\n- `ttl_days`: 60 - Voucher expires after 60 days\n\n**Customize:**\nModify the `external_metadata` object to include your specific invoice fields."
+          }
+        }
+      ],
+      "description": "Generate payable voucher with invoice metadata for bill payment tracking."
+    },
+    {
+      "name": "02 - Get QR Code",
+      "item": [
+        {
+          "name": "Generate QR Code for Printing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"QR code generated successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    pm.expect(jsonData.data.qr_code).to.exist;",
+                  "    pm.expect(jsonData.data.redemption_url).to.exist;",
+                  "    pm.expect(jsonData.data.voucher_code).to.exist;",
+                  "    ",
+                  "    console.log('✓ QR code generated');",
+                  "    console.log('  Voucher Code:', jsonData.data.voucher_code);",
+                  "    console.log('  Payment URL:', jsonData.data.redemption_url);",
+                  "    console.log('  QR Code Format:', jsonData.data.qr_code.substring(0, 30) + '...');",
+                  "    console.log('  QR Code Length:', jsonData.data.qr_code.length, 'chars');",
+                  "    ",
+                  "    // Check if QR code is base64",
+                  "    if (jsonData.data.qr_code.startsWith('data:image/png;base64,')) {",
+                  "        console.log('  ✓ QR code is ready for PDF embedding');",
+                  "    } else {",
+                  "        console.log('  ⚠ QR code may need client-side generation');",
+                  "        console.log('    Install: composer require endroid/qr-code');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/qr",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "qr"]
+            },
+            "description": "Generate QR code for the payable voucher.\n\n**Response:**\n- `qr_code`: Base64 data URI (data:image/png;base64,...) - Ready for PDF embedding\n- `redemption_url`: Payment page URL (e.g., http://domain/pay?code=XXX)\n- `voucher_code`: The voucher code\n\n**Usage for Printing:**\n1. Decode base64 string from `qr_code` field\n2. Embed image in PDF invoice\n3. Customer scans QR → goes to payment page\n\n**Note:** Requires `endroid/qr-code` package. If not installed, response will indicate client-side generation needed."
+          }
+        },
+        {
+          "name": "View QR Code Image (Demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"QR image returned\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.response.to.have.header('Content-Type', 'image/png');",
+                  "    ",
+                  "    console.log('✓ QR code image displayed');",
+                  "    console.log('  Open this URL in browser to see QR code:');",
+                  "    console.log('  ' + pm.request.url.toString());",
+                  "    console.log('  ');",
+                  "    console.log('📱 Demo tip: Share this URL with your audience');",
+                  "    console.log('  They can open it in browser and scan with phone!');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "image/png"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/qr?format=image",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "qr"],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "image"
+                }
+              ]
+            },
+            "description": "**For demonstration purposes!**\n\nReturns the QR code as a PNG image that can be viewed directly in browser.\n\n**How to demo:**\n1. Run this request in Postman\n2. Click \"Preview\" or \"Visualize\" tab to see the QR code\n3. Copy the URL from address bar\n4. Share URL with audience (works if they're on same network)\n5. They can scan the QR with their phone!\n\n**Query parameter:**\n- `format=image` - Returns PNG image instead of JSON\n\n**Perfect for:**\n- Live demos and presentations\n- Testing QR scanability\n- Showing to stakeholders"
+          }
+        }
+      ],
+      "description": "Retrieve QR code image (base64) for printing on invoices."
+    },
+    {
+      "name": "03 - Payment Status",
+      "item": [
+        {
+          "name": "Check Payment Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Payment status retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    var voucher = jsonData.data.voucher;",
+                  "    ",
+                  "    console.log('✓ Payment status check');",
+                  "    console.log('  Voucher Code:', voucher.code);",
+                  "    console.log('  Voucher Type:', voucher.voucher_type);",
+                  "    console.log('  Target Amount:', voucher.target_amount, 'PHP');",
+                  "    console.log('  Current Amount:', voucher.amount, 'PHP');",
+                  "    console.log('  Status:', voucher.status);",
+                  "    ",
+                  "    // Display invoice details if available",
+                  "    if (voucher.metadata?.external) {",
+                  "        console.log('  Invoice #:', voucher.metadata.external.invoice_number);",
+                  "        console.log('  Customer:', voucher.metadata.external.customer_name);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}"]
+            },
+            "description": "Check payment status and remaining balance for a payable voucher.\n\n**Response:**\n- `voucher.code`: Voucher code\n- `voucher.voucher_type`: \"payable\"\n- `voucher.target_amount`: Full invoice amount\n- `voucher.amount`: Current paid amount\n- `voucher.status`: Voucher status (active/closed)\n- `voucher.metadata.external`: Invoice details (invoice #, customer info, etc.)\n\nUse this endpoint to:\n- Verify customer has paid\n- Check current payment amount vs target\n- Retrieve invoice details"
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Payment history retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    ",
+                  "    console.log('✓ Payment history retrieved');",
+                  "    console.log('  Total Payments:', jsonData.data.length);",
+                  "    ",
+                  "    if (jsonData.data.length > 0) {",
+                  "        jsonData.data.forEach((payment, index) => {",
+                  "            console.log('  Payment', index + 1 + ':');",
+                  "            console.log('    Amount:', payment.amount, 'PHP');",
+                  "            console.log('    Date:', payment.created_at);",
+                  "            console.log('    Reference:', payment.reference || 'N/A');",
+                  "        });",
+                  "    } else {",
+                  "        console.log('  No payments yet (voucher not yet paid)');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers/{{voucher_code}}/payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers", "{{voucher_code}}", "payments"]
+            },
+            "description": "Get detailed payment history for a payable voucher.\n\n**Response:**\n- `payments`: Array of payment transactions\n  - `amount`: Payment amount\n  - `created_at`: Payment timestamp\n  - `reference`: Payment reference/transaction ID\n- `summary`: Totals and remaining balance\n\nUseful for:\n- Reconciliation with bank statements\n- Payment audit trail\n- Customer payment history"
+          }
+        }
+      ],
+      "description": "Check payment status and retrieve payment history for tracking."
+    }
+  ]
+}

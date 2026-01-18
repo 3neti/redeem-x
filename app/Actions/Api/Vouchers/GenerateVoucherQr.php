@@ -19,13 +19,13 @@ class GenerateVoucherQr
      */
     public function handle(Voucher $voucher): array
     {
-        // Get configurable redemption endpoint from VoucherSettings
-        try {
-            $redemptionEndpoint = app(\App\Settings\VoucherSettings::class)->default_redemption_endpoint ?? '/disburse';
-        } catch (\Spatie\LaravelSettings\Exceptions\MissingSettings $e) {
-            // Fallback if settings not seeded yet
-            $redemptionEndpoint = '/disburse';
-        }
+        // Determine endpoint based on voucher type
+        $redemptionEndpoint = match($voucher->voucher_type) {
+            \LBHurtado\Voucher\Enums\VoucherType::PAYABLE => '/pay',
+            \LBHurtado\Voucher\Enums\VoucherType::SETTLEMENT => '/pay', // Settlement can accept payments
+            \LBHurtado\Voucher\Enums\VoucherType::REDEEMABLE => '/disburse',
+            default => '/disburse', // Fallback for backward compatibility
+        };
         
         // Generate redemption URL
         $redemptionUrl = url("{$redemptionEndpoint}?code={$voucher->code}");
@@ -62,8 +62,11 @@ class GenerateVoucherQr
      * Generate QR code for voucher
      * 
      * Create a QR code image and redemption URL for the specified voucher.
+     * 
+     * @param string $code Voucher code
+     * @return array|\Illuminate\Http\Response
      */
-    public function asController(string $code): array
+    public function asController(string $code)
     {
         $user = auth()->user();
 
@@ -80,7 +83,20 @@ class GenerateVoucherQr
         }
 
         $qrData = $this->handle($voucher);
+        
+        // If format=image, return the QR code as PNG image directly
+        if (request()->query('format') === 'image') {
+            // Extract base64 data from data URI
+            $base64Data = preg_replace('/^data:image\/\w+;base64,/', '', $qrData['qr_code']);
+            $imageData = base64_decode($base64Data);
+            
+            return response($imageData, 200)
+                ->header('Content-Type', 'image/png')
+                ->header('Content-Disposition', 'inline; filename="' . $code . '.png"')
+                ->header('Cache-Control', 'public, max-age=3600');
+        }
 
+        // Default: return JSON response
         return [
             'data' => $qrData,
             'meta' => [
@@ -103,9 +119,15 @@ class GenerateVoucherQr
         try {
             // Check if endroid/qr-code is available
             if (class_exists(\Endroid\QrCode\QrCode::class)) {
-                $qrCode = \Endroid\QrCode\QrCode::create($url)
-                    ->setSize(300)
-                    ->setMargin(10);
+                // Use v6 API with named parameters
+                $qrCode = new \Endroid\QrCode\QrCode(
+                    data: $url,
+                    encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+                    errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Low,
+                    size: 300,
+                    margin: 10,
+                    roundBlockSizeMode: \Endroid\QrCode\RoundBlockSizeMode::Margin
+                );
 
                 $writer = new \Endroid\QrCode\Writer\PngWriter();
                 $result = $writer->write($qrCode);
@@ -114,6 +136,8 @@ class GenerateVoucherQr
             }
         } catch (\Throwable $e) {
             // Fall through to placeholder
+            // Log the error for debugging
+            \Log::error('QR code generation failed', ['error' => $e->getMessage()]);
         }
 
         // Fallback: Return a data URL indicating client-side generation is recommended
