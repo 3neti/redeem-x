@@ -49,6 +49,7 @@ class VoucherData extends Data
         public ?bool                        $is_expired = null,
         public ?bool                        $is_redeemed = null,
         public ?bool                        $can_redeem = null,
+        public ?array                       $external_metadata = null,
     ) {}
 
     public static function fromModel(VoucherModel $model): static
@@ -91,6 +92,7 @@ class VoucherData extends Data
             is_expired: $model->isExpired(),
             is_redeemed: $model->isRedeemed(),
             can_redeem: static::computeCanRedeem($model),
+            external_metadata: $model->external_metadata,
         );
     }
 

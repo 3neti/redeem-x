@@ -95,13 +95,18 @@
                   "    console.log('  Target Amount:', jsonData.data.vouchers[0].target_amount, 'PHP');",
                   "    console.log('  Payment URL:', pm.collectionVariables.get('base_url') + '/pay?code=' + code);",
                   "    ",
-                  "    // Display invoice metadata",
-                  "    const metadata = jsonData.data.vouchers[0].metadata?.external;",
-                  "    if (metadata) {",
-                  "        console.log('  Invoice #:', metadata.invoice_number);",
-                  "        console.log('  Account #:', metadata.account_number);",
-                  "        console.log('  Customer:', metadata.customer_name);",
-                  "    }",
+                  "    // Validate external_metadata is returned",
+                  "    const metadata = jsonData.data.vouchers[0].external_metadata;",
+                  "    pm.expect(metadata).to.exist;",
+                  "    pm.expect(metadata.invoice_number).to.equal('INV-2026-001234');",
+                  "    pm.expect(metadata.reference).to.exist;",
+                  "    ",
+                  "    console.log('  ');",
+                  "    console.log('✓ External Metadata Included:');",
+                  "    console.log('  Invoice #:', metadata.invoice_number);",
+                  "    console.log('  Account #:', metadata.account_number);",
+                  "    console.log('  Customer:', metadata.customer_name);",
+                  "    console.log('  Reference:', metadata.reference);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -126,18 +131,140 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"voucher_type\": \"payable\",\n  \"amount\": 0,\n  \"target_amount\": 2500.00,\n  \"count\": 1,\n  \"external_metadata\": {\n    \"invoice_number\": \"INV-2026-001234\",\n    \"account_number\": \"ACC-789456\",\n    \"customer_name\": \"Juan Dela Cruz\",\n    \"customer_address\": \"123 Main St, Makati City, Metro Manila\",\n    \"invoice_date\": \"2026-01-15\",\n    \"due_date\": \"2026-02-15\",\n    \"billing_period\": \"December 2025\",\n    \"previous_balance\": 0,\n    \"current_charges\": 2500.00,\n    \"service_type\": \"Electricity\"\n  },\n  \"feedback_email\": \"billing@utility.com\",\n  \"ttl_days\": 60,\n  \"prefix\": \"BILL\",\n  \"mask\": \"***-***\"\n}"
+              "raw": "{\n  \"voucher_type\": \"payable\",\n  \"amount\": 0,\n  \"target_amount\": 2500.00,\n  \"count\": 1,\n  \"external_metadata\": {\n    \"invoice_number\": \"INV-2026-001234\",\n    \"account_number\": \"ACC-789456\",\n    \"customer_name\": \"Juan Dela Cruz\",\n    \"customer_address\": \"123 Main St, Makati City, Metro Manila\",\n    \"invoice_date\": \"2026-01-15\",\n    \"due_date\": \"2026-02-15\",\n    \"billing_period\": \"December 2025\",\n    \"previous_balance\": 0,\n    \"current_charges\": 2500.00,\n    \"service_type\": \"Electricity\",\n    \"reference\": \"Quick reference text displayed prominently in /pay page\"\n  },\n  \"feedback_email\": \"billing@utility.com\",\n  \"ttl_days\": 60,\n  \"prefix\": \"BILL\",\n  \"mask\": \"***-***\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/vouchers",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "vouchers"]
             },
-            "description": "Generate a payable voucher with invoice details.\n\n**Key Fields:**\n- `voucher_type`: \"payable\" - Allows multiple payments up to target amount\n- `amount`: 0 - Payable vouchers start at zero, customer adds payments\n- `target_amount`: Full invoice amount to be collected\n- `external_metadata`: Invoice details (invoice #, account #, customer info, dates)\n- `feedback_email`: Email to receive payment notifications\n- `ttl_days`: 60 - Voucher expires after 60 days\n\n**Customize:**\nModify the `external_metadata` object to include your specific invoice fields."
+            "description": "Generate a payable voucher with invoice details.\n\n**Key Fields:**\n- `voucher_type`: \"payable\" - Allows multiple payments up to target amount\n- `amount`: 0 - Payable vouchers start at zero, customer adds payments\n- `target_amount`: Full invoice amount to be collected\n- `external_metadata`: Invoice details (invoice #, account #, customer info, dates)\n  - `reference`: Quick reference text displayed prominently on /pay page\n  - Other fields: invoice_number, account_number, customer_name, etc. (freeform JSON)\n- `feedback_email`: Email to receive payment notifications\n- `ttl_days`: 60 - Voucher expires after 60 days\n\n**File Attachments:**\nTo attach invoice PDFs/images, see the \"Generate Payable Voucher with Attachments\" request.\nFile uploads require `multipart/form-data` format (cannot be done in JSON).\n\n**How it displays on /pay page:**\n1. Reference field: Prominently displayed at top\n2. External metadata: Collapsible \"Payment Details\" section with JSON data\n3. Attachments: Download links with file icons and sizes\n\n**Customize:**\nModify the `external_metadata` object to include your specific invoice fields."
+          }
+        },
+        {
+          "name": "Generate Payable Voucher with Attachments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Voucher with attachments created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    pm.expect(jsonData.data.vouchers).to.be.an('array');",
+                  "    ",
+                  "    const code = jsonData.data.vouchers[0].code;",
+                  "    pm.collectionVariables.set('voucher_code', code);",
+                  "    ",
+                  "    console.log('✓ Payable voucher with attachments created');",
+                  "    console.log('  Code:', code);",
+                  "    console.log('  Payment URL:', pm.collectionVariables.get('base_url') + '/pay?code=' + code);",
+                  "    console.log('  ');",
+                  "    console.log('📎 To verify attachments:');",
+                  "    console.log('  1. Open payment URL in browser');",
+                  "    console.log('  2. Enter voucher code:', code);",
+                  "    console.log('  3. See \"Attachments\" section with download links');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$randomUUID}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "voucher_type",
+                  "value": "payable",
+                  "type": "text"
+                },
+                {
+                  "key": "amount",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "target_amount",
+                  "value": "2500.00",
+                  "type": "text"
+                },
+                {
+                  "key": "count",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "external_metadata[invoice_number]",
+                  "value": "INV-2026-001234",
+                  "type": "text"
+                },
+                {
+                  "key": "external_metadata[account_number]",
+                  "value": "ACC-789456",
+                  "type": "text"
+                },
+                {
+                  "key": "external_metadata[customer_name]",
+                  "value": "Juan Dela Cruz",
+                  "type": "text"
+                },
+                {
+                  "key": "external_metadata[reference]",
+                  "value": "Electric Bill - January 2026",
+                  "type": "text",
+                  "description": "Quick reference displayed prominently on /pay page"
+                },
+                {
+                  "key": "feedback_email",
+                  "value": "billing@utility.com",
+                  "type": "text"
+                },
+                {
+                  "key": "ttl_days",
+                  "value": "60",
+                  "type": "text"
+                },
+                {
+                  "key": "prefix",
+                  "value": "BILL",
+                  "type": "text"
+                },
+                {
+                  "key": "mask",
+                  "value": "***-***",
+                  "type": "text"
+                },
+                {
+                  "key": "attachments[]",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload invoice PDF or image. Max 5 files, 2MB each. Supported: jpeg, jpg, png, pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vouchers"]
+            },
+            "description": "Generate payable voucher with file attachments (invoice PDFs, images).\n\n**⚠️ Important: File Upload Instructions**\n1. Click \"Body\" tab → \"form-data\" is already selected\n2. Find the \"attachments[]\" row\n3. Click \"Select Files\" and choose your invoice PDF or image\n4. Send request\n\n**Supported Files:**\n- JPEG, JPG, PNG, PDF\n- Max 5 files per request\n- Max 2MB per file\n\n**How Attachments Display:**\nWhen customer visits `/pay?code=XXX`:\n1. Enter voucher code\n2. See \"Attachments\" section\n3. Click file name to download/view invoice\n\n**API Validation:**\n- Stored via Spatie Media Library\n- Collection: `voucher_attachments`\n- Public URLs for customer download\n- Automatic file type and size validation\n\n**Example Use Cases:**\n- Attach invoice PDF for customer reference\n- Include payment slip images\n- Add account statement PDFs\n- Embed QR codes or barcodes as images"
           }
         }
       ],
-      "description": "Generate payable voucher with invoice metadata for bill payment tracking."
+      "description": "Generate payable voucher with invoice metadata for bill payment tracking.\n\n**Two Request Types:**\n1. **JSON (no files)**: Use \"Generate Payable Voucher with Invoice Data\" for metadata-only\n2. **Multipart (with files)**: Use \"Generate Payable Voucher with Attachments\" to include invoice PDFs/images"
     },
     {
       "name": "02 - Get QR Code",

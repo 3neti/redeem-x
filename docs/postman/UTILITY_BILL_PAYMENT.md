@@ -56,7 +56,12 @@ Set these in Postman:
 
 ### 01 - Generate Payable Voucher
 
-**Generate Payable Voucher with Invoice Data**
+**Two Request Types:**
+
+1. **JSON (no files)**: For metadata-only vouchers
+2. **Multipart (with files)**: For vouchers with invoice PDF/image attachments
+
+#### Generate Payable Voucher with Invoice Data (JSON)
 - `POST /api/v1/vouchers`
 - Creates a payable voucher with invoice metadata
 - Returns voucher code for QR generation
@@ -78,7 +83,8 @@ Set these in Postman:
     "billing_period": "December 2025",
     "previous_balance": 0,
     "current_charges": 2500.00,
-    "service_type": "Electricity"
+    "service_type": "Electricity",
+    "reference": "Quick reference text displayed prominently in /pay page"
   },
   "feedback_email": "billing@utility.com",
   "ttl_days": 60,
@@ -91,9 +97,52 @@ Set these in Postman:
 - `voucher_type: "payable"` - Allows multiple payments up to target amount
 - `amount: 0` - Payable vouchers start at zero, customer adds payments
 - `target_amount` - Full invoice amount to be collected
-- `external_metadata` - Invoice details (customizable)
+- `external_metadata` - Invoice details (customizable freeform JSON)
+  - **`reference`**: Quick reference text displayed prominently at top of `/pay` page
+  - Other fields: invoice_number, account_number, customer_name, etc.
 - `feedback_email` - Email to receive payment notifications
 - `prefix` + `mask` - Generates codes like `BILL-ABC-DEF`
+
+#### Generate Payable Voucher with Attachments (Multipart)
+- `POST /api/v1/vouchers`
+- Content-Type: `multipart/form-data`
+- Attach invoice PDF or images (max 5 files, 2MB each)
+
+**Form Fields:**
+```
+voucher_type: payable
+amount: 0
+target_amount: 2500.00
+count: 1
+external_metadata[invoice_number]: INV-2026-001234
+external_metadata[account_number]: ACC-789456
+external_metadata[reference]: Electric Bill - January 2026
+feedback_email: billing@utility.com
+ttl_days: 60
+prefix: BILL
+mask: ***-***
+attachments[]: (file upload) invoice.pdf
+```
+
+**File Upload Instructions (Postman):**
+1. Open request → Body tab → Select "form-data"
+2. Find "attachments[]" row
+3. Change type from "Text" to "File"
+4. Click "Select Files" → Choose invoice PDF or images
+5. Send request
+
+**Supported Files:**
+- JPEG, JPG, PNG, PDF
+- Max 5 files per request
+- Max 2MB per file
+
+**How Attachments Display on `/pay` Page:**
+
+When customer visits payment page:
+1. Enter voucher code
+2. See "Attachments" section with download links
+3. Click file name to view/download invoice PDF
+4. File icons show file type and size
 
 **Response:**
 ```json
@@ -121,7 +170,7 @@ Set these in Postman:
 
 ### 02 - Get QR Code
 
-**Generate QR Code for Printing**
+#### Generate QR Code for Printing (JSON Response)
 - `GET /api/v1/vouchers/{code}/qr`
 - Returns base64 data URI for PDF embedding
 
@@ -142,6 +191,19 @@ Set these in Postman:
 3. Customer scans QR → redirects to `/pay?code=BILL-ABC-DEF`
 4. Customer pays via GCash/Maya/BPI Pay
 
+#### View QR Code Image (Demo/Presentation)
+- `GET /api/v1/vouchers/{code}/qr?format=image`
+- Returns PNG image directly (no JSON wrapper)
+- Perfect for presentations and demos
+
+**Usage:**
+1. Copy URL from Postman
+2. Open in browser → QR code displays as image
+3. Share URL with audience for live demo
+4. Attendees can scan with phone immediately
+
+**Demo Tip:** Use this endpoint during presentations to show real QR codes that audience can scan and test the payment flow.
+
 ### 03 - Payment Status
 
 **Check Payment Status**
@@ -161,13 +223,26 @@ Set these in Postman:
       "metadata": {
         "external": {
           "invoice_number": "INV-2026-001234",
+          "reference": "Electric Bill - January 2026",
           ...
         }
-      }
+      },
+      "attachments": [
+        {
+          "id": 1,
+          "file_name": "invoice_INV-2026-001234.pdf",
+          "mime_type": "application/pdf",
+          "size": 524288,
+          "human_readable_size": "512 KB",
+          "url": "http://redeem-x.test/media/1/invoice_INV-2026-001234.pdf"
+        }
+      ]
     }
   }
 }
 ```
+
+**Note:** Attachments array included if files were uploaded during voucher generation.
 
 **Use Case:** "Has this invoice been paid? How much is left?"
 
