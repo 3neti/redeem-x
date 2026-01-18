@@ -217,6 +217,15 @@ const targetAmountHelpText = computed(() => {
   return 'Total amount to collect before voucher closes';
 });
 
+const payeeLabel = computed(() => {
+  switch (voucherType.value) {
+    case 'payable': return 'Collect from';
+    case 'settlement': return 'Lend to';
+    case 'redeemable':
+    default: return 'Pay to';
+  }
+});
+
 // Computed state for OTP checkbox (auto-add + read-only when mobile payee)
 const otpInputState = computed(() => {
   const isMobileValidation = payeeType.value === 'mobile';
@@ -253,7 +262,7 @@ const canShare = computed(() => {
 });
 
 const isPayeeButtonDisabled = computed(() => {
-  return amount.value === null || amount.value === undefined;
+  return false; // Always enabled - users can set amount in modal
 });
 
 const isSaveButtonDisabled = computed(() => {
@@ -292,7 +301,9 @@ const showQuickAmounts = computed(() => {
 
 const settlementDisplayValue = computed(() => {
   if (amount.value && targetAmount.value) {
-    return `₱${amount.value.toLocaleString()} → ₱${targetAmount.value.toLocaleString()}`;
+    const amtStr = amount.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const targetStr = targetAmount.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `₱${amtStr} → ₱${targetStr}`;
   }
   return 'Click Payee to set amount';
 });
@@ -1046,7 +1057,7 @@ watch(voucherType, () => {
               class="h-12 flex-1 md:flex-initial md:min-w-[140px] text-lg font-semibold"
               :disabled="loading"
             >
-              {{ amount ? `₱${amount.toLocaleString()}` : 'Amount' }}
+              {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Amount' }}
             </Button>
             
             <!-- Payable Display -->
@@ -1058,7 +1069,7 @@ watch(voucherType, () => {
               class="h-12 flex-1 md:flex-initial md:min-w-[220px] text-base"
               :disabled="loading"
             >
-              {{ targetAmount ? `Target: ₱${targetAmount.toLocaleString()}` : 'Set target' }}
+              {{ targetAmount ? `Target: ₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Set target' }}
             </Button>
             
             <!-- Settlement Display -->
@@ -1135,7 +1146,7 @@ watch(voucherType, () => {
             >
               <Receipt v-if="config?.payee?.show_icon !== false" class="h-4 w-4 flex-shrink-0 text-muted-foreground" />
               <div class="flex-1 overflow-hidden">
-                <div v-if="config?.payee?.show_label !== false" class="text-xs text-muted-foreground">{{ config?.payee?.label || 'Payee' }}</div>
+                <div v-if="config?.payee?.show_label !== false" class="text-xs text-muted-foreground">{{ payeeLabel }}</div>
                 <div class="text-sm font-medium truncate">{{ payeeDisplayValue }}</div>
               </div>
             </div>
@@ -1385,8 +1396,8 @@ watch(voucherType, () => {
                 v-model="amount"
                 prefix="₱"
                 :min="1"
-                :step="1"
-                :allow-decimal="false"
+                :step="0.01"
+                :allow-decimal="true"
                 :keypad-title="amountFieldLabel"
                 placeholder="Enter amount"
               />
@@ -1402,8 +1413,8 @@ watch(voucherType, () => {
                     v-model="amount"
                     prefix="₱"
                     :min="1"
-                    :step="1"
-                    :allow-decimal="false"
+                    :step="0.01"
+                    :allow-decimal="true"
                     keypad-title="Loan Amount"
                     placeholder="Enter amount"
                   />
@@ -1424,7 +1435,7 @@ watch(voucherType, () => {
                 </div>
               </div>
               <p class="text-xs text-muted-foreground">
-                Target amount: ₱{{ targetAmount?.toLocaleString() || '0' }} (principal + {{ interestRate }}% interest)
+                Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} (principal + {{ interestRate.toFixed(2) }}% interest)
               </p>
             </div>
             
@@ -1666,6 +1677,7 @@ watch(voucherType, () => {
       :model-value="amount"
       mode="amount"
       :min="1"
+      :allow-decimal="true"
     />
     
     <NumericKeypad
@@ -1675,6 +1687,7 @@ watch(voucherType, () => {
       :model-value="count"
       mode="count"
       :min="1"
+      :allow-decimal="true"
     />
   </div>
 </template>

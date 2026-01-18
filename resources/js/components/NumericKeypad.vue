@@ -14,6 +14,7 @@ interface Props {
   open: boolean;
   allowDecimal?: boolean;
   title?: string;
+  hideCurrency?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -49,6 +50,7 @@ const currentValue = computed(() => {
 // Formatted display
 const displayValue = computed(() => {
   if (!digits.value) {
+    if (props.hideCurrency) return '0';
     return props.mode === 'amount' ? '₱0' : '0';
   }
   
@@ -59,13 +61,17 @@ const displayValue = computed(() => {
     // For amounts, format with proper decimal places
     const num = currentValue.value;
     if (props.allowDecimal && digits.value.includes('.')) {
-      return `₱${displayNum}`;
+      return props.hideCurrency ? displayNum : `₱${displayNum}`;
     }
-    return `₱${num.toLocaleString()}`;
+    return props.hideCurrency ? num.toLocaleString() : `₱${num.toLocaleString()}`;
   }
   
-  // Count mode
+  // Count mode - show raw number without suffix
   const num = currentValue.value;
+  // Preserve decimal point during typing
+  if (props.allowDecimal && digits.value.includes('.')) {
+    return displayNum;
+  }
   const voucherText = num === 1 ? 'voucher' : 'vouchers';
   return `${num} ${voucherText}`;
 });
@@ -82,6 +88,9 @@ const displayTitle = computed(() => {
 // Description based on mode
 const description = computed(() => {
   if (props.mode === 'amount') {
+    if (props.hideCurrency) {
+      return `Minimum: ${props.min}`;
+    }
     return `Minimum: ₱${props.min.toLocaleString()}`;
   }
   return `Minimum: ${props.min}`;
