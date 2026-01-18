@@ -1687,7 +1687,7 @@ watch(voucherType, () => {
       :model-value="count"
       mode="count"
       :min="1"
-      :allow-decimal="true"
+      :allow-decimal="false"
     />
   </div>
 </template>
