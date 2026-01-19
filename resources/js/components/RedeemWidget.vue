@@ -131,9 +131,7 @@ function submit() {
         <div v-if="config.showLogo || config.showAppName" class="flex flex-col items-center gap-2">
             <!-- Logo only (icon) -->
             <div v-if="config.showLogo && !config.showAppName" class="flex items-center justify-center">
-                <div class="flex aspect-square size-12 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-                    <AppLogoIcon class="size-7 fill-current text-white dark:text-black" />
-                </div>
+                <AppLogoIcon class="h-20 w-auto" />
             </div>
             
             <!-- Logo with App Name -->
