@@ -134,17 +134,17 @@ async function handleContinue() {
     <Head :title="title || 'Welcome'" />
 
     <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-        <Card class="w-full max-w-2xl">
+        <Card class="w-full max-w-2xl overflow-visible">
             <CardHeader v-if="title">
                 <CardTitle class="text-center text-2xl">{{ title }}</CardTitle>
             </CardHeader>
             
-            <CardContent class="space-y-6">
+            <CardContent class="space-y-6 overflow-visible">
                 <!-- Rendered content -->
                 <div 
                     v-if="contentType !== 'text'"
                     v-html="renderedContent"
-                    class="prose prose-base max-w-none dark:prose-invert"
+                    class="prose prose-base max-w-none dark:prose-invert text-center overflow-visible"
                 />
                 <div 
                     v-else
@@ -182,3 +182,30 @@ async function handleContinue() {
         </Card>
     </div>
 </template>
+
+<style scoped>
+/* Ensure images in prose content are responsive and contained */
+.prose :deep(img) {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+}
+
+/* Prevent content from being cropped - apply to all levels */
+.prose {
+    overflow: visible !important;
+}
+
+.prose :deep(*) {
+    max-width: 100%;
+}
+
+/* Override any Card overflow constraints */
+:deep(.card) {
+    overflow: visible !important;
+}
+
+:deep([class*="card"]) {
+    overflow: visible !important;
+}
+</style>

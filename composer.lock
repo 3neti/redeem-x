@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c6f2f842ccd6e4106b7c99aec9869404",
+    "content-hash": "b5cb5ddaba25cb36a8642b46413cea0c",
     "packages": [
         {
             "name": "3neti/form-flow",
-            "version": "v1.6.0",
+            "version": "v1.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/3neti/form-flow.git",
-                "reference": "2ba3e16469151217d8f00372e9b63f8124c7a168"
+                "reference": "5cb5fe1cadc1c03247b66af5a6722aa4bbe02ac8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-flow/zipball/2ba3e16469151217d8f00372e9b63f8124c7a168",
-                "reference": "2ba3e16469151217d8f00372e9b63f8124c7a168",
+                "url": "https://api.github.com/repos/3neti/form-flow/zipball/5cb5fe1cadc1c03247b66af5a6722aa4bbe02ac8",
+                "reference": "5cb5fe1cadc1c03247b66af5a6722aa4bbe02ac8",
                 "shasum": ""
             },
             "require": {
@@ -70,9 +70,9 @@
             ],
             "support": {
                 "issues": "https://github.com/3neti/form-flow/issues",
-                "source": "https://github.com/3neti/form-flow/tree/v1.6.0"
+                "source": "https://github.com/3neti/form-flow/tree/v1.7.0"
             },
-            "time": "2026-01-17T09:23:26+00:00"
+            "time": "2026-01-19T03:09:05+00:00"
         },
         {
             "name": "3neti/form-handler-kyc",
@@ -3750,7 +3750,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/utility-bill-payment-collection",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3935,7 +3935,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/utility-bill-payment-collection",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
