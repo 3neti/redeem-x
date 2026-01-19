@@ -22,7 +22,8 @@ import {
     Info,
     Lock,
     Building2,
-    Briefcase
+    Briefcase,
+    FileText
 } from 'lucide-vue-next';
 import type { InspectInstructions } from '@/types/voucher';
 
@@ -140,6 +141,26 @@ const hasValidationRules = computed(() => {
 const hasRequirements = computed(() => {
     return props.instructions.required_inputs && props.instructions.required_inputs.length > 0;
 });
+
+const riderFaviconUrl = computed(() => {
+    if (!props.instructions.rider?.url) return null;
+    try {
+        const url = new URL(props.instructions.rider.url);
+        return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`;
+    } catch {
+        return null;
+    }
+});
+
+const riderHostname = computed(() => {
+    if (!props.instructions.rider?.url) return null;
+    try {
+        const url = new URL(props.instructions.rider.url);
+        return url.hostname;
+    } catch {
+        return null;
+    }
+});
 </script>
 
 <template>
@@ -164,38 +185,33 @@ const hasRequirements = computed(() => {
             </CardContent>
         </Card>
 
-        <!-- Requirements Card -->
-        <Card v-if="hasRequirements">
+        <!-- Rider Message Card -->
+        <Card v-if="instructions.rider && instructions.rider.message">
             <CardHeader>
-                <CardTitle>What you need to provide</CardTitle>
-                <CardDescription>
-                    Required information to redeem this voucher
-                </CardDescription>
+                <div class="flex items-center gap-2">
+                    <FileText class="h-5 w-5 text-muted-foreground" />
+                    <CardTitle>Message</CardTitle>
+                </div>
             </CardHeader>
             <CardContent>
-                <div class="space-y-3">
-                    <div 
-                        v-for="input in instructions.required_inputs" 
-                        :key="input.value"
-                        class="flex items-center gap-3 rounded-lg border p-3"
+                <p class="text-base font-medium text-gray-900 dark:text-gray-100">{{ instructions.rider.message }}</p>
+                <div v-if="instructions.rider.url && riderFaviconUrl" class="mt-4 flex justify-end">
+                    <a 
+                        :href="instructions.rider.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="opacity-50 hover:opacity-100 transition-opacity"
+                        :title="instructions.rider.url"
                     >
-                        <component 
-                            :is="getInputIcon(input.value)" 
-                            class="h-5 w-5 text-muted-foreground flex-shrink-0"
+                        <img 
+                            :src="riderFaviconUrl"
+                            :alt="riderHostname"
+                            class="h-4 w-4 animate-pulse"
                         />
-                        <span class="text-sm font-medium">{{ input.label }}</span>
-                    </div>
+                    </a>
                 </div>
             </CardContent>
         </Card>
-
-        <!-- No Requirements -->
-        <Alert v-else>
-            <CheckCircle class="h-4 w-4" />
-            <AlertDescription>
-                No additional information required to redeem this voucher.
-            </AlertDescription>
-        </Alert>
 
         <!-- Validity Card -->
         <Card>
@@ -238,6 +254,39 @@ const hasRequirements = computed(() => {
                 </div>
             </CardContent>
         </Card>
+
+        <!-- Requirements Card -->
+        <Card v-if="hasRequirements">
+            <CardHeader>
+                <CardTitle>Required Inputs</CardTitle>
+                <CardDescription>
+                    Please prepare to provide the following:
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-3">
+                    <div 
+                        v-for="input in instructions.required_inputs" 
+                        :key="input.value"
+                        class="flex items-center gap-3 rounded-lg border p-3"
+                    >
+                        <component 
+                            :is="getInputIcon(input.value)" 
+                            class="h-5 w-5 text-muted-foreground flex-shrink-0"
+                        />
+                        <span class="text-sm font-medium">{{ input.label }}</span>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- No Requirements -->
+        <Alert v-else>
+            <CheckCircle class="h-4 w-4" />
+            <AlertDescription>
+                No additional information required to redeem this voucher.
+            </AlertDescription>
+        </Alert>
 
         <!-- Assignment & Security Card -->
         <Card v-if="hasAssignmentOrSecurity">
@@ -355,22 +404,5 @@ const hasRequirements = computed(() => {
             </CardContent>
         </Card>
 
-        <!-- Rider Message Card -->
-        <Alert v-if="instructions.rider && instructions.rider.message">
-            <Info class="h-4 w-4" />
-            <AlertDescription>
-                <p class="font-medium mb-1">Additional Information</p>
-                <p class="text-sm">{{ instructions.rider.message }}</p>
-                <a 
-                    v-if="instructions.rider.url" 
-                    :href="instructions.rider.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-sm text-primary hover:underline mt-2 inline-block"
-                >
-                    Learn more →
-                </a>
-            </AlertDescription>
-        </Alert>
     </div>
 </template>
