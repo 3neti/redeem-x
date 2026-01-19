@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Redeem\{KYCRedemptionController, RedeemController};
+use App\Http\Controllers\Redeem\{KYCRedemptionController, RedeemController, SuccessRedirectController};
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,4 +69,7 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
 //        Route::get('/{plugin}', [RedeemWizardController::class, 'plugin'])->name('plugin');
 //        Route::post('/{plugin}', [RedeemWizardController::class, 'storePlugin'])->name('plugin.store');
     });
+    
+    // Step 6: Redirect to external URL (rider URL) - outside model binding to allow redeemed vouchers
+    Route::get('/{code}/redirect', SuccessRedirectController::class)->name('redirect');
 });

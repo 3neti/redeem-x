@@ -57,6 +57,12 @@ const hasRiderUrl = computed(() => {
     return !!props.rider?.url;
 });
 
+// Process rider URL through template processor to evaluate variables
+const processedRiderUrl = computed(() => {
+    if (!props.rider?.url) return null;
+    return processTemplate(props.rider.url);
+});
+
 // Initialize template processor with props context and custom formatters
 const { processTemplate } = useTemplateProcessor(props, {
     formatters: {
@@ -114,9 +120,10 @@ const redirectStyleClasses = computed(() => {
 });
 
 const handleRedirect = () => {
-    if (!props.rider?.url) return;
+    if (!hasRiderUrl.value) return;
     isRedirecting.value = true;
-    window.location.href = props.rider.url;
+    // Use Inertia router to visit redirect route (which handles external redirects properly)
+    router.visit(`/redeem/${voucherCode.value}/redirect`);
 };
 
 onMounted(() => {

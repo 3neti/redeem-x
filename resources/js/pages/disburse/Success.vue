@@ -70,9 +70,10 @@ const countdownMessage = computed(() => {
 });
 
 const handleRedirect = () => {
-    if (!props.rider?.url) return;
+    if (!hasRiderUrl.value) return;
     isRedirecting.value = true;
-    window.location.href = props.rider.url;
+    // Use window.location for full page navigation - allows inertia()->location() to work
+    window.location.href = `/disburse/${props.voucher.code}/redirect`;
 };
 
 onMounted(() => {

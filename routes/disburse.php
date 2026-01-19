@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Disburse\DisburseController;
+use App\Http\Controllers\Disburse\{DisburseController, DisburseSuccessRedirectController};
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,4 +40,7 @@ Route::prefix('disburse')->name('disburse.')->group(function () {
     
     // Success page
     Route::get('/{voucher:code}/success', [DisburseController::class, 'success'])->name('success');
+    
+    // Redirect to external URL (rider URL)
+    Route::get('/{code}/redirect', DisburseSuccessRedirectController::class)->name('redirect');
 });
