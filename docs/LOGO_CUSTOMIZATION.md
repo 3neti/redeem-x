@@ -6,8 +6,14 @@ This guide explains how to change the application logo in Redeem-X.
 
 The logo system uses a **configurable theme architecture** with automatic dark mode detection.
 
+**Current Logo Design: Tubular Pulley**
+- Simpler, more modern design introduced January 2026
+- Portrait orientation with transparent background
+- Available in three color variants: slate, silver, orange
+
 **Key Files:**
-- **Logo Assets**: `/public/images/logo-*.png` - Theme-specific logo files
+- **Logo Assets**: `/public/images/logo-*.png` - Active logo files (currently tubular pulley)
+- **Design-Specific Assets**: `/public/images/{design_name}_logo-*.png` - Archived designs
 - **Logo Component**: `/resources/js/components/AppLogoIcon.vue` - Renders logo with theme switching
 - **Logo Wrapper**: `/resources/js/components/AppLogo.vue` - Wraps logo with app name
 - **Configuration**: `/config/branding.php` - Theme definitions and paths
@@ -42,6 +48,58 @@ The logo appears in:
 2. **Public Pages** (`/disburse`, `/pay`) - Shows logo only (via `AppLogoIcon`)
 3. **Header** (mobile/desktop) - Shows logo + app name
 4. **Public Layout** - Shows logo + app name
+
+## Logo Design History
+
+### Tubular Pulley (Current - January 2026)
+**Design:** Simpler, cleaner pulley design with vertical orientation
+- **Files:** `tubular_pulley_logo-slate.png`, `tubular_pulley_logo-silver.png`, `tubular_pulley_logo-orange.png`
+- **Dimensions:** 1024x2544px (portrait)
+- **Original Color:** `#231f20` (near-black)
+- **File Size:** ~150KB per variant
+
+### Treble Pulley (Archived - 2025)
+**Design:** Original complex pulley mechanism design
+- **Files:** `treble_pulley_logo-slate.png`, `treble_pulley_logo-silver.png`, `treble_pulley_logo-orange.png`
+- **Dimensions:** 1024x1536px (2:3 portrait)
+- **File Size:** ~219KB per variant
+- **Status:** Preserved for rollback if needed
+
+**To restore treble pulley:**
+```bash
+cp public/images/treble_pulley_logo-slate.png public/images/logo-slate.png
+cp public/images/treble_pulley_logo-silver.png public/images/logo-silver.png
+cp public/images/treble_pulley_logo-orange.png public/images/logo-orange.png
+php artisan config:clear
+```
+
+## Design-Based Naming Convention
+
+**File Naming Pattern:** `{design_name}_logo-{color}.png`
+
+Examples:
+- `tubular_pulley_logo-slate.png`
+- `treble_pulley_logo-orange.png`
+- `holiday_special_logo-silver.png`
+
+**Benefits:**
+- Clear design lineage for future logo changes
+- Easy to switch between design families
+- Preserves historical designs for rollback
+- No configuration changes needed when switching
+
+**Active vs. Archived:**
+- **Active:** Generic names (`logo-slate.png`, `logo-silver.png`, `logo-orange.png`) - Used by application
+- **Archived:** Design-specific names (`{design}_logo-*.png`) - Preserved for switching/rollback
+
+**Switching Between Designs:**
+```bash
+# Switch to any archived design
+cp public/images/{design_name}_logo-slate.png public/images/logo-slate.png
+cp public/images/{design_name}_logo-silver.png public/images/logo-silver.png
+cp public/images/{design_name}_logo-orange.png public/images/logo-orange.png
+php artisan config:clear
+```
 
 ## Logo Theme Configuration
 

@@ -7,7 +7,7 @@ const appName = (page.props.name as string) || 'Redeem-X';
 </script>
 
 <template>
-    <AppLogoIcon class="h-20 w-auto" />
+    <AppLogoIcon class="h-12 w-auto" />
     <div class="ml-3 grid flex-1 text-left text-sm">
         <span class="mb-0.5 truncate leading-tight font-semibold">{{
             appName
