@@ -59,6 +59,9 @@ class HandleInertiaRequests extends Middleware
         return array_merge($parentShare, [
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'branding' => [
+                'logo' => $this->getLogoConfig(),
+            ],
             'auth' => [
                 'user' => $request->user()?->load(['roles:name', 'permissions:name', 'wallet', 'primaryVendorAlias', 'channels']),
                 'roles' => $request->user()?->roles->pluck('name')->toArray() ?? [],
@@ -98,5 +101,28 @@ class HandleInertiaRequests extends Middleware
         } catch (MissingSettings $e) {
             return $default;
         }
+    }
+
+    /**
+     * Get logo configuration for the current theme.
+     */
+    private function getLogoConfig(): array
+    {
+        $theme = config('branding.logo.theme', 'gray');
+        $themes = config('branding.logo.themes', []);
+        $fallback = config('branding.logo.fallback', '/images/logo.png');
+
+        // Get theme config, fallback to gray if theme not found
+        $themeConfig = $themes[$theme] ?? $themes['gray'] ?? [
+            'light' => $fallback,
+            'dark' => $fallback,
+        ];
+
+        return [
+            'theme' => $theme,
+            'light' => $themeConfig['light'] ?? $fallback,
+            'dark' => $themeConfig['dark'] ?? $fallback,
+            'fallback' => $fallback,
+        ];
     }
 }

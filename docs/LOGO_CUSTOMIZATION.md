@@ -4,25 +4,36 @@ This guide explains how to change the application logo in Redeem-X.
 
 ## Current Implementation
 
-The logo is displayed using a PNG image (`/public/images/logo.png`) rendered through the `AppLogoIcon` component.
+The logo system uses a **configurable theme architecture** with automatic dark mode detection.
 
 **Key Files:**
-- **Logo Image**: `/public/images/logo.png` - The actual logo file (orange brand color)
-- **Logo Component**: `/resources/js/components/AppLogoIcon.vue` - Renders the logo image
+- **Logo Assets**: `/public/images/logo-*.png` - Theme-specific logo files
+- **Logo Component**: `/resources/js/components/AppLogoIcon.vue` - Renders logo with theme switching
 - **Logo Wrapper**: `/resources/js/components/AppLogo.vue` - Wraps logo with app name
+- **Configuration**: `/config/branding.php` - Theme definitions and paths
 - **Widget Usage**: `/resources/js/components/RedeemWidget.vue` and `/resources/js/components/PayWidget.vue` - Use logo in public pages
 
-### Brand Color
+### Available Themes
 
-The logo uses **orange** as the primary brand color:
+The application includes three pre-configured themes:
+
+#### 1. Gray Theme (Default) - Professional
+- **Light Mode**: Slate `#475569` (contrast 9.2:1 on white)
+- **Dark Mode**: Silver `#C0C0C0` (contrast 11.8:1 on dark)
+- **Files**: `/public/images/logo-slate.png`, `/public/images/logo-silver.png`
+- **Use Case**: Default professional branding
+
+#### 2. Orange Theme - Special Occasions
 - **Color**: `#F97316` (Tailwind orange-500)
-- **Rationale**: 
-  - Excellent contrast in both light (7.5:1) and dark mode (5.2:1)
-  - Passes WCAG AAA accessibility standards
-  - Aligns with existing chart-1 color in theme
-  - Warm, approachable, modern brand identity
-  - Differentiates from blue-heavy competitors
-- **Backup**: Black logo available at `/public/images/logo-backup.png`
+- **Both Modes**: Same orange color works in light and dark
+- **Files**: `/public/images/logo-orange.png`
+- **Contrast**: Light 7.5:1, Dark 5.2:1 (WCAG AAA compliant)
+- **Use Case**: Marketing campaigns, special events, holidays
+
+#### 3. Custom Theme - User-Defined
+- **Configuration**: Via environment variables
+- **Files**: User-provided paths
+- **Use Case**: Client-specific branding, A/B testing, seasonal variations
 
 ## Logo Display Locations
 
@@ -32,45 +43,145 @@ The logo appears in:
 3. **Header** (mobile/desktop) - Shows logo + app name
 4. **Public Layout** - Shows logo + app name
 
+## Logo Theme Configuration
+
+### Quick Theme Switch
+
+To switch between themes, update your `.env` file:
+
+```bash
+# Gray theme (default - professional)
+LOGO_THEME=gray
+
+# Orange theme (special occasions)
+LOGO_THEME=orange
+
+# Custom theme (your own logos)
+LOGO_THEME=custom
+LOGO_CUSTOM_LIGHT=/images/logo-holiday.png
+LOGO_CUSTOM_DARK=/images/logo-holiday-dark.png
+```
+
+After changing the theme:
+```bash
+php artisan config:clear
+php artisan config:cache  # Optional for production
+```
+
+### How Dark Mode Switching Works
+
+1. **Automatic Detection**: `AppLogoIcon.vue` uses `MutationObserver` to watch for `.dark` class on `<html>`
+2. **Reactive Switching**: Logo changes instantly when user toggles appearance
+3. **No Flash**: Pre-configured paths prevent loading delays
+4. **Fallback**: Defaults to `/images/logo.png` if config missing
+
+### Theme Configuration File
+
+All themes are defined in `/config/branding.php`:
+
+```php
+'logo' => [
+    'theme' => env('LOGO_THEME', 'gray'),
+    
+    'themes' => [
+        'gray' => [
+            'light' => '/images/logo-slate.png',
+            'dark' => '/images/logo-silver.png',
+        ],
+        'orange' => [
+            'light' => '/images/logo-orange.png',
+            'dark' => '/images/logo-orange.png',
+        ],
+        'custom' => [
+            'light' => env('LOGO_CUSTOM_LIGHT'),
+            'dark' => env('LOGO_CUSTOM_DARK'),
+        ],
+    ],
+    
+    'fallback' => '/images/logo.png',
+],
+```
+
 ## How to Change the Logo
 
-### Step 1: Prepare Your Logo Image
+### Method 1: Switch to Existing Theme (Easiest)
+
+No file changes needed - just update `.env`:
+
+```bash
+# Switch to orange for a promotion
+LOGO_THEME=orange
+php artisan config:clear
+```
+
+### Method 2: Add Custom Theme
+
+**Step 1: Prepare Your Logo Images**
 
 **Recommended specifications:**
-- **Format**: PNG with transparent background
+- **Format**: PNG with transparent background (RGBA, not RGB)
 - **Aspect Ratio**: Portrait orientation (e.g., 2:3 or similar)
 - **Size**: At least 1024px width for retina displays
-- **Color**: Orange (#F97316) or brand color that works in both light and dark modes
+- **Colors**: 
+  - Light mode: Dark colors for contrast on white background
+  - Dark mode: Light colors for contrast on dark background
 
 **Why PNG?**
 - Supports transparency (no background box)
 - Better for complex designs than SVG
 - Simpler to implement and maintain
 
-### Step 2: Replace the Logo File
+**Step 2: Recolor Your Logo (if needed)**
+
+Use ImageMagick to create theme-specific variants:
 
 ```bash
-# Copy your new logo to the public images directory
-cp /path/to/your/logo.png /path/to/redeem-x/public/images/logo.png
+# Create slate version for light mode (dark gray)
+magick original-logo.png -fuzz 15% -fill "#475569" -opaque "#ORIGINAL_COLOR" logo-custom-light.png
+
+# Create silver version for dark mode (light gray)
+magick original-logo.png -fuzz 15% -fill "#C0C0C0" -opaque "#ORIGINAL_COLOR" logo-custom-dark.png
 ```
 
-**Note**: The filename must be `logo.png` or you'll need to update the component (see Advanced Customization).
+**Step 3: Copy Logo Files**
 
-### Step 3: Clear Browser Cache
+```bash
+# Copy your logo files to public images directory
+cp logo-custom-light.png public/images/
+cp logo-custom-dark.png public/images/
+```
 
-After replacing the logo:
+**Step 4: Configure Custom Theme**
+
+Update `.env`:
+
+```bash
+LOGO_THEME=custom
+LOGO_CUSTOM_LIGHT=/images/logo-custom-light.png
+LOGO_CUSTOM_DARK=/images/logo-custom-dark.png
+```
+
+**Step 5: Clear Configuration Cache
+
+```bash
+php artisan config:clear
+```
+
+**Step 6: Clear Browser Cache & Test**
+
 1. Hard refresh your browser: `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows/Linux)
-2. Or clear browser cache manually
-3. If using Vite dev server, restart it: `npm run dev`
-
-### Step 4: Test All Locations
+2. Toggle between light and dark modes to verify both logos
+3. Test all display locations
 
 Verify the logo appears correctly in:
-- [ ] Sidebar navigation
-- [ ] `/disburse` page (redeem widget)
-- [ ] `/pay` page (payment widget)
-- [ ] Mobile header
-- [ ] Desktop header
+- [ ] Sidebar navigation (light mode)
+- [ ] Sidebar navigation (dark mode)
+- [ ] `/disburse` page (light mode)
+- [ ] `/disburse` page (dark mode)
+- [ ] `/pay` page (light mode)
+- [ ] `/pay` page (dark mode)
+- [ ] Mobile header (both modes)
+- [ ] Desktop header (both modes)
 
 ## Logo Sizing
 
