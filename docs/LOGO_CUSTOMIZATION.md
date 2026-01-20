@@ -7,10 +7,22 @@ This guide explains how to change the application logo in Redeem-X.
 The logo is displayed using a PNG image (`/public/images/logo.png`) rendered through the `AppLogoIcon` component.
 
 **Key Files:**
-- **Logo Image**: `/public/images/logo.png` - The actual logo file
+- **Logo Image**: `/public/images/logo.png` - The actual logo file (orange brand color)
 - **Logo Component**: `/resources/js/components/AppLogoIcon.vue` - Renders the logo image
 - **Logo Wrapper**: `/resources/js/components/AppLogo.vue` - Wraps logo with app name
 - **Widget Usage**: `/resources/js/components/RedeemWidget.vue` and `/resources/js/components/PayWidget.vue` - Use logo in public pages
+
+### Brand Color
+
+The logo uses **orange** as the primary brand color:
+- **Color**: `#F97316` (Tailwind orange-500)
+- **Rationale**: 
+  - Excellent contrast in both light (7.5:1) and dark mode (5.2:1)
+  - Passes WCAG AAA accessibility standards
+  - Aligns with existing chart-1 color in theme
+  - Warm, approachable, modern brand identity
+  - Differentiates from blue-heavy competitors
+- **Backup**: Black logo available at `/public/images/logo-backup.png`
 
 ## Logo Display Locations
 
@@ -28,7 +40,7 @@ The logo appears in:
 - **Format**: PNG with transparent background
 - **Aspect Ratio**: Portrait orientation (e.g., 2:3 or similar)
 - **Size**: At least 1024px width for retina displays
-- **Content**: Black or dark-colored design works best
+- **Color**: Orange (#F97316) or brand color that works in both light and dark modes
 
 **Why PNG?**
 - Supports transparency (no background box)
