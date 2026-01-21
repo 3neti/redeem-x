@@ -31,9 +31,13 @@ class AppServiceProvider extends ServiceProvider
         });
         
         // Register custom payment gateway with payment classification
+        $useOmnipay = filter_var(env('USE_OMNIPAY', false), FILTER_VALIDATE_BOOLEAN);
+        
         $this->app->bind(
             \LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface::class,
-            \App\Gateways\CustomNetbankPaymentGateway::class
+            $useOmnipay 
+                ? \App\Gateways\CustomOmnipayPaymentGateway::class
+                : \App\Gateways\CustomNetbankPaymentGateway::class
         );
     }
 
