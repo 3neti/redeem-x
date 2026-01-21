@@ -10,8 +10,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL;
-use LBHurtado\SMS\Facades\SMS;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\PaymentConfirmationNotification;
 
 class SendPaymentConfirmationSms implements ShouldQueue
 {
@@ -40,21 +40,9 @@ class SendPaymentConfirmationSms implements ShouldQueue
             return;
         }
 
-        // Generate signed confirmation link (24hr expiry)
-        $signedUrl = URL::signedRoute('pay.confirm', [
-            'paymentRequest' => $paymentRequest->id,
-        ], now()->addHours(24));
-
-        // Send SMS via EngageSpark
-        $messageText = "Payment received! ₱{$this->amount} for voucher {$this->voucherCode}. "
-            . "Confirm here: {$signedUrl}";
-
-        // Send SMS using SMS facade (same pattern as txtcmdr)
-        SMS::channel('engagespark')
-            ->from(env('ENGAGESPARK_SENDER_ID', 'cashless'))
-            ->to($this->payerMobile)
-            ->content($messageText)
-            ->send();
+        // Send SMS using Notification + EngageSpark channel
+        Notification::route('engage_spark', $this->payerMobile)
+            ->notify(new PaymentConfirmationNotification($paymentRequest));
 
         Log::info('Payment confirmation SMS sent', [
             'payment_request_id' => $this->paymentRequestId,
