@@ -198,6 +198,7 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
         return $this->cash->wallet->transactions()
             ->where('type', 'deposit')
             ->whereJsonContains('meta->flow', 'pay')
+            ->where('confirmed', true)  // Only count confirmed payments
             ->sum('amount') / 100; // Convert minor units to major
     }
 
