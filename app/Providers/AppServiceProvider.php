@@ -64,7 +64,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(
             \App\Events\PaymentDetectedButNotConfirmed::class,
             function (\App\Events\PaymentDetectedButNotConfirmed $event) {
-                \App\Jobs\SendPaymentConfirmationSms::fromEvent($event)->dispatch();
+                \App\Jobs\SendPaymentConfirmationSms::dispatch(
+                    $event->paymentRequestId,
+                    $event->payerMobile,
+                    $event->amount,
+                    $event->voucherCode
+                );
             }
         );
 

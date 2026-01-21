@@ -11,7 +11,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
-use LBHurtado\EngageSpark\Facades\Sms;
+use LBHurtado\EngageSpark\EngageSparkChannel;
+use LBHurtado\EngageSpark\EngageSparkMessage;
 
 class SendPaymentConfirmationSms implements ShouldQueue
 {
@@ -46,10 +47,13 @@ class SendPaymentConfirmationSms implements ShouldQueue
         ], now()->addHours(24));
 
         // Send SMS via EngageSpark
-        $message = "Payment received! ₱{$this->amount} for voucher {$this->voucherCode}. "
+        $messageText = "Payment received! ₱{$this->amount} for voucher {$this->voucherCode}. "
             . "Confirm here: {$signedUrl}";
 
-        Sms::send($this->payerMobile, $message);
+        // Use EngageSpark channel directly
+        $channel = app(EngageSparkChannel::class);
+        $message = (new EngageSparkMessage())->content($messageText);
+        $channel->send(['sms' => $this->payerMobile], $message);
 
         Log::info('Payment confirmation SMS sent', [
             'payment_request_id' => $this->paymentRequestId,
@@ -65,18 +69,5 @@ class SendPaymentConfirmationSms implements ShouldQueue
             'mobile' => $this->payerMobile,
             'error' => $exception->getMessage(),
         ]);
-    }
-
-    /**
-     * Create job from event
-     */
-    public static function fromEvent(PaymentDetectedButNotConfirmed $event): self
-    {
-        return new self(
-            $event->paymentRequestId,
-            $event->payerMobile,
-            $event->amount,
-            $event->voucherCode,
-        );
     }
 }
