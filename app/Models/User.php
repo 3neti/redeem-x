@@ -3,8 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Bavix\Wallet\Interfaces\{Customer, Wallet};
-use Bavix\Wallet\Traits\{CanPay, HasWalletFloat};
+use Bavix\Wallet\Interfaces\{Confirmable, Customer, Wallet};
+use Bavix\Wallet\Traits\{CanConfirm, CanPay, HasWalletFloat};
 use FrittenKeeZ\Vouchers\Concerns\HasVouchers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\{HasMany, BelongsToMany};
@@ -20,13 +20,14 @@ use LBHurtado\Merchant\Traits\HasMerchant;
 use LBHurtado\Merchant\Traits\HasVendorAlias;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements Wallet, Customer
+class User extends Authenticatable implements Wallet, Customer, Confirmable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
     use HasPlatformWallets;
     use HasWalletFloat;
     use CanPay;
+    use CanConfirm;
     use HasVouchers;
     use HasChannels;
     use HasMerchant;
