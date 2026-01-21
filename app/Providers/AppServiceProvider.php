@@ -29,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(DataEnricherRegistry::class, function ($app) {
             return new DataEnricherRegistry();
         });
+        
+        // Register custom payment gateway with payment classification
+        $this->app->bind(
+            \LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface::class,
+            \App\Gateways\CustomNetbankPaymentGateway::class
+        );
     }
 
     /**
@@ -52,6 +58,14 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(
             DisbursementRequested::class,
             UpdateContactKycStatus::class
+        );
+        
+        // Register payment confirmation SMS job
+        Event::listen(
+            \App\Events\PaymentDetectedButNotConfirmed::class,
+            function (\App\Events\PaymentDetectedButNotConfirmed $event) {
+                \App\Jobs\SendPaymentConfirmationSms::fromEvent($event)->dispatch();
+            }
         );
 
         // Define feature flags

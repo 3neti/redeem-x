@@ -75,6 +75,9 @@ trait CanConfirmDeposit
 
         $this->transferToWallet($wallet, $response);
         
+        // Call hook for payment classification (can be overridden by host app)
+        $this->afterDepositConfirmed($response, $sender);
+        
         // Record sender relationship
         if ($sender && $wallet instanceof \App\Models\User) {
             try {
@@ -155,5 +158,15 @@ trait CanConfirmDeposit
         if ($wallet) {
             BroadcastBalanceUpdated::dispatch($wallet->getKey());
         }
+    }
+    
+    /**
+     * Classify deposit and dispatch payment event if applicable
+     * This method can be overridden by host app to add custom classification logic
+     */
+    protected function afterDepositConfirmed(DepositResponseData $deposit, ?Contact $sender): void
+    {
+        // Hook for host app to implement payment classification
+        // Override this method in the host app's implementation
     }
 }
