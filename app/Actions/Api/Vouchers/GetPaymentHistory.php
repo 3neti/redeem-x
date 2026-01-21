@@ -45,10 +45,11 @@ class GetPaymentHistory
             ]);
         }
         
-        // Get payment transactions (deposits with flow: 'pay')
+        // Get payment transactions (deposits with flow: 'pay', confirmed only)
         $transactions = $cash->wallet->transactions()
             ->where('type', 'deposit')
             ->whereJsonContains('meta->flow', 'pay')
+            ->where('confirmed', true)  // Only show confirmed payments
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($tx) {
