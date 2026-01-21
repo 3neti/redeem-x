@@ -41,6 +41,11 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
         ->name('netbank.payment');
 });
 
+// Payment confirmation (signed URL from SMS)
+Route::get('/pay/confirm/{paymentRequest}', \App\Actions\Pay\ConfirmPaymentViaSms::class)
+    ->middleware('signed')
+    ->name('pay.confirm');
+
 Route::middleware([
     'auth',
     ValidateSessionWithWorkOS::class,

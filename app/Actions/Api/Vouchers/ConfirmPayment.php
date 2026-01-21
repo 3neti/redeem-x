@@ -7,6 +7,7 @@ namespace App\Actions\Api\Vouchers;
 use App\Models\PaymentRequest;
 use App\Services\DisbursementService;
 use App\Settings\VoucherSettings;
+use Bavix\Wallet\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -148,7 +149,6 @@ class ConfirmPayment
             DB::beginTransaction();
 
             // Get or create cash entity (voucher's wallet)
-            // Settlement vouchers don't have cash entity until first payment
             $cash = $voucher->cash;
             if (!$cash) {
                 Log::info('[ConfirmPayment] Creating cash entity for first payment', [
@@ -174,42 +174,18 @@ class ConfirmPayment
                 'voucher_code' => $voucher->code,
                 'amount' => $amountInMajorUnits,
                 'payment_id' => $paymentId,
+                'has_payment_request' => isset($paymentRequest),
                 'cash_balance_before' => $cash->balanceFloat,
             ]);
 
-            // Transfer from system wallet to voucher's cash wallet using TopupWalletAction
-            // Real world: Payer's GCash → Owner's Bank Account (via NetBank)
-            // App world: System Wallet → Voucher Wallet (maintains double-entry accounting)
-            $transfer = TopupWalletAction::run($cash, $amountInMajorUnits);
-            
-            // Add metadata to the transfer
-            $transfer->withdraw->update([
-                'meta' => array_merge($transfer->withdraw->meta ?? [], [
-                    'flow' => 'pay',
-                    'voucher_code' => $voucher->code,
-                    'payment_id' => $paymentId,
-                    'payer' => $payer,
-                    'confirmed_by' => 'web',
-                    'confirmed_by_user_id' => $user->id,
-                ]),
-            ]);
-            
-            $transfer->deposit->update([
-                'meta' => array_merge($transfer->deposit->meta ?? [], [
-                    'flow' => 'pay',
-                    'voucher_code' => $voucher->code,
-                    'payment_id' => $paymentId,
-                    'payer' => $payer,
-                    'confirmed_by' => 'web',
-                    'confirmed_by_user_id' => $user->id,
-                ]),
-            ]);
-            
-            Log::info('[ConfirmPayment] Payment confirmed successfully', [
-                'voucher_code' => $voucher->code,
-                'transfer_uuid' => $transfer->uuid,
-                'cash_balance_after' => $cash->fresh()->balanceFloat,
-            ]);
+            // Check if this is from a PaymentRequest with unconfirmed transaction
+            if (isset($paymentRequest) && $paymentRequest->meta['transaction_uuid'] ?? null) {
+                // Payment via QR - transaction may already exist
+                $this->confirmExistingTransaction($paymentRequest, $cash, $user);
+            } else {
+                // Manual payment entry - create new transfer
+                $this->createNewPaymentTransfer($cash, $amountInMajorUnits, $paymentId, $payer, $voucher, $user);
+            }
             
             // Mark payment request as confirmed if it exists
             if (isset($paymentRequest)) {
@@ -339,5 +315,102 @@ class ConfirmPayment
         }
         
         return $result;
+    }
+    
+    /**
+     * Confirm existing unconfirmed transaction (from QR payment)
+     */
+    protected function confirmExistingTransaction(PaymentRequest $paymentRequest, $cash, $user): void
+    {
+        $transactionUuid = $paymentRequest->meta['transaction_uuid'];
+        
+        // Find the transaction
+        $transaction = Transaction::where('uuid', $transactionUuid)->first();
+        
+        if (!$transaction) {
+            Log::warning('[ConfirmPayment] Transaction not found', [
+                'payment_request_id' => $paymentRequest->id,
+                'transaction_uuid' => $transactionUuid,
+            ]);
+            
+            // Fallback: create new transfer if transaction missing
+            $this->createNewPaymentTransfer(
+                $cash,
+                $paymentRequest->getAmountInMajorUnits(),
+                $paymentRequest->reference_id,
+                null,
+                $paymentRequest->voucher,
+                $user
+            );
+            return;
+        }
+        
+        // If already confirmed (e.g., via SMS), just log
+        if ($transaction->confirmed) {
+            Log::info('[ConfirmPayment] Transaction already confirmed', [
+                'payment_request_id' => $paymentRequest->id,
+                'transaction_uuid' => $transactionUuid,
+                'confirmed_by' => 'sms_or_previous',
+            ]);
+            return;
+        }
+        
+        // Confirm the transaction
+        $cash->confirm($transaction);
+        
+        // Update metadata to track who confirmed
+        $transaction->update([
+            'meta' => array_merge($transaction->meta ?? [], [
+                'confirmed_by' => 'owner',
+                'confirmed_by_user_id' => $user->id,
+                'confirmed_at_web' => now()->toIso8601String(),
+            ]),
+        ]);
+        
+        Log::info('[ConfirmPayment] Existing transaction confirmed by owner', [
+            'payment_request_id' => $paymentRequest->id,
+            'transaction_uuid' => $transactionUuid,
+            'voucher_code' => $paymentRequest->voucher->code,
+            'new_balance' => $cash->fresh()->balanceFloat,
+        ]);
+    }
+    
+    /**
+     * Create new payment transfer (for manual entries)
+     */
+    protected function createNewPaymentTransfer($cash, float $amount, string $paymentId, $payer, $voucher, $user): void
+    {
+        // Transfer from system wallet to voucher's cash wallet
+        $transfer = TopupWalletAction::run($cash, $amount);
+        
+        // Add metadata to the transfer
+        $transfer->withdraw->update([
+            'meta' => array_merge($transfer->withdraw->meta ?? [], [
+                'flow' => 'pay',
+                'voucher_code' => $voucher->code,
+                'payment_id' => $paymentId,
+                'payer' => $payer,
+                'confirmed_by' => 'owner_manual',
+                'confirmed_by_user_id' => $user->id,
+            ]),
+        ]);
+        
+        $transfer->deposit->update([
+            'meta' => array_merge($transfer->deposit->meta ?? [], [
+                'flow' => 'pay',
+                'voucher_code' => $voucher->code,
+                'payment_id' => $paymentId,
+                'payer' => $payer,
+                'confirmed_by' => 'owner_manual',
+                'confirmed_by_user_id' => $user->id,
+            ]),
+        ]);
+        
+        Log::info('[ConfirmPayment] New payment transfer created', [
+            'voucher_code' => $voucher->code,
+            'transfer_uuid' => $transfer->uuid,
+            'amount' => $amount,
+            'new_balance' => $cash->fresh()->balanceFloat,
+        ]);
     }
 }

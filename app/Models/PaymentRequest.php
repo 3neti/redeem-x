@@ -14,6 +14,7 @@ class PaymentRequest extends Model
         'amount',
         'currency',
         'payer_info',
+        'meta',
         'status',
         'confirmed_at',
     ];
@@ -21,6 +22,7 @@ class PaymentRequest extends Model
     protected $casts = [
         'amount' => 'integer',
         'payer_info' => 'array',
+        'meta' => 'array',
         'confirmed_at' => 'datetime',
     ];
 
