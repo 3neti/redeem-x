@@ -311,7 +311,7 @@ const instructionsFormData = computed(() => {
                 <VoucherStatusCard
                     :is-redeemed="voucher.is_redeemed"
                     :is-expired="voucher.is_expired"
-                    :amount="voucher.amount"
+                    :amount="settlement?.target_amount ?? voucher.amount"
                     :currency="voucher.currency"
                     :is-settlement="settlement?.type === 'payable' || settlement?.type === 'settlement'"
                     :is-closed="settlement?.is_closed || false"
