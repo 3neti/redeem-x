@@ -409,17 +409,24 @@ function handleDownloadQr() {
           </div>
           
           <!-- Payment Done Confirmation -->
-          <div v-if="!paymentMarkedDone" class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p class="text-sm text-amber-800 mb-3">
-              After scanning and completing payment in your app, please confirm:
+          <div v-if="!paymentMarkedDone" class="bg-amber-50 border-2 border-amber-300 rounded-lg p-5 shadow-md">
+            <p class="text-sm text-amber-900 mb-4 font-medium text-center">
+              After paying, click here <strong class="text-amber-700">OR</strong> check your SMS
             </p>
             <button
               @click="markPaymentDone"
               :disabled="markingDone"
-              class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+              class="group relative w-full bg-green-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+              :class="{ 'animate-pulse': !markingDone }"
             >
-              {{ markingDone ? 'Processing...' : '✓ Payment Done' }}
+              <span class="inline-flex items-center justify-center gap-2">
+                <span class="text-2xl transition-transform group-hover:scale-125 group-hover:rotate-12">✓</span>
+                <span>{{ markingDone ? 'Processing...' : 'Payment Done' }}</span>
+              </span>
             </button>
+            <p class="text-xs text-amber-700 mt-3 text-center">
+              You'll receive a confirmation link via SMS
+            </p>
           </div>
           
           <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4">

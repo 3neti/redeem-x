@@ -9,12 +9,18 @@ use Brick\Money\Money;
 
 trait CanGenerate
 {
-    public function generate(string $account, Money $amount): string
+    public function generate(string $account, Money $amount, array $merchantData = []): string
     {
-        $user = auth()->user();
+        // If merchant data provided (unauthenticated flow), use it
+        if (!empty($merchantData) && isset($merchantData['user'])) {
+            $user = $merchantData['user'];
+        } else {
+            // Otherwise, use authenticated user (authenticated flow)
+            $user = auth()->user();
+        }
 
         if (!$user instanceof MerchantInterface) {
-            throw new \LogicException('Authenticated user must implement MerchantInterface to use this functionality.');
+            throw new \LogicException('User must implement MerchantInterface to use this functionality.');
         }
 
         // Build a unique cache key
