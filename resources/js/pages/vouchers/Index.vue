@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Eye, TicketCheck, Clock, XCircle, ListFilter, Loader2, AlertCircle, Plus } from 'lucide-vue-next';
 import { useVoucherApi, type VoucherData } from '@/composables/useVoucherApi';
 import { VoucherCodeDisplay } from '@/components/voucher/views';
+import VoucherTypeBadge from '@/components/settlement/VoucherTypeBadge.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { List } from 'lucide-vue-next';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
@@ -251,6 +252,7 @@ const viewVoucher = (code: string) => {
                                 <tr>
                                     <th class="px-4 py-3 text-left">Code</th>
                                     <th class="px-4 py-3 text-left">Amount</th>
+                                    <th class="px-4 py-3 text-left">Type</th>
                                     <th class="px-4 py-3 text-left">Status</th>
                                     <th class="px-4 py-3 text-left">Created</th>
                                     <th class="px-4 py-3 text-left">Expires</th>
@@ -259,7 +261,7 @@ const viewVoucher = (code: string) => {
                             </thead>
                             <tbody>
                                 <tr v-if="loading">
-                                    <td colspan="6" class="px-4 py-8 text-center">
+                                    <td colspan="7" class="px-4 py-8 text-center">
                                         <Loader2 class="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                                     </td>
                                 </tr>
@@ -277,6 +279,12 @@ const viewVoucher = (code: string) => {
                                             voucher.target_amount ?? voucher.amount, 
                                             voucher.currency
                                         ) }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <VoucherTypeBadge 
+                                            :type="voucher.voucher_type || 'redeemable'" 
+                                            size="sm" 
+                                        />
                                     </td>
                                     <td class="px-4 py-3">
                                         <Badge :variant="getStatusBadge(voucher).variant">
@@ -301,7 +309,7 @@ const viewVoucher = (code: string) => {
                                     </td>
                                 </tr>
                                 <tr v-if="!loading && vouchers.length === 0">
-                                    <td colspan="6" class="px-4 py-8 text-center text-muted-foreground">
+                                    <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">
                                         No vouchers found
                                     </td>
                                 </tr>
