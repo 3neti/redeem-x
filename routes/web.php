@@ -46,6 +46,16 @@ Route::get('/pay/confirm/{paymentRequest}', \App\Actions\Pay\ConfirmPaymentViaSm
     ->middleware('signed')
     ->name('pay.confirm');
 
+// Public thank you page after payment confirmation
+Route::get('/pay/confirmed/{paymentRequest}', function (\App\Models\PaymentRequest $paymentRequest) {
+    return Inertia::render('PaymentConfirmed', [
+        'voucherCode' => $paymentRequest->voucher->code,
+        'amount' => $paymentRequest->getAmountInMajorUnits(),
+        'currency' => $paymentRequest->currency,
+        'timestamp' => $paymentRequest->updated_at->toIso8601String(),
+    ]);
+})->name('pay.confirmed');
+
 Route::middleware([
     'auth',
     ValidateSessionWithWorkOS::class,

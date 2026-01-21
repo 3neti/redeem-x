@@ -15,8 +15,7 @@ class ConfirmPaymentViaSms
         
         // Check if already confirmed
         if ($paymentRequest->status !== 'pending') {
-            return redirect("/vouchers/{$voucher->code}")
-                ->with('info', 'Payment already confirmed');
+            return redirect()->route('pay.confirmed', $paymentRequest->id);
         }
 
         try {
@@ -31,8 +30,7 @@ class ConfirmPaymentViaSms
                 'voucher_code' => $voucher->code,
             ]);
             
-            return redirect("/vouchers/{$voucher->code}")
-                ->with('success', '✓ Payment confirmed! Funds have been credited to the voucher.');
+            return redirect()->route('pay.confirmed', $paymentRequest->id);
             
         } catch (\Throwable $e) {
             Log::error('[SMS Confirm] Failed to confirm payment', [
@@ -40,8 +38,7 @@ class ConfirmPaymentViaSms
                 'error' => $e->getMessage(),
             ]);
             
-            return redirect("/vouchers/{$voucher->code}")
-                ->with('error', 'Failed to confirm payment. Please contact support.');
+            return redirect('/pay')->with('error', 'Failed to confirm payment. Please contact support.');
         }
     }
     
