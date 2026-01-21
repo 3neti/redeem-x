@@ -91,7 +91,7 @@ class CustomOmnipayPaymentGateway extends OmnipayPaymentGateway
                     withdraw: new Option(
                         meta: [
                             'payment_request_id' => $paymentRequest->id,
-                            'flow' => 'payment',
+                            'flow' => 'pay',
                             'voucher_code' => $voucher->code,
                         ],
                         confirmed: true  // System wallet withdraw: confirmed
@@ -101,7 +101,7 @@ class CustomOmnipayPaymentGateway extends OmnipayPaymentGateway
                             'payment_request_id' => $paymentRequest->id,
                             'reference_id' => $paymentRequest->reference_id,
                             'voucher_code' => $voucher->code,
-                            'flow' => 'payment',
+                            'flow' => 'pay',
                             'sender_mobile' => $deposit->sender->accountNumber,
                             'sender_name' => $deposit->sender->name,
                         ],

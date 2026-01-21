@@ -21,6 +21,8 @@ import PaymentsCard from '@/components/settlement/PaymentsCard.vue';
 import VoucherActionsCard from '@/components/settlement/VoucherActionsCard.vue';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2, XCircle, Info } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
@@ -284,6 +286,26 @@ const instructionsFormData = computed(() => {
                         Back to Vouchers
                     </Button>
                 </div>
+
+                <!-- Flash Messages -->
+                <Alert v-if="(page.props.flash as any)?.success" variant="default" class="border-green-500 bg-green-50 dark:bg-green-950">
+                    <CheckCircle2 class="h-4 w-4 text-green-600" />
+                    <AlertDescription class="text-green-800 dark:text-green-200">
+                        {{ (page.props.flash as any).success }}
+                    </AlertDescription>
+                </Alert>
+                <Alert v-if="(page.props.flash as any)?.error" variant="destructive">
+                    <XCircle class="h-4 w-4" />
+                    <AlertDescription>
+                        {{ (page.props.flash as any).error }}
+                    </AlertDescription>
+                </Alert>
+                <Alert v-if="(page.props.flash as any)?.info" variant="default">
+                    <Info class="h-4 w-4" />
+                    <AlertDescription>
+                        {{ (page.props.flash as any).info }}
+                    </AlertDescription>
+                </Alert>
 
                 <!-- Status Card -->
                 <VoucherStatusCard
