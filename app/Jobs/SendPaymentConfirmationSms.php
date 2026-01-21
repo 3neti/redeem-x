@@ -11,8 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
-use LBHurtado\EngageSpark\EngageSparkChannel;
-use LBHurtado\EngageSpark\EngageSparkMessage;
+use LBHurtado\SMS\Facades\SMS;
 
 class SendPaymentConfirmationSms implements ShouldQueue
 {
@@ -50,10 +49,12 @@ class SendPaymentConfirmationSms implements ShouldQueue
         $messageText = "Payment received! ₱{$this->amount} for voucher {$this->voucherCode}. "
             . "Confirm here: {$signedUrl}";
 
-        // Use EngageSpark channel directly
-        $channel = app(EngageSparkChannel::class);
-        $message = (new EngageSparkMessage())->content($messageText);
-        $channel->send(['sms' => $this->payerMobile], $message);
+        // Send SMS using SMS facade (same pattern as txtcmdr)
+        SMS::channel('engagespark')
+            ->from(env('ENGAGESPARK_SENDER_ID', 'cashless'))
+            ->to($this->payerMobile)
+            ->content($messageText)
+            ->send();
 
         Log::info('Payment confirmation SMS sent', [
             'payment_request_id' => $this->paymentRequestId,
