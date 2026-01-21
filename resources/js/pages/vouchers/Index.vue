@@ -273,7 +273,10 @@ const viewVoucher = (code: string) => {
                                         <VoucherCodeDisplay :code="voucher.code" size="sm" />
                                     </td>
                                     <td class="px-4 py-3">
-                                        {{ formatAmount(voucher.amount, voucher.currency) }}
+                                        {{ formatAmount(
+                                            voucher.target_amount ?? voucher.amount, 
+                                            voucher.currency
+                                        ) }}
                                     </td>
                                     <td class="px-4 py-3">
                                         <Badge :variant="getStatusBadge(voucher).variant">
