@@ -27,9 +27,9 @@ class PaymentConfirmationNotification extends Notification implements ShouldQueu
     {
         $pr = $this->paymentRequest->fresh(['voucher']);
 
-        // 24-hour expiry signed URL
+        // 24-hour expiry signed URL (uses reference_id for cleaner URLs)
         $signedUrl = URL::signedRoute('pay.confirm', [
-            'paymentRequest' => $pr->id,
+            'paymentRequest' => $pr->reference_id,
         ], now()->addHours(24));
 
         $amount = number_format($pr->getAmountInMajorUnits(), 0);
