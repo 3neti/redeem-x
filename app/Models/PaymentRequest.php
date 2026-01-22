@@ -26,6 +26,15 @@ class PaymentRequest extends Model
         'confirmed_at' => 'datetime',
     ];
 
+    /**
+     * Get the route key name for route model binding.
+     * Use reference_id instead of id for cleaner URLs.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'reference_id';
+    }
+
     public function voucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class);

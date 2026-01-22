@@ -284,7 +284,7 @@ echo json_encode(['id' => \$pr->id, 'ref' => \$pr->reference_id]);
     # Get SMS info
     SMS=$(php artisan tinker --execute="
 \$pr = App\Models\PaymentRequest::find($PR_ID);
-\$url = URL::signedRoute('pay.confirm', ['paymentRequest' => \$pr->id], now()->addHour());
+\$url = URL::signedRoute('pay.confirm', ['paymentRequest' => \$pr->reference_id], now()->addHour());
 echo json_encode(['url' => \$url, 'msg' => 'Payment of ₱' . \$pr->getAmountInMajorUnits() . ' detected for voucher ' . \$pr->voucher->code . '. Click to confirm: ' . \$url]);
 " 2>&1 | tail -1)
     
