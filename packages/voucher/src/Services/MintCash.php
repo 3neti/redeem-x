@@ -12,7 +12,7 @@ class MintCash
 {
     use AsAction;
     
-    private const DEBUG = true;
+    private const DEBUG = false;
 
     public function handle(Voucher $voucher): Cash
     {

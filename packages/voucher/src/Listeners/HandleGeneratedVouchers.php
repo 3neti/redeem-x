@@ -8,7 +8,7 @@ use Illuminate\Pipeline\Pipeline;
 
 class HandleGeneratedVouchers
 {
-    private const DEBUG = true;
+    private const DEBUG = false;
     
     public function handle(VouchersGenerated $event): void
     {
