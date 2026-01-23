@@ -152,6 +152,53 @@ printf "%-25s %15s\n" "Owner Wallet:" "₱$OWNER_WALLET"
 printf "%-25s %15s\n" "Voucher Cash:" "₱$VOUCHER_CASH"
 echo ""
 ###############################################################################
+# VOUCHER CONFIGURATION
+###############################################################################
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${CYAN}  VOUCHER CONFIGURATION${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+CONFIG=$(php artisan tinker --execute="
+use LBHurtado\\Voucher\\Models\\Voucher;
+\$v = Voucher::where('code', '$VOUCHER_CODE')->first();
+\$i = \$v->instructions;
+echo json_encode([
+    'rider_message' => \$i->rider->message ?? null,
+    'rider_url' => \$i->rider->url ?? null,
+    'rider_timeout' => \$i->rider->redirect_timeout ?? null,
+    'feedback_email' => \$i->feedback->email ?? null,
+    'feedback_mobile' => \$i->feedback->mobile ?? null,
+    'feedback_webhook' => \$i->feedback->webhook ?? null,
+]);
+" 2>&1 | tail -1)
+
+RIDER_MSG=$(echo $CONFIG | jq -r '.rider_message // "(none)"' | sed 's/^null$/(none)/')
+RIDER_URL=$(echo $CONFIG | jq -r '.rider_url // "(none)"' | sed 's/^null$/(none)/')
+RIDER_TIMEOUT=$(echo $CONFIG | jq -r '.rider_timeout // "(none)"' | sed 's/^null$/(none)/')
+FEEDBACK_EMAIL=$(echo $CONFIG | jq -r '.feedback_email // "(none)"' | sed 's/^null$/(none)/')
+FEEDBACK_MOBILE=$(echo $CONFIG | jq -r '.feedback_mobile // "(none)"' | sed 's/^null$/(none)/')
+FEEDBACK_WEBHOOK=$(echo $CONFIG | jq -r '.feedback_webhook // "(none)"' | sed 's/^null$/(none)/')
+
+# Truncate long rider message
+if [ "$RIDER_MSG" != "(none)" ] && [ ${#RIDER_MSG} -gt 50 ]; then
+    RIDER_MSG="${RIDER_MSG:0:47}..."
+fi
+
+echo -e "${GREEN}Rider:${NC}"
+printf "  %-20s %s\n" "Message:" "$RIDER_MSG"
+printf "  %-20s %s\n" "URL:" "$RIDER_URL"
+if [ "$RIDER_TIMEOUT" != "(none)" ]; then
+    printf "  %-20s %s seconds\n" "Redirect Timeout:" "$RIDER_TIMEOUT"
+else
+    printf "  %-20s %s\n" "Redirect Timeout:" "$RIDER_TIMEOUT"
+fi
+echo ""
+echo -e "${GREEN}Feedback Channels:${NC}"
+printf "  %-20s %s\n" "Email:" "$FEEDBACK_EMAIL"
+printf "  %-20s %s\n" "Mobile:" "$FEEDBACK_MOBILE"
+printf "  %-20s %s\n" "Webhook:" "$FEEDBACK_WEBHOOK"
+echo ""
+###############################################################################
 # PHASE 1: LOAN DISBURSEMENT
 ###############################################################################
 if [ "$ALREADY_DISBURSED" == "true" ]; then
@@ -236,6 +283,26 @@ try {
     echo "  GCash Account: $BORROWER_MOBILE (+₱$REDEEMED_TOTAL)"
     echo ""
     
+    # Check feedback notifications
+    echo -e "${GREEN}Feedback notifications:${NC}"
+    FEEDBACK_LOG=$(grep "\[SendFeedbacks\] Feedback notification sent" storage/logs/laravel.log | grep "$VOUCHER_CODE" | tail -1)
+    
+    if [ -n "$FEEDBACK_LOG" ]; then
+        # Parse channels from log
+        if echo "$FEEDBACK_LOG" | grep -q '"mail"'; then
+            echo -e "  ${GREEN}✓${NC} Email sent to $FEEDBACK_EMAIL"
+        fi
+        if echo "$FEEDBACK_LOG" | grep -q '"engage_spark"'; then
+            echo -e "  ${GREEN}✓${NC} SMS sent to $FEEDBACK_MOBILE"
+        fi
+        if echo "$FEEDBACK_LOG" | grep -q '"webhook"'; then
+            echo -e "  ${GREEN}✓${NC} Webhook posted to $FEEDBACK_WEBHOOK"
+        fi
+    else
+        echo "  ${YELLOW}(none)${NC}"
+    fi
+    echo ""
+    
     # Update VOUCHER_CASH for Phase 2
     VOUCHER_CASH=$CASH_AFTER_REDEEM
 fi
@@ -289,6 +356,23 @@ echo URL::signedRoute('pay.confirm', ['paymentRequest' => \$pr->reference_id], n
 
 curl -s -L -o /dev/null "$SMS_URL1"
 echo -e "${GREEN}✓ Payment 1 confirmed${NC}"
+echo ""
+
+# Check payment SMS
+echo -e "${GREEN}Payment confirmation SMS:${NC}"
+PR1_REF=$(echo $PR1 | jq -r '.ref')
+SMS_LOG=$(grep -E "Payment confirmation SMS sent|Skipping SMS" storage/logs/laravel.log | grep "payment_request_id.*$PR1_ID" | tail -1)
+
+if echo "$SMS_LOG" | grep -q "SMS sent"; then
+    printf "  %-12s %s\n" "To:" "$BORROWER_MOBILE"
+    printf "  %-12s ₱%s\n" "Amount:" "$PAYMENT1_AMOUNT"
+    printf "  %-12s %s\n" "Link:" "${SMS_URL1:0:60}..."
+    echo -e "  ${GREEN}Status: Sent${NC}"
+elif echo "$SMS_LOG" | grep -q "Skipping SMS"; then
+    echo -e "  ${YELLOW}Status: Skipped (already confirmed)${NC}"
+else
+    echo -e "  ${YELLOW}Status: Not sent (no SMS job detected)${NC}"
+fi
 echo ""
 
 # Get state after payment 1
@@ -346,6 +430,23 @@ echo URL::signedRoute('pay.confirm', ['paymentRequest' => \$pr->reference_id], n
 
 curl -s -L -o /dev/null "$SMS_URL2"
 echo -e "${GREEN}✓ Payment 2 confirmed${NC}"
+echo ""
+
+# Check payment SMS
+echo -e "${GREEN}Payment confirmation SMS:${NC}"
+PR2_REF=$(echo $PR2 | jq -r '.ref // .reference_id')
+SMS_LOG2=$(grep -E "Payment confirmation SMS sent|Skipping SMS" storage/logs/laravel.log | grep "payment_request_id.*$PR2_ID" | tail -1)
+
+if echo "$SMS_LOG2" | grep -q "SMS sent"; then
+    printf "  %-12s %s\n" "To:" "$BORROWER_MOBILE"
+    printf "  %-12s ₱%s\n" "Amount:" "$PAYMENT1_AMOUNT"
+    printf "  %-12s %s\n" "Link:" "${SMS_URL2:0:60}..."
+    echo -e "  ${GREEN}Status: Sent${NC}"
+elif echo "$SMS_LOG2" | grep -q "Skipping SMS"; then
+    echo -e "  ${YELLOW}Status: Skipped (already confirmed)${NC}"
+else
+    echo -e "  ${YELLOW}Status: Not sent (no SMS job detected)${NC}"
+fi
 echo ""
 
 ###############################################################################
