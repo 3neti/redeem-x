@@ -32,12 +32,14 @@ class WithdrawCash
      * @param Wallet $cash The cash wallet to withdraw from
      * @param string|null $operationId Gateway operation/transaction ID
      * @param string|null $notes Optional notes for the transaction
+     * @param array $additionalMeta Additional metadata to merge with defaults
      * @return Transaction The withdrawal transaction record
      */
     public function handle(
         Wallet $cash,
         ?string $operationId = null,
-        ?string $notes = null
+        ?string $notes = null,
+        array $additionalMeta = []
     ): Transaction {
         $balance = $cash->wallet->balance; // In centavos
         
@@ -52,13 +54,16 @@ class WithdrawCash
             );
         }
         
-        // Build metadata
-        $meta = array_filter([
+        // Build base metadata
+        $baseMeta = array_filter([
             'type' => 'disbursement',
             'operation_id' => $operationId,
             'notes' => $notes,
             'withdrawn_at' => now()->toIso8601String(),
         ]);
+        
+        // Merge with additional meta (additional meta takes precedence)
+        $meta = array_merge($baseMeta, $additionalMeta);
         
         // Withdraw entire balance (money leaves system)
         $transaction = $cash->withdraw(
