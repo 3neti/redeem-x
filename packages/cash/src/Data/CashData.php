@@ -22,14 +22,14 @@ class CashData extends Data
         public Money $amount,
         public string $currency,
         public ArrayObject $meta,
-        #[WithTransformer(DateTimeInterfaceTransformer::class)]
-        #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
-        public ?Carbon $expires_on,
         public bool $expired,
         public string $status,
         public array $tags,
-        public ?string $secret = null,
-        public ?TransactionData $withdrawTransaction
+        public ?TransactionData $withdrawTransaction,
+        #[WithTransformer(DateTimeInterfaceTransformer::class)]
+        #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
+        public ?Carbon $expires_on = null,
+        public ?string $secret = null
     ) {}
 
     public static function fromModel(CashModel $cash): CashData
