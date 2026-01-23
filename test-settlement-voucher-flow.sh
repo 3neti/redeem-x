@@ -170,15 +170,23 @@ else
     # Create borrower contact
     CONTACT=$(php artisan tinker --execute="
 use LBHurtado\\Contact\\Models\\Contact;
-\$c = Contact::create([
-    'mobile' => '$BORROWER_MOBILE',
-    'name' => 'Test Borrower',
-]);
-\$c->bank_code = 'GXCHPHM2XXX';  // GCash
-\$c->account_number = '$BORROWER_MOBILE';  // GCash uses mobile as account
-\$c->save();
-echo json_encode(['contact_id' => \$c->id, 'mobile' => \$c->mobile, 'bank' => 'GCash']);
+try {
+    \$c = Contact::create([
+        'mobile' => '$BORROWER_MOBILE',
+        'bank_account' => 'GXCHPHM2XXX:$BORROWER_MOBILE',
+    ]);
+    echo json_encode(['contact_id' => \$c->id, 'mobile' => \$c->mobile, 'bank' => 'GCash']);
+} catch (\\Exception \$e) {
+    echo json_encode(['error' => \$e->getMessage()]);
+}
 " 2>&1 | tail -1)
+    
+    # Check for contact creation errors
+    if echo "$CONTACT" | jq -e '.error' > /dev/null 2>&1; then
+        ERROR=$(echo $CONTACT | jq -r '.error')
+        echo -e "${RED}✗ Contact creation failed: $ERROR${NC}"
+        exit 1
+    fi
     
     CONTACT_ID=$(echo $CONTACT | jq -r '.contact_id')
     echo -e "${GREEN}✓ Borrower contact created${NC}"
