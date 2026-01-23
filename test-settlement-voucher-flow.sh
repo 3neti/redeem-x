@@ -159,16 +159,16 @@ echo -e "${CYAN}  VOUCHER CONFIGURATION${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 CONFIG=$(php artisan tinker --execute="
-use LBHurtado\\\\Voucher\\\\Models\\\\Voucher;
-\\$v = Voucher::where('code', '$VOUCHER_CODE')->first();
-\\$i = \\$v->instructions;
+use LBHurtado\\Voucher\\Models\\Voucher;
+\$v = Voucher::where('code', '$VOUCHER_CODE')->first();
+\$i = \$v->instructions;
 echo json_encode([
-    'rider_message' => \\$i->rider->message ?? null,
-    'rider_url' => \\$i->rider->url ?? null,
-    'rider_timeout' => \\$i->rider->redirect_timeout ?? null,
-    'feedback_email' => \\$i->feedback->email ?? null,
-    'feedback_mobile' => \\$i->feedback->mobile ?? null,
-    'feedback_webhook' => \\$i->feedback->webhook ?? null,
+    'rider_message' => \$i->rider->message ?? null,
+    'rider_url' => \$i->rider->url ?? null,
+    'rider_timeout' => \$i->rider->redirect_timeout ?? null,
+    'feedback_email' => \$i->feedback->email ?? null,
+    'feedback_mobile' => \$i->feedback->mobile ?? null,
+    'feedback_webhook' => \$i->feedback->webhook ?? null,
 ]);
 " 2>&1 | tail -1)
 
