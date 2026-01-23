@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Notifications\Notifiable;
 use LBHurtado\Voucher\Models\Voucher;
 
 class PaymentRequest extends Model
 {
+    use Notifiable;
     protected $fillable = [
         'reference_id',
         'voucher_id',

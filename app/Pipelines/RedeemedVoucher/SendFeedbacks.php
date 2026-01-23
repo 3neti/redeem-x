@@ -48,7 +48,13 @@ class SendFeedbacks
             return $next($voucher);
         }
 
+        // Deliver external channels (mail/SMS/webhook) via AnonymousNotifiable routing
         Notification::routes($routes)->notify(new SendFeedbacksNotification($voucher->code));
+
+        // Persist an audit copy in database tied to the voucher owner, if any
+        if ($voucher->owner) {
+            $voucher->owner->notify(new SendFeedbacksNotification($voucher->code));
+        }
 
         Log::info('[SendFeedbacks] Feedback notification sent', [
             'voucher' => $voucher->code,
