@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\PaymentRequest;
+use App\Models\PaymentRequest as PaymentRequestModel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -14,13 +14,17 @@ class PaymentConfirmationNotification extends Notification implements ShouldQueu
     use Queueable;
 
     public function __construct(
-        protected PaymentRequest $paymentRequest
+        protected PaymentRequestModel $paymentRequest
     ) {}
 
     public function via(object $notifiable): array
     {
-        // Primary: EngageSpark SMS; also store in database for audit
-        return ['engage_spark', 'database'];
+        // If notifying the PaymentRequest model, persist to database only.
+        // If notifying via AnonymousNotifiable (route to engage_spark), send SMS only.
+        if ($notifiable instanceof PaymentRequestModel) {
+            return ['database'];
+        }
+        return ['engage_spark'];
     }
 
     public function toEngageSpark(object $notifiable): EngageSparkMessage
@@ -43,14 +47,26 @@ class PaymentConfirmationNotification extends Notification implements ShouldQueu
 
     public function toArray(object $notifiable): array
     {
-        $pr = $this->paymentRequest;
+        $pr = $this->paymentRequest->fresh(['voucher']);
+        
+        // Generate the same message that was sent via SMS
+        $signedUrl = URL::signedRoute('pay.confirm', [
+            'paymentRequest' => $pr->reference_id,
+        ], now()->addHours(24));
+        
+        $amount = number_format($pr->getAmountInMajorUnits(), 0);
+        $code = $pr->voucher?->code ?? 'N/A';
+        $message = "Payment received! ₱{$amount} for voucher {$code}. Confirm here: {$signedUrl}";
+        
         return [
             'payment_request_id' => $pr->id,
             'voucher_id' => $pr->voucher_id,
-            'voucher_code' => $pr->voucher?->code,
+            'voucher_code' => $code,
             'amount' => $pr->amount,
             'currency' => $pr->currency,
             'status' => $pr->status,
+            'message' => $message,
+            'confirmation_url' => $signedUrl,
         ];
     }
 }

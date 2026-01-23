@@ -44,6 +44,9 @@ class SendPaymentConfirmationSms implements ShouldQueue
         Notification::route('engage_spark', $this->payerMobile)
             ->notify(new PaymentConfirmationNotification($paymentRequest));
 
+        // Persist a database notification on the PaymentRequest for audit/UI scripts
+        $paymentRequest->notify(new PaymentConfirmationNotification($paymentRequest));
+
         Log::info('Payment confirmation SMS sent', [
             'payment_request_id' => $this->paymentRequestId,
             'mobile' => $this->payerMobile,

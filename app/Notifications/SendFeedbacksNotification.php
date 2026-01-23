@@ -8,6 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use LBHurtado\EngageSpark\EngageSparkMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\AnonymousNotifiable;
 use LBHurtado\Contact\Classes\BankAccount;
 use LBHurtado\ModelInput\Data\InputData;
 use LBHurtado\Voucher\Data\VoucherData;
@@ -46,9 +47,14 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'engage_spark', 'database'];
-        // TODO: Re-enable webhook channel once properly tested
-        // return ['mail', 'engage_spark', WebhookChannel::class, 'database'];
+        // For routed (Anonymous) notifications: deliver to external channels only
+        if ($notifiable instanceof AnonymousNotifiable) {
+            // TODO: Re-enable webhook channel once properly tested
+            // return ['mail', 'engage_spark', WebhookChannel::class];
+            return ['mail', 'engage_spark'];
+        }
+        // For model notifications (e.g., User): persist to database only
+        return ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -331,12 +337,22 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
     {
         // Build template context from voucher data
         $context = VoucherTemplateContextBuilder::build($this->voucher);
+
+        // Reuse SMS template for audit visibility
+        $templateKey = $context['formatted_address']
+            ? 'notifications.voucher_redeemed.sms.message_with_address'
+            : 'notifications.voucher_redeemed.sms.message';
+        $smsMessage = TemplateProcessor::process(__($templateKey), $context);
         
         return [
+            'type' => 'feedback',
             'code' => $context['code'],
             'mobile' => $context['mobile'],
             'amount' => $context['amount'],
             'currency' => $context['currency'],
+            'sms_message' => $smsMessage,
+            'email' => $context['owner_email'] ?? null,
+            'webhook' => $context['webhook'] ?? null,
         ];
     }
 }

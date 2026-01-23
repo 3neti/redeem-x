@@ -6,6 +6,7 @@ use App\Models\PaymentRequest;
 use Bavix\Wallet\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
+use App\Notifications\PaymentConfirmationNotification;
 
 class ConfirmPaymentViaSms
 {
@@ -24,6 +25,9 @@ class ConfirmPaymentViaSms
             
             // Mark payment request as awaiting final owner confirmation
             $paymentRequest->markAsAwaitingConfirmation();
+
+            // Persist a database notification for audit/UI (same content as SMS)
+            $paymentRequest->notify(new PaymentConfirmationNotification($paymentRequest));
             
             Log::info('[SMS Confirm] Payment confirmed by payer', [
                 'payment_request_id' => $paymentRequest->id,
