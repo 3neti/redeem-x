@@ -358,20 +358,41 @@ curl -s -L -o /dev/null "$SMS_URL1"
 echo -e "${GREEN}✓ Payment 1 confirmed${NC}"
 echo ""
 
-# Check payment SMS
+# Check payment SMS from database
 echo -e "${GREEN}Payment confirmation SMS:${NC}"
-PR1_REF=$(echo $PR1 | jq -r '.ref')
-SMS_LOG=$(grep -E "Payment confirmation SMS sent|Skipping SMS" storage/logs/laravel.log | grep "payment_request_id.*$PR1_ID" | tail -1)
+SMS_DATA=$(php artisan tinker --execute="
+\$notification = DB::table('notifications')
+    ->where('type', 'LIKE', '%PaymentConfirmation%')
+    ->where('notifiable_id', $PR1_ID)
+    ->orderBy('created_at', 'desc')
+    ->first();
+    
+if (\$notification) {
+    \$data = json_decode(\$notification->data, true);
+    echo json_encode([
+        'found' => true,
+        'voucher_code' => \$data['voucher_code'] ?? 'N/A',
+        'amount' => \$data['amount'] ?? 0,
+        'sent_at' => \$notification->created_at,
+    ]);
+} else {
+    echo json_encode(['found' => false]);
+}
+" 2>&1 | tail -1)
 
-if echo "$SMS_LOG" | grep -q "SMS sent"; then
+if echo "$SMS_DATA" | jq -e '.found' > /dev/null 2>&1 && [ "$(echo $SMS_DATA | jq -r '.found')" == "true" ]; then
+    SMS_VOUCHER=$(echo $SMS_DATA | jq -r '.voucher_code')
+    SMS_AMOUNT=$(echo $SMS_DATA | jq -r '.amount')
+    SMS_SENT_AT=$(echo $SMS_DATA | jq -r '.sent_at')
+    SMS_AMOUNT_PHP=$(echo "scale=0; $SMS_AMOUNT / 100" | bc)
+    
     printf "  %-12s %s\n" "To:" "$BORROWER_MOBILE"
-    printf "  %-12s ₱%s\n" "Amount:" "$PAYMENT1_AMOUNT"
-    printf "  %-12s %s\n" "Link:" "${SMS_URL1:0:60}..."
-    echo -e "  ${GREEN}Status: Sent${NC}"
-elif echo "$SMS_LOG" | grep -q "Skipping SMS"; then
-    echo -e "  ${YELLOW}Status: Skipped (already confirmed)${NC}"
+    printf "  %-12s ₱%s\n" "Amount:" "$SMS_AMOUNT_PHP"
+    printf "  %-12s %s\n" "Voucher:" "$SMS_VOUCHER"
+    printf "  %-12s %s\n" "Sent at:" "$SMS_SENT_AT"
+    echo -e "  ${GREEN}Status: ✓ Sent${NC}"
 else
-    echo -e "  ${YELLOW}Status: Not sent (no SMS job detected)${NC}"
+    echo -e "  ${YELLOW}Status: Not sent (no notification in database)${NC}"
 fi
 echo ""
 
@@ -432,20 +453,41 @@ curl -s -L -o /dev/null "$SMS_URL2"
 echo -e "${GREEN}✓ Payment 2 confirmed${NC}"
 echo ""
 
-# Check payment SMS
+# Check payment SMS from database
 echo -e "${GREEN}Payment confirmation SMS:${NC}"
-PR2_REF=$(echo $PR2 | jq -r '.ref // .reference_id')
-SMS_LOG2=$(grep -E "Payment confirmation SMS sent|Skipping SMS" storage/logs/laravel.log | grep "payment_request_id.*$PR2_ID" | tail -1)
+SMS_DATA2=$(php artisan tinker --execute="
+\$notification = DB::table('notifications')
+    ->where('type', 'LIKE', '%PaymentConfirmation%')
+    ->where('notifiable_id', $PR2_ID)
+    ->orderBy('created_at', 'desc')
+    ->first();
+    
+if (\$notification) {
+    \$data = json_decode(\$notification->data, true);
+    echo json_encode([
+        'found' => true,
+        'voucher_code' => \$data['voucher_code'] ?? 'N/A',
+        'amount' => \$data['amount'] ?? 0,
+        'sent_at' => \$notification->created_at,
+    ]);
+} else {
+    echo json_encode(['found' => false]);
+}
+" 2>&1 | tail -1)
 
-if echo "$SMS_LOG2" | grep -q "SMS sent"; then
+if echo "$SMS_DATA2" | jq -e '.found' > /dev/null 2>&1 && [ "$(echo $SMS_DATA2 | jq -r '.found')" == "true" ]; then
+    SMS_VOUCHER2=$(echo $SMS_DATA2 | jq -r '.voucher_code')
+    SMS_AMOUNT2=$(echo $SMS_DATA2 | jq -r '.amount')
+    SMS_SENT_AT2=$(echo $SMS_DATA2 | jq -r '.sent_at')
+    SMS_AMOUNT_PHP2=$(echo "scale=0; $SMS_AMOUNT2 / 100" | bc)
+    
     printf "  %-12s %s\n" "To:" "$BORROWER_MOBILE"
-    printf "  %-12s ₱%s\n" "Amount:" "$PAYMENT1_AMOUNT"
-    printf "  %-12s %s\n" "Link:" "${SMS_URL2:0:60}..."
-    echo -e "  ${GREEN}Status: Sent${NC}"
-elif echo "$SMS_LOG2" | grep -q "Skipping SMS"; then
-    echo -e "  ${YELLOW}Status: Skipped (already confirmed)${NC}"
+    printf "  %-12s ₱%s\n" "Amount:" "$SMS_AMOUNT_PHP2"
+    printf "  %-12s %s\n" "Voucher:" "$SMS_VOUCHER2"
+    printf "  %-12s %s\n" "Sent at:" "$SMS_SENT_AT2"
+    echo -e "  ${GREEN}Status: ✓ Sent${NC}"
 else
-    echo -e "  ${YELLOW}Status: Not sent (no SMS job detected)${NC}"
+    echo -e "  ${YELLOW}Status: Not sent (no notification in database)${NC}"
 fi
 echo ""
 
