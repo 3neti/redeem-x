@@ -11,7 +11,6 @@ use LBHurtado\PaymentGateway\Data\Disburse\{
 };
 use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
-use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Omnipay\Common\GatewayInterface;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Models\Transaction;
@@ -45,7 +44,21 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
     /**
      * Disburse funds to a recipient via Omnipay.
      * 
-     * @param Wallet $wallet The wallet to debit
+     * IMPORTANT: This method handles ONLY the external disbursement API call.
+     * Wallet operations (deposits/withdrawals) are handled by the calling pipeline
+     * (DisburseCash) to maintain separation of concerns:
+     * 
+     * Flow:
+     * 1. DisburseCash pipeline calls WithdrawCash::run() - withdraws from cash wallet
+     * 2. DisburseCash pipeline calls this method - sends funds via external gateway
+     * 3. This method stores operation metadata and returns response
+     * 
+     * Historical note: Previously, this method performed TopupWalletAction before
+     * the API call, which caused duplicate deposits (one from PersistCash during
+     * generation, one from this method during redemption). This was removed to fix
+     * the bug where settlement vouchers showed ₱100 instead of ₱50.
+     * 
+     * @param Wallet $wallet The wallet being disbursed (for metadata only)
      * @param DisburseInputData|array $validated Disbursement data
      * @return DisburseResponseData|bool Response data or false on failure
      */
@@ -70,7 +83,6 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         
         $amount = $data['amount'];
         $currency = config('disbursement.currency', 'PHP');
-        $credits = Money::of($amount, $currency);
         
         // Log disbursement attempt (for audit trail)
         $attempt = DisbursementAttempt::create([
@@ -106,20 +118,6 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         DB::beginTransaction();
         
         try {
-            // Transfer funds from system wallet to user wallet
-            $transfer = TopupWalletAction::run($wallet, $amount);
-            
-            // Get the deposit transaction (user receiving)
-            $transaction = $transfer->deposit;
-            
-            if (self::DEBUG) {
-                Log::debug('[OmnipayPaymentGateway] Funds transferred from system', [
-                    'transaction_uuid' => $transaction->uuid,
-                    'amount_centavos' => $credits->getMinorAmount()->toInt(),
-                    'transfer_uuid' => $transfer->uuid,
-                ]);
-            }
-            
             // Convert amount to minor units (centavos)
             $amountInCentavos = (int) ($amount * 100);
             
@@ -159,17 +157,6 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 return false;
             }
             
-            // Store operation ID and rail info in transaction meta
-            $transaction->meta = [
-                'operationId' => $response->getOperationId(),
-                'user_id' => $wallet->getKey(),
-                'payload' => $data,
-                'settlement_rail' => $rail->value,
-                'bank_code' => $data['bank'],
-                'is_emi' => $this->bankRegistry->isEMI($data['bank']),
-            ];
-            $transaction->save();
-            
             // Update attempt record with success
             $attempt->update([
                 'status' => 'success',
@@ -181,7 +168,6 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             DB::commit();
             
             Log::info('[OmnipayPaymentGateway] Disbursement initiated', [
-                'transaction_uuid' => $transaction->uuid,
                 'operation_id' => $response->getOperationId(),
                 'rail' => $rail->value,
                 'bank' => $data['bank'],
@@ -190,8 +176,10 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             ]);
             
             // Return response DTO
+            // Note: uuid is generated here as this method no longer creates wallet transactions.
+            // Wallet operations are handled by the calling pipeline (DisburseCash + WithdrawCash).
             return DisburseResponseData::from([
-                'uuid' => $transaction->uuid,
+                'uuid' => \Illuminate\Support\Str::uuid()->toString(),
                 'transaction_id' => $response->getOperationId() ?? 'PENDING',
                 'status' => $response->getStatus() ?? 'Pending',
             ]);
