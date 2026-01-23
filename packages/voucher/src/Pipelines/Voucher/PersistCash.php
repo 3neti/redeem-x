@@ -10,7 +10,7 @@ use Closure;
 
 class PersistCash
 {
-    private const DEBUG = false;
+    private const DEBUG = true;
     
     public function __construct(
         protected FeeCalculator $feeCalculator
