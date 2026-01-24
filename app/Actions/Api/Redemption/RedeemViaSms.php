@@ -50,6 +50,15 @@ class RedeemViaSms
                 return ApiResponse::error('Invalid voucher code.', 404);
             }
 
+            // Validate voucher has amount
+            if (!$voucher->amount) {
+                Log::error('[RedeemViaSms] Voucher has no amount', [
+                    'voucher' => $voucherCode,
+                    'amount' => $voucher->amount,
+                ]);
+                return ApiResponse::error('Invalid voucher data.', 422);
+            }
+
             // Check redemption status
             if ($voucher->isRedeemed()) {
                 return ApiResponse::error('This voucher has already been redeemed.', 422);
@@ -76,7 +85,7 @@ class RedeemViaSms
             // Find or create contact
             $contact = Contact::firstOrCreate(
                 ['mobile' => $mobile],
-                ['bank_account' => config('contact.default.bank_code', 'GCASH') . ':' . $mobile]
+                ['bank_account' => config('contact.default.bank_code', 'GCASH') . ':' . $this->toNationalFormat($mobile)]
             );
 
             // Resolve bank account
@@ -99,6 +108,10 @@ class RedeemViaSms
             if ($contact->bank_account !== $bankAccount) {
                 $contact->update(['bank_account' => $bankAccount]);
             }
+
+            // Store voucher details before redemption
+            $voucherAmount = $voucher->amount;
+            $voucherCurrency = $voucher->currency;
 
             // Perform redemption in transaction
             DB::beginTransaction();
@@ -144,8 +157,8 @@ class RedeemViaSms
                     'bank_account' => $bankAccount,
                 ]);
 
-                // Format success message
-                $amount = number_format($voucher->amount, 2);
+                // Format success message using stored values
+                $amount = number_format($voucherAmount, 2);
                 $message = "Voucher {$voucherCode} redeemed (₱{$amount}). Funds sent to {$bankAccount}.";
 
                 return response()->json([
@@ -153,9 +166,9 @@ class RedeemViaSms
                     'message' => $message,
                     'data' => [
                         'voucher' => [
-                            'code' => $voucher->code,
-                            'amount' => $voucher->amount,
-                            'currency' => $voucher->currency,
+                            'code' => $voucherCode,
+                            'amount' => $voucherAmount,
+                            'currency' => $voucherCurrency,
                         ],
                         'bank_account' => $bankAccount,
                         'mobile' => $mobile,
