@@ -58,4 +58,9 @@ Route::prefix('redeem')->name('api.redeem.')->group(function () {
     // GET /api/v1/redeem/status/{code}
     Route::get('status/{code}', [\App\Actions\Api\Redemption\GetRedemptionStatus::class, 'asController'])
         ->name('status');
+
+    // SMS redemption (unauthenticated)
+    // POST /api/v1/redeem/sms
+    Route::post('sms', [\App\Actions\Api\Redemption\RedeemViaSms::class, 'asController'])
+        ->name('sms');
 });

@@ -7,8 +7,9 @@ import axios from "axios";
  * and handles both authentication and voucher generation.
  * 
  * @author Lester Hurtado
- * @version 2.0.0
+ * @version 2.1.0
  * @created 2026-01-24
+ * @updated 2026-01-24 - Added REDEEM command
  * 
  * Commands:
  * 1. AUTHENTICATE {token} - Store API token for sender's mobile number
@@ -18,6 +19,13 @@ import axios from "axios";
  * 2. GENERATE {amount} - Generate voucher using stored token
  *    Example: "Generate 100" (case insensitive)
  *    Response: "✅ Voucher ABC-1234 generated (₱100.00). Redeem at: ..."
+ * 
+ * 3. REDEEM {code} [bank_spec] - Redeem simple voucher (no authentication)
+ *    Examples: 
+ *      "ABCD" - Use default/GCash bank account
+ *      "ABCD MAYA" - Send to MAYA:{sender_mobile}
+ *      "ABCD GCASH:09181111111" - Send to GCASH:09181111111
+ *    Response: "✅ Voucher ABCD redeemed (₱100.00). Funds sent to GCASH:639173011987."
  * 
  * Environment Variables (configured in Pipedream):
  * - REDEEMX_API_URL: Base API URL (default: https://redeem-x.laravel.cloud/api/v1)
@@ -53,6 +61,9 @@ const CONFIG = {
 const COMMAND_PATTERNS = {
   AUTHENTICATE: /^authenticate\s+(.+)/i,
   GENERATE: /^generate\s+(\d+)/i,
+  REDEEM: /^([A-Z0-9\-]{4,20})(?:\s+([A-Z]+(?::[0-9]+)?))?$/i,
+  // Group 1: Voucher code (4-20 chars, alphanumeric + hyphens)
+  // Group 2: Optional bank specification (EMI code or EMI:mobile)
 };
 
 /**
@@ -74,6 +85,14 @@ const MESSAGES = {
     RATE_LIMIT: "⚠️ Too many requests. Please wait a moment and try again.",
     SYSTEM_ERROR: (status) => `⚠️ System error (${status}). Please contact support.`,
     GENERIC_ERROR: "⚠️ Failed to generate voucher. Please try again later.",
+  },
+  REDEEM: {
+    SUCCESS: (message) => message,
+    INVALID_CODE: "❌ Invalid voucher code. Please check and try again.",
+    ALREADY_REDEEMED: "❌ This voucher has already been redeemed.",
+    EXPIRED: "❌ This voucher has expired.",
+    HAS_REQUIREMENTS: (url) => `❌ This voucher requires additional information. Please redeem via web: ${url}`,
+    REDEMPTION_ERROR: "⚠️ Failed to redeem voucher. Please try again or contact support.",
   },
 };
 
@@ -198,6 +217,112 @@ async function handleGenerate(sender, smsText, store, $) {
   } catch (error) {
     console.error("[GENERATE] API call failed", error);
     return error; // Error already formatted by callVoucherAPI
+  }
+}
+
+/**
+ * Handles REDEEM command - redeems simple voucher via SMS
+ * 
+ * @param {string} sender - Mobile number of SMS sender
+ * @param {string} smsText - Full SMS text
+ * @param {object} store - Pipedream Data Store instance (unused)
+ * @param {object} $ - Pipedream export helper
+ * @returns {object} Result object with redemption status
+ */
+async function handleRedeem(sender, smsText, store, $) {
+  const match = smsText.match(COMMAND_PATTERNS.REDEEM);
+  
+  if (!match) {
+    return null; // Not a redeem command
+  }
+  
+  const voucherCode = match[1].toUpperCase();
+  const bankSpec = match[2] ? match[2].toUpperCase() : null;
+  
+  console.log("[REDEEM] Command detected", { sender, voucherCode, bankSpec });
+  
+  // Call SMS redemption endpoint
+  try {
+    const payload = {
+      voucher_code: voucherCode,
+      mobile: sender,
+      bank_spec: bankSpec,
+    };
+    
+    console.log("[REDEEM] Request", {
+      url: `${CONFIG.REDEEMX_API_URL}/redeem/sms`,
+      payload,
+    });
+    
+    const response = await axios.post(
+      `${CONFIG.REDEEMX_API_URL}/redeem/sms`,
+      payload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    
+    console.log("[REDEEM] Response", { status: response.status });
+    
+    const data = response.data;
+    
+    if (data.success) {
+      console.log("[REDEEM] Redemption successful", { code: voucherCode });
+      return {
+        status: "success",
+        message: data.message,
+        voucher: data.data.voucher,
+        bank_account: data.data.bank_account,
+      };
+    } else {
+      // Should not reach here for successful responses
+      throw new Error("Unexpected response format");
+    }
+  } catch (error) {
+    console.error("[REDEEM] Failed", error);
+    
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+      
+      console.error("[REDEEM] Error response", { status, data });
+      
+      // Handle specific error types
+      if (data.error === "requires_web") {
+        return {
+          status: "error",
+          message: MESSAGES.REDEEM.HAS_REQUIREMENTS(data.redemption_url),
+          error: data.error,
+        };
+      }
+      
+      // Map status codes to messages
+      let message = MESSAGES.REDEEM.REDEMPTION_ERROR;
+      switch (status) {
+        case 404:
+          message = MESSAGES.REDEEM.INVALID_CODE;
+          break;
+        case 422:
+          if (data.message?.includes("already been redeemed")) {
+            message = MESSAGES.REDEEM.ALREADY_REDEEMED;
+          } else if (data.message?.includes("expired")) {
+            message = MESSAGES.REDEEM.EXPIRED;
+          } else if (data.message) {
+            message = data.message;
+          }
+          break;
+      }
+      
+      return {
+        status: "error",
+        message,
+        error: { status, data },
+      };
+    }
+    
+    return {
+      status: "error",
+      message: MESSAGES.REDEEM.REDEMPTION_ERROR,
+      error: error.message,
+    };
   }
 }
 
@@ -345,6 +470,17 @@ export default defineComponent({
       $.export("status", result.status);
       $.export("message", result.message);
       if (result.voucher) $.export("voucher", result.voucher);
+      if (result.error) $.export("error", result.error);
+      return result;
+    }
+    
+    // Try REDEEM handler
+    result = await handleRedeem(sender, smsText, this.redeemxStore, $);
+    if (result) {
+      $.export("status", result.status);
+      $.export("message", result.message);
+      if (result.voucher) $.export("voucher", result.voucher);
+      if (result.bank_account) $.export("bank_account", result.bank_account);
       if (result.error) $.export("error", result.error);
       return result;
     }
