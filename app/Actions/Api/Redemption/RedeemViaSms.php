@@ -50,15 +50,6 @@ class RedeemViaSms
                 return ApiResponse::error('Invalid voucher code.', 404);
             }
 
-            // Validate voucher has amount
-            if (!$voucher->amount) {
-                Log::error('[RedeemViaSms] Voucher has no amount', [
-                    'voucher' => $voucherCode,
-                    'amount' => $voucher->amount,
-                ]);
-                return ApiResponse::error('Invalid voucher data.', 422);
-            }
-
             // Check redemption status
             if ($voucher->isRedeemed()) {
                 return ApiResponse::error('This voucher has already been redeemed.', 422);
@@ -109,10 +100,6 @@ class RedeemViaSms
                 $contact->update(['bank_account' => $bankAccount]);
             }
 
-            // Store voucher details before redemption
-            $voucherAmount = $voucher->amount;
-            $voucherCurrency = $voucher->currency;
-
             // Perform redemption in transaction
             DB::beginTransaction();
             
@@ -136,7 +123,7 @@ class RedeemViaSms
 
                 DB::commit();
 
-                // Refresh voucher to get updated state
+                // Refresh voucher to get updated state after redemption
                 $voucher->refresh();
 
                 // Fire event for messaging redemption
@@ -151,25 +138,26 @@ class RedeemViaSms
                     ]
                 ));
 
+                // Get voucher data from ConfirmRedemption result
+                $resultData = json_decode($result->getContent(), true);
+                $voucherData = $resultData['data']['voucher'] ?? [];
+                $amount = $voucherData['amount'] ?? 0;
+
                 Log::info('[RedeemViaSms] SMS redemption successful', [
                     'voucher' => $voucherCode,
                     'mobile' => $mobile,
                     'bank_account' => $bankAccount,
                 ]);
 
-                // Format success message using stored values
-                $amount = number_format($voucherAmount, 2);
-                $message = "Voucher {$voucherCode} redeemed (₱{$amount}). Funds sent to {$bankAccount}.";
+                // Format success message
+                $formattedAmount = number_format($amount, 2);
+                $message = "Voucher {$voucherCode} redeemed (₱{$formattedAmount}). Funds sent to {$bankAccount}.";
 
                 return response()->json([
                     'success' => true,
                     'message' => $message,
                     'data' => [
-                        'voucher' => [
-                            'code' => $voucherCode,
-                            'amount' => $voucherAmount,
-                            'currency' => $voucherCurrency,
-                        ],
+                        'voucher' => $voucherData,
                         'bank_account' => $bankAccount,
                         'mobile' => $mobile,
                     ],

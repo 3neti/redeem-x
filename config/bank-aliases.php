@@ -20,7 +20,7 @@ return [
     'SHOPEEPAY' => 'SHPHPHM1XXX',
 
     // Major Banks
-    'BDO' => 'BDONPHM2XXX',
+    'BDO' => 'BNORPHMMXXX',  // BDO Unibank Network
     'BPI' => 'BOPIPHM2XXX',
     'UNIONBANK' => 'UBPHPHM2XXX',
     'METROBANK' => 'MBTCPHM2XXX',
