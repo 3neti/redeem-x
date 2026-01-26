@@ -50,6 +50,19 @@ class InstructionsFormatter
             $data['inputs'] = array_map(fn($f) => $f->value, $instructions->inputs->fields);
         }
 
+        // Add feedback channels if present
+        if ($instructions->feedback && ($instructions->feedback->email || $instructions->feedback->mobile || $instructions->feedback->webhook)) {
+            if ($instructions->feedback->email) {
+                $data['feedback']['email'] = $instructions->feedback->email;
+            }
+            if ($instructions->feedback->mobile) {
+                $data['feedback']['mobile'] = $instructions->feedback->mobile;
+            }
+            if ($instructions->feedback->webhook) {
+                $data['feedback']['webhook'] = $instructions->feedback->webhook;
+            }
+        }
+
         // Add validations if present
         if ($instructions->validation) {
             if ($instructions->validation->location) {
@@ -128,6 +141,21 @@ class InstructionsFormatter
                 $instructions->inputs->fields
             );
             $lines[] = "Inputs: " . implode(', ', $fieldLabels);
+        }
+
+        // Feedback channels
+        if ($instructions->feedback && ($instructions->feedback->email || $instructions->feedback->mobile || $instructions->feedback->webhook)) {
+            $feedbackParts = [];
+            if ($instructions->feedback->email) {
+                $feedbackParts[] = $instructions->feedback->email;
+            }
+            if ($instructions->feedback->mobile) {
+                $feedbackParts[] = $instructions->feedback->mobile;
+            }
+            if ($instructions->feedback->webhook) {
+                $feedbackParts[] = $instructions->feedback->webhook;
+            }
+            $lines[] = "Feedback: " . implode(', ', $feedbackParts);
         }
 
         // Location validation
