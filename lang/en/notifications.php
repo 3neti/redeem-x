@@ -30,8 +30,11 @@ return [
     'vouchers_generated' => [
         'sms' => [
             'single' => '✅ {{ count }} voucher generated ({{ formatted_amount }}) - {{ code }}',
+            'single_with_instructions' => "✅ {{ count }} voucher ({{ formatted_amount }}) - {{ code }}\n{{ instructions_formatted_sms }}",
             'multiple' => '✅ {{ count }} vouchers generated ({{ formatted_amount }} each) - {{ codes }}',
+            'multiple_with_instructions' => "✅ {{ count }} vouchers ({{ formatted_amount }} each) - {{ codes }}\n{{ instructions_formatted_sms }}",
             'many' => '✅ {{ count }} vouchers generated ({{ formatted_amount }} each) - {{ first_codes }}, +{{ remaining }} more',
+            'many_with_instructions' => "✅ {{ count }} vouchers ({{ formatted_amount }} each) - {{ first_codes }}, +{{ remaining }} more\n{{ instructions_formatted_sms }}",
         ],
     ],
 

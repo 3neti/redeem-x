@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Services\InstructionsFormatter;
 use App\Services\TemplateProcessor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -71,11 +72,16 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
         $context = $this->buildContext();
+        $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
         
-        // Choose template based on voucher count
+        // Choose template based on voucher count and instructions format
+        $hasInstructions = $format !== 'none' && isset($context['instructions_formatted']);
         $templateKey = match (true) {
+            $context['count'] === 1 && $hasInstructions => 'notifications.vouchers_generated.sms.single_with_instructions',
             $context['count'] === 1 => 'notifications.vouchers_generated.sms.single',
+            $context['count'] <= self::MAX_CODES_DISPLAY && $hasInstructions => 'notifications.vouchers_generated.sms.multiple_with_instructions',
             $context['count'] <= self::MAX_CODES_DISPLAY => 'notifications.vouchers_generated.sms.multiple',
+            $hasInstructions => 'notifications.vouchers_generated.sms.many_with_instructions',
             default => 'notifications.vouchers_generated.sms.many',
         };
         
@@ -93,17 +99,44 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
         $context = $this->buildContext();
         $count = $context['count'];
         $formattedAmount = $context['formatted_amount'];
+        $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
         
         // Build code list for email
         $codesList = $this->vouchers->pluck('code')->join(', ');
         
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject("Vouchers Generated: {$count} voucher" . ($count === 1 ? '' : 's'))
             ->greeting('Hello,')
             ->line("You have successfully generated **{$count} voucher" . ($count === 1 ? '' : 's') . "** with an amount of **{$formattedAmount}" . ($count === 1 ? '' : ' each') . "**.")
-            ->line("**Voucher Codes:** {$codesList}")
-            ->line('These vouchers are ready to be redeemed.')
-            ->line('Thank you for using our service!');
+            ->line("**Voucher Codes:** {$codesList}");
+        
+        // Add instructions if configured
+        if ($format !== 'none' && isset($context['instructions_formatted'])) {
+            $mail->line('');
+            $mail->line('**Instructions:**');
+            $mail->line('');
+            
+            if ($format === 'json') {
+                // Use pre-formatted code block for JSON
+                $mail->line('```');
+                foreach (explode("\n", $context['instructions_formatted']) as $line) {
+                    $mail->line($line);
+                }
+                $mail->line('```');
+            } else {
+                // Human-readable format - split lines
+                $lines = explode("\n", $context['instructions_formatted']);
+                foreach ($lines as $line) {
+                    $mail->line("• {$line}");
+                }
+            }
+        }
+        
+        $mail->line('');
+        $mail->line('These vouchers are ready to be redeemed.');
+        $mail->line('Thank you for using our service!');
+        
+        return $mail;
     }
 
     /**
@@ -112,15 +145,25 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
     public function toArray(object $notifiable): array
     {
         $context = $this->buildContext();
+        $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
         
-        return [
+        $data = [
             'type' => 'vouchers_generated',
             'count' => $context['count'],
             'amount' => $context['amount'],
             'currency' => $context['currency'],
             'formatted_amount' => $context['formatted_amount'],
             'codes' => $this->vouchers->pluck('code')->toArray(),
+            'instructions_format' => $format,
         ];
+        
+        // Include full instructions JSON for database audit
+        if ($format !== 'none') {
+            $first = $this->vouchers->first();
+            $data['instructions_data'] = $first->instructions->toArray();
+        }
+        
+        return $data;
     }
 
     /**
@@ -161,6 +204,15 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
             $firstCodes = $allCodes->take(self::MAX_CODES_DISPLAY);
             $context['first_codes'] = $firstCodes->join(', ');
             $context['remaining'] = $count - self::MAX_CODES_DISPLAY;
+        }
+        
+        // Add formatted instructions if configured
+        $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
+        if ($format !== 'none') {
+            // Use first voucher's instructions for SMS (optimized)
+            $context['instructions_formatted_sms'] = InstructionsFormatter::formatForSms($first->instructions, $format);
+            // Use first voucher's instructions for email (full)
+            $context['instructions_formatted'] = InstructionsFormatter::formatForEmail($first->instructions, $format);
         }
         
         return $context;

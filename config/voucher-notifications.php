@@ -32,6 +32,19 @@ return [
         | Example: VOUCHERS_GENERATED_CHANNELS=engage_spark,mail
         */
         'channels' => explode(',', env('VOUCHERS_GENERATED_CHANNELS', 'engage_spark')),
+
+        /*
+        | Voucher instructions format in notifications.
+        | 
+        | Options:
+        | - 'none'  : Don't include instructions (default, current behavior)
+        | - 'json'  : Pretty-printed JSON format
+        | - 'human' : Human-readable text format
+        |
+        | Environment variable: VOUCHER_INSTRUCTIONS_FORMAT
+        | Default: human
+        */
+        'instructions_format' => env('VOUCHER_INSTRUCTIONS_FORMAT', 'human'),
     ],
 
 ];
