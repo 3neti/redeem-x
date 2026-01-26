@@ -27,6 +27,14 @@ return [
         ],
     ],
 
+    'vouchers_generated' => [
+        'sms' => [
+            'single' => '✅ {{ count }} voucher generated ({{ formatted_amount }}) - {{ code }}',
+            'multiple' => '✅ {{ count }} vouchers generated ({{ formatted_amount }} each) - {{ codes }}',
+            'many' => '✅ {{ count }} vouchers generated ({{ formatted_amount }} each) - {{ first_codes }}, +{{ remaining }} more',
+        ],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Available Variables
@@ -35,6 +43,10 @@ return [
     | You can use these variables in your templates:
     |
     | {{ code }}               - Voucher code (e.g., TEST-123)
+    | {{ codes }}              - Comma-separated voucher codes (generation only)
+    | {{ first_codes }}        - First 3 voucher codes (generation only)
+    | {{ count }}              - Number of vouchers (generation only)
+    | {{ remaining }}          - Count of remaining codes (generation only)
     | {{ status }}             - Voucher status (active, redeemed, expired)
     | {{ amount }}             - Raw amount (e.g., 50.00)
     | {{ formatted_amount }}   - Formatted amount (e.g., ₱50.00)
