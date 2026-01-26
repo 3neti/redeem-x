@@ -3,25 +3,30 @@
 namespace LBHurtado\Voucher\Pipelines\GeneratedVouchers;
 
 use Closure;
-use LBHurtado\Voucher\Notifications\VouchersGeneratedNotification;
+use LBHurtado\Voucher\Contracts\VouchersGeneratedNotificationInterface;
 
 class NotifyBatchCreator
 {
     public function handle($vouchers, Closure $next)
     {
         $first = $vouchers->first();
-        $instructions = $first->instructions;
-        $feedback = $instructions->feedback ?? null;
+        $owner = $first->owner;
 
-//        if (!empty($feedback['mobile'])) {
-//            Notification::route('nexmo', $feedback['mobile'])
-//                ->notify(new VouchersGeneratedNotification($vouchers));
-//        }
-//
-//        if (!empty($feedback['email'])) {
-//            Notification::route('mail', $feedback['email'])
-//                ->notify(new VouchersGeneratedNotification($vouchers));
-//        }
+        // Send SMS notification to voucher owner (issuer) if interface is bound
+        if ($owner && $owner->mobile && app()->bound(VouchersGeneratedNotificationInterface::class)) {
+            $notificationClass = app(VouchersGeneratedNotificationInterface::class);
+            $notification = $notificationClass::make($vouchers);
+            
+            $owner->notify($notification);
+        }
+
+        // TODO: Email notification support (future)
+        // if ($owner && $owner->email && app()->bound(VouchersGeneratedNotificationInterface::class)) {
+        //     $notificationClass = app(VouchersGeneratedNotificationInterface::class);
+        //     $notification = $notificationClass::make($vouchers);
+        //     
+        //     $owner->notify($notification);
+        // }
 
         return $next($vouchers);
     }

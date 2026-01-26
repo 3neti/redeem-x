@@ -217,6 +217,16 @@ class User extends Authenticatable implements Wallet, Customer, Confirmable
     }
 
     /**
+     * Route notifications for the EngageSpark channel.
+     * 
+     * @return string|null
+     */
+    public function routeNotificationForEngageSpark(): ?string
+    {
+        return $this->mobile;
+    }
+
+    /**
      * Get the mobile number in national format for QR code generation.
      * 
      * The Omnipay gateway will add the alias prefix automatically,

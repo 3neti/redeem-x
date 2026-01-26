@@ -39,6 +39,12 @@ class AppServiceProvider extends ServiceProvider
                 ? \App\Gateways\CustomOmnipayPaymentGateway::class
                 : \App\Gateways\CustomNetbankPaymentGateway::class
         );
+        
+        // Bind voucher generation notification interface to host app implementation
+        $this->app->bind(
+            \LBHurtado\Voucher\Contracts\VouchersGeneratedNotificationInterface::class,
+            \App\Notifications\VouchersGeneratedSummary::class
+        );
     }
 
     /**
