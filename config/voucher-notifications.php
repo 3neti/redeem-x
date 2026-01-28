@@ -47,4 +47,24 @@ return [
         'instructions_format' => env('VOUCHER_INSTRUCTIONS_FORMAT', 'human'),
     ],
 
+    'balance' => [
+        /*
+        | Channels to use when notifying users about balance queries.
+        | 
+        | Available channels:
+        | - 'engage_spark' : SMS via EngageSpark
+        | - 'mail'         : Email
+        | - 'database'     : Always included for User models (audit trail)
+        |
+        | Production recommendation:
+        | - Start with ['engage_spark'] (SMS only)
+        | - Add 'mail' for admin system balance notifications
+        |
+        | Environment variable: BALANCE_NOTIFICATION_CHANNELS
+        | Default: engage_spark
+        | Example: BALANCE_NOTIFICATION_CHANNELS=engage_spark,mail
+        */
+        'channels' => explode(',', env('BALANCE_NOTIFICATION_CHANNELS', 'engage_spark')),
+    ],
+
 ];
