@@ -89,8 +89,15 @@ php artisan test:sms 09173011987 "Custom test message"
 
 # Use custom sender ID
 php artisan test:sms 09173011987 --sender=TXTCMDR
+
+# Test SMS BALANCE command
+php artisan test:sms-balance
+php artisan test:sms-balance --system
 ```
 Sends SMS directly via EngageSpark for testing SMS configuration.
+
+**Adding New SMS Commands:**
+See `docs/AI_GUIDE_SMS_COMMAND_SCAFFOLDING.md` for complete step-by-step guide to implement new SMS commands following the proven BALANCE command pattern.
 
 ### Testing Payment Gateway (Omnipay)
 ```bash
