@@ -27,6 +27,15 @@ import axios from "axios";
  *      "ABCD GCASH:09181111111" - Send to GCASH:09181111111
  *    Response: "✅ Voucher ABCD redeemed (₱100.00). Funds sent to GCASH:639173011987."
  * 
+ * 4. BALANCE - Check wallet balance (handled by internal route)
+ *    Example: "BALANCE"
+ *    Response: "Balance: ₱979,122.40"
+ * 
+ * 5. BALANCE --system - Check system balance (admin only, handled by internal route)
+ *    Example: "BALANCE --system"
+ *    Response: "Wallet: ₱979,122.40 | Products: ₱16,723.40\nBank: ₱44.42 (as of 10:39 PM)"
+ *    Requires: 'view-balances' permission
+ * 
  * Environment Variables (configured in Pipedream):
  * - REDEEMX_API_URL: Base API URL (default: https://redeem-x.laravel.cloud/api/v1)
  * 
@@ -39,7 +48,12 @@ import axios from "axios";
  * This is a single unified workflow that routes commands to specialized handlers:
  * - AuthenticateHandler: Stores API tokens in Data Store
  * - GenerateHandler: Retrieves tokens and calls redeem-x API
+ * - RedeemHandler: Processes simple voucher redemption via API
+ * - BALANCE commands: Forwarded to internal Laravel routes (not handled here)
  * - SMS text that doesn't match any command pattern is ignored (no reply)
+ * 
+ * Note: BALANCE and REGISTER commands are handled by the internal Laravel SMS
+ * route (/sms) via the omnichannel package, not by this Pipedream workflow.
  */
 
 // ============================================================================
