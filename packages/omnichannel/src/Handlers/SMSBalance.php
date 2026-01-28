@@ -6,13 +6,12 @@ use App\Actions\Api\System\GetBalances;
 use App\Data\Api\Wallet\BalanceData;
 use App\Models\AccountBalance;
 use App\Models\User;
+use App\Notifications\BalanceNotification;
 use App\Services\BalanceService;
 use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
-use LBHurtado\EngageSpark\EngageSparkMessage;
 use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
@@ -80,8 +79,12 @@ class SMSBalance implements SMSHandlerInterface
                 'balance' => $balance->balance,
             ]);
 
-            // Send SMS notification
-            $this->sendSms($from, $message);
+            // Send notification (SMS, email, webhook)
+            $user->notify(new BalanceNotification(
+                type: 'user',
+                balances: ['wallet' => $balance->balance],
+                message: $message
+            ));
 
             return response()->json(['message' => $message]);
         } catch (\Throwable $e) {
@@ -129,9 +132,19 @@ class SMSBalance implements SMSHandlerInterface
             );
 
             // Try to get bank balance
-            $bankLine = $this->getBankBalanceLine();
+            $bankBalanceData = $this->getBankBalanceData();
 
-            $message = $walletLine . "\n" . $bankLine;
+            // Build balance data for notification
+            $balances = [
+                'wallet' => $systemBalance,
+                'products' => $productsBalance,
+            ];
+            
+            if ($bankBalanceData) {
+                $balances['bank'] = $bankBalanceData['balance'];
+                $balances['bank_timestamp'] = $bankBalanceData['timestamp'];
+                $balances['bank_stale'] = $bankBalanceData['stale'];
+            }
 
             Log::info('[SMSBalance] System balance retrieved', [
                 'user_id' => $user->id,
@@ -139,8 +152,29 @@ class SMSBalance implements SMSHandlerInterface
                 'products' => $productsBalance,
             ]);
 
-            // Send SMS notification
-            $this->sendSms($from, $message);
+            // Send notification (SMS, email, webhook)
+            $user->notify(new BalanceNotification(
+                type: 'system',
+                balances: $balances
+            ));
+
+            // Build message for JSON response
+            $message = sprintf(
+                'Wallet: %s | Products: %s',
+                $this->formatMoney($systemBalance, 'PHP'),
+                $this->formatMoney($productsBalance, 'PHP')
+            );
+            if ($bankBalanceData) {
+                $bankLine = sprintf(
+                    'Bank: %s (as of %s)',
+                    $this->formatMoney($bankBalanceData['balance'], 'PHP'),
+                    $bankBalanceData['timestamp']
+                );
+                if ($bankBalanceData['stale']) {
+                    $bankLine .= ' ⚠️ STALE';
+                }
+                $message .= "\n" . $bankLine;
+            }
 
             return response()->json(['message' => $message]);
         } catch (\Throwable $e) {
@@ -156,34 +190,38 @@ class SMSBalance implements SMSHandlerInterface
     }
 
     /**
-     * Get bank balance line with staleness indicator.
+     * Get bank balance data with staleness indicator.
+     * 
+     * @return array|null ['balance' => float, 'timestamp' => string, 'stale' => bool]
      */
-    protected function getBankBalanceLine(): string
+    protected function getBankBalanceData(): ?array
     {
         try {
             $accountNumber = env('BALANCE_DEFAULT_ACCOUNT');
 
             if (!$accountNumber) {
-                return 'Bank: N/A (no default account configured)';
+                return null;
             }
 
             // Try to fetch fresh balance with timeout
             $freshBalance = $this->tryFetchBankBalance($accountNumber);
 
             if ($freshBalance) {
-                $formatted = $this->formatMoney($freshBalance['balance'] / 100, $freshBalance['currency']);
-                $time = now()->format('g:i A');
-                return sprintf('Bank: %s (as of %s)', $formatted, $time);
+                return [
+                    'balance' => $freshBalance['balance'] / 100,
+                    'timestamp' => now()->format('g:i A'),
+                    'stale' => false,
+                ];
             }
 
             // Fall back to cached balance
-            return $this->getCachedBankBalanceLine($accountNumber);
+            return $this->getCachedBankBalanceData($accountNumber);
         } catch (\Throwable $e) {
             Log::error('[SMSBalance] Failed to get bank balance', [
                 'error' => $e->getMessage(),
             ]);
 
-            return 'Bank: N/A';
+            return null;
         }
     }
 
@@ -225,9 +263,11 @@ class SMSBalance implements SMSHandlerInterface
     }
 
     /**
-     * Get cached bank balance line with staleness indicator.
+     * Get cached bank balance data with staleness indicator.
+     * 
+     * @return array|null ['balance' => float, 'timestamp' => string, 'stale' => bool]
      */
-    protected function getCachedBankBalanceLine(string $accountNumber): string
+    protected function getCachedBankBalanceData(string $accountNumber): ?array
     {
         $gatewayName = config('payment-gateway.default', 'netbank');
 
@@ -236,24 +276,21 @@ class SMSBalance implements SMSHandlerInterface
             ->first();
 
         if (!$cached) {
-            return 'Bank: N/A (no cache available)';
+            return null;
         }
 
-        $formatted = $this->formatMoney($cached->balance / 100, $cached->currency);
         $minutesAgo = $cached->checked_at->diffInMinutes(now());
+        $isStale = $minutesAgo > self::STALE_THRESHOLD_MINUTES;
 
-        // Check if stale (> 5 minutes)
-        if ($minutesAgo > self::STALE_THRESHOLD_MINUTES) {
-            $timestamp = $cached->checked_at->format('M j, g:i A');
-            return sprintf('Bank: %s ⚠️ STALE (as of %s)', $formatted, $timestamp);
-        }
+        $timestamp = $isStale 
+            ? $cached->checked_at->format('M j, g:i A')
+            : ($minutesAgo < 1 ? 'just now' : "{$minutesAgo} min ago");
 
-        // Fresh cache
-        if ($minutesAgo < 1) {
-            return sprintf('Bank: %s (cached, just now)', $formatted);
-        }
-
-        return sprintf('Bank: %s (cached, %d min ago)', $formatted, $minutesAgo);
+        return [
+            'balance' => $cached->balance / 100,
+            'timestamp' => $timestamp,
+            'stale' => $isStale,
+        ];
     }
 
     /**
@@ -295,36 +332,4 @@ class SMSBalance implements SMSHandlerInterface
         }
     }
 
-    /**
-     * Send SMS notification to mobile number.
-     */
-    protected function sendSms(string $mobile, string $message): void
-    {
-        try {
-            Notification::route('engage_spark', $mobile)
-                ->notify(new class($message) extends \Illuminate\Notifications\Notification {
-                    public function __construct(private string $message) {}
-                    
-                    public function via($notifiable): array
-                    {
-                        return ['engage_spark'];
-                    }
-                    
-                    public function toEngageSpark($notifiable): EngageSparkMessage
-                    {
-                        return (new EngageSparkMessage())->content($this->message);
-                    }
-                });
-                
-            Log::info('[SMSBalance] SMS sent', [
-                'mobile' => $mobile,
-                'message_length' => strlen($message),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('[SMSBalance] Failed to send SMS', [
-                'mobile' => $mobile,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
 }
