@@ -9,7 +9,10 @@ use App\Models\User;
 use App\Services\BalanceService;
 use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use LBHurtado\EngageSpark\EngageSparkMessage;
 use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
@@ -56,16 +59,16 @@ class SMSBalance implements SMSHandlerInterface
         $isSystemQuery = $flag && (strtolower($flag) === '--system' || strtolower($flag) === 'system');
 
         if ($isSystemQuery) {
-            return $this->handleSystemBalance($user);
+            return $this->handleSystemBalance($user, $from);
         }
 
-        return $this->handleUserBalance($user);
+        return $this->handleUserBalance($user, $from);
     }
 
     /**
      * Handle user balance query (regular BALANCE command).
      */
-    protected function handleUserBalance(User $user): JsonResponse
+    protected function handleUserBalance(User $user, string $from): JsonResponse
     {
         try {
             $balance = BalanceData::fromWallet($user->wallet);
@@ -76,6 +79,9 @@ class SMSBalance implements SMSHandlerInterface
                 'user_id' => $user->id,
                 'balance' => $balance->balance,
             ]);
+
+            // Send SMS notification
+            $this->sendSms($from, $message);
 
             return response()->json(['message' => $message]);
         } catch (\Throwable $e) {
@@ -93,7 +99,7 @@ class SMSBalance implements SMSHandlerInterface
     /**
      * Handle system balance query (BALANCE --system command).
      */
-    protected function handleSystemBalance(User $user): JsonResponse
+    protected function handleSystemBalance(User $user, string $from): JsonResponse
     {
         // Check permission
         if (!$user->can('view-balances')) {
@@ -132,6 +138,9 @@ class SMSBalance implements SMSHandlerInterface
                 'system' => $systemBalance,
                 'products' => $productsBalance,
             ]);
+
+            // Send SMS notification
+            $this->sendSms($from, $message);
 
             return response()->json(['message' => $message]);
         } catch (\Throwable $e) {
@@ -283,6 +292,39 @@ class SMSBalance implements SMSHandlerInterface
         } catch (\Throwable $e) {
             // Fallback formatting
             return '₱' . number_format($amount, 2);
+        }
+    }
+
+    /**
+     * Send SMS notification to mobile number.
+     */
+    protected function sendSms(string $mobile, string $message): void
+    {
+        try {
+            Notification::route('engage_spark', $mobile)
+                ->notify(new class($message) extends \Illuminate\Notifications\Notification {
+                    public function __construct(private string $message) {}
+                    
+                    public function via($notifiable): array
+                    {
+                        return ['engage_spark'];
+                    }
+                    
+                    public function toEngageSpark($notifiable): EngageSparkMessage
+                    {
+                        return (new EngageSparkMessage())->content($this->message);
+                    }
+                });
+                
+            Log::info('[SMSBalance] SMS sent', [
+                'mobile' => $mobile,
+                'message_length' => strlen($message),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[SMSBalance] Failed to send SMS', [
+                'mobile' => $mobile,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
