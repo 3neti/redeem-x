@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
         // Create permissions
         Permission::firstOrCreate(['name' => 'manage pricing']);
         Permission::firstOrCreate(['name' => 'view balance']);
+        Permission::firstOrCreate(['name' => 'view-balances']); // For SMS BALANCE --system command
         Permission::firstOrCreate(['name' => 'view all billing']);
         Permission::firstOrCreate(['name' => 'manage users']);
         Permission::firstOrCreate(['name' => 'manage preferences']);
@@ -29,6 +30,7 @@ class RolePermissionSeeder extends Seeder
         $superAdmin->syncPermissions([
             'manage pricing',
             'view balance',
+            'view-balances',
             'view all billing',
             'manage users',
             'manage preferences',
@@ -38,6 +40,7 @@ class RolePermissionSeeder extends Seeder
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->syncPermissions([
             'view balance',
+            'view-balances',
             'view all billing',
         ]);
 
@@ -46,6 +49,7 @@ class RolePermissionSeeder extends Seeder
         $powerUser->syncPermissions([
             'manage pricing',
             'view balance',
+            'view-balances',
         ]);
 
         // Basic User - No admin permissions
