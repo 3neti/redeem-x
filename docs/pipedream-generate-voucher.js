@@ -49,11 +49,11 @@ import axios from "axios";
  * - AuthenticateHandler: Stores API tokens in Data Store
  * - GenerateHandler: Retrieves tokens and calls redeem-x API
  * - RedeemHandler: Processes simple voucher redemption via API
- * - BALANCE commands: Forwarded to internal Laravel routes (not handled here)
+ * - BalanceHandler: Forwards BALANCE commands to internal Laravel /sms endpoint
  * - SMS text that doesn't match any command pattern is ignored (no reply)
  * 
- * Note: BALANCE and REGISTER commands are handled by the internal Laravel SMS
- * route (/sms) via the omnichannel package, not by this Pipedream workflow.
+ * Note: BALANCE and REGISTER commands are forwarded to the internal Laravel SMS
+ * route (/sms) which triggers the BalanceNotification system.
  */
 
 // ============================================================================
@@ -65,6 +65,7 @@ import axios from "axios";
  */
 const CONFIG = {
   REDEEMX_API_URL: process.env.REDEEMX_API_URL || "https://redeem-x.laravel.cloud/api/v1",
+  REDEEMX_SMS_URL: process.env.REDEEMX_SMS_URL || "https://redeem-x.laravel.cloud/sms",
   DEFAULT_COUNT: 1,
   MIN_TOKEN_LENGTH: 10,
 };
@@ -76,8 +77,10 @@ const COMMAND_PATTERNS = {
   AUTHENTICATE: /^authenticate\s+(.+)/i,
   GENERATE: /^generate\s+(\d+)/i,
   REDEEM: /^([A-Z0-9\-]{4,20})(?:\s+([A-Z]+(?::[0-9]+)?))?$/i,
+  BALANCE: /^balance(\s+--system)?$/i,
   // Group 1: Voucher code (4-20 chars, alphanumeric + hyphens)
   // Group 2: Optional bank specification (EMI code or EMI:mobile)
+  // Group 3: Optional --system flag for admin balance
 };
 
 /**
@@ -107,6 +110,9 @@ const MESSAGES = {
     EXPIRED: "❌ This voucher has expired.",
     HAS_REQUIREMENTS: (url) => `❌ This voucher requires additional information. Please redeem via web: ${url}`,
     REDEMPTION_ERROR: "⚠️ Failed to redeem voucher. Please try again or contact support.",
+  },
+  BALANCE: {
+    GENERIC_ERROR: "⚠️ Failed to retrieve balance. Please try again later.",
   },
 };
 
@@ -231,6 +237,63 @@ async function handleGenerate(sender, smsText, store, $) {
   } catch (error) {
     console.error("[GENERATE] API call failed", error);
     return error; // Error already formatted by callVoucherAPI
+  }
+}
+
+/**
+ * Handles BALANCE command - forwards to internal Laravel /sms endpoint
+ * 
+ * @param {string} sender - Mobile number of SMS sender
+ * @param {string} smsText - Full SMS text
+ * @param {object} store - Pipedream Data Store instance (unused)
+ * @param {object} $ - Pipedream export helper
+ * @returns {object} Result object with balance status
+ */
+async function handleBalance(sender, smsText, store, $) {
+  const match = smsText.match(COMMAND_PATTERNS.BALANCE);
+  
+  if (!match) {
+    return null; // Not a balance command
+  }
+  
+  console.log("[BALANCE] Command detected", { sender, smsText });
+  
+  // Forward to internal Laravel SMS endpoint
+  try {
+    const payload = {
+      from: sender,
+      to: "2929", // Short code
+      message: smsText,
+    };
+    
+    console.log("[BALANCE] Forwarding to Laravel", {
+      url: CONFIG.REDEEMX_SMS_URL,
+      payload,
+    });
+    
+    const response = await axios.post(
+      CONFIG.REDEEMX_SMS_URL,
+      payload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    
+    console.log("[BALANCE] Response from Laravel", { status: response.status });
+    
+    // Laravel will send the notification via BalanceNotification
+    // We just need to acknowledge the request
+    return {
+      status: "success",
+      message: response.data.message || "Balance request processed",
+      forwarded: true,
+    };
+  } catch (error) {
+    console.error("[BALANCE] Failed to forward request", error);
+    
+    return {
+      status: "error",
+      message: MESSAGES.BALANCE.GENERIC_ERROR,
+      error: error.message,
+    };
   }
 }
 
@@ -495,6 +558,16 @@ export default defineComponent({
       $.export("message", result.message);
       if (result.voucher) $.export("voucher", result.voucher);
       if (result.bank_account) $.export("bank_account", result.bank_account);
+      if (result.error) $.export("error", result.error);
+      return result;
+    }
+    
+    // Try BALANCE handler
+    result = await handleBalance(sender, smsText, this.redeemxStore, $);
+    if (result) {
+      $.export("status", result.status);
+      $.export("message", result.message);
+      if (result.forwarded) $.export("forwarded", result.forwarded);
       if (result.error) $.export("error", result.error);
       return result;
     }
