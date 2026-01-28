@@ -551,23 +551,23 @@ export default defineComponent({
       return result;
     }
     
-    // Try REDEEM handler
+    // Try BALANCE handler (must be before REDEEM to avoid false matches)
+    result = await handleBalance(sender, smsText, this.redeemxStore, $);
+    if (result) {
+      $.export("status", result.status);
+      $.export("message", result.message);
+      if (result.forwarded) $.export("forwarded", result.forwarded);
+      if (result.error) $.export("error", result.error);
+      return result;
+    }
+    
+    // Try REDEEM handler (must be last as it matches broad pattern)
     result = await handleRedeem(sender, smsText, this.redeemxStore, $);
     if (result) {
       $.export("status", result.status);
       $.export("message", result.message);
       if (result.voucher) $.export("voucher", result.voucher);
       if (result.bank_account) $.export("bank_account", result.bank_account);
-      if (result.error) $.export("error", result.error);
-      return result;
-    }
-    
-    // Try BALANCE handler
-    result = await handleBalance(sender, smsText, this.redeemxStore, $);
-    if (result) {
-      $.export("status", result.status);
-      $.export("message", result.message);
-      if (result.forwarded) $.export("forwarded", result.forwarded);
       if (result.error) $.export("error", result.error);
       return result;
     }
