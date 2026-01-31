@@ -59,16 +59,21 @@ class TestSmsRouterCommand extends Command
         }
         
         // Mock authenticated request
-        $this->laravel->instance('request', Request::create(
+        $request = Request::create(
             '/sms',
             'POST',
             ['from' => $mobile, 'to' => '2929', 'message' => $message]
-        ));
+        );
         
         // Set authenticated user if found (simulates auth:sanctum middleware)
         if ($user) {
+            $request->setUserResolver(function () use ($user) {
+                return $user;
+            });
             Auth::setUser($user);
         }
+        
+        $this->laravel->instance('request', $request);
         
         // Route through SMS router
         try {

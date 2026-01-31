@@ -15,10 +15,11 @@ $router->register('REG {email} {extra?}', SMSAutoRegister::class);
 $router->register('BALANCE {flag?}', SMSBalance::class);
 
 // Voucher generation commands (must be registered before catchall)
-$router->register('GENERATE {amount}', SMSGenerate::class);
-$router->register('REDEEMABLE {amount}', SMSGenerate::class);
-$router->register('PAYABLE {amount}', SMSPayable::class);
-$router->register('SETTLEMENT {amount} {target}', SMSSettlement::class);
+// {extra?} captures optional flags like --count=3 --campaign="Name"
+$router->register('GENERATE {amount} {extra?}', SMSGenerate::class);
+$router->register('REDEEMABLE {amount} {extra?}', SMSGenerate::class);
+$router->register('PAYABLE {amount} {extra?}', SMSPayable::class);
+$router->register('SETTLEMENT {amount} {target} {extra?}', SMSSettlement::class);
 
 $router->register(
     '{message}',

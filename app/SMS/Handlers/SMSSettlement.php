@@ -46,12 +46,16 @@ class SMSSettlement extends BaseSMSVoucherHandler
         $user = request()->user();
         
         try {
-            // Router already extracted {amount} and {target} from pattern
-            $amount = (float) ($values['amount'] ?? 0);
-            $target = (float) ($values['target'] ?? 0);
+            // Parse full message for flags using Symfony Console
+            $parsed = $this->parseCommand(
+                $values['_message'] ?? '',
+                $this->getInputDefinition()
+            );
             
-            // Options from flags (TODO: implement flag parsing from message)
-            $options = [];
+            // Router also extracted {amount}/{target}, but parseCommand has them too
+            $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
+            $target = (float) ($parsed['arguments']['target'] ?? $values['target'] ?? 0);
+            $options = $parsed['options'];
             
             if ($amount <= 0 || $target <= 0) {
                 return response()->json([

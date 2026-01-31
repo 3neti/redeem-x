@@ -43,11 +43,15 @@ class SMSGenerate extends BaseSMSVoucherHandler
         $user = request()->user();
         
         try {
-            // Router already extracted {amount} from pattern
-            $amount = (float) ($values['amount'] ?? 0);
+            // Parse full message for flags using Symfony Console
+            $parsed = $this->parseCommand(
+                $values['_message'] ?? '',
+                $this->getInputDefinition()
+            );
             
-            // Options from flags (TODO: implement flag parsing from message)
-            $options = [];
+            // Router also extracted {amount}, but parseCommand has it too
+            $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
+            $options = $parsed['options'];
             
             // Validate amount
             if ($amount <= 0) {
