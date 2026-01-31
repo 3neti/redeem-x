@@ -130,6 +130,17 @@ export default defineComponent({
     
     console.log("[WORKFLOW] Processing SMS", { sender, smsText });
     
+    // Validate inputs
+    if (!sender || !smsText) {
+      const result = {
+        status: "error",
+        message: "⚠️ Invalid SMS format: missing sender or message",
+      };
+      $.export("status", result.status);
+      $.export("message", result.message);
+      return result;
+    }
+    
     // Handle AUTHENTICATE locally (no Laravel needed)
     if (smsText.match(/^authenticate\s+/i)) {
       const result = await handleAuthenticate(sender, smsText, this.redeemxStore);
