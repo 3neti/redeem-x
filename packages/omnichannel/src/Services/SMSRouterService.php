@@ -60,6 +60,10 @@ class SMSRouterService
                     // re-run the pattern match
                     preg_match($regex, $msg, $matches);
                     array_shift($matches); // drop the full match
+                    
+                    // Add original message for flag parsing (always use key '_message')
+                    $matches['_message'] = $msg;
+                    
                     return $this->executeHandler($handler, $matches, $from, $to);
                 };
 
