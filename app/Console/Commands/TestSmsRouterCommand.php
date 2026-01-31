@@ -41,18 +41,25 @@ class TestSmsRouterCommand extends Command
         $this->line("   From: {$mobile}");
         $this->newLine();
         
-        // Find user by mobile number
-        try {
-            $user = User::where('mobile', $mobile)->firstOrFail();
-            $this->line("✅ Found user: {$user->email}");
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        // Find user by mobile number (via channels relationship)
+        $user = User::whereHas('channels', function ($q) use ($mobile) {
+            $q->where('name', 'mobile')
+              ->where(function ($sub) use ($mobile) {
+                  // Match both formats: 09173011987 and +639173011987
+                  $sub->where('value', 'LIKE', "%{$mobile}%")
+                      ->orWhere('value', 'LIKE', "%" . ltrim($mobile, '+0') . "%");
+              });
+        })->first();
+        
+        if ($user) {
+            $this->line("✅ Found user: {$user->name} ({$user->email})");
+        } else {
             $this->warn("⚠️  User not found with mobile: {$mobile}");
             $this->line("   Testing in unauthenticated mode (public endpoint)");
-            $user = null;
         }
         
         // Mock authenticated request
-        $this->app->instance('request', Request::create(
+        $this->laravel->instance('request', Request::create(
             '/sms',
             'POST',
             ['from' => $mobile, 'to' => '2929', 'message' => $message]
@@ -65,8 +72,8 @@ class TestSmsRouterCommand extends Command
         
         // Route through SMS router
         try {
-            $router = $this->app->make(SMSRouterService::class);
-            $response = $router->route($message, $mobile, '2929');
+            $router = $this->laravel->make(SMSRouterService::class);
+            $response = $router->handle($message, $mobile, '2929');
             
             $this->newLine();
             $this->info('📤 SMS Response:');

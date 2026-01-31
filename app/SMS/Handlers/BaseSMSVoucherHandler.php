@@ -1,6 +1,6 @@
 <?php
 
-namespace LBHurtado\OmniChannel\Handlers;
+namespace App\SMS\Handlers;
 
 use App\Models\Campaign;
 use App\Models\User;
