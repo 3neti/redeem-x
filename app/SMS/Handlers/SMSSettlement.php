@@ -38,6 +38,7 @@ class SMSSettlement extends BaseSMSVoucherHandler
             new InputOption('ttl', null, InputOption::VALUE_REQUIRED, 'TTL in days'),
             new InputOption('settlement-rail', null, InputOption::VALUE_REQUIRED, 'Settlement rail (instapay/pesonet/auto)'),
             new InputOption('inputs', null, InputOption::VALUE_REQUIRED, 'Input fields (comma-separated)'),
+            new InputOption('share', null, InputOption::VALUE_NONE, 'Include shareable link'),
         ]);
     }
 
@@ -102,6 +103,8 @@ class SMSSettlement extends BaseSMSVoucherHandler
         if ($vouchers->count() > 1) {
             $message .= sprintf(' • %d vouchers', $vouchers->count());
         }
+        
+        $message = $this->appendShareLinks($message, $vouchers, $options);
         
         return response()->json(['message' => $message]);
     }

@@ -6,6 +6,7 @@ namespace App\Notifications;
 
 use App\Services\InstructionsFormatter;
 use App\Services\TemplateProcessor;
+use App\Services\VoucherShareLinkBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -213,6 +214,15 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
             $context['instructions_formatted_sms'] = InstructionsFormatter::formatForSms($first->instructions, $format);
             // Use first voucher's instructions for email (full)
             $context['instructions_formatted'] = InstructionsFormatter::formatForEmail($first->instructions, $format);
+        }
+        
+        // Add shareable links if configured
+        $includeShareLinks = config('voucher-notifications.vouchers_generated.include_share_links', true);
+        if ($includeShareLinks) {
+            $links = VoucherShareLinkBuilder::buildLinks($first);
+            $context['share_links'] = "\n" . VoucherShareLinkBuilder::formatForSms($links);
+        } else {
+            $context['share_links'] = '';
         }
         
         return $context;
