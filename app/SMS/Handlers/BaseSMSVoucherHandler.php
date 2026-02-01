@@ -108,4 +108,20 @@ abstract class BaseSMSVoucherHandler implements SMSHandlerInterface
         
         return array_values($valid);
     }
+    
+    /**
+     * Normalize input fields array - converts enum objects to string values.
+     *
+     * @param array $fields Array of input fields (may contain VoucherInputField enums or strings)
+     * @return array Array of string values
+     */
+    protected function normalizeInputFields(array $fields): array
+    {
+        return array_map(
+            fn($field) => $field instanceof \LBHurtado\Voucher\Enums\VoucherInputField 
+                ? $field->value 
+                : $field,
+            $fields
+        );
+    }
 }

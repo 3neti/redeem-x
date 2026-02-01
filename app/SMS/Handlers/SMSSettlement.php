@@ -131,6 +131,11 @@ class SMSSettlement extends BaseSMSVoucherHandler
             $base['target_amount'] = $target;
             $base['count'] = $count;
             
+            // Normalize campaign input fields (convert enums to strings)
+            if (isset($base['inputs']['fields'])) {
+                $base['inputs']['fields'] = $this->normalizeInputFields($base['inputs']['fields']);
+            }
+            
             // Override inputs if provided via flag
             if (!empty($options['inputs'])) {
                 $base['inputs']['fields'] = $this->parseInputFields($options['inputs']);
