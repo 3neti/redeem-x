@@ -5,7 +5,7 @@ namespace App\SMS\Handlers;
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Support\Str;
-use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
+use LBHurtado\OmniChannel\Handlers\BaseSMSHandler;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Input\StringInput;
  * Provides common functionality for parsing command-line style SMS commands
  * using Symfony Console's StringInput parser.
  */
-abstract class BaseSMSVoucherHandler implements SMSHandlerInterface
+abstract class BaseSMSVoucherHandler extends BaseSMSHandler
 {
     /**
      * Parse an SMS command using Symfony Console's StringInput.

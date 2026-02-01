@@ -5,10 +5,8 @@ namespace LBHurtado\OmniChannel\Handlers;
 use App\Models\User;
 use App\Notifications\HelpNotification;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
-use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
 
-class SMSHelp implements SMSHandlerInterface
+class SMSHelp extends BaseSMSHandler
 {
     /**
      * Handle HELP SMS command.
@@ -18,41 +16,25 @@ class SMSHelp implements SMSHandlerInterface
      *
      * Syntax:
      *   HELP           - General help (all commands)
-     *   HELP {command} - Command-specific help (future)
+     *   HELP {command} - Command-specific help
      */
-    public function __invoke(array $values, string $from, string $to): JsonResponse
+    protected function handle(?User $user, array $values, string $from, string $to): JsonResponse
     {
-        Log::info('[SMSHelp] Processing HELP command', [
-            'from' => $from,
-            'to' => $to,
-            'values' => $values,
-        ]);
-
-        // User already authenticated by middleware
-        $user = request()->user();
-
-        if (!$user) {
-            Log::warning('[SMSHelp] Unauthenticated help request', ['mobile' => $from]);
-            return response()->json([
-                'message' => 'No account found. Send REGISTER to create one.',
-            ]);
-        }
-
-        // Get command-specific help if requested (future enhancement)
+        // Get command-specific help if requested
         $command = $values['command'] ?? null;
 
         if ($command) {
-            return $this->getCommandHelp($command);
+            return $this->getCommandHelp($user, $command);
         }
 
         // Return general help
-        return $this->getGeneralHelp();
+        return $this->getGeneralHelp($user);
     }
 
     /**
      * Get general help message with all commands.
      */
-    protected function getGeneralHelp(): JsonResponse
+    protected function getGeneralHelp(User $user): JsonResponse
     {
         $message = <<<'MSG'
 Commands:
@@ -78,21 +60,18 @@ sel=selfie kyc=identity
 HELP [cmd] for details
 MSG;
 
-        Log::info('[SMSHelp] General help sent', ['user_found' => true]);
+        $this->logInfo('General help sent');
 
         // Send notification (SMS)
-        $user = request()->user();
-        if ($user) {
-            $user->notify(new HelpNotification($message));
-        }
+        $this->sendNotification($user, new HelpNotification($message));
 
         return response()->json(['message' => $message]);
     }
 
     /**
-     * Get command-specific help (future enhancement).
+     * Get command-specific help.
      */
-    protected function getCommandHelp(string $command): JsonResponse
+    protected function getCommandHelp(User $user, string $command): JsonResponse
     {
         $command = strtoupper(trim($command));
 
@@ -106,16 +85,13 @@ MSG;
 
         if ($helpText) {
             // Send notification (SMS)
-            $user = request()->user();
-            if ($user) {
-                $user->notify(new HelpNotification($helpText));
-            }
+            $this->sendNotification($user, new HelpNotification($helpText));
             
             return response()->json(['message' => $helpText]);
         }
 
         // Command not found - return general help
-        return $this->getGeneralHelp();
+        return $this->getGeneralHelp($user);
     }
 
     /**

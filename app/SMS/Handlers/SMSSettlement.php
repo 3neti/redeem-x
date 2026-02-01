@@ -4,9 +4,9 @@ namespace App\SMS\Handlers;
 
 use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use App\Models\Campaign;
+use App\Models\User;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherType;
@@ -41,90 +41,69 @@ class SMSSettlement extends BaseSMSVoucherHandler
         ]);
     }
 
-    public function __invoke(array $values, string $from, string $to): JsonResponse
+    protected function handle(?User $user, array $values, string $from, string $to): JsonResponse
     {
-        // User already authenticated by middleware
-        $user = request()->user();
+        // Parse full message for flags using Symfony Console
+        $parsed = $this->parseCommand(
+            $values['_message'] ?? '',
+            $this->getInputDefinition()
+        );
         
-        try {
-            // Parse full message for flags using Symfony Console
-            $parsed = $this->parseCommand(
-                $values['_message'] ?? '',
-                $this->getInputDefinition()
-            );
-            
-            // Router also extracted {amount}/{target}, but parseCommand has them too
-            $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
-            $target = (float) ($parsed['arguments']['target'] ?? $values['target'] ?? 0);
-            $options = $parsed['options'];
-            
-            // Handle --campaign option
-            $campaign = null;
-            if (!empty($options['campaign'])) {
-                $campaign = $this->getCampaign($user, $options['campaign']);
-                if (!$campaign) {
-                    return response()->json([
-                        'message' => "❌ Campaign not found: {$options['campaign']}"
-                    ]);
-                }
-                
-                // Use campaign amounts if not provided
-                if ($amount <= 0) {
-                    $amount = $campaign->instructions->cash->amount;
-                }
-                if ($target <= 0) {
-                    $target = $campaign->instructions->target_amount ?? $amount;
-                }
+        // Router also extracted {amount}/{target}, but parseCommand has them too
+        $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
+        $target = (float) ($parsed['arguments']['target'] ?? $values['target'] ?? 0);
+        $options = $parsed['options'];
+        
+        // Handle --campaign option
+        $campaign = null;
+        if (!empty($options['campaign'])) {
+            $campaign = $this->getCampaign($user, $options['campaign']);
+            if (!$campaign) {
+                return $this->errorResponse("Campaign not found: {$options['campaign']}");
             }
             
-            // Validate amounts (after potentially using campaign defaults)
-            if ($amount <= 0 || $target <= 0) {
-                return response()->json([
-                    'message' => '❌ Invalid amounts. Both amount and target must be greater than 0.'
-                ]);
+            // Use campaign amounts if not provided
+            if ($amount <= 0) {
+                $amount = $campaign->instructions->cash->amount;
             }
-            
-            if ($target < $amount) {
-                return response()->json([
-                    'message' => '❌ Target amount must be greater than or equal to initial amount.'
-                ]);
+            if ($target <= 0) {
+                $target = $campaign->instructions->target_amount ?? $amount;
             }
-            
-            $instructions = $this->buildInstructions(
-                ['amount' => $amount, 'target' => $target, 'type' => 'settlement'],
-                $options,
-                $campaign
-            );
-            
-            $vouchers = BaseGenerateVouchers::run($instructions);
-            
-            $codes = $vouchers->pluck('code')->implode(', ');
-            $formattedAmount = Number::format($amount, locale: 'en_PH');
-            $formattedTarget = Number::format($target, locale: 'en_PH');
-            
-            $message = sprintf(
-                '✅ Settlement voucher(s) %s generated (₱%s → ₱%s)',
-                $codes,
-                $formattedAmount,
-                $formattedTarget
-            );
-            
-            if ($vouchers->count() > 1) {
-                $message .= sprintf(' • %d vouchers', $vouchers->count());
-            }
-            
-            return response()->json(['message' => $message]);
-            
-        } catch (\Throwable $e) {
-            Log::error('[SMSSettlement] Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            return response()->json([
-                'message' => '⚠️ Failed to generate settlement voucher. ' . $e->getMessage()
-            ]);
         }
+        
+        // Validate amounts (after potentially using campaign defaults)
+        if ($amount <= 0 || $target <= 0) {
+            return $this->errorResponse('Invalid amounts. Both amount and target must be greater than 0.');
+        }
+        
+        if ($target < $amount) {
+            return $this->errorResponse('Target amount must be greater than or equal to initial amount.');
+        }
+        
+        $instructions = $this->buildInstructions(
+            ['amount' => $amount, 'target' => $target, 'type' => 'settlement'],
+            $options,
+            $campaign
+        );
+        
+        $vouchers = BaseGenerateVouchers::run($instructions);
+        
+        $codes = $vouchers->pluck('code')->implode(', ');
+        $formattedAmount = Number::format($amount, locale: 'en_PH');
+        $formattedTarget = Number::format($target, locale: 'en_PH');
+        
+        $message = sprintf(
+            '✅ Settlement voucher(s) %s generated (₱%s → ₱%s)',
+            $codes,
+            $formattedAmount,
+            $formattedTarget
+        );
+        
+        if ($vouchers->count() > 1) {
+            $message .= sprintf(' • %d vouchers', $vouchers->count());
+        }
+        
+        return response()->json(['message' => $message]);
     }
 
     protected function buildInstructions(array $params, array $options, ?Campaign $campaign): VoucherInstructionsData
