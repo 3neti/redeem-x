@@ -4,9 +4,9 @@ namespace App\SMS\Handlers;
 
 use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use App\Models\Campaign;
+use App\Models\User;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherType;
@@ -39,78 +39,59 @@ class SMSPayable extends BaseSMSVoucherHandler
         ]);
     }
 
-    public function __invoke(array $values, string $from, string $to): JsonResponse
+    protected function handle(?User $user, array $values, string $from, string $to): JsonResponse
     {
-        // User already authenticated by middleware
-        $user = request()->user();
+        // Parse full message for flags using Symfony Console
+        $parsed = $this->parseCommand(
+            $values['_message'] ?? '',
+            $this->getInputDefinition()
+        );
         
-        try {
-            // Parse full message for flags using Symfony Console
-            $parsed = $this->parseCommand(
-                $values['_message'] ?? '',
-                $this->getInputDefinition()
-            );
-            
-            // Router also extracted {amount}, but parseCommand has it too
-            $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
-            $options = $parsed['options'];
-            
-            // Handle --campaign option
-            $campaign = null;
-            if (!empty($options['campaign'])) {
-                $campaign = $this->getCampaign($user, $options['campaign']);
-                if (!$campaign) {
-                    return response()->json([
-                        'message' => "❌ Campaign not found: {$options['campaign']}"
-                    ]);
-                }
-                
-                // Use campaign target amount if no amount provided
-                if ($amount <= 0) {
-                    $amount = $campaign->instructions->target_amount ?? 0;
-                }
+        // Router also extracted {amount}, but parseCommand has it too
+        $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
+        $options = $parsed['options'];
+        
+        // Handle --campaign option
+        $campaign = null;
+        if (!empty($options['campaign'])) {
+            $campaign = $this->getCampaign($user, $options['campaign']);
+            if (!$campaign) {
+                return $this->errorResponse("Campaign not found: {$options['campaign']}");
             }
             
-            // Validate amount (after potentially using campaign default)
+            // Use campaign target amount if no amount provided
             if ($amount <= 0) {
-                return response()->json([
-                    'message' => '❌ Invalid amount. Amount must be greater than 0.'
-                ]);
+                $amount = $campaign->instructions->target_amount ?? 0;
             }
-            
-            $instructions = $this->buildInstructions(
-                ['amount' => $amount, 'type' => 'payable'],
-                $options,
-                $campaign
-            );
-            
-            $vouchers = BaseGenerateVouchers::run($instructions);
-            
-            $codes = $vouchers->pluck('code')->implode(', ');
-            $formattedAmount = Number::format($amount, locale: 'en_PH');
-            
-            $message = sprintf(
-                '✅ Payable voucher(s) %s generated (Target: ₱%s)',
-                $codes,
-                $formattedAmount
-            );
-            
-            if ($vouchers->count() > 1) {
-                $message .= sprintf(' • %d vouchers', $vouchers->count());
-            }
-            
-            return response()->json(['message' => $message]);
-            
-        } catch (\Throwable $e) {
-            Log::error('[SMSPayable] Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            return response()->json([
-                'message' => '⚠️ Failed to generate payable voucher. ' . $e->getMessage()
-            ]);
         }
+        
+        // Validate amount (after potentially using campaign default)
+        if ($amount <= 0) {
+            return $this->errorResponse('Invalid amount. Amount must be greater than 0.');
+        }
+        
+        $instructions = $this->buildInstructions(
+            ['amount' => $amount, 'type' => 'payable'],
+            $options,
+            $campaign
+        );
+        
+        $vouchers = BaseGenerateVouchers::run($instructions);
+        
+        $codes = $vouchers->pluck('code')->implode(', ');
+        $formattedAmount = Number::format($amount, locale: 'en_PH');
+        
+        $message = sprintf(
+            '✅ Payable voucher(s) %s generated (Target: ₱%s)',
+            $codes,
+            $formattedAmount
+        );
+        
+        if ($vouchers->count() > 1) {
+            $message .= sprintf(' • %d vouchers', $vouchers->count());
+        }
+        
+        return response()->json(['message' => $message]);
     }
 
     protected function buildInstructions(array $params, array $options, ?Campaign $campaign): VoucherInstructionsData

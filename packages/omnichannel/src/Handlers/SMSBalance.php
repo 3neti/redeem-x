@@ -8,14 +8,9 @@ use App\Models\AccountBalance;
 use App\Models\User;
 use App\Notifications\BalanceNotification;
 use App\Services\BalanceService;
-use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
-use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
-class SMSBalance implements SMSHandlerInterface
+class SMSBalance extends BaseSMSHandler
 {
     /**
      * Bank balance staleness threshold (5 minutes)
@@ -30,29 +25,14 @@ class SMSBalance implements SMSHandlerInterface
     /**
      * Handle BALANCE SMS command.
      *
-     * @param array $values Parsed values from the SMS message.
-     * @param string $from Sender's phone number.
-     * @param string $to Receiver's phone number.
-     * @return JsonResponse The response to send back.
+     * @param User|null $user The authenticated user
+     * @param array $values Parsed values from the SMS message
+     * @param string $from Sender's phone number
+     * @param string $to Receiver's phone number
+     * @return JsonResponse The response to send back
      */
-    public function __invoke(array $values, string $from, string $to): JsonResponse
+    protected function handle(?User $user, array $values, string $from, string $to): JsonResponse
     {
-        Log::info('[SMSBalance] Processing BALANCE command', [
-            'from' => $from,
-            'to' => $to,
-            'values' => $values,
-        ]);
-
-        // Look up user by mobile number
-        $user = $this->findUserByMobile($from);
-
-        if (!$user) {
-            Log::warning('[SMSBalance] User not found', ['mobile' => $from]);
-            return response()->json([
-                'message' => 'No account found. Send REGISTER to create one.',
-            ]);
-        }
-
         // Check if --system flag is present
         $flag = $values['flag'] ?? null;
         $isSystemQuery = $flag && (strtolower($flag) === '--system' || strtolower($flag) === 'system');
@@ -69,34 +49,23 @@ class SMSBalance implements SMSHandlerInterface
      */
     protected function handleUserBalance(User $user, string $from): JsonResponse
     {
-        try {
-            $balance = BalanceData::fromWallet($user->wallet);
-            
-            $message = sprintf('Balance: %s', $this->formatMoney($balance->balance, 'PHP'));
+        $balance = BalanceData::fromWallet($user->wallet);
+        
+        $message = sprintf('Balance: %s', $this->formatMoney($balance->balance, 'PHP'));
 
-            Log::info('[SMSBalance] User balance retrieved', [
-                'user_id' => $user->id,
-                'balance' => $balance->balance,
-            ]);
+        $this->logInfo('User balance retrieved', [
+            'user_id' => $user->id,
+            'balance' => $balance->balance,
+        ]);
 
-            // Send notification (SMS, email, webhook)
-            $user->notify(new BalanceNotification(
-                type: 'user',
-                balances: ['wallet' => $balance->balance],
-                message: $message
-            ));
+        // Send notification (SMS, email, webhook)
+        $this->sendNotification($user, new BalanceNotification(
+            type: 'user',
+            balances: ['wallet' => $balance->balance],
+            message: $message
+        ));
 
-            return response()->json(['message' => $message]);
-        } catch (\Throwable $e) {
-            Log::error('[SMSBalance] Failed to get user balance', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'message' => 'Failed to retrieve balance. Please try again.',
-            ]);
-        }
+        return response()->json(['message' => $message]);
     }
 
     /**
@@ -106,14 +75,12 @@ class SMSBalance implements SMSHandlerInterface
     {
         // Check permission
         if (!$user->can('view-balances')) {
-            Log::warning('[SMSBalance] Unauthorized system balance request', [
+            $this->logWarning('Unauthorized system balance request', [
                 'user_id' => $user->id,
                 'email' => $user->email,
             ]);
 
-            return response()->json([
-                'message' => 'Unauthorized. Admin access required.',
-            ]);
+            return $this->errorResponse('Unauthorized. Admin access required.', 403);
         }
 
         try {
@@ -146,14 +113,14 @@ class SMSBalance implements SMSHandlerInterface
                 $balances['bank_stale'] = $bankBalanceData['stale'];
             }
 
-            Log::info('[SMSBalance] System balance retrieved', [
+            $this->logInfo('System balance retrieved', [
                 'user_id' => $user->id,
                 'system' => $systemBalance,
                 'products' => $productsBalance,
             ]);
 
             // Send notification (SMS, email, webhook)
-            $user->notify(new BalanceNotification(
+            $this->sendNotification($user, new BalanceNotification(
                 type: 'system',
                 balances: $balances
             ));
@@ -178,14 +145,7 @@ class SMSBalance implements SMSHandlerInterface
 
             return response()->json(['message' => $message]);
         } catch (\Throwable $e) {
-            Log::error('[SMSBalance] Failed to get system balance', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'message' => 'Failed to retrieve system balance. Please try again.',
-            ]);
+            throw $e; // Let base handler catch and log
         }
     }
 
@@ -217,7 +177,7 @@ class SMSBalance implements SMSHandlerInterface
             // Fall back to cached balance
             return $this->getCachedBankBalanceData($accountNumber);
         } catch (\Throwable $e) {
-            Log::error('[SMSBalance] Failed to get bank balance', [
+            $this->logError('Failed to get bank balance', [
                 'error' => $e->getMessage(),
             ]);
 
@@ -242,7 +202,7 @@ class SMSBalance implements SMSHandlerInterface
             $elapsed = microtime(true) - $startTime;
 
             if ($elapsed > self::API_TIMEOUT_SECONDS) {
-                Log::warning('[SMSBalance] Bank API timeout', [
+                $this->logWarning('Bank API timeout', [
                     'elapsed' => $elapsed,
                     'account' => $accountNumber,
                 ]);
@@ -255,7 +215,7 @@ class SMSBalance implements SMSHandlerInterface
                 'checked_at' => $balance->checked_at,
             ];
         } catch (\Throwable $e) {
-            Log::warning('[SMSBalance] Bank API failed, using cache', [
+            $this->logWarning('Bank API failed, using cache', [
                 'error' => $e->getMessage(),
             ]);
             return null;
@@ -291,45 +251,6 @@ class SMSBalance implements SMSHandlerInterface
             'timestamp' => $timestamp,
             'stale' => $isStale,
         ];
-    }
-
-    /**
-     * Find user by mobile number.
-     */
-    protected function findUserByMobile(string $mobile): ?User
-    {
-        // Try exact match first
-        $user = User::whereHas('channels', function ($q) use ($mobile) {
-            $q->where('name', 'mobile')
-                ->where('value', $mobile);
-        })->first();
-
-        if ($user) {
-            return $user;
-        }
-
-        // Try with variations (with/without country code, leading zero)
-        return User::whereHas('channels', function ($q) use ($mobile) {
-            $q->where('name', 'mobile')
-                ->where(function ($sub) use ($mobile) {
-                    $sub->where('value', 'LIKE', "%{$mobile}%")
-                        ->orWhere('value', 'LIKE', '%' . ltrim($mobile, '0') . '%');
-                });
-        })->first();
-    }
-
-    /**
-     * Format money with thousands separator.
-     */
-    protected function formatMoney(float $amount, string $currency): string
-    {
-        try {
-            $money = Money::of($amount, $currency);
-            return $money->formatTo('en_PH');
-        } catch (\Throwable $e) {
-            // Fallback formatting
-            return '₱' . number_format($amount, 2);
-        }
     }
 
 }
