@@ -4,6 +4,8 @@ namespace App\SMS\Handlers;
 
 use App\Models\Campaign;
 use App\Models\User;
+use App\Services\VoucherShareLinkBuilder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use LBHurtado\OmniChannel\Handlers\BaseSMSHandler;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
@@ -151,5 +153,25 @@ abstract class BaseSMSVoucherHandler extends BaseSMSHandler
         
         // Return as-is (null, string, etc.)
         return $ttl;
+    }
+    
+    /**
+     * Append shareable link(s) to message if --share flag is present.
+     *
+     * @param string $message The base message
+     * @param Collection $vouchers Collection of generated vouchers
+     * @param array $options Parsed command options
+     * @return string Message with shareable link(s) appended if --share flag present
+     */
+    protected function appendShareLinks(string $message, Collection $vouchers, array $options): string
+    {
+        if (empty($options['share'])) {
+            return $message;
+        }
+        
+        $first = $vouchers->first();
+        $links = VoucherShareLinkBuilder::buildLinks($first);
+        
+        return $message . "\n" . VoucherShareLinkBuilder::formatForSms($links);
     }
 }

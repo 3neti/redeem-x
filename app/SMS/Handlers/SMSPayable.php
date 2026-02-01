@@ -36,6 +36,7 @@ class SMSPayable extends BaseSMSVoucherHandler
             new InputOption('mask', null, InputOption::VALUE_REQUIRED, 'Voucher code mask'),
             new InputOption('ttl', null, InputOption::VALUE_REQUIRED, 'TTL in days'),
             new InputOption('inputs', null, InputOption::VALUE_REQUIRED, 'Input fields (comma-separated)'),
+            new InputOption('share', null, InputOption::VALUE_NONE, 'Include shareable link'),
         ]);
     }
 
@@ -90,6 +91,8 @@ class SMSPayable extends BaseSMSVoucherHandler
         if ($vouchers->count() > 1) {
             $message .= sprintf(' • %d vouchers', $vouchers->count());
         }
+        
+        $message = $this->appendShareLinks($message, $vouchers, $options);
         
         return response()->json(['message' => $message]);
     }

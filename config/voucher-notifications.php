@@ -45,6 +45,19 @@ return [
         | Default: human
         */
         'instructions_format' => env('VOUCHER_INSTRUCTIONS_FORMAT', 'human'),
+
+        /*
+        | Include shareable links in voucher generation notifications.
+        | 
+        | When enabled, notifications will include shareable links based on voucher type:
+        | - REDEEMABLE: /disburse?code=ABCD
+        | - PAYABLE: /pay?code=EFGH
+        | - SETTLEMENT: Both links
+        |
+        | Environment variable: VOUCHER_INCLUDE_SHARE_LINKS
+        | Default: true
+        */
+        'include_share_links' => env('VOUCHER_INCLUDE_SHARE_LINKS', true),
     ],
 
     'balance' => [
