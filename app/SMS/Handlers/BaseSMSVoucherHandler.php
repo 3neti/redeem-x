@@ -78,4 +78,34 @@ abstract class BaseSMSVoucherHandler implements SMSHandlerInterface
      * @return VoucherInstructionsData
      */
     abstract protected function buildInstructions(array $arguments, array $options, ?Campaign $campaign): VoucherInstructionsData;
+    
+    /**
+     * Parse comma-separated input fields with alias support.
+     *
+     * @param string $inputsString Comma-separated field names (e.g., "location,selfie" or "loc,sel")
+     * @return array Array of valid VoucherInputField values
+     */
+    protected function parseInputFields(string $inputsString): array
+    {
+        // Alias mapping for convenience
+        $aliases = [
+            'loc' => 'location',
+            'sig' => 'signature',
+            'sel' => 'selfie',
+            'ref' => 'reference_code',
+            'addr' => 'address',
+            'birth' => 'birth_date',
+            'income' => 'gross_monthly_income',
+        ];
+        
+        // Parse and normalize
+        $fields = array_map('trim', explode(',', strtolower($inputsString)));
+        $resolved = array_map(fn($f) => $aliases[$f] ?? $f, $fields);
+        
+        // Validate against VoucherInputField enum
+        $validFields = \LBHurtado\Voucher\Enums\VoucherInputField::values();
+        $valid = array_filter($resolved, fn($f) => in_array($f, $validFields));
+        
+        return array_values($valid);
+    }
 }

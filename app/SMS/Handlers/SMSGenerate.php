@@ -34,6 +34,7 @@ class SMSGenerate extends BaseSMSVoucherHandler
             new InputOption('mask', null, InputOption::VALUE_REQUIRED, 'Voucher code mask'),
             new InputOption('ttl', null, InputOption::VALUE_REQUIRED, 'TTL in days'),
             new InputOption('settlement-rail', null, InputOption::VALUE_REQUIRED, 'Settlement rail (INSTAPAY/PESONET)'),
+            new InputOption('inputs', null, InputOption::VALUE_REQUIRED, 'Input fields (comma-separated)'),
         ]);
     }
 
@@ -116,9 +117,14 @@ class SMSGenerate extends BaseSMSVoucherHandler
         // Start with campaign instructions if available
         if ($campaign) {
             $base = $campaign->instructions->toArray();
-            // Override amount and count
+            // Override amount, count, and inputs
             $base['cash']['amount'] = $amount;
             $base['count'] = $count;
+            
+            // Override inputs if provided via flag
+            if (!empty($options['inputs'])) {
+                $base['inputs']['fields'] = $this->parseInputFields($options['inputs']);
+            }
         } else {
             $base = [
                 'cash' => [
@@ -137,7 +143,11 @@ class SMSGenerate extends BaseSMSVoucherHandler
                 ],
                 'voucher_type' => null, // redeemable
                 'target_amount' => null,
-                'inputs' => ['fields' => []],
+                'inputs' => [
+                    'fields' => !empty($options['inputs']) 
+                        ? $this->parseInputFields($options['inputs'])
+                        : []
+                ],
                 'feedback' => [
                     'email' => null,
                     'mobile' => null,

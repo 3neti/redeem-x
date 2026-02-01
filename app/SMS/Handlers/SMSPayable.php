@@ -35,6 +35,7 @@ class SMSPayable extends BaseSMSVoucherHandler
             new InputOption('prefix', null, InputOption::VALUE_REQUIRED, 'Voucher code prefix'),
             new InputOption('mask', null, InputOption::VALUE_REQUIRED, 'Voucher code mask'),
             new InputOption('ttl', null, InputOption::VALUE_REQUIRED, 'TTL in days'),
+            new InputOption('inputs', null, InputOption::VALUE_REQUIRED, 'Input fields (comma-separated)'),
         ]);
     }
 
@@ -117,6 +118,11 @@ class SMSPayable extends BaseSMSVoucherHandler
             $base['target_amount'] = $amount;
             $base['cash']['amount'] = 0; // Payable vouchers start at 0
             $base['count'] = $count;
+            
+            // Override inputs if provided via flag
+            if (!empty($options['inputs'])) {
+                $base['inputs']['fields'] = $this->parseInputFields($options['inputs']);
+            }
         } else {
             $base = [
                 'cash' => [
@@ -135,7 +141,11 @@ class SMSPayable extends BaseSMSVoucherHandler
                 ],
                 'voucher_type' => VoucherType::PAYABLE->value,
                 'target_amount' => $amount,
-                'inputs' => ['fields' => []],
+                'inputs' => [
+                    'fields' => !empty($options['inputs']) 
+                        ? $this->parseInputFields($options['inputs'])
+                        : []
+                ],
                 'feedback' => [
                     'email' => null,
                     'mobile' => null,

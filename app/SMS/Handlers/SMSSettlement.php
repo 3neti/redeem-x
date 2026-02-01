@@ -37,6 +37,7 @@ class SMSSettlement extends BaseSMSVoucherHandler
             new InputOption('mask', null, InputOption::VALUE_REQUIRED, 'Voucher code mask'),
             new InputOption('ttl', null, InputOption::VALUE_REQUIRED, 'TTL in days'),
             new InputOption('settlement-rail', null, InputOption::VALUE_REQUIRED, 'Settlement rail (instapay/pesonet/auto)'),
+            new InputOption('inputs', null, InputOption::VALUE_REQUIRED, 'Input fields (comma-separated)'),
         ]);
     }
 
@@ -129,6 +130,11 @@ class SMSSettlement extends BaseSMSVoucherHandler
             $base['cash']['amount'] = $amount;
             $base['target_amount'] = $target;
             $base['count'] = $count;
+            
+            // Override inputs if provided via flag
+            if (!empty($options['inputs'])) {
+                $base['inputs']['fields'] = $this->parseInputFields($options['inputs']);
+            }
         } else {
             $base = [
                 'cash' => [
@@ -147,7 +153,11 @@ class SMSSettlement extends BaseSMSVoucherHandler
                 ],
                 'voucher_type' => VoucherType::SETTLEMENT->value,
                 'target_amount' => $target,
-                'inputs' => ['fields' => []],
+                'inputs' => [
+                    'fields' => !empty($options['inputs']) 
+                        ? $this->parseInputFields($options['inputs'])
+                        : []
+                ],
                 'feedback' => [
                     'email' => null,
                     'mobile' => null,
