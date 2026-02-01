@@ -28,7 +28,7 @@ class SMSPayable extends BaseSMSVoucherHandler
     {
         return new InputDefinition([
             new InputArgument('command', InputArgument::REQUIRED),
-            new InputArgument('amount', InputArgument::REQUIRED),
+            new InputArgument('amount', InputArgument::OPTIONAL), // Optional - uses campaign target amount if not provided
             new InputOption('count', null, InputOption::VALUE_REQUIRED, 'Number of vouchers', 1),
             new InputOption('campaign', null, InputOption::VALUE_REQUIRED, 'Campaign name'),
             new InputOption('rider-message', null, InputOption::VALUE_REQUIRED, 'Rider message'),
@@ -55,12 +55,6 @@ class SMSPayable extends BaseSMSVoucherHandler
             $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
             $options = $parsed['options'];
             
-            if ($amount <= 0) {
-                return response()->json([
-                    'message' => '❌ Invalid amount. Amount must be greater than 0.'
-                ]);
-            }
-            
             // Handle --campaign option
             $campaign = null;
             if (!empty($options['campaign'])) {
@@ -70,6 +64,18 @@ class SMSPayable extends BaseSMSVoucherHandler
                         'message' => "❌ Campaign not found: {$options['campaign']}"
                     ]);
                 }
+                
+                // Use campaign target amount if no amount provided
+                if ($amount <= 0) {
+                    $amount = $campaign->instructions->target_amount ?? 0;
+                }
+            }
+            
+            // Validate amount (after potentially using campaign default)
+            if ($amount <= 0) {
+                return response()->json([
+                    'message' => '❌ Invalid amount. Amount must be greater than 0.'
+                ]);
             }
             
             $instructions = $this->buildInstructions(

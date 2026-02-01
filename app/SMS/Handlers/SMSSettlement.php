@@ -28,8 +28,8 @@ class SMSSettlement extends BaseSMSVoucherHandler
     {
         return new InputDefinition([
             new InputArgument('command', InputArgument::REQUIRED),
-            new InputArgument('amount', InputArgument::REQUIRED),
-            new InputArgument('target', InputArgument::REQUIRED),
+            new InputArgument('amount', InputArgument::OPTIONAL), // Optional - uses campaign amount if not provided
+            new InputArgument('target', InputArgument::OPTIONAL), // Optional - uses campaign target if not provided
             new InputOption('count', null, InputOption::VALUE_REQUIRED, 'Number of vouchers', 1),
             new InputOption('campaign', null, InputOption::VALUE_REQUIRED, 'Campaign name'),
             new InputOption('rider-message', null, InputOption::VALUE_REQUIRED, 'Rider message'),
@@ -58,6 +58,26 @@ class SMSSettlement extends BaseSMSVoucherHandler
             $target = (float) ($parsed['arguments']['target'] ?? $values['target'] ?? 0);
             $options = $parsed['options'];
             
+            // Handle --campaign option
+            $campaign = null;
+            if (!empty($options['campaign'])) {
+                $campaign = $this->getCampaign($user, $options['campaign']);
+                if (!$campaign) {
+                    return response()->json([
+                        'message' => "❌ Campaign not found: {$options['campaign']}"
+                    ]);
+                }
+                
+                // Use campaign amounts if not provided
+                if ($amount <= 0) {
+                    $amount = $campaign->instructions->cash->amount;
+                }
+                if ($target <= 0) {
+                    $target = $campaign->instructions->target_amount ?? $amount;
+                }
+            }
+            
+            // Validate amounts (after potentially using campaign defaults)
             if ($amount <= 0 || $target <= 0) {
                 return response()->json([
                     'message' => '❌ Invalid amounts. Both amount and target must be greater than 0.'
@@ -68,17 +88,6 @@ class SMSSettlement extends BaseSMSVoucherHandler
                 return response()->json([
                     'message' => '❌ Target amount must be greater than or equal to initial amount.'
                 ]);
-            }
-            
-            // Handle --campaign option
-            $campaign = null;
-            if (!empty($options['campaign'])) {
-                $campaign = $this->getCampaign($user, $options['campaign']);
-                if (!$campaign) {
-                    return response()->json([
-                        'message' => "❌ Campaign not found: {$options['campaign']}"
-                    ]);
-                }
             }
             
             $instructions = $this->buildInstructions(
