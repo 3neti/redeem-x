@@ -3,6 +3,7 @@
 namespace LBHurtado\OmniChannel\Handlers;
 
 use App\Models\User;
+use App\Notifications\HelpNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
@@ -53,41 +54,37 @@ class SMSHelp implements SMSHandlerInterface
      */
     protected function getGeneralHelp(): JsonResponse
     {
-        $message = <<<'HELP'
-SMS Commands:
-
-💰 BALANCE
-Check wallet balance
+        $message = <<<'MSG'
+Commands:
 BALANCE
-BALANCE --system (admin)
+GENERATE amt
+PAYABLE amt
+SETTLEMENT amt target
 
-🎫 GENERATE amount
-Create voucher
+Examples:
 GENERATE 500
 GENERATE --campaign="Name"
-GENERATE 100 --inputs=loc,sel --count=3
+GENERATE 100 --inputs=loc,sel
 
-📋 PAYABLE amount
-Create invoice
-PAYABLE 2000
-
-🏦 SETTLEMENT amount target
-Create loan
-SETTLEMENT 5000 10000
-
-Common flags:
---campaign="Name" (template)
+Flags:
+--campaign="Name"
 --inputs=loc,sig,sel,kyc
 --count=5 --ttl=30
 
-Input aliases:
+Aliases:
 loc=location sig=signature
 sel=selfie kyc=identity
 
-Reply HELP {command} for details
-HELP;
+HELP [cmd] for details
+MSG;
 
         Log::info('[SMSHelp] General help sent', ['user_found' => true]);
+
+        // Send notification (SMS)
+        $user = request()->user();
+        if ($user) {
+            $user->notify(new HelpNotification($message));
+        }
 
         return response()->json(['message' => $message]);
     }
@@ -108,6 +105,12 @@ HELP;
         };
 
         if ($helpText) {
+            // Send notification (SMS)
+            $user = request()->user();
+            if ($user) {
+                $user->notify(new HelpNotification($helpText));
+            }
+            
             return response()->json(['message' => $helpText]);
         }
 
