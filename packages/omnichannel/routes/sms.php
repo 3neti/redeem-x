@@ -1,7 +1,7 @@
 <?php
 
 use LBHurtado\OmniChannel\Middlewares\{AutoReplySMS, CleanSMS, LogSMS, RateLimitSMS, StoreSMS};
-use LBHurtado\OmniChannel\Handlers\{SMSAutoRegister, SMSBalance, SMSRegister};
+use LBHurtado\OmniChannel\Handlers\{SMSAutoRegister, SMSBalance, SMSHelp, SMSRegister};
 use App\SMS\Handlers\{SMSGenerate, SMSPayable, SMSSettlement};
 use LBHurtado\OmniChannel\Services\SMSRouterService;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +13,7 @@ $router = resolve(SMSRouterService::class);
 $router->register('REGISTER {mobile?} {extra?}', SMSRegister::class);
 $router->register('REG {email} {extra?}', SMSAutoRegister::class);
 $router->register('BALANCE {flag?}', SMSBalance::class);
+$router->register('HELP {command?}', SMSHelp::class);
 
 // Voucher generation commands (must be registered before catchall)
 // {extra?} captures optional flags like --count=3 --campaign="Name"
