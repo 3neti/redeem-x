@@ -8,7 +8,10 @@ use LBHurtado\PaymentGateway\Omnipay\Netbank\Message\{
     DisburseRequest,
     ConfirmDisbursementRequest,
     CheckBalanceRequest,
-    CheckDisbursementStatusRequest
+    CheckDisbursementStatusRequest,
+    CreateCustomerRequest,
+    CreateAccountRequest,
+    GetAccountTypesRequest
 };
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 
@@ -37,6 +40,9 @@ class Gateway extends AbstractGateway
             'qrEndpoint' => '',
             'statusEndpoint' => '',
             'balanceEndpoint' => '',
+            'customerEndpoint' => '',  // Account-As-A-Service
+            'accountEndpoint' => '',    // Account-As-A-Service
+            'accountTypesEndpoint' => '',  // Account-As-A-Service
             'testMode' => false,
             'rails' => [],
         ];
@@ -124,6 +130,36 @@ class Gateway extends AbstractGateway
         return $this->setParameter('balanceEndpoint', $value);
     }
     
+    public function getCustomerEndpoint(): string
+    {
+        return $this->getParameter('customerEndpoint');
+    }
+    
+    public function setCustomerEndpoint($value)
+    {
+        return $this->setParameter('customerEndpoint', $value);
+    }
+    
+    public function getAccountEndpoint(): string
+    {
+        return $this->getParameter('accountEndpoint');
+    }
+    
+    public function setAccountEndpoint($value)
+    {
+        return $this->setParameter('accountEndpoint', $value);
+    }
+    
+    public function getAccountTypesEndpoint(): string
+    {
+        return $this->getParameter('accountTypesEndpoint');
+    }
+    
+    public function setAccountTypesEndpoint($value)
+    {
+        return $this->setParameter('accountTypesEndpoint', $value);
+    }
+    
     public function getTestMode()
     {
         return $this->getParameter('testMode');
@@ -202,5 +238,29 @@ class Gateway extends AbstractGateway
     public function checkDisbursementStatus(array $options = []): CheckDisbursementStatusRequest
     {
         return $this->createRequest(CheckDisbursementStatusRequest::class, $options);
+    }
+    
+    /**
+     * Create a customer record (Account-As-A-Service)
+     */
+    public function createCustomer(array $options = []): CreateCustomerRequest
+    {
+        return $this->createRequest(CreateCustomerRequest::class, $options);
+    }
+    
+    /**
+     * Create a bank account for a customer (Account-As-A-Service)
+     */
+    public function createAccount(array $options = []): CreateAccountRequest
+    {
+        return $this->createRequest(CreateAccountRequest::class, $options);
+    }
+    
+    /**
+     * Get available account types (Account-As-A-Service)
+     */
+    public function getAccountTypes(array $options = []): GetAccountTypesRequest
+    {
+        return $this->createRequest(GetAccountTypesRequest::class, $options);
     }
 }

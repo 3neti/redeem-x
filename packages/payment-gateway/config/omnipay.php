@@ -18,6 +18,9 @@ return [
                 'qrEndpoint' => env('NETBANK_QR_ENDPOINT'),
                 'statusEndpoint' => env('NETBANK_STATUS_ENDPOINT'),
                 'balanceEndpoint' => env('NETBANK_BALANCE_ENDPOINT'),
+                'customerEndpoint' => env('NETBANK_CUSTOMER_ENDPOINT'),
+                'accountEndpoint' => env('NETBANK_ACCOUNT_ENDPOINT'),
+                'accountTypesEndpoint' => env('NETBANK_ACCOUNT_TYPES_ENDPOINT'),
                 'testMode' => env('NETBANK_TEST_MODE', false),
 
                 // Disbursement defaults
