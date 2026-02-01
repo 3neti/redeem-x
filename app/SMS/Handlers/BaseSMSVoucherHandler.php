@@ -124,4 +124,32 @@ abstract class BaseSMSVoucherHandler implements SMSHandlerInterface
             $fields
         );
     }
+    
+    /**
+     * Normalize TTL value - converts CarbonInterval objects back to proper form.
+     *
+     * @param mixed $ttl TTL value (may be CarbonInterval, array, or null)
+     * @return mixed Normalized TTL value
+     */
+    protected function normalizeTtl(mixed $ttl): mixed
+    {
+        // Already a CarbonInterval - return as-is
+        if ($ttl instanceof \Carbon\CarbonInterval) {
+            return $ttl;
+        }
+        
+        // Array from toArray() serialization - reconstruct
+        if (is_array($ttl) && isset($ttl['d'])) {
+            // This is a serialized CarbonInterval - reconstruct it
+            return \Carbon\CarbonInterval::days($ttl['d'])
+                ->addMonths($ttl['m'] ?? 0)
+                ->addYears($ttl['y'] ?? 0)
+                ->addHours($ttl['h'] ?? 0)
+                ->addMinutes($ttl['i'] ?? 0)
+                ->addSeconds($ttl['s'] ?? 0);
+        }
+        
+        // Return as-is (null, string, etc.)
+        return $ttl;
+    }
 }

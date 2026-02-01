@@ -48,6 +48,19 @@ class CarbonIntervalCast implements Cast
             return null;
         }
 
+        // Array → reconstructfrom serialized CarbonInterval
+        if (is_array($value) && isset($value['d'])) {
+            if (self::DEBUG) {
+                Log::debug("[CarbonIntervalCast] \"{$name}\" array with 'd' key, reconstructing CarbonInterval");
+            }
+            return CarbonInterval::days($value['d'])
+                ->addMonths($value['m'] ?? 0)
+                ->addYears($value['y'] ?? 0)
+                ->addHours($value['h'] ?? 0)
+                ->addMinutes($value['i'] ?? 0)
+                ->addSeconds($value['s'] ?? 0);
+        }
+        
         // Numeric → seconds
         if (is_numeric($value)) {
             if (self::DEBUG) {

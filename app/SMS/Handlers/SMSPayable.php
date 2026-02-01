@@ -130,6 +130,11 @@ class SMSPayable extends BaseSMSVoucherHandler
                 $base['inputs']['fields'] = $this->normalizeInputFields($base['inputs']['fields']);
             }
             
+            // Normalize TTL (convert serialized array back to CarbonInterval)
+            if (isset($base['ttl'])) {
+                $base['ttl'] = $this->normalizeTtl($base['ttl']);
+            }
+            
             // Override inputs if provided via flag
             if (!empty($options['inputs'])) {
                 $base['inputs']['fields'] = $this->parseInputFields($options['inputs']);

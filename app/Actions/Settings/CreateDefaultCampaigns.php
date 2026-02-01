@@ -4,6 +4,7 @@ namespace App\Actions\Settings;
 
 use App\Models\Campaign;
 use App\Models\User;
+use Carbon\CarbonInterval;
 use Illuminate\Support\Str;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 
@@ -48,7 +49,7 @@ class CreateDefaultCampaigns
                 'count' => 1,
                 'prefix' => '',
                 'mask' => '****',
-                'ttl' => 1,
+                'ttl' => CarbonInterval::days(1),
             ]),
         ]);
 
@@ -86,7 +87,7 @@ class CreateDefaultCampaigns
                 'count' => 1,
                 'prefix' => '',
                 'mask' => '****',
-                'ttl' => 3,
+                'ttl' => CarbonInterval::days(3),
             ]),
         ]);
 
@@ -124,7 +125,7 @@ class CreateDefaultCampaigns
                 'count' => 1,
                 'prefix' => '',
                 'mask' => '****',
-                'ttl' => 7,
+                'ttl' => CarbonInterval::days(7),
             ]),
         ]);
     }
