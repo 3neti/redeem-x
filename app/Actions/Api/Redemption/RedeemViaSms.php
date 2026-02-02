@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Classes\BankAccount;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\Voucher\Models\Voucher;
+use LBHurtado\Voucher\Enums\VoucherType;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -57,6 +58,23 @@ class RedeemViaSms
 
             if ($voucher->isExpired()) {
                 return ApiResponse::error('This voucher has expired.', 422);
+            }
+
+            // Defensive: Check voucher type (PAYABLE vouchers cannot be redeemed)
+            if ($voucher->voucher_type === VoucherType::PAYABLE) {
+                $paymentUrl = config('app.url') . '/pay?code=' . $voucherCode;
+                
+                Log::info('[RedeemViaSms] PAYABLE voucher - redirect to payment', [
+                    'voucher' => $voucherCode,
+                    'payment_url' => $paymentUrl,
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => 'payment_required',
+                    'message' => 'This voucher is for receiving payments. Please use the payment link.',
+                    'payment_url' => $paymentUrl,
+                ], 422);
             }
 
             // Check if voucher is simple (no requirements)
