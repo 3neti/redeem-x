@@ -13,7 +13,8 @@
 
 ### [Guides](guides/) - How-To Documentation
 - **[Features](guides/features/)** - Feature implementation guides
-  - [Bank Integration](guides/features/BANK_INTEGRATION_GUIDE.md), [Feature Flags](guides/features/FEATURE_ENABLEMENT_STRATEGY.md), [Notifications](guides/features/NOTIFICATION_TEMPLATES.md)
+  - [Bank Integration](guides/features/BANK_INTEGRATION_GUIDE.md), [Feature Flags](guides/features/FEATURE_ENABLEMENT_STRATEGY.md)
+  - **Notifications**: [Architecture](guides/features/NOTIFICATION_SYSTEM.md), [Templates](guides/features/NOTIFICATION_TEMPLATES.md), [Triggers & Recipients](guides/features/NOTIFICATION_TRIGGERS_AND_RECIPIENTS.md)
 - **[Testing](guides/testing/)** - Test plans & procedures
   - [Testing Plan](guides/testing/TESTING_PLAN.md), [Settlement Testing](guides/testing/SETTLEMENT_TESTING_GUIDE.md)
 - **[AI Development](guides/ai-development/)** - AI-assisted dev guides
