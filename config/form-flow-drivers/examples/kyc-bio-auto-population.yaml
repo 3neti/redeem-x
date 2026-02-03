@@ -1,0 +1,402 @@
+# =============================================================================
+# KYC + Biometric Auto-Population Example
+# =============================================================================
+#
+# This example demonstrates:
+# 1. Handler plugins (location, selfie, signature, kyc, otp)
+# 2. Auto-population from previous step data
+# 3. Conditional field rendering within forms
+# 4. Real-world verification workflow
+#
+# Use Case:
+# - Financial services onboarding
+# - High-value transaction verification
+# - Digital wallet activation
+# - Identity verification flows
+#
+# Prerequisites:
+#   composer require 3neti/form-handler-location
+#   composer require 3neti/form-handler-selfie
+#   composer require 3neti/form-handler-signature
+#   composer require 3neti/form-handler-kyc
+#   composer require 3neti/form-handler-otp
+#
+# Test with:
+#   php artisan tinker
+#   >>> $service = app(LBHurtado\FormFlowManager\Services\DriverService::class);
+#   >>> $instructions = $service->loadDriver('examples/kyc-bio-auto-population', [
+#   ...     'reference_id' => 'wallet-' . time(),
+#   ...     'app_url' => url(''),
+#   ...     'user_name' => 'John Doe',  // Pre-known from auth
+#   ...     'user_email' => 'john@example.com',
+#   ...     'amount' => 5000,
+#   ...     'requires_full_kyc' => true,  // Amount > threshold
+#   ... ]);
+#
+# =============================================================================
+
+driver_name: "kyc-bio-auto-population"
+driver_version: "1.0"
+description: "KYC verification with biometric data and auto-population"
+
+reference_id: "verification-{{ timestamp }}"
+
+# =============================================================================
+# Steps Configuration
+# =============================================================================
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Welcome & Instructions
+  # ---------------------------------------------------------------------------
+  welcome:
+    handler: "splash"
+    step_name: "welcome"
+    
+    config:
+      title: "Identity Verification Required"
+      description: "For transactions over $1000, we need to verify your identity. This process takes 2-3 minutes."
+      button_text: "Start Verification"
+  
+  # ---------------------------------------------------------------------------
+  # Step 2: Mobile Number (Wallet Info)
+  # ---------------------------------------------------------------------------
+  wallet_info:
+    handler: "form"
+    step_name: "wallet_info"
+    
+    config:
+      title: "Mobile Wallet"
+      description: "Enter your mobile number for wallet activation"
+      
+      fields:
+        - name: "mobile"
+          type: "text"
+          label: "Mobile Number"
+          placeholder: "+639171234567"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "regex:/^\\+?[0-9]{10,15}$/"
+  
+  # ---------------------------------------------------------------------------
+  # Step 3: OTP Verification
+  # ---------------------------------------------------------------------------
+  otp_verify:
+    handler: "otp"
+    step_name: "otp_verification"
+    
+    config:
+      title: "Verify Mobile Number"
+      description: "Enter the 6-digit code sent to your mobile"
+      # mobile: Auto-populated from previous step (wallet_info.mobile)
+      # Handler reads from collected_data automatically
+  
+  # ---------------------------------------------------------------------------
+  # Step 4: Personal Information (with auto-population)
+  # ---------------------------------------------------------------------------
+  personal_info:
+    handler: "form"
+    step_name: "personal_info"
+    
+    config:
+      title: "Personal Information"
+      description: "Please verify and complete your details"
+      
+      fields:
+        # Auto-populated from context (if user already authenticated)
+        - name: "full_name"
+          type: "text"
+          label: "Full Name (as per ID)"
+          # Auto-populated from context.user_name if available
+          value: "{{ user_name ?? '' }}"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "min:2"
+            - "max:255"
+        
+        # Auto-populated from context
+        - name: "email"
+          type: "email"
+          label: "Email Address"
+          value: "{{ user_email ?? '' }}"
+          required: true
+          validation:
+            - "required"
+            - "email"
+        
+        # Auto-populated from previous step
+        - name: "mobile_confirmed"
+          type: "text"
+          label: "Confirmed Mobile Number"
+          # This demonstrates accessing previous step data via template
+          # Note: In production, handler should auto-populate from collected_data
+          value: "{{ wallet_info.mobile ?? '' }}"
+          readonly: true
+          required: true
+        
+        - name: "birth_date"
+          type: "date"
+          label: "Date of Birth"
+          required: true
+          validation:
+            - "required"
+            - "date"
+            - "before:18 years ago"  # Must be 18+
+        
+        - name: "address"
+          type: "textarea"
+          label: "Complete Address"
+          placeholder: "Street, City, Province, Postal Code"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "min:10"
+            - "max:500"
+  
+  # ---------------------------------------------------------------------------
+  # Step 5: Location Capture
+  # ---------------------------------------------------------------------------
+  location_capture:
+    handler: "location"
+    step_name: "location_data"
+    
+    config:
+      title: "Verify Your Location"
+      description: "We need to confirm your location for security purposes"
+      capture_snapshot: true
+      require_address: true
+      # Uses OpenCage for reverse geocoding (set OPENCAGE_API_KEY in .env)
+  
+  # ---------------------------------------------------------------------------
+  # Step 6: Selfie Capture
+  # ---------------------------------------------------------------------------
+  selfie_capture:
+    handler: "selfie"
+    step_name: "selfie_data"
+    
+    config:
+      title: "Take a Selfie"
+      description: "Take a clear photo of your face for identity verification"
+      max_file_size: 5120  # 5MB
+      allowed_formats: "jpg,jpeg,png"
+      # Camera will auto-activate on mobile devices
+  
+  # ---------------------------------------------------------------------------
+  # Step 7: Signature Capture
+  # ---------------------------------------------------------------------------
+  signature_capture:
+    handler: "signature"
+    step_name: "signature_data"
+    
+    config:
+      title: "Digital Signature"
+      description: "Sign here to confirm your identity and agreement"
+      width: 600
+      height: 256
+      # Signature pad will render on screen
+  
+  # ---------------------------------------------------------------------------
+  # Step 8: Conditional - Full KYC (only if amount > $1000)
+  # ---------------------------------------------------------------------------
+  kyc_verification:
+    handler: "kyc"
+    step_name: "kyc_data"
+    
+    # CONDITION: Only required for high-value transactions
+    condition: "{{ requires_full_kyc }}"
+    
+    config:
+      title: "Government ID Verification"
+      description: "Upload and verify your government-issued ID"
+      # HyperVerge integration
+      # Redirects to HyperVerge app for ID + selfie verification
+      # Returns with: status, transaction_id, name, dob, id_number, etc.
+  
+  # ---------------------------------------------------------------------------
+  # Step 9: Review & Confirmation (with collected data preview)
+  # ---------------------------------------------------------------------------
+  review:
+    handler: "form"
+    step_name: "confirmation"
+    
+    config:
+      title: "Review Your Information"
+      description: "Please review all details before submitting"
+      
+      fields:
+        # Display collected data as readonly fields
+        - name: "confirm_name"
+          type: "text"
+          label: "Full Name"
+          value: "{{ personal_info.full_name ?? '' }}"
+          readonly: true
+        
+        - name: "confirm_mobile"
+          type: "text"
+          label: "Mobile Number"
+          value: "{{ wallet_info.mobile ?? '' }}"
+          readonly: true
+        
+        - name: "confirm_location"
+          type: "text"
+          label: "Location"
+          value: "{{ location_data.formatted_address ?? 'GPS Coordinates Captured' }}"
+          readonly: true
+        
+        # Confirmation checkbox
+        - name: "data_accuracy"
+          type: "checkbox"
+          label: "I confirm that all information provided is accurate"
+          required: true
+          validation:
+            - "required"
+            - "accepted"
+        
+        - name: "terms_consent"
+          type: "checkbox"
+          label: "I agree to data processing for verification purposes"
+          required: true
+          validation:
+            - "required"
+            - "accepted"
+
+# =============================================================================
+# Callbacks
+# =============================================================================
+callbacks:
+  on_complete: "{{ app_url }}/api/kyc/process"
+  on_cancel: "{{ app_url }}/wallet/cancel"
+
+# =============================================================================
+# Auto-Population Patterns Demonstrated
+# =============================================================================
+#
+# 1. From Context Variables (Pre-Known Data)
+#    fields:
+#      - name: "email"
+#        value: "{{ user_email ?? '' }}"
+#
+#    Usage: Auto-fill from authenticated user data
+#
+# 2. From Previous Step Data (Cross-Step Reference)
+#    fields:
+#      - name: "mobile_confirmed"
+#        value: "{{ wallet_info.mobile ?? '' }}"
+#
+#    Usage: Display data from earlier step (readonly confirmation)
+#
+# 3. Handler Auto-Population (Handler Logic)
+#    OTP Handler automatically reads mobile from collected_data['wallet_info']['mobile']
+#    No explicit template needed - handler accesses $context['collected_data']
+#
+# 4. Readonly Fields (Display Only)
+#    fields:
+#      - name: "confirm_name"
+#        readonly: true
+#
+#    Usage: Show collected data for review without allowing edits
+#
+# 5. Conditional Field Values
+#    fields:
+#      - name: "kyc_status"
+#        value: "{{ requires_full_kyc ? 'Required' : 'Not Required' }}"
+#        condition: "{{ requires_full_kyc }}"
+#
+#    Usage: Dynamic field visibility and values based on context
+#
+# =============================================================================
+# Collected Data Structure (All Steps Completed)
+# =============================================================================
+# {
+#   "0": {},  // welcome
+#   "1": {    // wallet_info
+#     "mobile": "+639171234567"
+#   },
+#   "2": {    // otp_verification
+#     "otp_code": "123456",
+#     "verified_at": "2026-02-03T12:00:00+00:00"
+#   },
+#   "3": {    // personal_info
+#     "full_name": "John Doe",
+#     "email": "john@example.com",
+#     "mobile_confirmed": "+639171234567",
+#     "birth_date": "1990-01-01",
+#     "address": "123 Main St, Manila"
+#   },
+#   "4": {    // location_data
+#     "latitude": 14.5995,
+#     "longitude": 120.9842,
+#     "accuracy": 10,
+#     "formatted_address": "Manila, Philippines",
+#     "map": "data:image/png;base64,...",
+#     "timestamp": "2026-02-03T12:05:00+00:00"
+#   },
+#   "5": {    // selfie_data
+#     "selfie": "data:image/png;base64,...",
+#     "captured_at": "2026-02-03T12:06:00+00:00"
+#   },
+#   "6": {    // signature_data
+#     "signature": "data:image/png;base64,...",
+#     "signed_at": "2026-02-03T12:07:00+00:00"
+#   },
+#   "7": {    // kyc_data (if requires_full_kyc = true)
+#     "status": "approved",
+#     "transaction_id": "hv-abc123",
+#     "name": "JOHN DOE",
+#     "date_of_birth": "1990-01-01",
+#     "id_type": "drivers_license",
+#     "id_number": "ABC123456",
+#     "verified_at": "2026-02-03T12:10:00+00:00"
+#   },
+#   "8": {    // confirmation
+#     "confirm_name": "John Doe",
+#     "confirm_mobile": "+639171234567",
+#     "confirm_location": "Manila, Philippines",
+#     "data_accuracy": true,
+#     "terms_consent": true
+#   }
+# }
+#
+# =============================================================================
+# Processing in Callback
+# =============================================================================
+#
+# Route::post('/api/kyc/process', function (Request $request) {
+#     $flowId = $request->input('flow_id');
+#     $data = $request->input('collected_data');
+#     
+#     // Flatten all step data
+#     $userData = [
+#         'mobile' => $data[1]['mobile'],
+#         'name' => $data[3]['full_name'],
+#         'email' => $data[3]['email'],
+#         'birth_date' => $data[3]['birth_date'],
+#         'address' => $data[3]['address'],
+#         'location' => [
+#             'lat' => $data[4]['latitude'],
+#             'lng' => $data[4]['longitude'],
+#             'address' => $data[4]['formatted_address'],
+#         ],
+#         'biometrics' => [
+#             'selfie' => $data[5]['selfie'],
+#             'signature' => $data[6]['signature'],
+#         ],
+#     ];
+#     
+#     // Include KYC data if present
+#     if (isset($data[7])) {
+#         $userData['kyc'] = $data[7];
+#     }
+#     
+#     // Process verification
+#     $user = User::where('email', $userData['email'])->first();
+#     $user->completeKYC($userData);
+#     
+#     return response()->json(['success' => true, 'user_id' => $user->id]);
+# });
+#
+# =============================================================================

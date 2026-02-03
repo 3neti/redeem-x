@@ -1,0 +1,124 @@
+# =============================================================================
+# Simple 2-Step Flow Example
+# =============================================================================
+#
+# This example demonstrates the most basic form flow pattern:
+# 1. Splash screen (welcome message)
+# 2. Simple form (collect name and email)
+#
+# Use Case: Contact form, lead capture, simple registration
+#
+# Test with:
+#   php artisan tinker
+#   >>> $service = app(LBHurtado\FormFlowManager\Services\DriverService::class);
+#   >>> $instructions = $service->loadDriver('examples/simple-2-step-flow', [
+#   ...     'reference_id' => 'test-' . time(),
+#   ...     'app_url' => url(''),
+#   ... ]);
+#   >>> $flowService = app(LBHurtado\FormFlowManager\Services\FormFlowService::class);
+#   >>> $state = $flowService->startFlow($instructions);
+#   >>> // Visit: /form-flow/{$state['flow_id']}
+#
+# =============================================================================
+
+driver_name: "simple-2-step-flow"
+driver_version: "1.0"
+description: "Minimal example with splash screen and contact form"
+
+# Reference ID pattern (used to track this flow)
+reference_id: "contact-{{ timestamp }}"
+
+# =============================================================================
+# Steps Configuration
+# =============================================================================
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Welcome Splash Screen
+  # ---------------------------------------------------------------------------
+  welcome:
+    handler: "splash"
+    step_name: "welcome"
+    
+    config:
+      title: "Welcome!"
+      description: "Thank you for your interest. Please provide your contact information."
+      button_text: "Get Started"
+      
+      # Optional: Auto-redirect after X seconds
+      # auto_redirect: true
+      # redirect_timeout: 5
+  
+  # ---------------------------------------------------------------------------
+  # Step 2: Contact Information Form
+  # ---------------------------------------------------------------------------
+  contact_form:
+    handler: "form"
+    step_name: "contact_info"
+    
+    config:
+      title: "Contact Information"
+      description: "We'll use this to get in touch with you."
+      
+      fields:
+        # Name field
+        - name: "name"
+          type: "text"
+          label: "Full Name"
+          placeholder: "John Doe"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "min:2"
+            - "max:255"
+        
+        # Email field
+        - name: "email"
+          type: "email"
+          label: "Email Address"
+          placeholder: "john@example.com"
+          required: true
+          validation:
+            - "required"
+            - "email"
+            - "max:255"
+        
+        # Optional phone field
+        - name: "phone"
+          type: "text"
+          label: "Phone Number (Optional)"
+          placeholder: "+1234567890"
+          required: false
+          validation:
+            - "nullable"
+            - "string"
+            - "max:20"
+
+# =============================================================================
+# Callbacks
+# =============================================================================
+callbacks:
+  # Called when flow completes successfully
+  on_complete: "{{ app_url }}/api/contact-form/submit"
+  
+  # Called if user abandons flow
+  on_cancel: "{{ app_url }}"
+
+# =============================================================================
+# Expected Collected Data Structure
+# =============================================================================
+# After completion, collected_data will look like:
+#
+# {
+#   "0": {},  // Splash step (no data collected)
+#   "1": {    // Contact form
+#     "name": "John Doe",
+#     "email": "john@example.com",
+#     "phone": "+1234567890"
+#   }
+# }
+#
+# Access in callback:
+#   $data = $request->input('collected_data');
+#   $contactInfo = $data[1];  // Or $data['contact_info'] if using step_name
+# =============================================================================

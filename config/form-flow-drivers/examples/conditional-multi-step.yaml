@@ -1,0 +1,298 @@
+# =============================================================================
+# Conditional Multi-Step Flow Example
+# =============================================================================
+#
+# This example demonstrates conditional step rendering based on context variables.
+# Steps are shown/hidden dynamically based on boolean flags.
+#
+# Use Case: 
+# - E-commerce checkout (show shipping only if physical product)
+# - Conditional verification (KYC only for high-value transactions)
+# - Feature-gated flows (premium users get extra steps)
+#
+# Test with different contexts:
+#   php artisan tinker
+#   >>> $service = app(LBHurtado\FormFlowManager\Services\DriverService::class);
+#   
+#   # Test 1: All steps enabled
+#   >>> $instructions = $service->loadDriver('examples/conditional-multi-step', [
+#   ...     'reference_id' => 'order-1',
+#   ...     'app_url' => url(''),
+#   ...     'is_premium' => true,
+#   ...     'requires_kyc' => true,
+#   ...     'has_referral_code' => true,
+#   ... ]);
+#   
+#   # Test 2: Only basic flow (no premium, no KYC)
+#   >>> $instructions = $service->loadDriver('examples/conditional-multi-step', [
+#   ...     'reference_id' => 'order-2',
+#   ...     'app_url' => url(''),
+#   ...     'is_premium' => false,
+#   ...     'requires_kyc' => false,
+#   ...     'has_referral_code' => false,
+#   ... ]);
+#
+# =============================================================================
+
+driver_name: "conditional-multi-step"
+driver_version: "1.0"
+description: "Demonstrates conditional step rendering with context variables"
+
+reference_id: "order-{{ timestamp }}"
+
+# =============================================================================
+# Steps Configuration
+# =============================================================================
+steps:
+  # ---------------------------------------------------------------------------
+  # Step 1: Always shown - Welcome
+  # ---------------------------------------------------------------------------
+  welcome:
+    handler: "splash"
+    step_name: "welcome"
+    
+    config:
+      title: "Welcome to Checkout"
+      description: "Complete the following steps to finish your order."
+      button_text: "Continue"
+  
+  # ---------------------------------------------------------------------------
+  # Step 2: Always shown - Basic Information
+  # ---------------------------------------------------------------------------
+  basic_info:
+    handler: "form"
+    step_name: "basic_info"
+    
+    config:
+      title: "Basic Information"
+      description: "Required for all orders"
+      
+      fields:
+        - name: "email"
+          type: "email"
+          label: "Email Address"
+          required: true
+          validation:
+            - "required"
+            - "email"
+        
+        - name: "phone"
+          type: "text"
+          label: "Phone Number"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "regex:/^[0-9+\\-\\s()]+$/"
+  
+  # ---------------------------------------------------------------------------
+  # Step 3: Conditional - Premium Features (only if is_premium = true)
+  # ---------------------------------------------------------------------------
+  premium_options:
+    handler: "form"
+    step_name: "premium_options"
+    
+    # CONDITION: Only show if is_premium context variable is true
+    condition: "{{ is_premium }}"
+    
+    config:
+      title: "Premium Options"
+      description: "Exclusive features for premium members"
+      
+      fields:
+        - name: "gift_message"
+          type: "textarea"
+          label: "Gift Message (Optional)"
+          placeholder: "Add a personalized message..."
+          required: false
+          validation:
+            - "nullable"
+            - "string"
+            - "max:500"
+        
+        - name: "priority_delivery"
+          type: "checkbox"
+          label: "Priority Delivery (+$10)"
+          required: false
+  
+  # ---------------------------------------------------------------------------
+  # Step 4: Conditional - KYC Verification (only if requires_kyc = true)
+  # ---------------------------------------------------------------------------
+  kyc_verification:
+    handler: "form"
+    step_name: "kyc_info"
+    
+    # CONDITION: Only show if requires_kyc is true
+    condition: "{{ requires_kyc }}"
+    
+    config:
+      title: "Identity Verification"
+      description: "Required for orders over $1000"
+      
+      fields:
+        - name: "full_name"
+          type: "text"
+          label: "Full Name (as per ID)"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "min:2"
+            - "max:255"
+        
+        - name: "id_number"
+          type: "text"
+          label: "Government ID Number"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "max:50"
+        
+        - name: "birth_date"
+          type: "date"
+          label: "Date of Birth"
+          required: true
+          validation:
+            - "required"
+            - "date"
+            - "before:today"
+  
+  # ---------------------------------------------------------------------------
+  # Step 5: Conditional - Referral Code (only if has_referral_code = true)
+  # ---------------------------------------------------------------------------
+  referral_input:
+    handler: "form"
+    step_name: "referral"
+    
+    # CONDITION: Only show if has_referral_code is true
+    condition: "{{ has_referral_code }}"
+    
+    config:
+      title: "Referral Code"
+      description: "Enter your referral code to get a discount"
+      
+      fields:
+        - name: "referral_code"
+          type: "text"
+          label: "Referral Code"
+          placeholder: "ABC123"
+          required: true
+          validation:
+            - "required"
+            - "string"
+            - "alpha_num"
+            - "size:6"
+  
+  # ---------------------------------------------------------------------------
+  # Step 6: Always shown - Confirmation
+  # ---------------------------------------------------------------------------
+  confirmation:
+    handler: "form"
+    step_name: "confirmation"
+    
+    config:
+      title: "Review & Confirm"
+      description: "Please review your information before submitting"
+      
+      fields:
+        - name: "terms_accepted"
+          type: "checkbox"
+          label: "I agree to the Terms and Conditions"
+          required: true
+          validation:
+            - "required"
+            - "accepted"
+
+# =============================================================================
+# Callbacks
+# =============================================================================
+callbacks:
+  on_complete: "{{ app_url }}/api/orders/complete"
+  on_cancel: "{{ app_url }}/cart"
+
+# =============================================================================
+# How Conditional Steps Work
+# =============================================================================
+#
+# 1. Context Variables Control Visibility
+#    - is_premium: true/false → Shows/hides premium_options step
+#    - requires_kyc: true/false → Shows/hides kyc_verification step
+#    - has_referral_code: true/false → Shows/hides referral_input step
+#
+# 2. Condition Evaluation
+#    - Template: condition: "{{ variable }}"
+#    - Renders to: condition: true or condition: false
+#    - If false, step is skipped entirely
+#
+# 3. Step Order Matters
+#    - Steps are evaluated in YAML order
+#    - Skipped steps don't appear in collected_data
+#    - current_step index adjusts automatically
+#
+# 4. Example Scenarios:
+#
+#    Scenario A: Basic user, low-value order
+#    Context: {is_premium: false, requires_kyc: false, has_referral_code: false}
+#    Steps shown: welcome → basic_info → confirmation
+#    Total steps: 3
+#
+#    Scenario B: Premium user, high-value order, has referral
+#    Context: {is_premium: true, requires_kyc: true, has_referral_code: true}
+#    Steps shown: welcome → basic_info → premium_options → kyc_verification → referral_input → confirmation
+#    Total steps: 6
+#
+#    Scenario C: Premium user, low-value order, no referral
+#    Context: {is_premium: true, requires_kyc: false, has_referral_code: false}
+#    Steps shown: welcome → basic_info → premium_options → confirmation
+#    Total steps: 4
+#
+# 5. Collected Data Structure (Scenario B):
+#    {
+#      "0": {},                    // welcome
+#      "1": {                      // basic_info
+#        "email": "user@example.com",
+#        "phone": "+1234567890"
+#      },
+#      "2": {                      // premium_options
+#        "gift_message": "Happy Birthday!",
+#        "priority_delivery": true
+#      },
+#      "3": {                      // kyc_info
+#        "full_name": "John Doe",
+#        "id_number": "ABC123456",
+#        "birth_date": "1990-01-01"
+#      },
+#      "4": {                      // referral
+#        "referral_code": "ABC123"
+#      },
+#      "5": {                      // confirmation
+#        "terms_accepted": true
+#      }
+#    }
+#
+# =============================================================================
+# Advanced Conditional Patterns
+# =============================================================================
+#
+# 1. Multiple Conditions (AND logic)
+#    condition: "{{ is_premium && requires_kyc }}"
+#    Note: Must use && (not 'and') for boolean logic
+#
+# 2. Null/Undefined Handling
+#    condition: "{{ variable ?? false }}"
+#    Falls back to false if variable not in context
+#
+# 3. String Comparison
+#    condition: "{{ user_type == 'business' }}"
+#    Compare context value to string literal
+#
+# 4. Numeric Comparison
+#    condition: "{{ order_amount >= 1000 }}"
+#    Compare numbers (amount, count, etc.)
+#
+# 5. Negation
+#    condition: "{{ !is_guest }}"
+#    Show only if user is NOT a guest
+#
+# =============================================================================
