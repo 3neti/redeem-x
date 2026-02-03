@@ -1,106 +1,101 @@
-# Documentation Index
+# Redeem-X Documentation
 
-## 🎯 Quick Start
+## 🚀 Quick Start
 
-### **[IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md)** ← **START HERE**
-**Consolidated view** of all completed features, in-progress work, and pending tasks.
+**New?** Start with:
+1. [`/WARP.md`](../WARP.md) - Dev environment & commands
+2. [Implementation Status](implementation/active/IMPLEMENTATION_STATUS.md) - Current state
+3. [Architecture](architecture/) - System design
 
-### **[VOUCHER_API_EXTENSIONS.md](./VOUCHER_API_EXTENSIONS.md)**
-**Technical implementation plan** for voucher API extensions (DTO-first approach).
+**For AI:** See `/WARP.md` → Documentation Organization for guidelines on creating docs.
 
-This consolidated document contains:
-- Complete DTO-first implementation plan
-- All API endpoints and contracts
-- Trait-based Voucher model extensions
-- Comprehensive testing strategy
-- Backward compatibility guidelines
-- Phase-by-phase implementation tasks
+## 📖 Documentation Map
 
-**Use this document to implement:**
-- External metadata tracking
-- Location validation (geo-fencing)
-- Time validation (windows, limits, duration tracking)
-- Bulk voucher generation
-- Status query API
-- Enhanced webhook payloads
-- Multiple webhook events
+### [Guides](guides/) - How-To Documentation
+- **[Features](guides/features/)** - Feature implementation guides
+  - [Bank Integration](guides/features/BANK_INTEGRATION_GUIDE.md), [Feature Flags](guides/features/FEATURE_ENABLEMENT_STRATEGY.md), [Notifications](guides/features/NOTIFICATION_TEMPLATES.md)
+- **[Testing](guides/testing/)** - Test plans & procedures
+  - [Testing Plan](guides/testing/TESTING_PLAN.md), [Settlement Testing](guides/testing/SETTLEMENT_TESTING_GUIDE.md)
+- **[AI Development](guides/ai-development/)** - AI-assisted dev guides
 
----
+### [Architecture](architecture/) - System Design
+- [Wallet Architecture](architecture/SYSTEM_WALLET_ARCHITECTURE.md)
+- [Form Flow System](architecture/FORM_FLOW_SYSTEM.md)
+- [Pricing Architecture](architecture/ARCHITECTURE-PRICING.md)
 
-## Reference Documents (Context Only)
+### [API](api/) - API Documentation
+- [API Endpoints](api/API_ENDPOINTS.md), [Authentication](api/AUTHENTICATION.md)
+- **[Postman Collections](api/postman/)** - API testing
 
-These documents provide background context for **why** we're building the API extensions:
+### [Implementation](implementation/) - Plans & TODOs
+- **[Active](implementation/active/)** ⭐ Current work
+  - [Implementation Status](implementation/active/IMPLEMENTATION_STATUS.md)
+  - [Settlement Vouchers TODO](implementation/active/SETTLEMENT_VOUCHERS_TODO.md)
+- **[Planned](implementation/planned/)** - Future work
 
-### QuestPay Game Integration Analysis
-- **QUESTPAY_EXECUTIVE_SUMMARY.md** - High-level overview of QuestPay requirements
-- **QUESTPAY_FEATURE_MATRIX.md** - Feature comparison between QuestPay and redeem-x
-- **QUESTPAY_VOUCHER_GAPS.md** - Gap analysis showing what features are needed
-- **QUESTPAY_IMPLEMENTATION_PLAN.md** - QuestPay-specific architecture (separate app)
+### [Troubleshooting](troubleshooting/) - Debug Guides
+- [Disburse 404](troubleshooting/TROUBLESHOOTING_DISBURSE_404.md)
+- [Settlement Rail Debugging](troubleshooting/DEBUGGING_SETTLEMENT_RAIL.md)
 
-**Note**: While QuestPay drove these requirements, the API extensions are generic and support any external integration (loyalty programs, event ticketing, delivery tracking, etc.).
+### [Decisions](decisions/) - ADRs & Lessons
+- [Vue Optional Chaining](decisions/LESSONS_VUE_OPTIONAL_CHAINING.md)
+- [KYC Testing Lessons](decisions/TESTING_LESSONS_KYC.md)
 
-### Other Documents
-- **PHASE_3_VOUCHER_GENERATION_UI.md** - UI implementation for voucher generation (separate from API work)
+### [Completed](completed/) - Historical Docs
+- **[Features](completed/features/)** - Completed implementations
+- **[Implementations](completed/implementations/)** - Implementation summaries
+- **[Sessions](completed/sessions/)** - Dev session notes
 
----
+### [Reference](reference/) - Technical Specs
+- [Data Retention](reference/DATA_RETENTION_POLICY.md), [Security](reference/SECURITY_SPECIFICATION.md)
+- **[Whitepapers](reference/whitepapers/)** - Research docs
 
-## Quick Start
+### [Inbox](inbox/) - Temporary Storage
+⚠️ Uncategorized docs - **keep empty**, organize ASAP
 
-1. **Read**: `VOUCHER_API_EXTENSIONS.md` (sections 1-3 for context)
-2. **Review**: Architecture principles and DTO structure
-3. **Start**: Phase 1, Task 1.1 (ExternalMetadataData)
-4. **Test**: Write tests alongside implementation
-5. **Verify**: Run backward compatibility tests
+## 👨‍💻 For Developers
 
----
+| Task | Doc |
+|------|-----|
+| Setup | [`/WARP.md`](../WARP.md) |
+| Architecture | [Wallet Architecture](architecture/SYSTEM_WALLET_ARCHITECTURE.md) |
+| Payment Integration | [Bank Integration](guides/features/BANK_INTEGRATION_GUIDE.md) |
+| API Testing | [Postman](api/postman/) |
+| Debug | [Troubleshooting](troubleshooting/) |
 
-## Implementation Status
+## 🔍 For Auditors
 
-Track progress by marking tasks in `VOUCHER_API_EXTENSIONS.md`:
+- **Security**: [Security Spec](reference/SECURITY_SPECIFICATION.md), [Data Retention](reference/DATA_RETENTION_POLICY.md)
+- **Architecture**: [System Design](architecture/)
+- **Testing**: [Testing Plan](guides/testing/TESTING_PLAN.md)
 
-- [ ] Phase 1: Core DTO Classes (Days 1-4)
-  - [ ] Task 1.1: ExternalMetadataData + trait
-  - [ ] Task 1.2: VoucherTimingData + trait
-  - [ ] Task 1.3: ValidationInstructionData (location/time)
-  - [ ] Task 1.4: ValidationResultsData + trait
-  - [ ] Task 1.5: Enhanced webhook payload
+## 🤖 For AI Assistants
 
-- [ ] Phase 2: Validation Implementation (Days 5-8)
-  - [ ] Task 2.1: Location validation flow
-  - [ ] Task 2.2: Time validation flow
-  - [ ] Task 2.3: Bulk voucher generation API
-  - [ ] Task 2.4: Voucher status query API
+**Creating docs?** See `/WARP.md` → Documentation Organization section
 
-- [ ] Phase 3: Advanced Features (Days 9-12)
-  - [ ] Task 3.1: Multiple webhook events
-  - [ ] Task 3.2: Manual verification webhooks
+**Quick guide:**
+- Plans → `implementation/planned/`
+- Active work → `implementation/active/`
+- Completed → `completed/{features,implementations,sessions}/`
+- Architecture → `architecture/`
+- Guides → `guides/{features,testing,ai-development}/`
+- Unsure → `inbox/` (temporary)
 
----
+## 📂 Structure
 
-## Key Commands
-
-```bash
-# Run all tests
-php artisan test
-
-# Run specific test suites
-php artisan test tests/Unit/Data/
-php artisan test tests/Feature/Api/
-php artisan test tests/Feature/BackwardCompatibility/
-
-# Generate API documentation
-# (TBD - add after implementing endpoints)
+```
+docs/
+├── guides/          # How-tos
+├── architecture/    # Design docs
+├── api/            # API docs + Postman
+├── implementation/ # Plans & TODOs (active/planned)
+├── troubleshooting/# Debug guides
+├── decisions/      # ADRs & lessons
+├── completed/      # Historical (features/implementations/sessions)
+├── reference/      # Specs & whitepapers
+└── inbox/          # Temporary (keep empty)
 ```
 
 ---
 
-## Questions?
-
-- **Architecture**: See `VOUCHER_API_EXTENSIONS.md` sections 1-2
-- **QuestPay context**: See `QUESTPAY_EXECUTIVE_SUMMARY.md`
-- **Specific gaps**: See `QUESTPAY_VOUCHER_GAPS.md`
-- **Testing approach**: See `VOUCHER_API_EXTENSIONS.md` "Testing Strategy"
-
----
-
-**Remember**: API-first, test-driven, non-breaking!
+See [`/WARP.md`](../WARP.md) for full dev guide | [`/CHANGELOG.md`](../CHANGELOG.md) for releases

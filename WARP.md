@@ -1001,6 +1001,60 @@ class VoucherSettingsSeeder extends Seeder {
 
 **See full documentation:** `docs/CONFIGURATION_DATA_IN_MIGRATIONS.md`
 
+## Documentation Organization
+
+This project has organized documentation in `docs/` with clear categories. When creating new documentation ("persist this plan"), follow these guidelines:
+
+### Document Type Decision Tree
+
+1. **Determine document type:**
+   - **Guide/Tutorial** → `docs/guides/features/` (or `ai-development/`, `testing/`)
+   - **Architecture/Design** → `docs/architecture/`
+   - **Implementation Plan** → `docs/implementation/planned/`
+   - **Active TODO** → `docs/implementation/active/`
+   - **API Documentation** → `docs/api/`
+   - **Troubleshooting/Debug** → `docs/troubleshooting/`
+   - **Lesson Learned/ADR** → `docs/decisions/`
+   - **Reference/Spec** → `docs/reference/`
+   - **Completion Report** → `docs/completed/features/` or `completed/implementations/`
+   - **Session Summary** → `docs/completed/sessions/`
+   - **Unsure/Quick Dump** → `docs/inbox/` (temporary - organize later)
+
+2. **Use descriptive filenames:**
+   - ALL_CAPS_WITH_UNDERSCORES.md (matches existing convention)
+   - Be specific: `NOTIFICATION_TEMPLATES.md` not `TEMPLATES.md`
+   - Include feature name: `SETTLEMENT_VOUCHERS_TODO.md`
+
+3. **Update navigation:**
+   - Add entry to parent directory's README.md
+   - If in `docs/implementation/active/`, also update main `docs/README.md` Quick Start section
+   - For major architecture docs, add to `docs/architecture/README.md` table of contents
+
+4. **Cross-references:**
+   - Use relative paths: `../guides/features/BANK_INTEGRATION_GUIDE.md`
+   - Update `docs/README.md` if document is a key entry point
+
+5. **When plan is completed:**
+   - Move from `docs/implementation/planned/` → `docs/completed/implementations/`
+   - Or move from `docs/implementation/active/` → `docs/completed/features/`
+   - Update references in both directory READMEs
+
+### Examples
+
+```bash
+# User: "Persist this SMS routing refactor plan"
+# AI creates: docs/implementation/planned/SMS_ROUTING_REFACTOR_PLAN.md
+# AI updates: docs/implementation/README.md (add to planned section)
+
+# User: "Persist this troubleshooting guide for webhook timeouts"
+# AI creates: docs/troubleshooting/WEBHOOK_TIMEOUT_DEBUG.md
+# AI updates: docs/troubleshooting/README.md (add to common issues)
+
+# User: "Document the wallet architecture decision"
+# AI creates: docs/decisions/WALLET_ARCHITECTURE_ADR.md
+# AI updates: docs/decisions/README.md (add to index)
+```
+
 ### AI Development with Laravel Boost
 This project uses Laravel Boost to provide AI agents (Claude Code, PhpStorm Junie, etc.) with contextual understanding of the codebase.
 
