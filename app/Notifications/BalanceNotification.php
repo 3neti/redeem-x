@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Notifications\BaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use LBHurtado\EngageSpark\EngageSparkMessage;
 
 /**
@@ -19,11 +17,16 @@ use LBHurtado\EngageSpark\EngageSparkMessage;
  * Supports two types:
  * - user: Wallet balance only
  * - system: Wallet + Products + Bank balance (admin only)
+ * 
+ * Migration to BaseNotification:
+ * - Extends BaseNotification for standardized behavior
+ * - Uses config/notifications.php for channel configuration
+ * - Uses lang/en/notifications.php for localization
+ * - Implements NotificationInterface (getNotificationType, getNotificationData, getAuditMetadata)
+ * - Database logging and queue priority managed by BaseNotification
  */
-class BalanceNotification extends Notification implements ShouldQueue
+class BalanceNotification extends BaseNotification
 {
-    use Queueable;
-
     public function __construct(
         protected string $type,
         protected array $balances,
@@ -31,19 +34,35 @@ class BalanceNotification extends Notification implements ShouldQueue
     ) {}
 
     /**
-     * Get the notification's delivery channels.
+     * Get the notification type identifier.
      */
-    public function via(object $notifiable): array
+    public function getNotificationType(): string
     {
-        // For AnonymousNotifiable, use configured channels only (no database)
-        if ($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable) {
-            return config('voucher-notifications.balance.channels', ['engage_spark']);
-        }
-        
-        // For User models, always include database for audit trail + configured channels
-        $channels = config('voucher-notifications.balance.channels', ['engage_spark']);
-        
-        return array_unique(array_merge($channels, ['database']));
+        return 'balance';
+    }
+
+    /**
+     * Get the notification data payload.
+     */
+    public function getNotificationData(): array
+    {
+        return [
+            'balance_type' => $this->type,
+            'balances' => $this->balances,
+            'message' => $this->message ?? $this->buildSmsMessage(),
+        ];
+    }
+
+    /**
+     * Get audit metadata for this notification.
+     */
+    public function getAuditMetadata(): array
+    {
+        return array_merge(parent::getAuditMetadata(), [
+            'balance_type' => $this->type,
+            'wallet_balance' => $this->balances['wallet'] ?? null,
+            'has_bank_balance' => isset($this->balances['bank']),
+        ]);
     }
 
     /**
@@ -51,7 +70,15 @@ class BalanceNotification extends Notification implements ShouldQueue
      */
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
-        $message = $this->message ?? $this->buildSmsMessage();
+        // Build context for template processing
+        $context = $this->buildBalanceContext();
+        
+        // Use localized template
+        $templateKey = $this->type === 'system' 
+            ? 'notifications.balance.system.sms'
+            : 'notifications.balance.user.sms';
+        
+        $message = $this->getLocalizedTemplate($templateKey, $context);
         
         return (new EngageSparkMessage())->content($message);
     }
@@ -61,15 +88,35 @@ class BalanceNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $subject = $this->type === 'system' ? 'System Balance' : 'Your Balance';
+        // Build context for template processing
+        $context = $this->buildBalanceContext();
+        
+        // Get localized subject and greeting
+        $subjectKey = $this->type === 'system' 
+            ? 'notifications.balance.system.email.subject'
+            : 'notifications.balance.user.email.subject';
+        
+        $greetingKey = $this->type === 'system'
+            ? 'notifications.balance.system.email.greeting'
+            : 'notifications.balance.user.email.greeting';
+        
+        $subject = $this->getLocalizedTemplate($subjectKey, $context);
+        $greeting = $this->getLocalizedTemplate($greetingKey, $context);
         
         $mail = (new MailMessage)
             ->subject($subject)
-            ->greeting('Hello,');
+            ->greeting($greeting);
         
         if ($this->type === 'user') {
-            $mail->line("Your current wallet balance is **{$this->formatMoney($this->balances['wallet'])}**.");
+            $bodyKey = 'notifications.balance.user.email.body';
+            $body = $this->getLocalizedTemplate($bodyKey, $context);
+            $mail->line($body);
+            
+            $salutation = $this->getLocalizedTemplate('notifications.balance.user.email.salutation', $context);
+            $mail->line('');
+            $mail->line($salutation);
         } else {
+            // System balance with detailed breakdown
             $mail->line('**System Balance Summary:**');
             $mail->line('');
             $mail->line("• **Wallet Balance:** {$this->formatMoney($this->balances['wallet'])}");
@@ -87,9 +134,6 @@ class BalanceNotification extends Notification implements ShouldQueue
             }
         }
         
-        $mail->line('');
-        $mail->line('Thank you for using our service!');
-        
         return $mail;
     }
 
@@ -98,40 +142,27 @@ class BalanceNotification extends Notification implements ShouldQueue
      */
     public function toWebhook(object $notifiable): array
     {
-        return [
-            'type' => 'balance',
-            'balance_type' => $this->type,
-            'balances' => $this->balances,
+        return array_merge(parent::toArray($notifiable), [
             'message' => $this->message ?? $this->buildSmsMessage(),
-            'timestamp' => now()->toIso8601String(),
-        ];
-    }
-
-    /**
-     * Get the array representation of the notification for database storage.
-     */
-    public function toArray(object $notifiable): array
-    {
-        return [
-            'type' => 'balance',
-            'balance_type' => $this->type,
-            'balances' => $this->balances,
-            'message' => $this->message ?? $this->buildSmsMessage(),
-        ];
+        ]);
     }
 
     /**
      * Build SMS message from balance data.
+     * 
+     * This method is kept for backward compatibility with existing code
+     * that passes a custom message. New code should rely on localized templates.
      */
     protected function buildSmsMessage(): string
     {
+        $context = $this->buildBalanceContext();
+        
         if ($this->type === 'user') {
-            return "Balance: {$this->formatMoney($this->balances['wallet'])}";
+            return $this->getLocalizedTemplate('notifications.balance.user.sms', $context);
         }
         
-        $lines = [
-            "Wallet: {$this->formatMoney($this->balances['wallet'])} | Products: {$this->formatMoney($this->balances['products'])}",
-        ];
+        // For system balance, build composite message
+        $baseLine = $this->getLocalizedTemplate('notifications.balance.system.sms', $context);
         
         if (isset($this->balances['bank'])) {
             $bankLine = "Bank: {$this->formatMoney($this->balances['bank'])}";
@@ -141,22 +172,24 @@ class BalanceNotification extends Notification implements ShouldQueue
             if ($this->balances['bank_stale'] ?? false) {
                 $bankLine .= " ⚠️ STALE";
             }
-            $lines[] = $bankLine;
+            return $baseLine . "\n" . $bankLine;
         }
         
-        return implode("\n", $lines);
+        return $baseLine;
     }
 
     /**
-     * Format money amount.
+     * Build template context for balance notifications.
      */
-    protected function formatMoney(float $amount, string $currency = 'PHP'): string
+    protected function buildBalanceContext(): array
     {
-        try {
-            $money = \Brick\Money\Money::of($amount, $currency);
-            return $money->formatTo('en_PH');
-        } catch (\Throwable $e) {
-            return '₱' . number_format($amount, 2);
-        }
+        return [
+            'formatted_balance' => $this->formatMoney($this->balances['wallet']),
+            'wallet' => $this->formatMoney($this->balances['wallet'] ?? 0),
+            'products' => $this->formatMoney($this->balances['products'] ?? 0),
+            'bank_line' => isset($this->balances['bank']) 
+                ? " | Bank: {$this->formatMoney($this->balances['bank'])}" 
+                : '',
+        ];
     }
 }
