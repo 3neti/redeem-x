@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\InputFormatter;
 use App\Settings\VoucherSettings;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\VoucherData;
 
@@ -45,6 +47,9 @@ class VoucherTemplateContextBuilder
 
         // Global settings
         $context = array_merge($context, static::buildSettingsContext());
+
+        // Enhanced fields for notifications
+        $context = array_merge($context, static::buildEnhancedContext($voucher, $context));
 
         return $context;
     }
@@ -201,6 +206,106 @@ class VoucherTemplateContextBuilder
     }
 
     /**
+     * Build enhanced context for notifications (contact_name_or_mobile, image URLs, custom inputs).
+     *
+     * @param  VoucherData  $voucher
+     * @param  array  $context  Existing context
+     * @return array
+     */
+    public static function buildEnhancedContext(VoucherData $voucher, array $context): array
+    {
+        $enhanced = [];
+        
+        // Contact name or mobile fallback
+        $contactName = $context['contact_name'] ?? null;
+        $mobile = $context['mobile'] ?? null;
+        
+        if ($contactName && !empty(trim($contactName))) {
+            $enhanced['contact_name_or_mobile'] = "{$contactName} ({$mobile})";
+        } else {
+            $enhanced['contact_name_or_mobile'] = $mobile ?? 'Unknown';
+        }
+        
+        // Format custom inputs for SMS/email
+        $enhanced['custom_inputs_formatted'] = InputFormatter::formatForSms($voucher->inputs);
+        $enhanced['has_custom_inputs'] = InputFormatter::hasCustomInputs($voucher->inputs);
+        
+        // Check for image inputs
+        $enhanced['has_images'] = static::hasImageInputs($voucher);
+        
+        // Generate signed URLs for images (24-hour expiry)
+        $enhanced['signature_url'] = static::generateMediaUrl($voucher->code, 'signature', $voucher);
+        $enhanced['selfie_url'] = static::generateMediaUrl($voucher->code, 'selfie', $voucher);
+        // Try 'location' first, fallback to 'map'
+        $enhanced['location_url'] = static::generateMediaUrl($voucher->code, 'location', $voucher)
+            ?? static::generateMediaUrl($voucher->code, 'map', $voucher);
+        
+        // Compact image links for SMS (comma-separated)
+        $imageLinks = array_filter([
+            $enhanced['signature_url'] ? 'Signature' : null,
+            $enhanced['selfie_url'] ? 'Selfie' : null,
+            $enhanced['location_url'] ? 'Location' : null,
+        ]);
+        $enhanced['image_links'] = !empty($imageLinks) ? implode(', ', $imageLinks) : '';
+        
+        // Actual URLs space-separated for SMS
+        $imageUrls = array_filter([
+            $enhanced['signature_url'],
+            $enhanced['selfie_url'],
+            $enhanced['location_url'],
+        ]);
+        $enhanced['image_urls'] = !empty($imageUrls) ? implode(' ', $imageUrls) : '';
+        
+        return $enhanced;
+    }
+    
+    /**
+     * Check if voucher has any image inputs.
+     *
+     * @param  VoucherData  $voucher
+     * @return bool
+     */
+    protected static function hasImageInputs(VoucherData $voucher): bool
+    {
+        foreach ($voucher->inputs as $input) {
+            if (in_array($input->name, ['signature', 'selfie', 'location', 'map'])) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Generate signed URL for media if input exists.
+     *
+     * @param  string  $code  Voucher code
+     * @param  string  $type  Media type (signature|selfie|location)
+     * @param  VoucherData  $voucher
+     * @return string|null
+     */
+    protected static function generateMediaUrl(string $code, string $type, VoucherData $voucher): ?string
+    {
+        // Check if input exists
+        $hasInput = false;
+        foreach ($voucher->inputs as $input) {
+            if ($input->name === $type) {
+                $hasInput = true;
+                break;
+            }
+        }
+        
+        if (!$hasInput) {
+            return null;
+        }
+        
+        // Generate 24-hour signed URL
+        return URL::signedRoute('voucher.media.show', [
+            'code' => $code,
+            'type' => $type,
+        ], now()->addHours(24));
+    }
+
+    /**
      * Get all available variable names for documentation/UI purposes.
      *
      * @return array
@@ -222,6 +327,7 @@ class VoucherTemplateContextBuilder
             // Contact
             'mobile' => 'Contact mobile number',
             'contact_name' => 'Contact name',
+            'contact_name_or_mobile' => 'Contact name with mobile fallback',
             'bank_account' => 'Bank account identifier',
             'bank_code' => 'Bank code (e.g., GXCHPHM2XXX)',
             
@@ -235,6 +341,15 @@ class VoucherTemplateContextBuilder
             
             // Settings
             'redemption_endpoint' => 'Redemption endpoint path (e.g., /disburse)',
+            
+            // Enhanced (notifications)
+            'custom_inputs_formatted' => 'Formatted custom inputs for SMS',
+            'has_custom_inputs' => 'Boolean: has custom input fields',
+            'has_images' => 'Boolean: has image inputs',
+            'signature_url' => 'Signed URL for signature image',
+            'selfie_url' => 'Signed URL for selfie image',
+            'location_url' => 'Signed URL for location map',
+            'image_links' => 'Comma-separated list of available images',
             
             // Dynamic inputs
             'signature' => 'Signature data URL (if captured)',

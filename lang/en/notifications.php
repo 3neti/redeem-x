@@ -15,15 +15,35 @@ return [
 
     'voucher_redeemed' => [
         'email' => [
-            'subject' => 'Voucher Code Redeemed',
+            'subject' => 'Voucher {{ code }} Redeemed',
             'greeting' => 'Hello,',
-            'body' => 'The voucher code **{{ code }}** with the amount of **{{ formatted_amount }}** has been successfully redeemed. It was claimed by **{{ mobile }}** from {{ formatted_address }}.',
+            'body' => 'Voucher **{{ code }}** with the amount of **{{ formatted_amount }}** has been successfully redeemed.',
+            
+            // Redemption Details section
+            'details' => [
+                'header' => '**Redemption Details:**',
+                'redeemed_by' => '**Redeemed By:** {{ contact_name_or_mobile }}',
+                'location' => '**Location:** {{ formatted_address }}',
+                'date' => '**Date/Time:** {{ redeemed_at }}',
+            ],
+            
+            // Custom inputs section (conditional)
+            'custom_inputs_header' => '**Additional Information:**',
+            
             'warning' => 'If you did not authorize this transaction, please contact support immediately.',
             'salutation' => 'Thank you for using our service!',
         ],
         'sms' => [
-            'message' => 'Voucher {{ code }} with amount {{ formatted_amount }} was redeemed by {{ mobile }}.',
-            'message_with_address' => 'Voucher {{ code }} with amount {{ formatted_amount }} was redeemed by {{ mobile }} from {{ formatted_address }}.',
+            // Tier 1: Basic (no images, no custom inputs)
+            'basic' => 'Voucher {{ code }} ({{ formatted_amount }}) redeemed by {{ contact_name_or_mobile }}',
+            
+            // Tier 2: With images (signature/selfie/location)
+            // Lists available media types without URLs to stay under SMS character limit
+            'with_images' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\nMedia: {{ image_links }}\n(See email for full details)",
+            
+            // Tier 3: With custom inputs + images
+            // Lists custom inputs and media types - full details in email
+            'with_inputs' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\n{{ custom_inputs_formatted }}\nMedia: {{ image_links }} (see email)",
         ],
     ],
 
