@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Notifications\BaseNotification;
 use App\Services\InstructionsFormatter;
 use App\Services\TemplateProcessor;
 use App\Services\VoucherShareLinkBuilder;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
 use LBHurtado\EngageSpark\EngageSparkMessage;
@@ -26,10 +24,16 @@ use LBHurtado\Voucher\Contracts\VouchersGeneratedNotificationInterface;
  * - Single: "1 voucher generated (₱100) - ABCD"
  * - Multiple: "3 vouchers generated (₱100 each) - ABCD, EFGH, IJKL"
  * - Many: "10 vouchers generated (₱100 each) - CODE1, CODE2, CODE3, +7 more"
+ * 
+ * Migration to BaseNotification:
+ * - Extends BaseNotification for standardized behavior
+ * - Uses config/notifications.php for channel configuration
+ * - Already uses lang/en/notifications.php for localization (no changes needed)
+ * - Implements NotificationInterface (getNotificationType, getNotificationData, getAuditMetadata)
+ * - Database logging and queue priority managed by BaseNotification
  */
-class VouchersGeneratedSummary extends Notification implements ShouldQueue, VouchersGeneratedNotificationInterface
+class VouchersGeneratedSummary extends BaseNotification implements VouchersGeneratedNotificationInterface
 {
-    use Queueable;
 
     /**
      * Maximum number of voucher codes to show in message before truncating
@@ -49,22 +53,49 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
     }
 
     /**
-     * Get the notification's delivery channels.
-     * 
-     * Always includes 'database' for audit trail.
-     * Additional channels (SMS/email) configured via config/voucher-notifications.php
+     * Get the notification type identifier.
      */
-    public function via(object $notifiable): array
+    public function getNotificationType(): string
     {
-        // For AnonymousNotifiable, use configured channels only (no database)
-        if ($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable) {
-            return config('voucher-notifications.vouchers_generated.channels', ['engage_spark']);
+        return 'vouchers_generated';
+    }
+
+    /**
+     * Get the notification data payload.
+     */
+    public function getNotificationData(): array
+    {
+        $context = $this->buildContext();
+        $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
+        
+        $data = [
+            'count' => $context['count'],
+            'amount' => $context['amount'],
+            'currency' => $context['currency'],
+            'formatted_amount' => $context['formatted_amount'],
+            'codes' => $this->vouchers->pluck('code')->toArray(),
+            'instructions_format' => $format,
+        ];
+        
+        // Include full instructions JSON for database audit
+        if ($format !== 'none') {
+            $first = $this->vouchers->first();
+            $data['instructions_data'] = $first->instructions->toArray();
         }
         
-        // For User models, always include database for audit trail + configured channels
-        $channels = config('voucher-notifications.vouchers_generated.channels', ['engage_spark']);
-        
-        return array_unique(array_merge($channels, ['database']));
+        return $data;
+    }
+
+    /**
+     * Get audit metadata for this notification.
+     */
+    public function getAuditMetadata(): array
+    {
+        return array_merge(parent::getAuditMetadata(), [
+            'voucher_count' => $this->vouchers->count(),
+            'first_code' => $this->vouchers->first()?->code,
+            'total_value' => $this->vouchers->sum(fn($v) => $v->instructions->cash->amount ?? 0),
+        ]);
     }
 
     /**
@@ -138,33 +169,6 @@ class VouchersGeneratedSummary extends Notification implements ShouldQueue, Vouc
         $mail->line('Thank you for using our service!');
         
         return $mail;
-    }
-
-    /**
-     * Get the array representation of the notification for database storage.
-     */
-    public function toArray(object $notifiable): array
-    {
-        $context = $this->buildContext();
-        $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
-        
-        $data = [
-            'type' => 'vouchers_generated',
-            'count' => $context['count'],
-            'amount' => $context['amount'],
-            'currency' => $context['currency'],
-            'formatted_amount' => $context['formatted_amount'],
-            'codes' => $this->vouchers->pluck('code')->toArray(),
-            'instructions_format' => $format,
-        ];
-        
-        // Include full instructions JSON for database audit
-        if ($format !== 'none') {
-            $first = $this->vouchers->first();
-            $data['instructions_data'] = $first->instructions->toArray();
-        }
-        
-        return $data;
     }
 
     /**
