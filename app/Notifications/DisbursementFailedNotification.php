@@ -2,19 +2,26 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Notifications\BaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use LBHurtado\Voucher\Models\Voucher;
 
-class DisbursementFailedNotification extends Notification implements ShouldQueue
+/**
+ * Disbursement Failed Notification
+ * 
+ * Alerts administrators when a voucher disbursement fails.
+ * Used by NotifyAdminOfDisbursementFailure listener.
+ * 
+ * Migration to BaseNotification:
+ * - Extends BaseNotification for standardized behavior
+ * - Uses config/notifications.php for channel configuration
+ * - Uses lang/en/notifications.php for localization templates
+ * - Implements NotificationInterface (getNotificationType, getNotificationData, getAuditMetadata)
+ * - Database logging and queue priority managed by BaseNotification
+ */
+class DisbursementFailedNotification extends BaseNotification
 {
-    use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(
         protected Voucher $voucher,
         protected string $errorMessage,
@@ -36,13 +43,39 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
     }
 
     /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
+     * Get the notification type identifier.
      */
-    public function via(object $notifiable): array
+    public function getNotificationType(): string
     {
-        return ['mail'];
+        return 'disbursement_failed';
+    }
+
+    /**
+     * Get the notification data payload.
+     */
+    public function getNotificationData(): array
+    {
+        return [
+            'voucher_id' => $this->voucher->id,
+            'voucher_code' => $this->voucher->code,
+            'amount' => $this->voucher->cash?->amount,
+            'error_message' => $this->errorMessage,
+            'error_type' => $this->errorType,
+            'occurred_at' => now()->toIso8601String(),
+            'mobile' => $this->mobile,
+        ];
+    }
+
+    /**
+     * Get audit metadata for this notification.
+     */
+    public function getAuditMetadata(): array
+    {
+        return array_merge(parent::getAuditMetadata(), [
+            'voucher_code' => $this->voucher->code,
+            'error_type' => $this->errorType,
+            'has_mobile' => !empty($this->mobile),
+        ]);
     }
 
     /**
@@ -53,37 +86,48 @@ class DisbursementFailedNotification extends Notification implements ShouldQueue
         // Refresh voucher to get latest cash entity in queued context
         $this->voucher->refresh();
         
-        $mobile = $this->mobile ?? 'Unknown';
-        $amount = $this->voucher->cash?->formatted_amount ?? 'Unknown';
+        // Build context for template processing
+        $context = $this->buildMailContext();
         
-        return (new MailMessage)
+        // Get localized templates
+        $subject = $this->getLocalizedTemplate('notifications.disbursement_failed.email.subject', $context);
+        $greeting = $this->getLocalizedTemplate('notifications.disbursement_failed.email.greeting', $context);
+        $body = $this->getLocalizedTemplate('notifications.disbursement_failed.email.body', $context);
+        $footer = $this->getLocalizedTemplate('notifications.disbursement_failed.email.footer', $context);
+        
+        // Get detail lines
+        $details = __('notifications.disbursement_failed.email.details');
+        
+        $mail = (new MailMessage)
             ->error()
-            ->subject('🚨 Disbursement Failed: ' . $this->voucher->code)
-            ->greeting('Disbursement Failure Alert')
-            ->line('A disbursement has failed and requires immediate attention.')
-            ->line('**Voucher Code:** ' . $this->voucher->code)
-            ->line('**Amount:** ' . $amount)
-            ->line('**Redeemer Mobile:** ' . $mobile)
-            ->line('**Error:** ' . $this->errorMessage)
-            ->line('**Time:** ' . now()->format('F j, Y g:i A'))
-            ->action('View Voucher Details', url('/vouchers/' . $this->voucher->id))
-            ->line('Please investigate and take appropriate action for customer support.');
+            ->subject($subject)
+            ->greeting($greeting)
+            ->line($body);
+        
+        // Add detail lines
+        foreach ($details as $key => $template) {
+            $line = $this->getLocalizedTemplate('notifications.disbursement_failed.email.details.' . $key, $context);
+            $mail->line($line);
+        }
+        
+        $action = $this->getLocalizedTemplate('notifications.disbursement_failed.email.action', $context);
+        $mail->action($action, url('/vouchers/' . $this->voucher->id));
+        $mail->line($footer);
+        
+        return $mail;
     }
 
     /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
+     * Build template context for email.
      */
-    public function toArray(object $notifiable): array
+    protected function buildMailContext(): array
     {
         return [
-            'voucher_id' => $this->voucher->id,
             'voucher_code' => $this->voucher->code,
-            'amount' => $this->voucher->cash?->amount,
+            'formatted_amount' => $this->voucher->cash?->formatted_amount ?? 'Unknown',
+            'mobile' => $this->mobile ?? 'Unknown',
             'error_message' => $this->errorMessage,
-            'error_type' => $this->errorType,
-            'occurred_at' => now()->toIso8601String(),
+            'occurred_at' => now()->format('F j, Y g:i A'),
         ];
     }
 }
