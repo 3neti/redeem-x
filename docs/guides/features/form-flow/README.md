@@ -26,6 +26,13 @@ Complete documentation for the form-flow system in the Redeem-X application.
   - Handler lifecycle and testing
   - Examples from existing handlers
 
+- **[Package Development Workflow](PACKAGE_DEVELOPMENT.md)** - Modifying the form-flow package
+  - Local development setup with symlinks
+  - Testing changes before publishing
+  - Versioning and tagging releases
+  - Publishing to Packagist
+  - Complete workflow example (~70 minutes)
+
 ### Reference
 - **[API Reference](API.md)** - Complete API documentation
   - FormFlowService methods
@@ -59,6 +66,11 @@ Complete documentation for the form-flow system in the Redeem-X application.
 1. Read [Handler Development Guide](HANDLERS.md)
 2. Reference [API Documentation](API.md)
 3. Check [Environment Variables](ENV_VARS.md) for handler config
+
+### For Package Maintainers
+1. Follow [Package Development Workflow](PACKAGE_DEVELOPMENT.md)
+2. Test with local symlinks before publishing
+3. Use semantic versioning for releases
 
 ### For Debugging
 1. Check [Troubleshooting Guide](TROUBLESHOOTING.md) first
@@ -131,10 +143,10 @@ See [Integration Checklist](INTEGRATION_CHECKLIST.md) for complete setup steps.
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation**: 8,253+ lines
-- **Main Guides**: 6 documents
+- **Total Documentation**: 9,910+ lines
+- **Main Guides**: 7 documents
 - **Example Drivers**: 4 YAML files
-- **Coverage**: 100% of form-flow system
+- **Coverage**: 100% of form-flow system (including package development)
 
 ## 🔗 Navigation
 
