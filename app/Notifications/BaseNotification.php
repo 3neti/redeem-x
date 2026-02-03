@@ -40,6 +40,11 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
         $type = $this->getNotificationType();
         $configChannels = config("notifications.channels.{$type}", []);
         
+        // Ensure channels is always an array
+        if (is_string($configChannels)) {
+            $configChannels = array_filter(explode(',', $configChannels));
+        }
+        
         // For AnonymousNotifiable, use config channels only (no database)
         if ($notifiable instanceof AnonymousNotifiable) {
             return $configChannels;
@@ -66,7 +71,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
     {
         return [
             'type' => $this->getNotificationType(),
-            'timestamp' => now()->toIso8601String(),
+            'timestamp' => now()->format('Y-m-d\\TH:i:s.u\\Z'),
             'data' => $this->getNotificationData(),
             'audit' => $this->getAuditMetadata(),
         ];
@@ -93,7 +98,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
     /**
      * Determine if notification should be logged to database.
      */
-    protected function shouldLogToDatabase(object $notifiable): bool
+    public function shouldLogToDatabase(object $notifiable): bool
     {
         $enabled = config('notifications.database_logging.enabled', true);
         
@@ -126,7 +131,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
      * 
      * Uses Brick\Money for accurate currency handling.
      */
-    protected function formatMoney(float $amount, string $currency = 'PHP'): string
+    public function formatMoney(float $amount, string $currency = 'PHP'): string
     {
         try {
             $money = \Brick\Money\Money::of($amount, $currency);
@@ -145,7 +150,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
      * - normal: User-facing notifications (payment confirmations, redemptions)
      * - low: Informational (balance queries, help, generation summaries)
      */
-    protected function getQueueName(): string
+    public function getQueueName(): string
     {
         $type = $this->getNotificationType();
         $queues = config('notifications.queue.queues', []);
@@ -186,7 +191,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
      * @param array $context Variables for template substitution
      * @return string Processed template with variables replaced
      */
-    protected function getLocalizedTemplate(string $key, array $context = []): string
+    public function getLocalizedTemplate(string $key, array $context = []): string
     {
         $template = __($key);
         
@@ -214,19 +219,36 @@ abstract class BaseNotification extends Notification implements ShouldQueue, Not
     /**
      * Build template context for notification.
      * 
-     * Default implementation includes global variables.
+     * Default implementation includes global variables and notifiable data.
      * Child classes should override and call parent::buildTemplateContext()
      * to add notification-specific context.
      * 
+     * @param object|null $notifiable The notifiable object (optional for backwards compatibility)
      * @return array Template variables
      */
-    protected function buildTemplateContext(): array
+    public function buildTemplateContext(?object $notifiable = null): array
     {
-        return [
+        $context = [
             'timestamp' => now()->toIso8601String(),
             'app_name' => config('app.name', 'Redeem-X'),
             'app_url' => config('app.url', 'http://localhost'),
+            'notification_type' => $this->getNotificationType(),
         ];
+        
+        // Add notifiable data if provided
+        if ($notifiable) {
+            // User-specific data
+            if (method_exists($notifiable, 'getAttribute')) {
+                if ($name = $notifiable->getAttribute('name')) {
+                    $context['user_name'] = $name;
+                }
+                if ($email = $notifiable->getAttribute('email')) {
+                    $context['user_email'] = $email;
+                }
+            }
+        }
+        
+        return $context;
     }
     
     /**
