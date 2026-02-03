@@ -4,9 +4,12 @@ namespace Tests;
 
 use App\Settings\VoucherSettings;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 abstract class TestCase extends BaseTestCase
 {
+    use RefreshDatabase;
+
     protected function defineEnvironment($app)
     {
         // Disable settings data migrations during tests

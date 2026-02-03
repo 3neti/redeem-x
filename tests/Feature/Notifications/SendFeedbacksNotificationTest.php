@@ -78,11 +78,15 @@ test('notification returns correct channels', function () {
     $voucher = $generateAction->handle($instructions, $user)->first();
     
     $notification = new SendFeedbacksNotification($voucher->code);
-    $channels = $notification->via(new \stdClass());
     
-    expect($channels)->toContain('mail')
-        ->and($channels)->toContain('engage_spark')
-        ->and($channels)->toContain('database');
+    // Test with AnonymousNotifiable (used in actual redemption flow)
+    $anonymousChannels = $notification->via(\Illuminate\Support\Facades\Notification::route('mail', 'test@example.com'));
+    expect($anonymousChannels)->toContain('mail')
+        ->and($anonymousChannels)->toContain('engage_spark');
+    
+    // Test with User model (database logging)
+    $userChannels = $notification->via($user);
+    expect($userChannels)->toContain('database');
 });
 
 test('toMail returns MailMessage with correct type', function () {
@@ -182,11 +186,16 @@ test('toArray returns correct data structure', function () {
     $notification = new SendFeedbacksNotification($voucher->code);
     $arrayData = $notification->toArray(new \stdClass());
     
-    expect($arrayData)->toHaveKey('code')
-        ->and($arrayData)->toHaveKey('mobile')
-        ->and($arrayData)->toHaveKey('amount')
-        ->and($arrayData)->toHaveKey('currency')
-        ->and($arrayData['code'])->toBe($voucher->code)
-        ->and($arrayData['amount'])->toBe(100.0)
-        ->and($arrayData['currency'])->toBe('PHP');
+    // BaseNotification uses standardized structure
+    expect($arrayData)->toHaveKeys(['type', 'timestamp', 'data', 'audit'])
+        ->and($arrayData['type'])->toBe('voucher_redeemed')
+        ->and($arrayData['data'])->toHaveKey('code')
+        ->and($arrayData['data'])->toHaveKey('mobile')
+        ->and($arrayData['data'])->toHaveKey('amount')
+        ->and($arrayData['data'])->toHaveKey('currency')
+        ->and($arrayData['data']['code'])->toBe($voucher->code)
+        ->and($arrayData['data']['amount'])->toBe(100.0)
+        ->and($arrayData['data']['currency'])->toBe('PHP')
+        ->and($arrayData['audit'])->toHaveKey('voucher_code')
+        ->and($arrayData['audit']['voucher_code'])->toBe($voucher->code);
 });
