@@ -15,15 +15,33 @@ return [
 
     'voucher_redeemed' => [
         'email' => [
-            'subject' => 'Voucher Code Redeemed',
+            'subject' => 'Voucher {{ code }} Redeemed',
             'greeting' => 'Hello,',
-            'body' => 'The voucher code **{{ code }}** with the amount of **{{ formatted_amount }}** has been successfully redeemed. It was claimed by **{{ mobile }}** from {{ formatted_address }}.',
+            'body' => 'Voucher **{{ code }}** with the amount of **{{ formatted_amount }}** has been successfully redeemed.',
+            
+            // Redemption Details section
+            'details' => [
+                'header' => '**Redemption Details:**',
+                'redeemed_by' => '**Redeemed By:** {{ contact_name_or_mobile }}',
+                'location' => '**Location:** {{ formatted_address }}',
+                'date' => '**Date/Time:** {{ redeemed_at }}',
+            ],
+            
+            // Custom inputs section (conditional)
+            'custom_inputs_header' => '**Additional Information:**',
+            
             'warning' => 'If you did not authorize this transaction, please contact support immediately.',
             'salutation' => 'Thank you for using our service!',
         ],
         'sms' => [
-            'message' => 'Voucher {{ code }} with amount {{ formatted_amount }} was redeemed by {{ mobile }}.',
-            'message_with_address' => 'Voucher {{ code }} with amount {{ formatted_amount }} was redeemed by {{ mobile }} from {{ formatted_address }}.',
+            // Tier 1: Basic (no images, no custom inputs)
+            'basic' => 'Voucher {{ code }} ({{ formatted_amount }}) redeemed by {{ contact_name_or_mobile }}{{ formatted_address_sms }}',
+            
+            // Tier 2: With images (signature/selfie/location)
+            'with_images' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\n{{ image_links }}: {{ image_urls }}",
+            
+            // Tier 3: With custom inputs + images
+            'with_inputs' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\nData: {{ custom_inputs_formatted }}\n{{ image_links }}: {{ image_urls }}",
         ],
     ],
 

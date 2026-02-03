@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Notifications\BaseNotification;
+use App\Services\InputFormatter;
 use App\Services\TemplateProcessor;
 use App\Services\VoucherTemplateContextBuilder;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -153,10 +154,40 @@ class SendFeedbacksNotification extends BaseNotification
         $processedWarning = TemplateProcessor::process($warning, $context);
         $processedSalutation = TemplateProcessor::process($salutation, $context);
         
+        // Build email message
         $mail_message = (new MailMessage)
             ->subject($processedSubject)
             ->greeting($processedGreeting)
-            ->line($processedBody)
+            ->line($processedBody);
+        
+        // Add Redemption Details section
+        $details = __('notifications.voucher_redeemed.email.details');
+        $mail_message->line('')
+            ->line(TemplateProcessor::process($details['header'], $context))
+            ->line(TemplateProcessor::process($details['redeemed_by'], $context));
+        
+        if ($context['formatted_address']) {
+            $mail_message->line(TemplateProcessor::process($details['location'], $context));
+        }
+        
+        if ($context['redeemed_at']) {
+            $mail_message->line(TemplateProcessor::process($details['date'], $context));
+        }
+        
+        // Add Additional Information section (if custom inputs exist)
+        $customInputs = InputFormatter::formatForEmail($this->voucher->inputs);
+        if (!empty($customInputs)) {
+            $customInputsHeader = __('notifications.voucher_redeemed.email.custom_inputs_header');
+            $mail_message->line('')
+                ->line($customInputsHeader);
+            
+            foreach ($customInputs as $label => $value) {
+                $mail_message->line("**{$label}:** {$value}");
+            }
+        }
+        
+        // Add warning and salutation
+        $mail_message->line('')
             ->line($processedWarning)
             ->salutation($processedSalutation);
 
@@ -257,18 +288,36 @@ class SendFeedbacksNotification extends BaseNotification
     {
         $this->debug("Building SMS notification");
         
-        // Build template context from voucher data
+        // Build template context from voucher data (includes enhanced fields)
         $context = VoucherTemplateContextBuilder::build($this->voucher);
         
-        // Choose template based on whether address is available
-        $templateKey = $context['formatted_address']
-            ? 'notifications.voucher_redeemed.sms.message_with_address'
-            : 'notifications.voucher_redeemed.sms.message';
+        // Determine which template tier to use
+        $hasCustomInputs = $context['has_custom_inputs'] ?? false;
+        $hasImages = $context['has_images'] ?? false;
+        
+        if ($hasCustomInputs) {
+            // Tier 3: with_inputs (includes custom fields + magic links)
+            $templateKey = 'notifications.voucher_redeemed.sms.message_with_inputs';
+            $this->debug("Using inputs template", ['custom_inputs' => $context['custom_inputs_formatted']]);
+        } elseif ($hasImages) {
+            // Tier 2: with_images (includes magic links only)
+            $templateKey = 'notifications.voucher_redeemed.sms.message_with_images';
+            $this->debug("Using images template", ['image_links' => $context['image_links']]);
+        } else {
+            // Tier 1: basic (original template)
+            $templateKey = 'notifications.voucher_redeemed.sms.message';
+            $this->debug("Using basic template");
+        }
         
         $template = __($templateKey);
         $message = TemplateProcessor::process($template, $context);
         
-        $this->debug("SMS notification built", ['template_key' => $templateKey, 'message_length' => strlen($message)]);
+        $this->debug("SMS notification built", [
+            'template_key' => $templateKey,
+            'has_custom_inputs' => $hasCustomInputs,
+            'has_images' => $hasImages,
+            'message_length' => strlen($message),
+        ]);
 
         return (new EngageSparkMessage())
             ->content($message);

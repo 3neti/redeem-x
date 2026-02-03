@@ -212,7 +212,7 @@ class VoucherTemplateContextBuilder
      * @param  array  $context  Existing context
      * @return array
      */
-    protected static function buildEnhancedContext(VoucherData $voucher, array $context): array
+    public static function buildEnhancedContext(VoucherData $voucher, array $context): array
     {
         $enhanced = [];
         
@@ -257,7 +257,12 @@ class VoucherTemplateContextBuilder
      */
     protected static function hasImageInputs(VoucherData $voucher): bool
     {
-        return $voucher->inputs->contains(fn($input) => in_array($input->name, ['signature', 'selfie', 'location']));
+        foreach ($voucher->inputs as $input) {
+            if (in_array($input->name, ['signature', 'selfie', 'location'])) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**
@@ -271,7 +276,13 @@ class VoucherTemplateContextBuilder
     protected static function generateMediaUrl(string $code, string $type, VoucherData $voucher): ?string
     {
         // Check if input exists
-        $hasInput = $voucher->inputs->contains(fn($input) => $input->name === $type);
+        $hasInput = false;
+        foreach ($voucher->inputs as $input) {
+            if ($input->name === $type) {
+                $hasInput = true;
+                break;
+            }
+        }
         
         if (!$hasInput) {
             return null;

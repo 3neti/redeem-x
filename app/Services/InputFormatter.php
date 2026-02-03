@@ -6,6 +6,7 @@ namespace App\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Spatie\LaravelData\DataCollection;
 
 /**
  * InputFormatter
@@ -45,10 +46,10 @@ class InputFormatter
      * Returns a compact string like: "otp: 123456 | ref: ABC-001"
      * Truncates to MAX_SMS_LENGTH chars if needed.
      *
-     * @param  Collection  $inputs  Collection of InputData objects
+     * @param  Collection|DataCollection  $inputs  Collection of InputData objects
      * @return string
      */
-    public static function formatForSms(Collection $inputs): string
+    public static function formatForSms(Collection|DataCollection $inputs): string
     {
         $filtered = static::filterInputs($inputs);
         
@@ -78,10 +79,10 @@ class InputFormatter
      * 
      * Returns an array of [label => value] pairs for use in email template.
      *
-     * @param  Collection  $inputs  Collection of InputData objects
+     * @param  Collection|DataCollection  $inputs  Collection of InputData objects
      * @return array
      */
-    public static function formatForEmail(Collection $inputs): array
+    public static function formatForEmail(Collection|DataCollection $inputs): array
     {
         $filtered = static::filterInputs($inputs);
         
@@ -101,12 +102,12 @@ class InputFormatter
     /**
      * Filter inputs to exclude images and sensitive fields.
      *
-     * @param  Collection  $inputs
+     * @param  Collection|DataCollection  $inputs
      * @return Collection
      */
-    protected static function filterInputs(Collection $inputs): Collection
+    protected static function filterInputs(Collection|DataCollection $inputs): Collection
     {
-        return $inputs->filter(function ($input) {
+        $filtered = $inputs->filter(function ($input) {
             // Exclude special fields
             if (in_array($input->name, self::EXCLUDED_FIELDS)) {
                 return false;
@@ -119,6 +120,13 @@ class InputFormatter
             
             return true;
         });
+        
+        // Convert DataCollection to Collection if needed
+        if ($filtered instanceof DataCollection) {
+            return collect($filtered->toArray());
+        }
+        
+        return $filtered;
     }
     
     /**
@@ -148,10 +156,10 @@ class InputFormatter
     /**
      * Check if inputs collection has custom (non-image) fields.
      *
-     * @param  Collection  $inputs
+     * @param  Collection|DataCollection  $inputs
      * @return bool
      */
-    public static function hasCustomInputs(Collection $inputs): bool
+    public static function hasCustomInputs(Collection|DataCollection $inputs): bool
     {
         return static::filterInputs($inputs)->isNotEmpty();
     }
