@@ -46,6 +46,11 @@ Route::get('/pay/confirm/{paymentRequest}', \App\Actions\Pay\ConfirmPaymentViaSm
     ->middleware('signed')
     ->name('pay.confirm');
 
+// Voucher media viewer (signed URLs for SMS magic links)
+Route::get('/voucher/{code}/media/{type}', [\App\Http\Controllers\VoucherMediaController::class, 'show'])
+    ->middleware('signed')
+    ->name('voucher.media.show');
+
 // Public thank you page after payment confirmation
 Route::get('/pay/confirmed/{paymentRequest}', function (\App\Models\PaymentRequest $paymentRequest) {
     return Inertia::render('PaymentConfirmed', [
