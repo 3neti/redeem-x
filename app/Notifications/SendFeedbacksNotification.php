@@ -302,13 +302,25 @@ class SendFeedbacksNotification extends BaseNotification
         // Add external metadata (for QuestPay integration)
         if ($voucherModel->external_metadata) {
             $external = $voucherModel->external_metadata;
-            $payload['external'] = [
-                'id' => $external->external_id,
-                'type' => $external->external_type,
-                'reference_id' => $external->reference_id,
-                'user_id' => $external->user_id,
-                'custom' => $external->custom,
-            ];
+            
+            // Handle both array and object formats
+            if (is_array($external)) {
+                $payload['external'] = [
+                    'id' => $external['external_id'] ?? null,
+                    'type' => $external['external_type'] ?? null,
+                    'reference_id' => $external['reference_id'] ?? null,
+                    'user_id' => $external['user_id'] ?? null,
+                    'custom' => $external['custom'] ?? null,
+                ];
+            } else {
+                $payload['external'] = [
+                    'id' => $external->external_id,
+                    'type' => $external->external_type,
+                    'reference_id' => $external->reference_id,
+                    'user_id' => $external->user_id,
+                    'custom' => $external->custom,
+                ];
+            }
         }
 
         // Add timing data

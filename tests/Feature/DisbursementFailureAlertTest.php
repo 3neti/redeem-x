@@ -110,12 +110,15 @@ test('disbursement failed notification contains voucher details', function () {
     
     $notification = DisbursementFailedNotification::fromException($voucher, $exception);
     
-    // Check array representation (skip toMail since it requires contacts relationship)
+    // Check array representation - BaseNotification uses standardized structure
     $array = $notification->toArray($user);
-    expect($array['voucher_code'])->toBe($code)
-        ->and($array['error_message'])->toBe('Gateway error occurred')
-        ->and($array['error_type'])->toBe('RuntimeException')
-        ->and($array['voucher_id'])->toBe($voucher->id);
+    expect($array)->toHaveKeys(['type', 'timestamp', 'data', 'audit'])
+        ->and($array['type'])->toBe('disbursement_failed')
+        ->and($array['data']['voucher_code'])->toBe($code)
+        ->and($array['data']['error_message'])->toBe('Gateway error occurred')
+        ->and($array['data']['error_type'])->toBe('RuntimeException')
+        ->and($array['data']['voucher_id'])->toBe($voucher->id)
+        ->and($array['audit']['voucher_code'])->toBe($code);
 });
 
 test('disbursement attempt scopes work correctly', function () {

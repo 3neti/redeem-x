@@ -37,13 +37,13 @@ test('webhook payload includes all enhanced features together', function () {
     $voucher = $vouchers->first();
     
     // 1. Set external metadata (QuestPay scenario)
-    $voucher->external_metadata = ExternalMetadataData::from([
+    $voucher->external_metadata = [
         'external_id' => 'quest-123',
         'external_type' => 'questpay',
         'reference_id' => 'quest-ref-456',
         'user_id' => 'player-789',
         'custom' => ['level' => 10, 'mission' => 'complete-tutorial'],
-    ]);
+    ];
     $voucher->save();
     
     // 2. Track timing events
