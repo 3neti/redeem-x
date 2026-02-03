@@ -60,9 +60,13 @@ class InputFormatter
         // Format as: field: value | field: value
         $formatted = $filtered
             ->map(function ($input) {
-                $label = Str::title(str_replace('_', ' ', $input->name));
-                $value = static::truncateValue($input->value, self::MAX_VALUE_LENGTH);
-                return "{$label}: {$value}";
+                // Handle both objects and arrays (after DataCollection conversion)
+                $name = is_array($input) ? $input['name'] : $input->name;
+                $value = is_array($input) ? $input['value'] : $input->value;
+                
+                $label = Str::title(str_replace('_', ' ', $name));
+                $formattedValue = static::truncateValue($value, self::MAX_VALUE_LENGTH);
+                return "{$label}: {$formattedValue}";
             })
             ->join(' | ');
         
@@ -92,9 +96,13 @@ class InputFormatter
         
         return $filtered
             ->mapWithKeys(function ($input) {
-                $label = Str::title(str_replace('_', ' ', $input->name));
-                $value = static::truncateValue($input->value, 200); // Longer limit for email
-                return [$label => $value];
+                // Handle both objects and arrays (after DataCollection conversion)
+                $name = is_array($input) ? $input['name'] : $input->name;
+                $value = is_array($input) ? $input['value'] : $input->value;
+                
+                $label = Str::title(str_replace('_', ' ', $name));
+                $formattedValue = static::truncateValue($value, 200); // Longer limit for email
+                return [$label => $formattedValue];
             })
             ->toArray();
     }
@@ -108,13 +116,17 @@ class InputFormatter
     protected static function filterInputs(Collection|DataCollection $inputs): Collection
     {
         $filtered = $inputs->filter(function ($input) {
+            // Handle both objects and arrays
+            $name = is_array($input) ? $input['name'] : $input->name;
+            $value = is_array($input) ? $input['value'] : $input->value;
+            
             // Exclude special fields
-            if (in_array($input->name, self::EXCLUDED_FIELDS)) {
+            if (in_array($name, self::EXCLUDED_FIELDS)) {
                 return false;
             }
             
             // Exclude empty values
-            if (empty($input->value)) {
+            if (empty($value)) {
                 return false;
             }
             
