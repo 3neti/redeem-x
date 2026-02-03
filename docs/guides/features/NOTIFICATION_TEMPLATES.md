@@ -4,7 +4,16 @@ This document describes the notification template system for voucher redemption 
 
 ## Overview
 
-Notification templates use the `TemplateProcessor` service to provide dynamic, customizable messages for email and SMS notifications sent when vouchers are redeemed. Templates are stored in Laravel's translation system (`lang/en/notifications.php`) for easy admin-level customization.
+Notification templates use the `TemplateProcessor` service to provide dynamic, customizable messages for email and SMS notifications. All notifications extend `BaseNotification` and use standardized templates stored in Laravel's translation system (`lang/en/notifications.php`) for easy admin-level customization.
+
+**All 7 application notifications use this template system:**
+- `BalanceNotification` - User/system balance inquiries
+- `HelpNotification` - SMS command help messages
+- `VouchersGeneratedSummary` - Voucher generation confirmations
+- `DisbursementFailedNotification` - Critical failure alerts
+- `LowBalanceAlert` - Gateway balance warnings
+- `PaymentConfirmationNotification` - Settlement payment confirmations
+- `SendFeedbacksNotification` - Voucher redemption notifications
 
 ## Architecture
 
@@ -251,16 +260,109 @@ Run the existing notification tests:
 php artisan test tests/Feature/Redeem/Notification/NotificationContentTest.php
 ```
 
+## BaseNotification Integration
+
+All notifications extend `BaseNotification` which provides the `getLocalizedTemplate()` helper method:
+
+```php
+use App\Notifications\BaseNotification;
+
+class MyNotification extends BaseNotification
+{
+    public function toMail(object $notifiable): MailMessage
+    {
+        // Build context with notification-specific data
+        $context = $this->buildTemplateContext($notifiable);
+        $context['custom_field'] = $this->model->custom_field;
+        
+        // Get localized templates using helper method
+        $subject = $this->getLocalizedTemplate('notifications.my_notification.email.subject', $context);
+        $greeting = $this->getLocalizedTemplate('notifications.my_notification.email.greeting', $context);
+        $body = $this->getLocalizedTemplate('notifications.my_notification.email.body', $context);
+        
+        return (new MailMessage)
+            ->subject($subject)
+            ->greeting($greeting)
+            ->line($body);
+    }
+}
+```
+
+**Key helper methods:**
+- `getLocalizedTemplate($key, $context)` - Fetches template from `lang/en/notifications.php` and processes variables
+- `buildTemplateContext($notifiable)` - Builds base context with user information
+- `formatMoney($amount, $currency)` - Formats amounts with currency symbols
+
+## Template Organization
+
+Templates are organized by notification type in `lang/en/notifications.php`:
+
+```php
+return [
+    // Balance notifications
+    'balance' => [
+        'user' => ['sms' => '...', 'email' => [...]],
+        'system' => ['sms' => '...', 'email' => [...]],
+    ],
+    
+    // Help notifications
+    'help' => [
+        'general' => '...',
+    ],
+    
+    // Voucher redemption
+    'voucher_redeemed' => [
+        'email' => ['subject' => '...', 'greeting' => '...', 'body' => '...'],
+        'sms' => ['message' => '...', 'message_with_address' => '...'],
+    ],
+    
+    // Generation summary
+    'vouchers_generated' => [
+        'sms' => ['single' => '...', 'multiple' => '...', 'many' => '...'],
+    ],
+    
+    // Critical alerts
+    'disbursement_failed' => [
+        'email' => ['subject' => '...', 'greeting' => '...', 'body' => '...', 'details' => [...]],
+    ],
+    
+    'low_balance_alert' => [
+        'email' => ['subject' => '...', 'greeting' => '...', 'body' => '...', 'details' => [...]],
+    ],
+    
+    // Payment confirmations
+    'payment_confirmation' => [
+        'sms' => '...',
+    ],
+];
+```
+
 ## Related Files
 
+### Core Notification System
+- `app/Notifications/BaseNotification.php` - Abstract base class with template helpers
+- `app/Contracts/NotificationInterface.php` - Interface for all notifications
+- `config/notifications.php` - Centralized notification configuration
+- `lang/en/notifications.php` - All notification templates
+
+### Template Services
 - `app/Services/VoucherTemplateContextBuilder.php` - Builds template context
 - `app/Services/TemplateProcessor.php` - Processes templates
-- `lang/en/notifications.php` - Template storage
-- `app/Notifications/SendFeedbacksNotification.php` - Email/SMS notification handler
-- `app/Actions/Notification/SendFeedback.php` - Feedback action (stub)
+
+### Notification Classes
+- `app/Notifications/BalanceNotification.php` - Balance inquiries
+- `app/Notifications/DisbursementFailedNotification.php` - Failure alerts
+- `app/Notifications/HelpNotification.php` - Help messages
+- `app/Notifications/LowBalanceAlert.php` - Balance warnings
+- `app/Notifications/PaymentConfirmationNotification.php` - Payment confirmations
+- `app/Notifications/SendFeedbacksNotification.php` - Voucher redemption
+- `app/Notifications/VouchersGeneratedSummary.php` - Generation confirmations
+
+### Tests
+- `tests/Feature/Notifications/BaseNotificationTest.php` - Base class tests (26 tests)
 - `tests/Feature/Services/VoucherTemplateContextBuilderTest.php` - Context builder tests
 - `tests/Unit/Services/TemplateProcessorTest.php` - Template processor tests
-- `tests/Feature/Redeem/Notification/NotificationContentTest.php` - Notification tests
+- `tests/Feature/Redeem/Notification/NotificationContentTest.php` - Notification content tests
 
 ## Future Enhancements
 
@@ -275,3 +377,10 @@ For issues or questions about notification templates, consult:
 - This documentation
 - The `TemplateProcessor` service source code
 - Existing test files for examples
+
+## See Also
+
+- [Notification System Guide](NOTIFICATION_SYSTEM.md) - Complete notification architecture documentation
+- [Notification Dispatch Reference](../../api/NOTIFICATION_DISPATCH_REFERENCE.md) - Command-to-notification mapping
+- [AI Guidelines](../../../.ai/guidelines/notifications.md) - Development guidelines for AI agents
+- [Template Processor Guide](TEMPLATE_PROCESSOR.md) - Detailed template processing documentation
