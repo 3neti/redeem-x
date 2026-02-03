@@ -2,25 +2,34 @@
 
 namespace App\Notifications;
 
+use App\Notifications\BaseNotification;
 use App\Services\TemplateProcessor;
 use App\Services\VoucherTemplateContextBuilder;
 use Illuminate\Notifications\Messages\MailMessage;
 use LBHurtado\EngageSpark\EngageSparkMessage;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\AnonymousNotifiable;
-use LBHurtado\Contact\Classes\BankAccount;
 use LBHurtado\ModelInput\Data\InputData;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
-use Illuminate\Support\{Arr, Number};
-use Illuminate\Bus\Queueable;
 use App\Notifications\Channels\WebhookChannel;
 use Illuminate\Support\Facades\Log;
 
-class SendFeedbacksNotification extends Notification implements ShouldQueue
+/**
+ * Send Feedbacks Notification
+ * 
+ * Sends voucher redemption notifications to issuer via email, SMS, and webhook.
+ * Most complex notification with email attachments (signature, selfie, location).
+ * 
+ * Migration to BaseNotification:
+ * - Extends BaseNotification for standardized behavior
+ * - Uses config/notifications.php for channel configuration
+ * - Uses lang/en/notifications.php for localization templates
+ * - Implements NotificationInterface (getNotificationType, getNotificationData, getAuditMetadata)
+ * - Database logging and queue priority managed by BaseNotification
+ * - Preserves email attachment logic for signature, selfie, location
+ */
+class SendFeedbacksNotification extends BaseNotification
 {
-    use Queueable;
 
     // Toggle debug logging: set to true to enable, false to disable
     private const DEBUG_ENABLED = false;
@@ -45,14 +54,80 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
         $this->debug("Voucher loaded with " . $this->voucher->inputs->count() . " inputs");
     }
 
+    /**
+     * Get the notification type identifier.
+     */
+    public function getNotificationType(): string
+    {
+        return 'voucher_redeemed';
+    }
+
+    /**
+     * Get the notification data payload.
+     */
+    public function getNotificationData(): array
+    {
+        // Build template context from voucher data
+        $context = VoucherTemplateContextBuilder::build($this->voucher);
+
+        return [
+            'code' => $context['code'],
+            'mobile' => $context['mobile'],
+            'amount' => $context['amount'],
+            'currency' => $context['currency'],
+            'formatted_amount' => $context['formatted_amount'],
+            'formatted_address' => $context['formatted_address'] ?? null,
+            'redeemed_at' => $context['redeemed_at'] ?? null,
+            'status' => $context['status'],
+            'email' => $context['owner_email'] ?? null,
+            'has_signature' => $this->hasInput('signature'),
+            'has_selfie' => $this->hasInput('selfie'),
+            'has_location' => $this->hasInput('location'),
+        ];
+    }
+
+    /**
+     * Get audit metadata for this notification.
+     */
+    public function getAuditMetadata(): array
+    {
+        return array_merge(parent::getAuditMetadata(), [
+            'voucher_code' => $this->voucher->code,
+            'has_attachments' => $this->hasInput('signature') || $this->hasInput('selfie') || $this->hasInput('location'),
+            'attachment_types' => array_filter([
+                $this->hasInput('signature') ? 'signature' : null,
+                $this->hasInput('selfie') ? 'selfie' : null,
+                $this->hasInput('location') ? 'location' : null,
+            ]),
+        ]);
+    }
+
+    /**
+     * Check if voucher has specific input.
+     */
+    protected function hasInput(string $name): bool
+    {
+        return $this->voucher->inputs
+            ->first(fn(InputData $input) => $input->name === $name) !== null;
+    }
+
+    /**
+     * Get notification delivery channels.
+     * 
+     * Override BaseNotification to add webhook channel for AnonymousNotifiable.
+     */
     public function via(object $notifiable): array
     {
-        // For routed (Anonymous) notifications: deliver to external channels only
+        // For routed (Anonymous) notifications: use config channels + optional webhook
         if ($notifiable instanceof AnonymousNotifiable) {
+            $channels = parent::via($notifiable);
+            
             // TODO: Re-enable webhook channel once properly tested
-            // return ['mail', 'engage_spark', WebhookChannel::class];
-            return ['mail', 'engage_spark'];
+            // $channels[] = WebhookChannel::class;
+            
+            return $channels;
         }
+        
         // For model notifications (e.g., User): persist to database only
         return ['database'];
     }
@@ -333,26 +408,6 @@ class SendFeedbacksNotification extends Notification implements ShouldQueue
         ];
     }
 
-    public function toArray(object $notifiable): array
-    {
-        // Build template context from voucher data
-        $context = VoucherTemplateContextBuilder::build($this->voucher);
-
-        // Reuse SMS template for audit visibility
-        $templateKey = $context['formatted_address']
-            ? 'notifications.voucher_redeemed.sms.message_with_address'
-            : 'notifications.voucher_redeemed.sms.message';
-        $smsMessage = TemplateProcessor::process(__($templateKey), $context);
-        
-        return [
-            'type' => 'feedback',
-            'code' => $context['code'],
-            'mobile' => $context['mobile'],
-            'amount' => $context['amount'],
-            'currency' => $context['currency'],
-            'sms_message' => $smsMessage,
-            'email' => $context['owner_email'] ?? null,
-            'webhook' => $context['webhook'] ?? null,
-        ];
-    }
+    // toArray() method removed - using BaseNotification's standardized implementation
+    // BaseNotification will call getNotificationData() and wrap it in standardized structure
 }
