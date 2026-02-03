@@ -40,6 +40,98 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Balance Notification Templates
+    |--------------------------------------------------------------------------
+    */
+
+    'balance' => [
+        'user' => [
+            'sms' => 'Balance: {{ formatted_balance }}',
+            'email' => [
+                'subject' => 'Your Balance',
+                'greeting' => 'Hello,',
+                'body' => 'Your current wallet balance is **{{ formatted_balance }}**.',
+                'salutation' => 'Thank you for using our service!',
+            ],
+        ],
+        'system' => [
+            'sms' => "Wallet: {{ wallet }} | Products: {{ products }}{{ bank_line }}",
+            'email' => [
+                'subject' => 'System Balance Report',
+                'greeting' => 'System Balance Summary',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Help Notification Templates
+    |--------------------------------------------------------------------------
+    */
+
+    'help' => [
+        // Help messages are complex multi-line strings, kept in notification class
+        'general' => 'For general help, text HELP. For command-specific help, text HELP {command}.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Disbursement Failed Notification Templates
+    |--------------------------------------------------------------------------
+    */
+
+    'disbursement_failed' => [
+        'email' => [
+            'subject' => '🚨 Disbursement Failed: {{ voucher_code }}',
+            'greeting' => 'Disbursement Failure Alert',
+            'body' => 'A disbursement has failed and requires immediate attention.',
+            'details' => [
+                'voucher_code' => '**Voucher Code:** {{ voucher_code }}',
+                'amount' => '**Amount:** {{ formatted_amount }}',
+                'mobile' => '**Redeemer Mobile:** {{ mobile }}',
+                'error' => '**Error:** {{ error_message }}',
+                'time' => '**Time:** {{ occurred_at }}',
+            ],
+            'action' => 'View Voucher Details',
+            'footer' => 'Please investigate and take appropriate action for customer support.',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Low Balance Alert Templates
+    |--------------------------------------------------------------------------
+    */
+
+    'low_balance_alert' => [
+        'email' => [
+            'subject' => '⚠️ Low Balance Alert: {{ account_number }}',
+            'greeting' => 'Low Balance Alert',
+            'body' => 'Your account balance has fallen below the configured threshold.',
+            'details' => [
+                'account' => '**Account:** {{ account_number }}',
+                'gateway' => '**Gateway:** {{ gateway }}',
+                'balance' => '**Current Balance:** {{ formatted_balance }}',
+                'available' => '**Available Balance:** {{ formatted_available_balance }}',
+                'threshold' => '**Threshold:** {{ formatted_threshold }}',
+                'checked_at' => '**Checked At:** {{ checked_at }}',
+            ],
+            'footer' => 'Please take appropriate action to ensure sufficient funds are available.',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment Confirmation Templates
+    |--------------------------------------------------------------------------
+    */
+
+    'payment_confirmation' => [
+        'sms' => 'Payment received! ₱{{ amount }} for voucher {{ voucher_code }}. Confirm here: {{ confirmation_url }}',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Available Variables
     |--------------------------------------------------------------------------
     |
@@ -68,6 +160,11 @@ return [
     | {{ signature }}          - Signature data URL (if captured)
     | {{ location }}           - Raw location JSON (if captured)
     | {{ redemption_endpoint }} - Redemption endpoint path (e.g., /disburse)
+    | {{ formatted_balance }}  - Formatted balance amount
+    | {{ formatted_threshold }} - Formatted threshold amount
+    | {{ error_message }}      - Error message
+    | {{ occurred_at }}        - Error occurrence timestamp
+    | {{ confirmation_url }}   - Payment confirmation URL
     | {{ <custom_field> }}    - Any custom input field by name
     |
     */
