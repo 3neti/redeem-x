@@ -204,6 +204,114 @@ npm run build:ssr    # Build with SSR support
 npm run dev          # Development with HMR
 ```
 
+## Testing & Automation
+
+The project includes comprehensive test commands, shell scripts, and integrations for automated testing.
+
+### Test Commands (Artisan)
+
+Commands for end-to-end testing workflows:
+
+**Notifications & SMS:**
+```bash
+# Test notification system (email + SMS)
+php artisan test:notification --email=user@example.com
+
+# Test SMS sending
+php artisan test:sms 09173011987
+
+# Test SMS BALANCE command
+php artisan test:sms-balance
+
+# Test SMS voucher redemption
+php artisan test:sms-redeem VOUCHER-CODE
+
+# Test SMS router locally
+php artisan test:sms-router "GENERATE 100" --mobile=09173011987
+```
+
+**Payment & Top-Up:**
+```bash
+# Test top-up flow
+php artisan test:topup 500
+
+# Test NetBank Direct Checkout
+php artisan test:direct-checkout 100
+
+# Simulate deposit webhook
+php artisan simulate:deposit user@example.com 100
+```
+
+**Vouchers:**
+```bash
+# Generate test vouchers with different scenarios
+php artisan test:vouchers --scenario=full
+
+# Test voucher traits (metadata, timing, validation)
+php artisan test:voucher-traits
+```
+
+**Gateway & Disbursement:**
+```bash
+# Test Omnipay disbursement (⚠️ REAL TRANSACTION)
+php artisan omnipay:disburse 100 09173011987 GXCHPHM2XXX INSTAPAY
+
+# Check gateway balance
+php artisan omnipay:balance --account=113-001-00001-9
+
+# Test disbursement failure alerts
+php artisan test:disbursement-failure --type=timeout
+```
+
+**Full reference:** `docs/guides/automation/CONSOLE_COMMANDS.md`
+
+### Shell Scripts
+
+End-to-end test scripts located in `scripts/testing/`:
+
+```bash
+# Test complete settlement voucher lifecycle
+scripts/testing/test-settlement-voucher-flow.sh VOUCHER-CODE --mobile=09173011987
+
+# Test NetBank webhook classification
+scripts/testing/test-netbank-webhook-flow.sh 100 VOUCHER-CODE --send-sms
+```
+
+**Full documentation:** `scripts/README.md` and `docs/guides/automation/SHELL_SCRIPTS.md`
+
+### Operational Commands
+
+```bash
+# Feature flag management
+php artisan feature:list user@example.com
+php artisan feature:manage settlement-vouchers user@example.com --enable
+
+# Revenue collection
+php artisan revenue:collect --preview
+
+# Balance checks
+php artisan balances:check --account=113-001-00001-9
+
+# Voucher operations
+php artisan voucher:confirm VOUCHER-CODE --disburse
+php artisan voucher:disburse VOUCHER-CODE
+```
+
+### Pipedream Integration
+
+SMS gateway integration via Pipedream. See `integrations/pipedream/README.md` for architecture and deployment.
+
+**Current version:** v3.0.0 (simplified authentication proxy)  
+**Location:** `integrations/pipedream/token-based-routing.js`
+
+**Architecture:**
+- Pipedream handles AUTHENTICATE command only
+- All business logic in Laravel (`/sms` and `/sms/public` endpoints)
+- Token storage in Pipedream Data Store
+- 65% less code than v2.1 (easier to maintain)
+
+**Deployment guide:** `docs/guides/automation/PIPEDREAM_INTEGRATION.md`
+
 ## UI Improvement Methodology
 
 When implementing UI improvements (e.g., progressive disclosure, simplified/advanced modes), follow this proven approach:
