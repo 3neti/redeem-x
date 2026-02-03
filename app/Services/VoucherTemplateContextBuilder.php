@@ -236,7 +236,9 @@ class VoucherTemplateContextBuilder
         // Generate signed URLs for images (24-hour expiry)
         $enhanced['signature_url'] = static::generateMediaUrl($voucher->code, 'signature', $voucher);
         $enhanced['selfie_url'] = static::generateMediaUrl($voucher->code, 'selfie', $voucher);
-        $enhanced['location_url'] = static::generateMediaUrl($voucher->code, 'location', $voucher);
+        // Try 'location' first, fallback to 'map'
+        $enhanced['location_url'] = static::generateMediaUrl($voucher->code, 'location', $voucher)
+            ?? static::generateMediaUrl($voucher->code, 'map', $voucher);
         
         // Compact image links for SMS (comma-separated)
         $imageLinks = array_filter([
@@ -266,7 +268,7 @@ class VoucherTemplateContextBuilder
     protected static function hasImageInputs(VoucherData $voucher): bool
     {
         foreach ($voucher->inputs as $input) {
-            if (in_array($input->name, ['signature', 'selfie', 'location'])) {
+            if (in_array($input->name, ['signature', 'selfie', 'location', 'map'])) {
                 return true;
             }
         }

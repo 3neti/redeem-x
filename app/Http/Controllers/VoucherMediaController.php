@@ -24,14 +24,14 @@ class VoucherMediaController extends Controller
     /**
      * Supported media types
      */
-    private const SUPPORTED_TYPES = ['signature', 'selfie', 'location'];
+    private const SUPPORTED_TYPES = ['signature', 'selfie', 'location', 'map'];
     
     /**
      * Display the specified media from voucher inputs.
      *
      * @param  Request  $request
      * @param  string  $code  Voucher code
-     * @param  string  $type  Media type (signature|selfie|location)
+     * @param  string  $type  Media type (signature|selfie|location|map)
      * @return Response|StreamedResponse
      */
     public function show(Request $request, string $code, string $type)
@@ -85,7 +85,7 @@ class VoucherMediaController extends Controller
             return $this->extractLocationSnapshot($value);
         }
         
-        // Handle signature/selfie (data URL format)
+        // Handle signature/selfie/map (data URL format)
         return $this->extractDataUrl($value);
     }
     

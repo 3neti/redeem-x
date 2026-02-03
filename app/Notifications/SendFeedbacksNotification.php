@@ -239,14 +239,17 @@ class SendFeedbacksNotification extends BaseNotification
             $this->debug("Attached selfie", ['extension' => $extension, 'mime' => $mime]);
         }
         
-        // Attach location snapshot if present
+        // Attach location snapshot if present (try 'location' first, then 'map')
         $locationInput = $this->voucher->inputs
             ->first(fn(InputData $input) => $input->name === 'location')
             ?->value;
         
         $this->debug("Location input", ['found' => $locationInput !== null]);
+        
+        $mapImageData = null;
             
         if ($locationInput) {
+            // Old format: location field with JSON containing snapshot
             try {
                 $locationData = json_decode($locationInput, true);
                 $snapshot = $locationData['snapshot'] ?? null;
@@ -259,23 +262,44 @@ class SendFeedbacksNotification extends BaseNotification
                 ]);
                 
                 if ($snapshot && str_starts_with($snapshot, 'data:image/')) {
-                    // Extract the actual base64 data
-                    [, $encodedImage] = explode(',', $snapshot, 2);
-
-                    // Determine mime and file extension
-                    preg_match('/^data:image\/(\w+);base64/', $snapshot, $matches);
-                    $extension = $matches[1] ?? 'png'; // fallback to png
-                    $mime = "image/{$extension}";
-
-                    $mail_message->attachData(
-                        base64_decode($encodedImage),
-                        "location-map.{$extension}",
-                        ['mime' => $mime]
-                    );
-                    $this->debug("Attached location snapshot", ['extension' => $extension, 'mime' => $mime]);
+                    $mapImageData = $snapshot;
                 }
             } catch (\Exception $e) {
-                $this->debug("Failed to attach location snapshot", ['error' => $e->getMessage()]);
+                $this->debug("Failed to parse location JSON", ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // New format: separate 'map' field with data URL
+        if (!$mapImageData) {
+            $mapInput = $this->voucher->inputs
+                ->first(fn(InputData $input) => $input->name === 'map')
+                ?->value;
+            
+            if ($mapInput && str_starts_with($mapInput, 'data:image/')) {
+                $mapImageData = $mapInput;
+                $this->debug("Using map field", ['found' => true]);
+            }
+        }
+        
+        // Attach the map image if found
+        if ($mapImageData) {
+            try {
+                // Extract the actual base64 data
+                [, $encodedImage] = explode(',', $mapImageData, 2);
+
+                // Determine mime and file extension
+                preg_match('/^data:image\/(\w+);base64/', $mapImageData, $matches);
+                $extension = $matches[1] ?? 'png'; // fallback to png
+                $mime = "image/{$extension}";
+
+                $mail_message->attachData(
+                    base64_decode($encodedImage),
+                    "location-map.{$extension}",
+                    ['mime' => $mime]
+                );
+                $this->debug("Attached location map", ['extension' => $extension, 'mime' => $mime]);
+            } catch (\Exception $e) {
+                $this->debug("Failed to attach location map", ['error' => $e->getMessage()]);
             }
         }
         
