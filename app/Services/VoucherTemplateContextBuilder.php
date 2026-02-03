@@ -246,6 +246,14 @@ class VoucherTemplateContextBuilder
         ]);
         $enhanced['image_links'] = !empty($imageLinks) ? implode(', ', $imageLinks) : '';
         
+        // Actual URLs space-separated for SMS
+        $imageUrls = array_filter([
+            $enhanced['signature_url'],
+            $enhanced['selfie_url'],
+            $enhanced['location_url'],
+        ]);
+        $enhanced['image_urls'] = !empty($imageUrls) ? implode(' ', $imageUrls) : '';
+        
         return $enhanced;
     }
     

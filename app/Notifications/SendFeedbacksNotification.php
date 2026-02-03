@@ -297,15 +297,15 @@ class SendFeedbacksNotification extends BaseNotification
         
         if ($hasCustomInputs) {
             // Tier 3: with_inputs (includes custom fields + magic links)
-            $templateKey = 'notifications.voucher_redeemed.sms.message_with_inputs';
+            $templateKey = 'notifications.voucher_redeemed.sms.with_inputs';
             $this->debug("Using inputs template", ['custom_inputs' => $context['custom_inputs_formatted']]);
         } elseif ($hasImages) {
             // Tier 2: with_images (includes magic links only)
-            $templateKey = 'notifications.voucher_redeemed.sms.message_with_images';
+            $templateKey = 'notifications.voucher_redeemed.sms.with_images';
             $this->debug("Using images template", ['image_links' => $context['image_links']]);
         } else {
             // Tier 1: basic (original template)
-            $templateKey = 'notifications.voucher_redeemed.sms.message';
+            $templateKey = 'notifications.voucher_redeemed.sms.basic';
             $this->debug("Using basic template");
         }
         

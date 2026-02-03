@@ -24,6 +24,7 @@ class InputFormatter
         'signature',
         'selfie',
         'location',
+        'map',  // Location map snapshot
         'kyc',
         '_step_name',
         'splash_viewed',
