@@ -78,18 +78,11 @@
             "options": {
                 "symlink": true
             }
-        },
-        {
-            "type": "path",
-            "url": "../packages/form-flow-manager",
-            "options": {
-                "symlink": true
-            }
         }
     ],
     "require": {
         "php": "^8.2",
-        "3neti/form-flow": "@dev",
+        "3neti/form-flow": "^1.7.1",
         "3neti/form-handler-kyc": "^1.0",
         "3neti/form-handler-location": "^1.1.1",
         "3neti/form-handler-otp": "^1.0",
