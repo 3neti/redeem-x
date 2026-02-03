@@ -35,13 +35,15 @@ return [
         ],
         'sms' => [
             // Tier 1: Basic (no images, no custom inputs)
-            'basic' => 'Voucher {{ code }} ({{ formatted_amount }}) redeemed by {{ contact_name_or_mobile }}{{ formatted_address_sms }}',
+            'basic' => 'Voucher {{ code }} ({{ formatted_amount }}) redeemed by {{ contact_name_or_mobile }}',
             
             // Tier 2: With images (signature/selfie/location)
-            'with_images' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\n{{ image_links }}: {{ image_urls }}",
+            // Lists available media types without URLs to stay under SMS character limit
+            'with_images' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\nMedia: {{ image_links }}\n(See email for full details)",
             
             // Tier 3: With custom inputs + images
-            'with_inputs' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\nData: {{ custom_inputs_formatted }}\n{{ image_links }}: {{ image_urls }}",
+            // Lists custom inputs and media types - full details in email
+            'with_inputs' => "Voucher {{ code }} ({{ formatted_amount }}) by {{ contact_name_or_mobile }}.\n{{ custom_inputs_formatted }}\nMedia: {{ image_links }} (see email)",
         ],
     ],
 
