@@ -5,4 +5,7 @@
  */
 export { default as EnvelopeStatusCard } from './EnvelopeStatusCard.vue'
 export { default as EnvelopeChecklistCard } from './EnvelopeChecklistCard.vue'
+export { default as EnvelopeAttachmentsCard } from './EnvelopeAttachmentsCard.vue'
+export { default as EnvelopeSignalsCard } from './EnvelopeSignalsCard.vue'
+export { default as EnvelopePayloadCard } from './EnvelopePayloadCard.vue'
 export { default as EnvelopeAuditLog } from './EnvelopeAuditLog.vue'

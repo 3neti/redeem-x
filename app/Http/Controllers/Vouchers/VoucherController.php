@@ -81,7 +81,9 @@ class VoucherController extends Controller
                         'id' => $att->id,
                         'doc_type' => $att->doc_type,
                         'original_filename' => $att->original_filename,
+                        'mime_type' => $att->mime_type,
                         'review_status' => $att->review_status,
+                        'url' => $att->file_path ? \Storage::disk($att->disk ?? 'public')->url($att->file_path) : null,
                         'created_at' => $att->created_at->toIso8601String(),
                     ])->toArray(),
                     'signals' => $envelope->signals->map(fn ($sig) => [

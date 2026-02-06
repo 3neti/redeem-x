@@ -19,7 +19,14 @@ import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
 import SettlementDetailsCard from '@/components/settlement/SettlementDetailsCard.vue';
 import PaymentsCard from '@/components/settlement/PaymentsCard.vue';
 import VoucherActionsCard from '@/components/settlement/VoucherActionsCard.vue';
-import { EnvelopeStatusCard, EnvelopeChecklistCard, EnvelopeAuditLog } from '@/components/envelope';
+import { 
+    EnvelopeStatusCard, 
+    EnvelopeChecklistCard, 
+    EnvelopeAttachmentsCard,
+    EnvelopeSignalsCard,
+    EnvelopePayloadCard,
+    EnvelopeAuditLog 
+} from '@/components/envelope';
 import type { Envelope } from '@/composables/useEnvelope';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
@@ -444,10 +451,29 @@ const instructionsFormData = computed(() => {
                 <!-- Envelope Tab Content -->
                 <div v-show="activeTab === 'envelope'" v-if="hasEnvelope && envelope" class="space-y-6">
                     <EnvelopeStatusCard :envelope="envelope" />
-                    <EnvelopeChecklistCard 
-                        v-if="envelope.checklist_items?.length" 
-                        :items="envelope.checklist_items" 
+                    
+                    <div class="grid gap-6 md:grid-cols-2">
+                        <EnvelopeChecklistCard 
+                            v-if="envelope.checklist_items?.length" 
+                            :items="envelope.checklist_items" 
+                        />
+                        <EnvelopeSignalsCard 
+                            v-if="envelope.signals?.length" 
+                            :signals="envelope.signals" 
+                        />
+                    </div>
+                    
+                    <EnvelopeAttachmentsCard 
+                        v-if="envelope.attachments?.length" 
+                        :attachments="envelope.attachments" 
                     />
+                    
+                    <EnvelopePayloadCard 
+                        :payload="envelope.payload || {}" 
+                        :version="envelope.payload_version"
+                        :context="envelope.context"
+                    />
+                    
                     <EnvelopeAuditLog 
                         v-if="envelope.audit_logs?.length" 
                         :entries="envelope.audit_logs" 

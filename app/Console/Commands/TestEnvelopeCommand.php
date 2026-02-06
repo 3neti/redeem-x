@@ -364,19 +364,23 @@ class TestEnvelopeCommand extends Command
         // Determine document type based on driver
         $docType = $envelope->driver_id === 'vendor.pay-by-face' ? 'FACE_PHOTO' : 'TEST_DOC';
 
-        // Create test image file
-        $testImagePath = base_path('tests/Fixtures/test-selfie.txt');
-        if (!file_exists($testImagePath)) {
-            throw new \Exception("Test fixture not found: {$testImagePath}");
+        // Use favicon.png for visual confirmation during testing
+        $sourcePath = public_path('favicon.png');
+        if (!file_exists($sourcePath)) {
+            // Fallback to base64 fixture if favicon doesn't exist
+            $testImagePath = base_path('tests/Fixtures/test-selfie.txt');
+            if (!file_exists($testImagePath)) {
+                throw new \Exception("No test image found (checked favicon.png and test-selfie.txt)");
+            }
+            $base64Content = file_get_contents($testImagePath);
+            $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Content));
+            $tempPath = sys_get_temp_dir() . '/test-envelope-doc-' . uniqid() . '.png';
+            file_put_contents($tempPath, $imageData);
+        } else {
+            // Copy favicon to temp location
+            $tempPath = sys_get_temp_dir() . '/test-envelope-doc-' . uniqid() . '.png';
+            copy($sourcePath, $tempPath);
         }
-
-        // Decode base64 image
-        $base64Content = file_get_contents($testImagePath);
-        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Content));
-
-        // Create temp file
-        $tempPath = sys_get_temp_dir() . '/test-envelope-doc-' . uniqid() . '.png';
-        file_put_contents($tempPath, $imageData);
 
         // Create UploadedFile
         $file = new UploadedFile(

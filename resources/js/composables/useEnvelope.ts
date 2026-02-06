@@ -22,7 +22,9 @@ export interface EnvelopeAttachment {
     id: number
     doc_type: string
     original_filename: string
+    mime_type?: string
     review_status: 'pending' | 'accepted' | 'rejected'
+    url?: string
     created_at: string
 }
 
