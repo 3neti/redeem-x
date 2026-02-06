@@ -19,6 +19,8 @@ import VoucherStateBadge from '@/components/settlement/VoucherStateBadge.vue';
 import SettlementDetailsCard from '@/components/settlement/SettlementDetailsCard.vue';
 import PaymentsCard from '@/components/settlement/PaymentsCard.vue';
 import VoucherActionsCard from '@/components/settlement/VoucherActionsCard.vue';
+import { EnvelopeStatusCard, EnvelopeChecklistCard, EnvelopeAuditLog } from '@/components/envelope';
+import type { Envelope } from '@/composables/useEnvelope';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -119,14 +121,16 @@ interface Props {
     input_field_options: VoucherInputFieldOption[];
     settlement?: SettlementData;
     external_metadata?: Record<string, any> | null;
+    envelope?: Envelope;
 }
 
 const props = defineProps<Props>();
 const page = usePage();
 
-const activeTab = ref<'details' | 'instructions' | 'metadata'>('details');
+const activeTab = ref<'details' | 'instructions' | 'metadata' | 'envelope'>('details');
 
 const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
+const hasEnvelope = computed(() => !!props.envelope);
 
 const isOwner = computed(() => {
     const currentUser = (page.props as any).auth?.user;
@@ -355,6 +359,18 @@ const instructionsFormData = computed(() => {
                         >
                             Metadata
                         </button>
+                        <button
+                            v-if="hasEnvelope"
+                            @click="activeTab = 'envelope'"
+                            :class="[
+                                activeTab === 'envelope'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
+                                'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors',
+                            ]"
+                        >
+                            Envelope
+                        </button>
                     </nav>
                 </div>
 
@@ -422,6 +438,19 @@ const instructionsFormData = computed(() => {
                     <VoucherMetadataDisplay 
                         :metadata="voucher.instructions.metadata" 
                         :show-all-fields="true"
+                    />
+                </div>
+
+                <!-- Envelope Tab Content -->
+                <div v-show="activeTab === 'envelope'" v-if="hasEnvelope && envelope" class="space-y-6">
+                    <EnvelopeStatusCard :envelope="envelope" />
+                    <EnvelopeChecklistCard 
+                        v-if="envelope.checklist_items?.length" 
+                        :items="envelope.checklist_items" 
+                    />
+                    <EnvelopeAuditLog 
+                        v-if="envelope.audit_logs?.length" 
+                        :entries="envelope.audit_logs" 
                     />
                 </div>
 

@@ -1051,6 +1051,28 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 - Used in: Email notifications, SMS notifications (EngageSpark), webhook payloads
 - See `docs/NOTIFICATION_TEMPLATES.md` for full documentation and customization guide
 
+## Pending Package Extractions
+
+Code currently in the host app that will be extracted to monorepo packages once APIs stabilize.
+
+### Settlement Envelope UI → `packages/settlement-envelope/`
+**Status:** Iterating in host app (Phase 1-3 of UI plan)
+**Criteria for extraction:** API stable after 1-2 weeks of use
+
+**Files to extract:**
+- `resources/js/components/envelope/*` → package `resources/js/components/`
+- `resources/js/composables/useEnvelope.ts` → package `resources/js/composables/`
+- Controller envelope logic → package controller or dedicated API routes
+
+**Current location (host app):**
+- `resources/js/components/envelope/EnvelopeStatusCard.vue`
+- `resources/js/components/envelope/EnvelopeChecklistCard.vue`
+- `resources/js/components/envelope/EnvelopeAuditLog.vue`
+- `resources/js/composables/useEnvelope.ts`
+- `app/Http/Controllers/Vouchers/VoucherController.php` (envelope data section)
+
+**Workflow:** Host app first → iterate → extract to package → vendor:publish support
+
 ## Important Notes
 
 ### Configuration Data in Migrations
