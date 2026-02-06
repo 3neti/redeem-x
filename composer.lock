@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2d62027e69e83a892419075564f5b8c7",
+    "content-hash": "11aa9afdc5fb8de86b57710a4f3f1db2",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -416,7 +416,7 @@
         },
         {
             "name": "3neti/settlement-envelope",
-            "version": "dev-feature/settlement-envelope-package",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/settlement-envelope",
@@ -3803,7 +3803,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/settlement-envelope-package",
+            "version": "dev-fix/balance-calculation-proper-transaction-fee",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3988,13 +3988,14 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-feature/settlement-envelope-package",
+            "version": "dev-fix/balance-calculation-proper-transaction-fee",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
-                "reference": "56aa6c407c9fc81829bfee8fb73034ffb95166b2"
+                "reference": "9f0b09817d0ad419c096e4cf6d72180e45613241"
             },
             "require": {
+                "3neti/settlement-envelope": "dev-main",
                 "brick/money": "^0.10.1",
                 "frittenkeez/laravel-vouchers": "^0.6.0",
                 "lbhurtado/cash": "dev-main",

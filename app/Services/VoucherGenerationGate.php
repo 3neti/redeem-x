@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\InsufficientFundsException;
 use App\Models\User;
+use Brick\Money\Money;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 
 /**
@@ -60,11 +61,14 @@ class VoucherGenerationGate
         $faceValuePerVoucher = $instructions->cash->amount ?? 0;
         $totalFaceValue = $faceValuePerVoucher * $count;
         
-        // Calculate instruction fees using the cost evaluator
+        // Calculate instruction fees using the cost evaluator (returns prices in centavos)
         $charges = $this->costEvaluator->evaluate($user, $instructions);
-        $totalFees = $charges->sum('price');
+        $totalFeesInCentavos = $charges->sum('price');
         
-        // Build detailed breakdown
+        // Convert centavos to float using brick/money
+        $totalFeesFloat = Money::ofMinor($totalFeesInCentavos, 'PHP')->getAmount()->toFloat();
+        
+        // Build detailed breakdown (convert all centavos to float)
         $breakdown = [
             'face_value' => [
                 'per_voucher' => $faceValuePerVoucher,
@@ -73,16 +77,16 @@ class VoucherGenerationGate
             ],
             'fees' => $charges->map(fn($charge) => [
                 'label' => $charge['label'],
-                'unit_price' => $charge['unit_price'],
+                'unit_price' => Money::ofMinor($charge['unit_price'], 'PHP')->getAmount()->toFloat(),
                 'quantity' => $charge['quantity'],
-                'total' => $charge['price'],
+                'total' => Money::ofMinor($charge['price'], 'PHP')->getAmount()->toFloat(),
             ])->values()->toArray(),
         ];
         
         return [
-            'total' => $totalFaceValue + $totalFees,
+            'total' => $totalFaceValue + $totalFeesFloat,
             'face_value' => $totalFaceValue,
-            'fees' => $totalFees,
+            'fees' => $totalFeesFloat,
             'count' => $count,
             'breakdown' => $breakdown,
         ];
