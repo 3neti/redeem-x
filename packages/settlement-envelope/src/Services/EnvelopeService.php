@@ -1,0 +1,484 @@
+<?php
+
+namespace LBHurtado\SettlementEnvelope\Services;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use LBHurtado\SettlementEnvelope\Data\DriverData;
+use LBHurtado\SettlementEnvelope\Enums\ChecklistItemKind;
+use LBHurtado\SettlementEnvelope\Enums\ChecklistItemStatus;
+use LBHurtado\SettlementEnvelope\Enums\EnvelopeStatus;
+use LBHurtado\SettlementEnvelope\Enums\ReviewMode;
+use LBHurtado\SettlementEnvelope\Events\AttachmentReviewed;
+use LBHurtado\SettlementEnvelope\Events\AttachmentUploaded;
+use LBHurtado\SettlementEnvelope\Events\PayloadUpdated;
+use LBHurtado\SettlementEnvelope\Events\SignalChanged;
+use LBHurtado\SettlementEnvelope\Exceptions\DocumentTypeNotAllowedException;
+use LBHurtado\SettlementEnvelope\Exceptions\EnvelopeNotEditableException;
+use LBHurtado\SettlementEnvelope\Exceptions\EnvelopeNotSettleableException;
+use LBHurtado\SettlementEnvelope\Models\Envelope;
+use LBHurtado\SettlementEnvelope\Models\EnvelopeAttachment;
+use LBHurtado\SettlementEnvelope\Models\EnvelopeAuditLog;
+use LBHurtado\SettlementEnvelope\Models\EnvelopeChecklistItem;
+use LBHurtado\SettlementEnvelope\Models\EnvelopePayloadVersion;
+use LBHurtado\SettlementEnvelope\Models\EnvelopeSignal;
+
+class EnvelopeService
+{
+    public function __construct(
+        protected DriverService $driverService,
+        protected PayloadValidator $payloadValidator,
+        protected GateEvaluator $gateEvaluator
+    ) {}
+
+    /**
+     * Create a new envelope
+     */
+    public function create(
+        string $referenceCode,
+        string $driverId,
+        ?string $driverVersion = null,
+        ?Model $reference = null,
+        ?array $initialPayload = null,
+        ?array $context = null,
+        ?Model $actor = null
+    ): Envelope {
+        $driver = $this->driverService->load($driverId, $driverVersion);
+
+        return DB::transaction(function () use ($referenceCode, $driver, $reference, $initialPayload, $context, $actor) {
+            // Create envelope with version 0 initially
+            $envelope = Envelope::create([
+                'reference_code' => $referenceCode,
+                'reference_type' => $reference ? get_class($reference) : null,
+                'reference_id' => $reference?->getKey(),
+                'driver_id' => $driver->id,
+                'driver_version' => $driver->version,
+                'payload' => $initialPayload,
+                'payload_version' => 0,
+                'status' => EnvelopeStatus::DRAFT,
+                'context' => $context,
+            ]);
+
+            // Create initial payload version if payload provided
+            if ($initialPayload) {
+                EnvelopePayloadVersion::createVersion($envelope, $initialPayload, null, $actor);
+                $envelope->update(['payload_version' => 1]);
+            }
+
+            // Create checklist items from driver template
+            $this->createChecklistItems($envelope, $driver);
+
+            // Update payload field checklist items if initial payload provided
+            if ($initialPayload) {
+                $this->updatePayloadFieldItems($envelope);
+            }
+
+            // Initialize signals from driver definitions
+            $this->initializeSignals($envelope, $driver);
+
+            // Compute initial gates
+            $this->recomputeGates($envelope);
+
+            // Audit log
+            $this->audit($envelope, EnvelopeAuditLog::ACTION_CREATED, $actor, null, null, [
+                'driver' => $driver->getDriverKey(),
+                'reference_code' => $referenceCode,
+            ]);
+
+            return $envelope->fresh(['checklistItems', 'signals']);
+        });
+    }
+
+    /**
+     * Update envelope payload
+     */
+    public function updatePayload(Envelope $envelope, array $patch, ?Model $actor = null): Envelope
+    {
+        if (!$envelope->canEdit()) {
+            throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} is not editable");
+        }
+
+        $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
+        $schema = $this->driverService->getSchema($driver);
+
+        $oldPayload = $envelope->payload ?? [];
+        $newPayload = $this->payloadValidator->mergePatch($oldPayload, $patch);
+
+        // Validate if schema exists
+        if ($schema) {
+            $this->payloadValidator->validate($newPayload, $driver, $schema);
+        }
+
+        return DB::transaction(function () use ($envelope, $newPayload, $patch, $actor, $oldPayload) {
+            // Create version record
+            EnvelopePayloadVersion::createVersion($envelope, $newPayload, $patch, $actor);
+
+            // Update envelope
+            $envelope->update([
+                'payload' => $newPayload,
+                'payload_version' => $envelope->payload_version + 1,
+            ]);
+
+            // Update payload field checklist items
+            $this->updatePayloadFieldItems($envelope);
+
+            // Recompute gates
+            $this->recomputeGates($envelope);
+
+            // Audit
+            $this->audit($envelope, EnvelopeAuditLog::ACTION_PAYLOAD_PATCH, $actor, null, $oldPayload, $newPayload);
+
+            // Event
+            event(new PayloadUpdated($envelope, $patch, $actor));
+
+            return $envelope->fresh();
+        });
+    }
+
+    /**
+     * Upload an attachment
+     */
+    public function uploadAttachment(
+        Envelope $envelope,
+        string $docType,
+        UploadedFile $file,
+        ?Model $actor = null,
+        ?array $metadata = null
+    ): EnvelopeAttachment {
+        if (!$envelope->canEdit()) {
+            throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} is not editable");
+        }
+
+        $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
+        $docTypeConfig = $driver->getDocumentType($docType);
+
+        if (!$docTypeConfig) {
+            throw new DocumentTypeNotAllowedException("Document type {$docType} is not allowed for this envelope");
+        }
+
+        // Validate file
+        $this->validateFile($file, $docTypeConfig);
+
+        // Find checklist item
+        $checklistItem = $envelope->checklistItems()
+            ->where('doc_type', $docType)
+            ->first();
+
+        return DB::transaction(function () use ($envelope, $docType, $file, $actor, $metadata, $checklistItem) {
+            // Store file
+            $disk = config('settlement-envelope.storage_disk', 'public');
+            $path = $file->store("envelopes/{$envelope->id}/{$docType}", $disk);
+            $hash = hash_file('sha256', $file->getPathname());
+
+            // Create attachment
+            $attachment = EnvelopeAttachment::create([
+                'envelope_id' => $envelope->id,
+                'checklist_item_id' => $checklistItem?->id,
+                'doc_type' => $docType,
+                'original_filename' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'disk' => $disk,
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'hash' => $hash,
+                'metadata' => $metadata,
+                'uploaded_by' => $actor?->getKey(),
+                'review_status' => 'pending',
+            ]);
+
+            // Update checklist item status
+            $checklistItem?->computeStatus();
+
+            // Recompute gates
+            $this->recomputeGates($envelope);
+
+            // Audit
+            $this->audit($envelope, EnvelopeAuditLog::ACTION_ATTACHMENT_UPLOAD, $actor, null, null, [
+                'doc_type' => $docType,
+                'filename' => $file->getClientOriginalName(),
+                'hash' => $hash,
+            ]);
+
+            // Event
+            event(new AttachmentUploaded($envelope, $attachment, $actor));
+
+            return $attachment;
+        });
+    }
+
+    /**
+     * Review an attachment (accept/reject)
+     */
+    public function reviewAttachment(
+        EnvelopeAttachment $attachment,
+        string $decision,
+        ?Model $actor = null,
+        ?string $reason = null
+    ): void {
+        $envelope = $attachment->envelope;
+
+        if (!$envelope->canEdit()) {
+            throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} is not editable");
+        }
+
+        $oldStatus = $attachment->review_status;
+
+        DB::transaction(function () use ($attachment, $decision, $actor, $reason, $envelope, $oldStatus) {
+            if ($decision === 'accepted') {
+                $attachment->accept($actor?->getKey());
+            } else {
+                $attachment->reject($actor?->getKey(), $reason);
+            }
+
+            // Recompute gates
+            $this->recomputeGates($envelope);
+
+            // Audit
+            $this->audit($envelope, EnvelopeAuditLog::ACTION_ATTACHMENT_REVIEW, $actor, null, [
+                'status' => $oldStatus,
+            ], [
+                'status' => $decision,
+                'reason' => $reason,
+            ]);
+
+            // Event
+            event(new AttachmentReviewed($attachment, $decision, $actor));
+        });
+    }
+
+    /**
+     * Set a signal value
+     */
+    public function setSignal(
+        Envelope $envelope,
+        string $key,
+        mixed $value,
+        ?Model $actor = null
+    ): EnvelopeSignal {
+        $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
+        $signalDef = $driver->getSignalDefinition($key);
+
+        $oldValue = $envelope->getSignal($key);
+
+        $signal = DB::transaction(function () use ($envelope, $key, $value, $actor, $signalDef) {
+            $signal = EnvelopeSignal::setSignal(
+                $envelope,
+                $key,
+                $value,
+                $signalDef?->type ?? 'boolean',
+                $signalDef?->source ?? 'host',
+                $actor
+            );
+
+            // Update signal checklist items
+            $this->updateSignalItems($envelope);
+
+            // Recompute gates
+            $this->recomputeGates($envelope);
+
+            return $signal;
+        });
+
+        // Audit
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_SIGNAL_SET, $actor, null, [
+            'key' => $key,
+            'value' => $oldValue,
+        ], [
+            'key' => $key,
+            'value' => $value,
+        ]);
+
+        // Event
+        event(new SignalChanged($envelope, $key, $oldValue, $value, $actor));
+
+        return $signal;
+    }
+
+    /**
+     * Activate envelope (move from draft to active)
+     */
+    public function activate(Envelope $envelope, ?Model $actor = null): Envelope
+    {
+        if ($envelope->status !== EnvelopeStatus::DRAFT) {
+            throw new EnvelopeNotEditableException("Only draft envelopes can be activated");
+        }
+
+        $envelope->update(['status' => EnvelopeStatus::ACTIVE]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_STATUS_CHANGE, $actor, null, [
+            'status' => EnvelopeStatus::DRAFT->value,
+        ], [
+            'status' => EnvelopeStatus::ACTIVE->value,
+        ]);
+
+        return $envelope->fresh();
+    }
+
+    /**
+     * Lock envelope for settlement
+     */
+    public function lock(Envelope $envelope, ?Model $actor = null): Envelope
+    {
+        if (!$envelope->isSettleable()) {
+            throw new EnvelopeNotSettleableException("Envelope {$envelope->reference_code} is not settleable");
+        }
+
+        $envelope->update([
+            'status' => EnvelopeStatus::LOCKED,
+            'locked_at' => now(),
+        ]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_LOCKED, $actor);
+
+        return $envelope->fresh();
+    }
+
+    /**
+     * Mark envelope as settled
+     */
+    public function settle(Envelope $envelope, ?Model $actor = null): Envelope
+    {
+        if (!$envelope->canSettle()) {
+            throw new EnvelopeNotSettleableException("Envelope must be locked before settling");
+        }
+
+        $envelope->update([
+            'status' => EnvelopeStatus::SETTLED,
+            'settled_at' => now(),
+        ]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_SETTLED, $actor);
+
+        return $envelope->fresh();
+    }
+
+    /**
+     * Cancel envelope
+     */
+    public function cancel(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
+    {
+        $envelope->update([
+            'status' => EnvelopeStatus::CANCELLED,
+            'cancelled_at' => now(),
+        ]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_CANCELLED, $actor, null, null, [
+            'reason' => $reason,
+        ]);
+
+        return $envelope->fresh();
+    }
+
+    /**
+     * Compute gates for an envelope
+     */
+    public function computeGates(Envelope $envelope): array
+    {
+        $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
+        return $this->gateEvaluator->evaluate($envelope, $driver);
+    }
+
+    // Protected helpers
+
+    protected function createChecklistItems(Envelope $envelope, DriverData $driver): void
+    {
+        foreach ($driver->checklist as $item) {
+            EnvelopeChecklistItem::create([
+                'envelope_id' => $envelope->id,
+                'key' => $item->key,
+                'label' => $item->label,
+                'kind' => $item->kind,
+                'doc_type' => $item->doc_type,
+                'payload_pointer' => $item->payload_pointer,
+                'attestation_type' => $item->attestation_type,
+                'signal_key' => $item->signal_key,
+                'required' => $item->required,
+                'review_mode' => $item->review,
+                'status' => ChecklistItemStatus::MISSING,
+            ]);
+        }
+    }
+
+    protected function initializeSignals(Envelope $envelope, DriverData $driver): void
+    {
+        foreach ($driver->signals as $signalDef) {
+            EnvelopeSignal::create([
+                'envelope_id' => $envelope->id,
+                'key' => $signalDef->key,
+                'type' => $signalDef->type,
+                'value' => is_bool($signalDef->default) ? ($signalDef->default ? 'true' : 'false') : (string) $signalDef->default,
+                'source' => $signalDef->source,
+            ]);
+        }
+    }
+
+    protected function updatePayloadFieldItems(Envelope $envelope): void
+    {
+        $envelope->checklistItems()
+            ->where('kind', ChecklistItemKind::PAYLOAD_FIELD)
+            ->each(function (EnvelopeChecklistItem $item) use ($envelope) {
+                $exists = $this->payloadValidator->fieldExists(
+                    $envelope->payload ?? [],
+                    $item->payload_pointer
+                );
+
+                $item->update([
+                    'status' => $exists ? ChecklistItemStatus::ACCEPTED : ChecklistItemStatus::MISSING,
+                ]);
+            });
+    }
+
+    protected function updateSignalItems(Envelope $envelope): void
+    {
+        $envelope->checklistItems()
+            ->where('kind', ChecklistItemKind::SIGNAL)
+            ->each(function (EnvelopeChecklistItem $item) use ($envelope) {
+                $signalValue = $envelope->getSignalBool($item->signal_key);
+                $item->update([
+                    'status' => $signalValue ? ChecklistItemStatus::ACCEPTED : ChecklistItemStatus::MISSING,
+                ]);
+            });
+    }
+
+    protected function recomputeGates(Envelope $envelope): void
+    {
+        $gates = $this->computeGates($envelope);
+        $envelope->updateGatesCache($gates);
+    }
+
+    protected function validateFile(UploadedFile $file, $docTypeConfig): void
+    {
+        // Check mime type
+        if (!in_array($file->getMimeType(), $docTypeConfig->allowed_mimes)) {
+            throw new DocumentTypeNotAllowedException(
+                "File type {$file->getMimeType()} is not allowed. Allowed types: " . implode(', ', $docTypeConfig->allowed_mimes)
+            );
+        }
+
+        // Check file size
+        $maxBytes = $docTypeConfig->max_size_mb * 1024 * 1024;
+        if ($file->getSize() > $maxBytes) {
+            throw new DocumentTypeNotAllowedException(
+                "File size exceeds maximum of {$docTypeConfig->max_size_mb}MB"
+            );
+        }
+    }
+
+    protected function audit(
+        Envelope $envelope,
+        string $action,
+        ?Model $actor = null,
+        ?string $actorRole = null,
+        mixed $before = null,
+        mixed $after = null,
+        ?array $metadata = null
+    ): void {
+        if (!config('settlement-envelope.audit.enabled', true)) {
+            return;
+        }
+
+        EnvelopeAuditLog::log($envelope, $action, $actor, $actorRole, $before, $after, $metadata);
+    }
+}
