@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'voucher_generation_gate_enabled' => env('VOUCHER_GENERATION_GATE_ENABLED', false),
+    'voucher_generation_gate_enabled' => env('VOUCHER_GENERATION_GATE_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
