@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use App\Exceptions\InsufficientFundsException;
 use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
 use App\Models\CampaignVoucher;
+use App\Services\VoucherGenerationGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
-use LBHurtado\Voucher\Data\ExternalMetadataData;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Lorisleiva\Actions\ActionRequest;
@@ -46,14 +47,16 @@ class BulkCreateVouchers
             return ApiResponse::forbidden('You do not have permission to use this campaign.');
         }
 
-        // Calculate total cost
-        $amount = $campaign->instructions->cash->amount ?? 0;
-        $count = count($validated['vouchers']);
-        $totalCost = $amount * $count;
+        // Build instructions for cost calculation (count = number of vouchers in batch)
+        $instructionsArray = $campaign->instructions->toArray();
+        $instructionsArray['count'] = count($validated['vouchers']);
+        $bulkInstructions = VoucherInstructionsData::from($instructionsArray);
 
-        // Check wallet balance
-        if ($request->user()->balanceFloatNum < $totalCost) {
-            return ApiResponse::forbidden('Insufficient wallet balance to generate vouchers.');
+        // Validate wallet balance (includes face value + fees)
+        try {
+            app(VoucherGenerationGate::class)->validate($request->user(), $bulkInstructions);
+        } catch (InsufficientFundsException $e) {
+            return ApiResponse::forbidden($e->toApiMessage());
         }
 
         $generatedVouchers = [];
@@ -84,8 +87,7 @@ class BulkCreateVouchers
 
                     // Set external metadata if provided
                     if (!empty($voucherData['external_metadata'])) {
-                        $externalMetadata = ExternalMetadataData::from($voucherData['external_metadata']);
-                        $voucher->external_metadata = $externalMetadata;
+                        $voucher->external_metadata = $voucherData['external_metadata'];
                         $voucher->save();
                     }
 
@@ -110,6 +112,7 @@ class BulkCreateVouchers
         // Transform to VoucherData DTOs
         $voucherData = new DataCollection(VoucherData::class, $generatedVouchers);
 
+        $amount = $campaign->instructions->cash->amount ?? 0;
         $response = [
             'count' => count($generatedVouchers),
             'vouchers' => $voucherData,

@@ -3,6 +3,7 @@
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -20,6 +21,9 @@ beforeEach(function () {
     // Create real token instead of using Sanctum::actingAs mock
     $token = $this->user->createToken('test-token');
     $this->withToken($token->plainTextToken);
+    
+    // Add Idempotency-Key header for all requests
+    $this->withHeader('Idempotency-Key', (string) Str::uuid());
     
     // Create a test campaign
     $instructions = VoucherInstructionsData::from([

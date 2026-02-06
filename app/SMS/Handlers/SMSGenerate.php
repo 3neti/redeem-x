@@ -2,6 +2,8 @@
 
 namespace App\SMS\Handlers;
 
+use App\Exceptions\InsufficientFundsException;
+use App\Services\VoucherGenerationGate;
 use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use App\Models\Campaign;
 use App\Models\User;
@@ -75,6 +77,13 @@ class SMSGenerate extends BaseSMSVoucherHandler
             $options,
             $campaign
         );
+        
+        // Validate wallet balance before generating (includes fees)
+        try {
+            app(VoucherGenerationGate::class)->validate($user, $instructions);
+        } catch (InsufficientFundsException $e) {
+            return $this->errorResponse($e->toSmsMessage());
+        }
         
         // Generate vouchers using the package action
         $vouchers = BaseGenerateVouchers::run($instructions);

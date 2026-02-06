@@ -17,10 +17,12 @@ namespace App\Actions\Api\Vouchers;
  */
 
 use App\Actions\Billing\CalculateCharge;
+use App\Exceptions\InsufficientFundsException;
 use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
 use App\Models\CampaignVoucher;
 use App\Models\VoucherGenerationCharge;
+use App\Services\VoucherGenerationGate;
 use App\Settings\VoucherSettings;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
@@ -101,17 +103,15 @@ class GenerateVouchers
         // Get validated data (ActionRequest auto-validates with rules() method)
         $validated = $request->validated();
 
-        // Check if user has sufficient balance
-        $amount = $validated['amount'];
-        $count = $validated['count'];
-        $totalCost = $amount * $count;
-
-        if ($request->user()->balanceFloatNum < $totalCost) {
-            return ApiResponse::forbidden('Insufficient wallet balance to generate vouchers.');
-        }
-
-        // Convert request to instructions
+        // Convert request to instructions first (needed for cost calculation)
         $instructions = $this->toInstructions($validated);
+
+        // Validate wallet balance (includes face value + fees)
+        try {
+            app(VoucherGenerationGate::class)->validate($request->user(), $instructions);
+        } catch (InsufficientFundsException $e) {
+            return ApiResponse::forbidden($e->toApiMessage());
+        }
 
         // Generate vouchers using package action
         $vouchers = BaseGenerateVouchers::run($instructions);
