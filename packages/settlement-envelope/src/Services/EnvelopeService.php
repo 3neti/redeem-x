@@ -372,6 +372,21 @@ class EnvelopeService
     }
 
     /**
+     * Update envelope context/metadata
+     */
+    public function updateContext(Envelope $envelope, array $context, ?Model $actor = null): Envelope
+    {
+        $oldContext = $envelope->context ?? [];
+        $newContext = array_merge($oldContext, $context);
+
+        $envelope->update(['context' => $newContext]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_CONTEXT_UPDATE, $actor, null, $oldContext, $newContext);
+
+        return $envelope->fresh();
+    }
+
+    /**
      * Compute gates for an envelope
      */
     public function computeGates(Envelope $envelope): array
@@ -444,6 +459,9 @@ class EnvelopeService
 
     protected function recomputeGates(Envelope $envelope): void
     {
+        // Force refresh relationships to ensure latest data is used
+        $envelope->load(['checklistItems', 'signals']);
+
         $gates = $this->computeGates($envelope);
         $envelope->updateGatesCache($gates);
     }

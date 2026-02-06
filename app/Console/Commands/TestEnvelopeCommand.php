@@ -4,10 +4,13 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use LBHurtado\SettlementEnvelope\Enums\EnvelopeStatus;
 use LBHurtado\SettlementEnvelope\Services\EnvelopeService;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Models\Voucher;
 
 class TestEnvelopeCommand extends Command
@@ -15,17 +18,29 @@ class TestEnvelopeCommand extends Command
     protected $signature = 'test:envelope
         {--voucher= : Voucher code (generates fresh test voucher if not specified)}
         {--user=lester@hurtado.ph : User email for voucher ownership}
+        {--type=settlement : Voucher type (redeemable|payable|settlement)}
         {--driver=simple.envelope : Driver ID}
-        {--driver-version=1.0.0 : Driver version}';
+        {--driver-version=1.0.0 : Driver version}
+        {--lifecycle=partial : Run full or partial lifecycle (full|partial)}
+        {--upload-doc : Upload test document attachment}
+        {--with-context : Update envelope context/metadata}
+        {--auto-settle : Automatically lock and settle when settleable}
+        {--detailed : Show detailed output including payload versions}';
 
     protected $description = 'Test settlement envelope lifecycle with a voucher';
 
     public function handle(EnvelopeService $envelopeService): int
     {
-        $this->info('Testing Settlement Envelope Package...');
+        $this->info('═══════════════════════════════════════════════════════════');
+        $this->info('  Settlement Envelope Lifecycle Test');
+        $this->info('═══════════════════════════════════════════════════════════');
         $this->newLine();
 
-        // Step 1: Get existing voucher or generate fresh test voucher
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 1: SETUP
+        // ─────────────────────────────────────────────────────────────────────
+        $this->phase('SETUP');
+
         $voucherCode = $this->option('voucher');
         if ($voucherCode) {
             $voucher = Voucher::where('code', $voucherCode)->first();
@@ -33,9 +48,8 @@ class TestEnvelopeCommand extends Command
                 $this->error("Voucher not found: {$voucherCode}");
                 return self::FAILURE;
             }
-            $this->info("Using existing voucher: {$voucher->code}");
+            $this->line("Using existing voucher: {$voucher->code}");
         } else {
-            // Authenticate as specified user for voucher ownership
             $userEmail = $this->option('user');
             $user = User::where('email', $userEmail)->first();
             if (!$user) {
@@ -43,118 +57,336 @@ class TestEnvelopeCommand extends Command
                 return self::FAILURE;
             }
             Auth::login($user);
-            $this->info("Authenticated as: {$user->email}");
+            $this->line("✓ Authenticated as: {$user->email}");
 
-            $this->info('Generating fresh test voucher...');
-            $instructions = VoucherInstructionsData::generateFromScratch();
+            $voucherType = VoucherType::from($this->option('type'));
+            $instructions = VoucherInstructionsData::from([
+                'cash' => [
+                    'amount' => 1000,
+                    'currency' => 'PHP',
+                    'validation' => [],
+                ],
+                'inputs' => ['fields' => []],
+                'feedback' => [],
+                'rider' => [],
+                'count' => 1,
+                'voucher_type' => $voucherType,
+                'target_amount' => $voucherType !== VoucherType::REDEEMABLE ? 1000.0 : null,
+            ]);
             $vouchers = GenerateVouchers::run($instructions);
             $voucher = $vouchers->first();
-            $this->line("✓ Generated voucher: {$voucher->code} (owner: {$user->email})");
+            $this->line("✓ Generated voucher: {$voucher->code} (type: {$voucherType->value})");
         }
 
         $driverId = $this->option('driver');
         $driverVersion = $this->option('driver-version');
-        $this->info("Driver: {$driverId}@{$driverVersion}");
+        $this->line("✓ Driver: {$driverId}@{$driverVersion}");
+        $this->showOptions();
         $this->newLine();
 
-        // Step 2: Create envelope
-        $this->info('Step 1: Creating envelope...');
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 2: CREATE ENVELOPE
+        // ─────────────────────────────────────────────────────────────────────
+        $this->phase('CREATE ENVELOPE');
+
         try {
             $envelope = $voucher->createEnvelope(
                 driverId: $driverId,
                 driverVersion: $driverVersion,
                 initialPayload: ['name' => 'Test User']
             );
-            $this->line("✓ Envelope created: {$envelope->reference_code}");
-            $this->line("  Status: {$envelope->status->value}");
-            $this->line("  Payload version: {$envelope->payload_version}");
+            $this->step("Envelope created: {$envelope->reference_code}");
+            $this->detail("Status: {$envelope->status->value}");
+            $this->detail("Payload version: {$envelope->payload_version}");
         } catch (\Exception $e) {
-            $this->error("✗ Failed to create envelope: {$e->getMessage()}");
+            $this->error("✗ Failed: {$e->getMessage()}");
             return self::FAILURE;
         }
-        $this->newLine();
 
-        // Step 3: Show checklist items
-        $this->info('Step 2: Checklist items from driver:');
-        foreach ($envelope->checklistItems as $item) {
-            $status = $item->status->value;
-            $required = $item->required ? '(required)' : '(optional)';
-            $this->line("  [{$status}] {$item->label} {$required}");
-        }
-        $this->newLine();
+        $this->showChecklist($envelope);
 
-        // Step 4: Update payload
-        $this->info('Step 3: Updating payload...');
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 3: EVIDENCE COLLECTION
+        // ─────────────────────────────────────────────────────────────────────
+        $this->phase('EVIDENCE COLLECTION');
+
+        // Update payload
         try {
             $envelope = $envelopeService->updatePayload($envelope, [
                 'reference_code' => $voucher->code,
                 'amount' => 1000,
-                'notes' => 'Test envelope created via artisan command',
+                'notes' => 'Test envelope via artisan command',
             ]);
-            $this->line("✓ Payload updated");
-            $this->line("  New version: {$envelope->payload_version}");
-            $this->line("  Payload: " . json_encode($envelope->payload));
+            $this->step("Payload updated (v{$envelope->payload_version})");
+            if ($this->option('detailed')) {
+                $this->detail("Payload: " . json_encode($envelope->payload));
+            }
         } catch (\Exception $e) {
-            $this->error("✗ Failed to update payload: {$e->getMessage()}");
+            $this->error("✗ Payload update failed: {$e->getMessage()}");
             return self::FAILURE;
         }
-        $this->newLine();
 
-        // Step 5: Show signals
-        $this->info('Step 4: Current signals:');
-        foreach ($envelope->signals as $signal) {
-            $value = $signal->value === 'true' ? '✓ true' : '✗ false';
-            $this->line("  {$signal->key}: {$value}");
+        // Upload document
+        if ($this->option('upload-doc')) {
+            try {
+                $attachment = $this->uploadTestDocument($envelope, $envelopeService);
+                $this->step("Document uploaded: {$attachment->original_filename}");
+                $this->detail("Type: {$attachment->doc_type}, Size: " . number_format($attachment->size) . " bytes");
+                $this->detail("Review status: {$attachment->review_status}");
+
+                // Review attachment if needed
+                $checklistItem = $envelope->checklistItems()->where('doc_type', $attachment->doc_type)->first();
+                if ($checklistItem && $checklistItem->review_mode !== 'none') {
+                    $envelopeService->reviewAttachment($attachment, 'accepted', Auth::user());
+                    $this->step("Document reviewed: accepted");
+                }
+
+                $envelope->refresh();
+                $this->showChecklist($envelope);
+            } catch (\Exception $e) {
+                $this->warn("⚠ Document upload skipped: {$e->getMessage()}");
+            }
         }
-        $this->newLine();
 
-        // Step 6: Set signal
-        $this->info('Step 5: Setting approved signal to true...');
+        // Update context
+        if ($this->option('with-context')) {
+            try {
+                $envelope = $envelopeService->updateContext($envelope, [
+                    'source' => 'test:envelope command',
+                    'test_timestamp' => now()->toIso8601String(),
+                    'environment' => app()->environment(),
+                    'notes' => 'Automated test run',
+                ]);
+                $this->step("Context updated");
+                if ($this->option('detailed')) {
+                    $this->detail("Context: " . json_encode($envelope->context));
+                }
+            } catch (\Exception $e) {
+                $this->warn("⚠ Context update failed: {$e->getMessage()}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 4: SIGNALS
+        // ─────────────────────────────────────────────────────────────────────
+        $this->phase('SIGNALS');
+
+        $this->showSignals($envelope, 'Before');
+
         try {
             $envelopeService->setSignal($envelope, 'approved', true);
             $envelope->refresh();
-            $this->line("✓ Signal set: approved = true");
+            $this->step("Signal set: approved = true");
         } catch (\Exception $e) {
-            $this->error("✗ Failed to set signal: {$e->getMessage()}");
+            $this->error("✗ Signal set failed: {$e->getMessage()}");
             return self::FAILURE;
         }
-        $this->newLine();
 
-        // Step 7: Re-evaluate and check gates
-        $this->info('Step 6: Gate states (after signal):');
+        $this->showSignals($envelope, 'After');
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 5: GATES
+        // ─────────────────────────────────────────────────────────────────────
+        $this->phase('GATES');
+
         $gates = $envelopeService->computeGates($envelope);
         foreach ($gates as $gate => $value) {
-            $status = $value ? '✓' : '✗';
-            $this->line("  {$status} {$gate}: " . ($value ? 'true' : 'false'));
+            $icon = $value ? '✓' : '✗';
+            $this->line("  {$icon} {$gate}: " . ($value ? 'true' : 'false'));
         }
         $this->newLine();
 
-        // Step 8: Show audit log
-        $this->info('Step 7: Audit log:');
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 6: STATUS TRANSITIONS (if full lifecycle)
+        // ─────────────────────────────────────────────────────────────────────
+        $isFullLifecycle = $this->option('lifecycle') === 'full';
+        $autoSettle = $this->option('auto-settle');
+
+        if ($isFullLifecycle || $autoSettle) {
+            $this->phase('STATUS TRANSITIONS');
+
+            // Activate
+            if ($envelope->status === EnvelopeStatus::DRAFT) {
+                try {
+                    $envelope = $envelopeService->activate($envelope);
+                    $this->step("Activated: draft → active");
+                } catch (\Exception $e) {
+                    $this->warn("⚠ Activation failed: {$e->getMessage()}");
+                }
+            }
+
+            // Lock (if settleable)
+            if ($envelope->status === EnvelopeStatus::ACTIVE && $envelope->isSettleable()) {
+                try {
+                    $envelope = $envelopeService->lock($envelope);
+                    $this->step("Locked: active → locked");
+                    $this->detail("Locked at: {$envelope->locked_at}");
+                } catch (\Exception $e) {
+                    $this->warn("⚠ Lock failed: {$e->getMessage()}");
+                }
+            } elseif ($envelope->status === EnvelopeStatus::ACTIVE) {
+                $this->warn("⚠ Cannot lock: envelope is not settleable");
+            }
+
+            // Settle
+            if ($envelope->status === EnvelopeStatus::LOCKED) {
+                try {
+                    $envelope = $envelopeService->settle($envelope);
+                    $this->step("Settled: locked → settled");
+                    $this->detail("Settled at: {$envelope->settled_at}");
+                } catch (\Exception $e) {
+                    $this->warn("⚠ Settlement failed: {$e->getMessage()}");
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 7: AUDIT LOG
+        // ─────────────────────────────────────────────────────────────────────
+        $this->phase('AUDIT LOG');
+
         $envelope->load('auditLogs');
-        foreach ($envelope->auditLogs as $log) {
+        foreach ($envelope->auditLogs->reverse() as $log) {
             $this->line("  [{$log->created_at->format('H:i:s')}] {$log->action}");
         }
         $this->newLine();
 
-        // Summary
-        $this->info('Summary:');
-        $this->table(
-            ['Property', 'Value'],
-            [
-                ['Reference Code', $envelope->reference_code],
-                ['Driver', "{$envelope->driver_id}@{$envelope->driver_version}"],
-                ['Status', $envelope->status->value],
-                ['Payload Version', $envelope->payload_version],
-                ['Settleable', ($gates['settleable'] ?? false) ? 'Yes' : 'No'],
-                ['Checklist Items', $envelope->checklistItems->count()],
-                ['Audit Entries', $envelope->auditLogs->count()],
-            ]
-        );
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 8: PAYLOAD VERSIONS (if verbose)
+        // ─────────────────────────────────────────────────────────────────────
+        if ($this->option('detailed')) {
+            $this->phase('PAYLOAD VERSIONS');
+
+            $envelope->load('payloadVersions');
+            foreach ($envelope->payloadVersions as $version) {
+                $this->line("  v{$version->version} [{$version->created_at->format('H:i:s')}]");
+                if ($version->patch) {
+                    $this->detail("Patch: " . json_encode($version->patch));
+                }
+            }
+            $this->newLine();
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // SUMMARY
+        // ─────────────────────────────────────────────────────────────────────
+        $this->info('═══════════════════════════════════════════════════════════');
+        $this->info('  SUMMARY');
+        $this->info('═══════════════════════════════════════════════════════════');
+
+        $summaryData = [
+            ['Reference Code', $envelope->reference_code],
+            ['Driver', "{$envelope->driver_id}@{$envelope->driver_version}"],
+            ['Status', $envelope->status->value],
+            ['Payload Version', $envelope->payload_version],
+            ['Settleable', $envelope->isSettleable() ? 'Yes' : 'No'],
+            ['Checklist Items', $envelope->checklistItems->count()],
+            ['Attachments', $envelope->attachments()->count()],
+            ['Audit Entries', $envelope->auditLogs->count()],
+        ];
+
+        if ($envelope->context) {
+            $summaryData[] = ['Context Keys', implode(', ', array_keys($envelope->context))];
+        }
+
+        if ($envelope->locked_at) {
+            $summaryData[] = ['Locked At', $envelope->locked_at->format('Y-m-d H:i:s')];
+        }
+
+        if ($envelope->settled_at) {
+            $summaryData[] = ['Settled At', $envelope->settled_at->format('Y-m-d H:i:s')];
+        }
+
+        $this->table(['Property', 'Value'], $summaryData);
 
         $this->newLine();
-        $this->info('All tests completed! ✓');
+        $statusIcon = $envelope->status === EnvelopeStatus::SETTLED ? '✓✓✓' : '✓';
+        $this->info("{$statusIcon} Test completed!");
 
         return self::SUCCESS;
+    }
+
+    private function phase(string $title): void
+    {
+        $this->info("─── {$title} " . str_repeat('─', 55 - strlen($title)));
+    }
+
+    private function step(string $message): void
+    {
+        $this->line("  <fg=green>✓</> {$message}");
+    }
+
+    private function detail(string $message): void
+    {
+        $this->line("    <fg=gray>{$message}</>");
+    }
+
+    private function showOptions(): void
+    {
+        $options = [];
+        if ($this->option('lifecycle') === 'full') $options[] = 'full-lifecycle';
+        if ($this->option('upload-doc')) $options[] = 'upload-doc';
+        if ($this->option('with-context')) $options[] = 'with-context';
+        if ($this->option('auto-settle')) $options[] = 'auto-settle';
+        if ($this->option('detailed')) $options[] = 'detailed';
+
+        if ($options) {
+            $this->line("✓ Options: " . implode(', ', $options));
+        }
+    }
+
+    private function showChecklist($envelope): void
+    {
+        $this->line("  Checklist:");
+        foreach ($envelope->checklistItems as $item) {
+            $icon = match ($item->status->value) {
+                'accepted' => '<fg=green>✓</>',
+                'rejected' => '<fg=red>✗</>',
+                default => '<fg=yellow>○</>',
+            };
+            $required = $item->required ? '' : ' <fg=gray>(optional)</>';
+            $this->line("    {$icon} {$item->label}{$required}");
+        }
+        $this->newLine();
+    }
+
+    private function showSignals($envelope, string $label): void
+    {
+        $this->line("  {$label}:");
+        foreach ($envelope->signals as $signal) {
+            $icon = $signal->value === 'true' ? '<fg=green>✓</>' : '<fg=red>✗</>';
+            $this->line("    {$icon} {$signal->key}: {$signal->value}");
+        }
+    }
+
+    private function uploadTestDocument($envelope, EnvelopeService $envelopeService)
+    {
+        // Determine document type based on driver
+        $docType = $envelope->driver_id === 'vendor.pay-by-face' ? 'FACE_PHOTO' : 'TEST_DOC';
+
+        // Create test image file
+        $testImagePath = base_path('tests/Fixtures/test-selfie.txt');
+        if (!file_exists($testImagePath)) {
+            throw new \Exception("Test fixture not found: {$testImagePath}");
+        }
+
+        // Decode base64 image
+        $base64Content = file_get_contents($testImagePath);
+        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Content));
+
+        // Create temp file
+        $tempPath = sys_get_temp_dir() . '/test-envelope-doc-' . uniqid() . '.png';
+        file_put_contents($tempPath, $imageData);
+
+        // Create UploadedFile
+        $file = new UploadedFile(
+            $tempPath,
+            'test-document.png',
+            'image/png',
+            null,
+            true // test mode
+        );
+
+        return $envelopeService->uploadAttachment($envelope, $docType, $file, Auth::user());
     }
 }
