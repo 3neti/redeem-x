@@ -40,6 +40,9 @@ abstract class TestCase extends BaseTestCase
             \LBHurtado\Contact\ContactServiceProvider::class,
             \LBHurtado\ModelInput\ModelInputServiceProvider::class,
             \LBHurtado\ModelChannel\ModelChannelServiceProvider::class,
+            \Spatie\LaravelData\LaravelDataServiceProvider::class,
+            \Spatie\SchemalessAttributes\SchemalessAttributesServiceProvider::class,
+            \LBHurtado\SettlementEnvelope\SettlementEnvelopeServiceProvider::class,
         ];
     }
 
@@ -104,6 +107,24 @@ abstract class TestCase extends BaseTestCase
         $tagMigration->up();
 //        $inputMigration = include __DIR__ . '/../database/migrations/test/2024_08_02_000000_create_inputs_table.php';
 //        $inputMigration->up();
+
+        // Settlement envelope migrations
+        $this->loadSettlementEnvelopeMigrations();
+    }
+
+    protected function loadSettlementEnvelopeMigrations(): void
+    {
+        $settlementEnvelopePath = __DIR__ . '/../../settlement-envelope/database/migrations';
+        if (is_dir($settlementEnvelopePath)) {
+            foreach (glob($settlementEnvelopePath . '/*.php') as $migration) {
+                $migrationClass = include $migration;
+                $migrationClass->up();
+            }
+        }
+
+        // Configure settlement-envelope
+        config()->set('settlement-envelope.driver_directory', __DIR__ . '/../../settlement-envelope/drivers');
+        config()->set('settlement-envelope.storage_disk', 'local');
     }
 
     // Define a reusable method for logging in a user

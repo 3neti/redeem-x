@@ -14,6 +14,10 @@
         },
         {
             "type": "path",
+            "url": "./../merchant"
+        },
+        {
+            "type": "path",
             "url": "./../model-channel"
         },
         {
@@ -22,7 +26,15 @@
         },
         {
             "type": "path",
+            "url": "./../money-issuer"
+        },
+        {
+            "type": "path",
             "url": "./../payment-gateway"
+        },
+        {
+            "type": "path",
+            "url": "./../settlement-envelope"
         },
         {
             "type": "path",
@@ -64,7 +76,8 @@
         "spatie/laravel-tags": "^4.10",
         "propaganistas/laravel-phone": "^6.0",
         "lbhurtado/payment-gateway": "dev-main",
-        "lbhurtado/laravel-model-input": "dev-main"
+        "lbhurtado/laravel-model-input": "dev-main",
+        "3neti/settlement-envelope": "dev-main"
     },
     "require-dev": {
         "orchestra/testbench": "^10.3",

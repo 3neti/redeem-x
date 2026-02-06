@@ -16,6 +16,7 @@ use Spatie\LaravelData\WithData;
 use Illuminate\Support\Carbon;
 use LBHurtado\ModelInput\Contracts\InputInterface;
 use LBHurtado\ModelInput\Traits\HasInputs;
+use LBHurtado\SettlementEnvelope\Traits\HasEnvelopes;
 use LBHurtado\Voucher\Traits\HasExternalMetadata;
 use LBHurtado\Voucher\Traits\HasVoucherTiming;
 use LBHurtado\Voucher\Traits\HasValidationResults;
@@ -54,6 +55,7 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
 {
     use WithData;
     use HasInputs;
+    use HasEnvelopes;
     use HasExternalMetadata;
     use HasVoucherTiming;
     use HasValidationResults;
