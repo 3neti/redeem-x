@@ -4,6 +4,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Voucher Generation Gate Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Control whether to validate user balance before voucher generation.
+    | When enabled, checks if user has sufficient funds to cover voucher costs.
+    | Disable if balance validation is causing issues.
+    |
+    */
+
+    'voucher_generation_gate_enabled' => env('VOUCHER_GENERATION_GATE_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Redeem Widget Configuration
     |--------------------------------------------------------------------------
     |

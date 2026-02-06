@@ -31,6 +31,11 @@ class VoucherGenerationGate
      */
     public function validate(User $user, VoucherInstructionsData $instructions): void
     {
+        // Check if gate is disabled via configuration
+        if (!config('redeem.voucher_generation_gate_enabled', false)) {
+            return;
+        }
+        
         $costBreakdown = $this->calculateTotalCost($user, $instructions);
         $totalCost = $costBreakdown['total'];
         $available = $user->balanceFloatNum;
