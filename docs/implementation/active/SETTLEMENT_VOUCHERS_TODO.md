@@ -218,3 +218,14 @@
 - [x] Settlement voucher pricing configuration
 - [x] Feature flag integration (settlement-vouchers)
 - [x] Comprehensive test suite (10/10 tests passing)
+
+---
+
+## 📋 Related Plans
+
+### Settle with Payment (Planned)
+Trigger QR Ph payment collection when envelope is settled.
+- **Plan**: `docs/implementation/planned/SETTLE_WITH_PAYMENT_PLAN.md`
+- **Effort**: 3-4 days
+- **Status**: Not started
+- **Dependencies**: Settlement Envelope UI (complete)
