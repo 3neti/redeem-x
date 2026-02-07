@@ -32,7 +32,7 @@ class TestEnvelopeCommand extends Command
         {--type=settlement : Voucher type (redeemable|payable|settlement)}
         {--driver=simple.envelope : Driver ID}
         {--driver-version=1.0.0 : Driver version}
-        {--scenario=full : Scenario: full|evidence|signals|lock|settle}
+        {--scenario=draft : Scenario: draft|evidence|signals|lock|settle|full}
         {--upload-doc : Upload test document(s)}
         {--auto-review : Auto-accept uploaded documents}
         {--with-context : Attach context metadata}
@@ -139,6 +139,14 @@ class TestEnvelopeCommand extends Command
         $this->newLine();
 
         switch ($scenario) {
+            case 'draft':
+            default:
+                // Just create envelope, no further actions
+                // Envelope stays in DRAFT state, ready for UI testing
+                $this->info('  ℹ Envelope created in DRAFT state (editable)');
+                $this->info('  ℹ Use --scenario=evidence to add payload/documents');
+                break;
+
             case 'evidence':
                 $this->runEvidenceFlow();
                 break;
@@ -160,7 +168,6 @@ class TestEnvelopeCommand extends Command
                 break;
 
             case 'full':
-            default:
                 $this->runEvidenceFlow();
                 $this->runSignalsFlow();
                 $this->showGates();
