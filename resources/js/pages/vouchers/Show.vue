@@ -25,13 +25,15 @@ import {
     EnvelopeAttachmentsCard,
     EnvelopeSignalsCard,
     EnvelopePayloadCard,
-    EnvelopeAuditLog 
+    EnvelopeAuditLog,
+    ReasonModal 
 } from '@/components/envelope';
-import type { Envelope } from '@/composables/useEnvelope';
+import type { Envelope, EnvelopeAttachment } from '@/composables/useEnvelope';
+import { useEnvelopeActions } from '@/composables/useEnvelopeActions';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, XCircle, Info } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Info, Lock, Send, Ban, RotateCcw, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
@@ -135,6 +137,73 @@ const props = defineProps<Props>();
 const page = usePage();
 
 const activeTab = ref<'details' | 'instructions' | 'metadata' | 'envelope'>('details');
+
+// Envelope Actions
+const envelopeActions = props.envelope ? useEnvelopeActions(props.voucher.code) : null;
+
+// Modal state for actions requiring reasons
+const cancelModalOpen = ref(false);
+const reopenModalOpen = ref(false);
+const rejectModalOpen = ref(false);
+const rejectingAttachment = ref<EnvelopeAttachment | null>(null);
+
+// Envelope action handlers
+const handleLock = async () => {
+    if (!envelopeActions) return;
+    const success = await envelopeActions.lock();
+    if (success) router.reload();
+};
+
+const handleSettle = async () => {
+    if (!envelopeActions) return;
+    const success = await envelopeActions.settle();
+    if (success) router.reload();
+};
+
+const handleCancel = async (reason: string) => {
+    if (!envelopeActions) return;
+    const success = await envelopeActions.cancel(reason);
+    if (success) {
+        cancelModalOpen.value = false;
+        router.reload();
+    }
+};
+
+const handleReopen = async (reason: string) => {
+    if (!envelopeActions) return;
+    const success = await envelopeActions.reopen(reason);
+    if (success) {
+        reopenModalOpen.value = false;
+        router.reload();
+    }
+};
+
+const handleSignalToggle = async (key: string, value: boolean) => {
+    if (!envelopeActions) return;
+    const success = await envelopeActions.setSignal(key, value);
+    if (success) router.reload();
+};
+
+const handleAcceptAttachment = async (attachment: EnvelopeAttachment) => {
+    if (!envelopeActions || !props.envelope) return;
+    const success = await envelopeActions.acceptAttachment(props.envelope.id, attachment.id);
+    if (success) router.reload();
+};
+
+const openRejectModal = (attachment: EnvelopeAttachment) => {
+    rejectingAttachment.value = attachment;
+    rejectModalOpen.value = true;
+};
+
+const handleRejectAttachment = async (reason: string) => {
+    if (!envelopeActions || !props.envelope || !rejectingAttachment.value) return;
+    const success = await envelopeActions.rejectAttachment(props.envelope.id, rejectingAttachment.value.id, reason);
+    if (success) {
+        rejectModalOpen.value = false;
+        rejectingAttachment.value = null;
+        router.reload();
+    }
+};
 
 const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
 const hasEnvelope = computed(() => !!props.envelope);
@@ -450,7 +519,61 @@ const instructionsFormData = computed(() => {
 
                 <!-- Envelope Tab Content -->
                 <div v-show="activeTab === 'envelope'" v-if="hasEnvelope && envelope" class="space-y-6">
-                    <EnvelopeStatusCard :envelope="envelope" />
+                    <EnvelopeStatusCard :envelope="envelope" :show-actions="true">
+                        <template #actions="{ canLock, canSettle, canCancel, canReopen, isTerminal }">
+                            <div v-if="!isTerminal" class="flex flex-wrap gap-2 pt-4 border-t">
+                                <!-- Lock Button -->
+                                <Button 
+                                    v-if="canLock" 
+                                    variant="default" 
+                                    size="sm"
+                                    @click="handleLock"
+                                    :disabled="envelopeActions?.loading.value"
+                                >
+                                    <Loader2 v-if="envelopeActions?.loading.value" class="mr-2 h-4 w-4 animate-spin" />
+                                    <Lock v-else class="mr-2 h-4 w-4" />
+                                    Lock Envelope
+                                </Button>
+                                
+                                <!-- Settle Button -->
+                                <Button 
+                                    v-if="canSettle" 
+                                    variant="default" 
+                                    size="sm"
+                                    @click="handleSettle"
+                                    :disabled="envelopeActions?.loading.value"
+                                >
+                                    <Loader2 v-if="envelopeActions?.loading.value" class="mr-2 h-4 w-4 animate-spin" />
+                                    <Send v-else class="mr-2 h-4 w-4" />
+                                    Settle
+                                </Button>
+                                
+                                <!-- Cancel Button -->
+                                <Button 
+                                    v-if="canCancel" 
+                                    variant="outline" 
+                                    size="sm"
+                                    @click="cancelModalOpen = true"
+                                    :disabled="envelopeActions?.loading.value"
+                                >
+                                    <Ban class="mr-2 h-4 w-4" />
+                                    Cancel
+                                </Button>
+                                
+                                <!-- Reopen Button -->
+                                <Button 
+                                    v-if="canReopen" 
+                                    variant="outline" 
+                                    size="sm"
+                                    @click="reopenModalOpen = true"
+                                    :disabled="envelopeActions?.loading.value"
+                                >
+                                    <RotateCcw class="mr-2 h-4 w-4" />
+                                    Reopen
+                                </Button>
+                            </div>
+                        </template>
+                    </EnvelopeStatusCard>
                     
                     <div class="grid gap-6 md:grid-cols-2">
                         <EnvelopeChecklistCard 
@@ -459,14 +582,43 @@ const instructionsFormData = computed(() => {
                         />
                         <EnvelopeSignalsCard 
                             v-if="envelope.signals?.length" 
-                            :signals="envelope.signals" 
+                            :signals="envelope.signals"
+                            :blocking-signals="envelope.computed_flags?.blocking_signals ?? []"
+                            :readonly="false"
+                            @toggle="handleSignalToggle"
                         />
                     </div>
                     
                     <EnvelopeAttachmentsCard 
                         v-if="envelope.attachments?.length" 
-                        :attachments="envelope.attachments" 
-                    />
+                        :attachments="envelope.attachments"
+                        :readonly="false"
+                    >
+                        <template #review-actions="{ attachment, canReview }">
+                            <div v-if="canReview" class="flex gap-1">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    class="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    title="Accept"
+                                    @click="handleAcceptAttachment(attachment)"
+                                    :disabled="envelopeActions?.loading.value"
+                                >
+                                    <ThumbsUp class="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    class="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    title="Reject"
+                                    @click="openRejectModal(attachment)"
+                                    :disabled="envelopeActions?.loading.value"
+                                >
+                                    <ThumbsDown class="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </template>
+                    </EnvelopeAttachmentsCard>
                     
                     <EnvelopePayloadCard 
                         :payload="envelope.payload || {}" 
@@ -521,5 +673,37 @@ const instructionsFormData = computed(() => {
                 </div>
             </div>
         </ErrorBoundary>
+        
+        <!-- Cancel Envelope Modal -->
+        <ReasonModal
+            v-model:open="cancelModalOpen"
+            title="Cancel Envelope"
+            description="Please provide a reason for cancelling this settlement envelope. This action cannot be undone."
+            action="Cancel Envelope"
+            variant="destructive"
+            :loading="envelopeActions?.loading.value ?? false"
+            @confirm="handleCancel"
+        />
+        
+        <!-- Reopen Envelope Modal -->
+        <ReasonModal
+            v-model:open="reopenModalOpen"
+            title="Reopen Envelope"
+            description="Please provide a reason for reopening this settlement envelope."
+            action="Reopen Envelope"
+            :loading="envelopeActions?.loading.value ?? false"
+            @confirm="handleReopen"
+        />
+        
+        <!-- Reject Attachment Modal -->
+        <ReasonModal
+            v-model:open="rejectModalOpen"
+            :title="`Reject ${rejectingAttachment?.original_filename ?? 'Attachment'}`"
+            description="Please provide a reason for rejecting this attachment."
+            action="Reject"
+            variant="destructive"
+            :loading="envelopeActions?.loading.value ?? false"
+            @confirm="handleRejectAttachment"
+        />
     </AppLayout>
 </template>

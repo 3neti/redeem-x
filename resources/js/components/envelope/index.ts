@@ -9,3 +9,4 @@ export { default as EnvelopeAttachmentsCard } from './EnvelopeAttachmentsCard.vu
 export { default as EnvelopeSignalsCard } from './EnvelopeSignalsCard.vue'
 export { default as EnvelopePayloadCard } from './EnvelopePayloadCard.vue'
 export { default as EnvelopeAuditLog } from './EnvelopeAuditLog.vue'
+export { default as ReasonModal } from './ReasonModal.vue'
