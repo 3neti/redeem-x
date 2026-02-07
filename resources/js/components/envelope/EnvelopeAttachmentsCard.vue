@@ -53,13 +53,18 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
 <template>
     <Card>
         <CardHeader>
-            <CardTitle class="flex items-center gap-2">
-                <Paperclip class="h-5 w-5" />
-                Attachments
-            </CardTitle>
-            <CardDescription>
-                {{ attachments.length }} document{{ attachments.length !== 1 ? 's' : '' }} uploaded
-            </CardDescription>
+            <div class="flex items-center justify-between">
+                <div>
+                    <CardTitle class="flex items-center gap-2">
+                        <Paperclip class="h-5 w-5" />
+                        Attachments
+                    </CardTitle>
+                    <CardDescription>
+                        {{ attachments.length }} document{{ attachments.length !== 1 ? 's' : '' }} uploaded
+                    </CardDescription>
+                </div>
+                <slot name="upload-action" />
+            </div>
         </CardHeader>
         <CardContent>
             <div v-if="attachments.length === 0" class="text-center text-muted-foreground py-4">

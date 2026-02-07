@@ -123,6 +123,10 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
         // Update payload
         Route::patch('payload', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'updatePayload'])
             ->name('payload.update');
+        
+        // Upload attachment
+        Route::post('attachments', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'uploadAttachment'])
+            ->name('attachments.upload');
     });
 });
 

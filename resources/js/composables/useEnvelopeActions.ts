@@ -150,6 +150,50 @@ export function useEnvelopeActions(voucherCode: string, options: UseEnvelopeActi
     }
 
     /**
+     * Upload a new attachment.
+     * Uses FormData for multipart upload.
+     */
+    const uploadAttachment = async (
+        docType: string,
+        file: File,
+        metadata?: Record<string, any>
+    ): Promise<ActionResult> => {
+        loading.value = true
+        error.value = null
+
+        try {
+            const formData = new FormData()
+            formData.append('doc_type', docType)
+            formData.append('file', file)
+            if (metadata) {
+                formData.append('metadata', JSON.stringify(metadata))
+            }
+
+            const response = await axios.post(`${baseUrl}/attachments`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            })
+
+            const result: ActionResult = {
+                success: true,
+                message: response.data.message,
+                envelope: response.data.envelope,
+                attachment: response.data.attachment,
+            }
+            options.onSuccess?.(result)
+            return result
+        } catch (err: any) {
+            const message = err.response?.data?.message || err.message || 'Failed to upload attachment'
+            error.value = message
+            options.onError?.(message)
+            return { success: false, message }
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
      * Reject an attachment with reason.
      * Uses envelope ID directly (not voucher code).
      */
@@ -198,6 +242,7 @@ export function useEnvelopeActions(voucherCode: string, options: UseEnvelopeActi
         // Payload
         updatePayload,
         // Attachments
+        uploadAttachment,
         acceptAttachment,
         rejectAttachment,
     }

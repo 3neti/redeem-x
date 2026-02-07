@@ -230,6 +230,51 @@ class EnvelopeActionController extends Controller
     }
 
     /**
+     * Upload an attachment to the envelope.
+     *
+     * POST /api/v1/vouchers/{voucher}/envelope/attachments
+     */
+    public function uploadAttachment(Request $request, Voucher $voucher): JsonResponse
+    {
+        $request->validate([
+            'doc_type' => 'required|string|max:100',
+            'file' => 'required|file|max:10240', // 10MB max
+            'metadata' => 'nullable|array',
+        ]);
+
+        $envelope = $this->getEnvelope($voucher);
+
+        if (!$envelope->status->canEdit()) {
+            return response()->json([
+                'message' => 'Cannot upload attachments in current state',
+                'status' => $envelope->status->value,
+            ], 422);
+        }
+
+        try {
+            $attachment = $this->envelopeService->uploadAttachment(
+                $envelope,
+                $request->doc_type,
+                $request->file('file'),
+                Auth::user(),
+                $request->metadata
+            );
+
+            $envelope->refresh();
+
+            return response()->json([
+                'message' => 'Attachment uploaded successfully',
+                'attachment' => $this->formatAttachment($attachment),
+                'envelope' => $this->formatEnvelope($envelope),
+            ]);
+        } catch (\LBHurtado\SettlementEnvelope\Exceptions\DocumentTypeNotAllowedException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Update envelope payload.
      *
      * PATCH /api/v1/vouchers/{voucher}/envelope/payload

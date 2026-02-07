@@ -26,14 +26,15 @@ import {
     EnvelopeSignalsCard,
     EnvelopePayloadCard,
     EnvelopeAuditLog,
-    ReasonModal 
+    ReasonModal,
+    DocumentUploadModal 
 } from '@/components/envelope';
 import type { Envelope, EnvelopeAttachment } from '@/composables/useEnvelope';
 import { useEnvelopeActions } from '@/composables/useEnvelopeActions';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, XCircle, Info, Lock, Send, Ban, RotateCcw, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Info, Lock, Send, Ban, RotateCcw, ThumbsUp, ThumbsDown, Loader2, Upload } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
@@ -145,7 +146,26 @@ const envelopeActions = props.envelope ? useEnvelopeActions(props.voucher.code) 
 const cancelModalOpen = ref(false);
 const reopenModalOpen = ref(false);
 const rejectModalOpen = ref(false);
+const uploadModalOpen = ref(false);
 const rejectingAttachment = ref<EnvelopeAttachment | null>(null);
+
+// Document types from checklist items (for upload modal)
+const documentTypes = computed(() => {
+    if (!props.envelope?.checklist_items) return [];
+    return props.envelope.checklist_items
+        .filter(item => item.kind === 'document' && item.doc_type)
+        .map(item => ({
+            key: item.key,
+            label: item.label,
+            doc_type: item.doc_type,
+            required: item.required,
+        }));
+});
+
+// Check if uploads are allowed (envelope is editable)
+const canUpload = computed(() => {
+    return props.envelope?.status_helpers?.can_edit ?? false;
+});
 
 // Envelope action handlers
 const handleLock = async () => {
@@ -201,6 +221,15 @@ const handleRejectAttachment = async (reason: string) => {
     if (success) {
         rejectModalOpen.value = false;
         rejectingAttachment.value = null;
+        router.reload();
+    }
+};
+
+const handleUpload = async (docType: string, file: File) => {
+    if (!envelopeActions) return;
+    const result = await envelopeActions.uploadAttachment(docType, file);
+    if (result.success) {
+        uploadModalOpen.value = false;
         router.reload();
     }
 };
@@ -590,10 +619,21 @@ const instructionsFormData = computed(() => {
                     </div>
                     
                     <EnvelopeAttachmentsCard 
-                        v-if="envelope.attachments?.length" 
-                        :attachments="envelope.attachments"
+                        :attachments="envelope.attachments ?? []"
                         :readonly="false"
                     >
+                        <template #upload-action>
+                            <Button 
+                                v-if="canUpload && documentTypes.length > 0" 
+                                variant="outline" 
+                                size="sm"
+                                @click="uploadModalOpen = true"
+                                :disabled="envelopeActions?.loading.value"
+                            >
+                                <Upload class="mr-2 h-4 w-4" />
+                                Upload
+                            </Button>
+                        </template>
                         <template #review-actions="{ attachment, canReview }">
                             <div v-if="canReview" class="flex gap-1">
                                 <Button 
@@ -704,6 +744,14 @@ const instructionsFormData = computed(() => {
             variant="destructive"
             :loading="envelopeActions?.loading.value ?? false"
             @confirm="handleRejectAttachment"
+        />
+        
+        <!-- Document Upload Modal -->
+        <DocumentUploadModal
+            v-model:open="uploadModalOpen"
+            :document-types="documentTypes"
+            :loading="envelopeActions?.loading.value ?? false"
+            @upload="handleUpload"
         />
     </AppLayout>
 </template>
