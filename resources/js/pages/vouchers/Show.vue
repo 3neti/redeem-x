@@ -170,20 +170,20 @@ const canUpload = computed(() => {
 // Envelope action handlers
 const handleLock = async () => {
     if (!envelopeActions) return;
-    const success = await envelopeActions.lock();
-    if (success) router.reload();
+    const result = await envelopeActions.lock();
+    if (result.success) router.reload();
 };
 
 const handleSettle = async () => {
     if (!envelopeActions) return;
-    const success = await envelopeActions.settle();
-    if (success) router.reload();
+    const result = await envelopeActions.settle();
+    if (result.success) router.reload();
 };
 
 const handleCancel = async (reason: string) => {
     if (!envelopeActions) return;
-    const success = await envelopeActions.cancel(reason);
-    if (success) {
+    const result = await envelopeActions.cancel(reason);
+    if (result.success) {
         cancelModalOpen.value = false;
         router.reload();
     }
@@ -191,8 +191,8 @@ const handleCancel = async (reason: string) => {
 
 const handleReopen = async (reason: string) => {
     if (!envelopeActions) return;
-    const success = await envelopeActions.reopen(reason);
-    if (success) {
+    const result = await envelopeActions.reopen(reason);
+    if (result.success) {
         reopenModalOpen.value = false;
         router.reload();
     }
@@ -200,14 +200,14 @@ const handleReopen = async (reason: string) => {
 
 const handleSignalToggle = async (key: string, value: boolean) => {
     if (!envelopeActions) return;
-    const success = await envelopeActions.setSignal(key, value);
-    if (success) router.reload();
+    const result = await envelopeActions.setSignal(key, value);
+    if (result.success) router.reload();
 };
 
 const handleAcceptAttachment = async (attachment: EnvelopeAttachment) => {
     if (!envelopeActions || !props.envelope) return;
-    const success = await envelopeActions.acceptAttachment(props.envelope.id, attachment.id);
-    if (success) router.reload();
+    const result = await envelopeActions.acceptAttachment(props.envelope.id, attachment.id);
+    if (result.success) router.reload();
 };
 
 const openRejectModal = (attachment: EnvelopeAttachment) => {
@@ -217,8 +217,8 @@ const openRejectModal = (attachment: EnvelopeAttachment) => {
 
 const handleRejectAttachment = async (reason: string) => {
     if (!envelopeActions || !props.envelope || !rejectingAttachment.value) return;
-    const success = await envelopeActions.rejectAttachment(props.envelope.id, rejectingAttachment.value.id, reason);
-    if (success) {
+    const result = await envelopeActions.rejectAttachment(props.envelope.id, rejectingAttachment.value.id, reason);
+    if (result.success) {
         rejectModalOpen.value = false;
         rejectingAttachment.value = null;
         router.reload();
@@ -613,14 +613,14 @@ const instructionsFormData = computed(() => {
                             v-if="envelope.signals?.length" 
                             :signals="envelope.signals"
                             :blocking-signals="envelope.computed_flags?.blocking_signals ?? []"
-                            :readonly="false"
+                            :readonly="!canUpload"
                             @toggle="handleSignalToggle"
                         />
                     </div>
                     
                     <EnvelopeAttachmentsCard 
                         :attachments="envelope.attachments ?? []"
-                        :readonly="false"
+                        :readonly="!canUpload"
                     >
                         <template #upload-action>
                             <Button 
