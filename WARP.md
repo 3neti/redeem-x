@@ -251,6 +251,39 @@ php artisan test:vouchers --scenario=full
 php artisan test:voucher-traits
 ```
 
+**Settlement Envelopes:**
+```bash
+# Full lifecycle test (CI-safe)
+php artisan test:envelope --upload-doc --auto-review --auto-settle
+
+# Evidence-only scenario
+php artisan test:envelope --scenario=evidence --upload-doc
+
+# Lock-only scenario (stops at locked state)
+php artisan test:envelope --scenario=lock --upload-doc --auto-review
+
+# With real document file
+php artisan test:envelope --doc-path=/path/to/doc.pdf --auto-review --auto-settle
+
+# With specific user (actor-aware)
+php artisan test:envelope --user=admin@example.com --scenario=settle
+```
+Tests settlement envelope workflow: create → evidence → signals → lock → settle.
+
+**Scenarios:**
+- `full` (default): Runs all phases, optionally settles with `--auto-settle`
+- `evidence`: Payload update + document upload only
+- `signals`: Signal setting only
+- `lock`: Evidence + signals + lock attempt
+- `settle`: Evidence + signals + auto-settle
+
+**Key flags:**
+- `--upload-doc`: Upload test document (CI-safe fake image)
+- `--auto-review`: Auto-accept uploaded documents
+- `--auto-settle`: Lock and settle when gates pass
+- `--doc-path=<file>`: Use real file instead of fake
+- `--detailed`: Verbose output with payload/context dumps
+
 **Gateway & Disbursement:**
 ```bash
 # Test Omnipay disbursement (⚠️ REAL TRANSACTION)
