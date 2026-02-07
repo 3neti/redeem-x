@@ -87,6 +87,8 @@ class EnvelopeAuditLog extends Model
     public const ACTION_LOCKED = 'envelope_locked';
     public const ACTION_SETTLED = 'envelope_settled';
     public const ACTION_CANCELLED = 'envelope_cancelled';
+    public const ACTION_REJECTED = 'envelope_rejected';
+    public const ACTION_REOPENED = 'envelope_reopened';
     public const ACTION_CONTEXT_UPDATE = 'context_update';
 
     // Scopes

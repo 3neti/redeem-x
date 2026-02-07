@@ -73,13 +73,31 @@ class GateEvaluator
         $items = $envelope->checklistItems;
 
         $requiredItems = $items->where('required', true);
-        $requiredAccepted = $requiredItems->where('status', ChecklistItemStatus::ACCEPTED)->count();
         $requiredCount = $requiredItems->count();
+        
+        // Count required items that are NOT missing (uploaded, needs_review, accepted, rejected)
+        $requiredPresentCount = $requiredItems
+            ->where('status', '!=', ChecklistItemStatus::MISSING)
+            ->count();
+        
+        // Count required items that are accepted
+        $requiredAcceptedCount = $requiredItems
+            ->where('status', ChecklistItemStatus::ACCEPTED)
+            ->count();
 
         return [
             'total' => $items->count(),
             'required_count' => $requiredCount,
-            'required_accepted' => $requiredAccepted === $requiredCount,
+            
+            // NEW: For IN_PROGRESS → READY_FOR_REVIEW transition
+            // True when all required items have status != missing
+            'required_present' => $requiredCount > 0 ? $requiredPresentCount === $requiredCount : true,
+            
+            // For READY_FOR_REVIEW → READY_TO_SETTLE transition
+            // True when all required items have status = accepted
+            'required_accepted' => $requiredCount > 0 ? $requiredAcceptedCount === $requiredCount : true,
+            
+            // Legacy compatibility
             'all_accepted' => $items->where('status', ChecklistItemStatus::ACCEPTED)->count() === $items->count(),
             'has_rejected' => $items->where('status', ChecklistItemStatus::REJECTED)->count() > 0,
             'pending_count' => $items->whereIn('status', [
@@ -93,16 +111,32 @@ class GateEvaluator
     protected function buildSignalContext(Envelope $envelope, DriverData $driver): array
     {
         $signals = [];
+        $blockingSignals = [];
 
         // Initialize all defined signals with defaults
         foreach ($driver->signals as $signalDef) {
             $signals[$signalDef->key] = $signalDef->default;
+            
+            // Track required signals that are false (blocking)
+            if ($signalDef->required && !$signalDef->default) {
+                $blockingSignals[] = $signalDef->key;
+            }
         }
 
         // Override with actual signal values
         foreach ($envelope->signals as $signal) {
-            $signals[$signal->key] = $signal->getBoolValue();
+            $value = $signal->getBoolValue();
+            $signals[$signal->key] = $value;
+            
+            // Remove from blocking if now true
+            if ($value) {
+                $blockingSignals = array_filter($blockingSignals, fn($k) => $k !== $signal->key);
+            }
         }
+
+        // Add special computed values
+        $signals['_blocking'] = array_values($blockingSignals);
+        $signals['_all_satisfied'] = empty($blockingSignals);
 
         return $signals;
     }

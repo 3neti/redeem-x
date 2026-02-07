@@ -78,8 +78,8 @@ class EnvelopeService
             // Initialize signals from driver definitions
             $this->initializeSignals($envelope, $driver);
 
-            // Compute initial gates
-            $this->recomputeGates($envelope);
+            // Compute initial gates (skip auto-advance on creation)
+            $this->recomputeGates($envelope, skipAutoAdvance: true);
 
             // Audit log
             $this->audit($envelope, EnvelopeAuditLog::ACTION_CREATED, $actor, null, null, [
@@ -318,19 +318,34 @@ class EnvelopeService
 
     /**
      * Lock envelope for settlement
+     * Requires envelope to be in READY_TO_SETTLE state (two-phase settlement)
      */
     public function lock(Envelope $envelope, ?Model $actor = null): Envelope
     {
+        // Must be in READY_TO_SETTLE state to lock
+        if (!$envelope->status->canLock()) {
+            throw new EnvelopeNotSettleableException(
+                "Envelope {$envelope->reference_code} must be in READY_TO_SETTLE state to lock (current: {$envelope->status->value})"
+            );
+        }
+
+        // Double-check settleable gate
         if (!$envelope->isSettleable()) {
             throw new EnvelopeNotSettleableException("Envelope {$envelope->reference_code} is not settleable");
         }
 
+        $oldStatus = $envelope->status;
+        
         $envelope->update([
             'status' => EnvelopeStatus::LOCKED,
             'locked_at' => now(),
         ]);
 
-        $this->audit($envelope, EnvelopeAuditLog::ACTION_LOCKED, $actor);
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_LOCKED, $actor, null, [
+            'status' => $oldStatus->value,
+        ], [
+            'status' => EnvelopeStatus::LOCKED->value,
+        ]);
 
         return $envelope->fresh();
     }
@@ -359,12 +374,80 @@ class EnvelopeService
      */
     public function cancel(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
     {
+        if (!$envelope->status->canCancel()) {
+            throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} cannot be cancelled in current state");
+        }
+
+        $oldStatus = $envelope->status;
+        
         $envelope->update([
             'status' => EnvelopeStatus::CANCELLED,
             'cancelled_at' => now(),
         ]);
 
-        $this->audit($envelope, EnvelopeAuditLog::ACTION_CANCELLED, $actor, null, null, [
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_CANCELLED, $actor, null, [
+            'status' => $oldStatus->value,
+        ], [
+            'status' => EnvelopeStatus::CANCELLED->value,
+            'reason' => $reason,
+        ]);
+
+        return $envelope->fresh();
+    }
+
+    /**
+     * Reject envelope (hard stop - requires new envelope or admin reopen)
+     */
+    public function reject(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
+    {
+        if (!$envelope->status->canReject()) {
+            throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} cannot be rejected in current state");
+        }
+
+        if (empty($reason)) {
+            throw new \InvalidArgumentException('Reason is required when rejecting an envelope');
+        }
+
+        $oldStatus = $envelope->status;
+        
+        $envelope->update([
+            'status' => EnvelopeStatus::REJECTED,
+        ]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_REJECTED, $actor, null, [
+            'status' => $oldStatus->value,
+        ], [
+            'status' => EnvelopeStatus::REJECTED->value,
+            'reason' => $reason,
+        ]);
+
+        return $envelope->fresh();
+    }
+
+    /**
+     * Reopen a locked envelope (admin only, requires reason)
+     */
+    public function reopen(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
+    {
+        if (!$envelope->status->canReopen()) {
+            throw new EnvelopeNotEditableException("Only locked envelopes can be reopened");
+        }
+
+        if (empty($reason)) {
+            throw new \InvalidArgumentException('Reason is required when reopening an envelope');
+        }
+
+        $oldStatus = $envelope->status;
+        
+        $envelope->update([
+            'status' => EnvelopeStatus::REOPENED,
+            'locked_at' => null, // Clear lock timestamp
+        ]);
+
+        $this->audit($envelope, EnvelopeAuditLog::ACTION_REOPENED, $actor, null, [
+            'status' => $oldStatus->value,
+        ], [
+            'status' => EnvelopeStatus::REOPENED->value,
             'reason' => $reason,
         ]);
 
@@ -457,13 +540,108 @@ class EnvelopeService
             });
     }
 
-    protected function recomputeGates(Envelope $envelope): void
+    protected function recomputeGates(Envelope $envelope, bool $skipAutoAdvance = false): void
     {
         // Force refresh relationships to ensure latest data is used
         $envelope->load(['checklistItems', 'signals']);
 
         $gates = $this->computeGates($envelope);
         $envelope->updateGatesCache($gates);
+        
+        // Auto-advance state based on computed flags (unless skipped)
+        if (!$skipAutoAdvance) {
+            $this->autoAdvanceState($envelope, $gates);
+        }
+    }
+
+    /**
+     * Automatically advance envelope state based on computed flags
+     * State transitions are idempotent and derived from flags
+     */
+    protected function autoAdvanceState(Envelope $envelope, array $gates): void
+    {
+        $currentStatus = $envelope->status;
+        $newStatus = $this->computeNextState($envelope, $gates);
+        
+        if ($newStatus && $newStatus !== $currentStatus) {
+            $envelope->update(['status' => $newStatus]);
+            
+            $this->audit($envelope, EnvelopeAuditLog::ACTION_STATUS_CHANGE, null, 'system', [
+                'status' => $currentStatus->value,
+            ], [
+                'status' => $newStatus->value,
+                'reason' => 'auto_transition',
+            ]);
+        }
+    }
+
+    /**
+     * Compute the next state based on current state and flags
+     * Returns null if no transition should occur
+     */
+    protected function computeNextState(Envelope $envelope, array $gates): ?EnvelopeStatus
+    {
+        $current = $envelope->status;
+        
+        // Compute flags directly from envelope data (not from gates which are driver-specific)
+        $envelope->loadMissing(['checklistItems', 'signals']);
+        
+        $requiredItems = $envelope->checklistItems->where('required', true);
+        $requiredCount = $requiredItems->count();
+        
+        // required_present: all required items have status != missing
+        $requiredPresentCount = $requiredItems
+            ->filter(fn ($item) => $item->status->value !== 'missing')
+            ->count();
+        $requiredPresent = $requiredCount === 0 || $requiredPresentCount === $requiredCount;
+        
+        // required_accepted: all required items have status = accepted
+        $requiredAcceptedCount = $requiredItems
+            ->filter(fn ($item) => $item->status->value === 'accepted')
+            ->count();
+        $requiredAccepted = $requiredCount === 0 || $requiredAcceptedCount === $requiredCount;
+        
+        // settleable gate from driver evaluation
+        $settleable = $gates['settleable'] ?? false;
+        
+        // DRAFT → IN_PROGRESS: First mutation occurs
+        if ($current === EnvelopeStatus::DRAFT) {
+            $hasPayload = !empty($envelope->payload);
+            $hasAttachments = $envelope->attachments()->exists();
+            
+            if ($hasPayload || $hasAttachments) {
+                return EnvelopeStatus::IN_PROGRESS;
+            }
+        }
+        
+        // IN_PROGRESS → READY_FOR_REVIEW: All required items present
+        if (in_array($current, [EnvelopeStatus::IN_PROGRESS, EnvelopeStatus::ACTIVE])) {
+            if ($requiredPresent) {
+                return EnvelopeStatus::READY_FOR_REVIEW;
+            }
+        }
+        
+        // READY_FOR_REVIEW → IN_PROGRESS: Required item becomes missing
+        if ($current === EnvelopeStatus::READY_FOR_REVIEW) {
+            if (!$requiredPresent) {
+                return EnvelopeStatus::IN_PROGRESS;
+            }
+            
+            // READY_FOR_REVIEW → READY_TO_SETTLE: All gates pass
+            if ($requiredAccepted && $settleable) {
+                return EnvelopeStatus::READY_TO_SETTLE;
+            }
+        }
+        
+        // REOPENED → IN_PROGRESS: When corrections begin
+        if ($current === EnvelopeStatus::REOPENED) {
+            return EnvelopeStatus::IN_PROGRESS;
+        }
+        
+        // Note: READY_TO_SETTLE → LOCKED is NOT automatic
+        // It requires explicit lock() call (two-phase settlement)
+        
+        return null;
     }
 
     protected function validateFile(UploadedFile $file, $docTypeConfig): void

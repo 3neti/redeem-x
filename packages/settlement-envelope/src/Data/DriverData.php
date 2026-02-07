@@ -119,7 +119,23 @@ class SignalDefinitionData extends Data
         public string $type = 'boolean',
         public string $source = 'host',
         public mixed $default = false,
+        /** Whether this signal must be true for settlement */
+        public bool $required = false,
+        /** 'integration' (system can set) or 'decision' (reviewer only) */
+        public string $signal_category = 'decision',
+        /** If true, system can auto-set this signal (only for integration signals) */
+        public bool $system_settable = false,
     ) {}
+
+    public function isIntegration(): bool
+    {
+        return $this->signal_category === 'integration';
+    }
+
+    public function isDecision(): bool
+    {
+        return $this->signal_category === 'decision';
+    }
 }
 
 class GateDefinitionData extends Data
