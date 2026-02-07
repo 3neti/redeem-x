@@ -202,33 +202,49 @@ class TestEnvelopeCommand extends Command
         $isFullLifecycle = $this->option('lifecycle') === 'full';
         $autoSettle = $this->option('auto-settle');
 
+        // Show current state (auto-transitions already happened)
+        $this->phase('STATE MACHINE');
+        $this->showStateProgress($envelope);
+
         if ($isFullLifecycle || $autoSettle) {
             $this->phase('STATUS TRANSITIONS');
 
-            // Activate
-            if ($envelope->status === EnvelopeStatus::DRAFT) {
-                try {
-                    $envelope = $envelopeService->activate($envelope);
-                    $this->step("Activated: draft → active");
-                } catch (\Exception $e) {
-                    $this->warn("⚠ Activation failed: {$e->getMessage()}");
-                }
-            }
+            // Note: DRAFT → IN_PROGRESS → READY_FOR_REVIEW → READY_TO_SETTLE
+            // happens automatically via auto-transitions in EnvelopeService
+            
+            $envelope->refresh();
+            $this->step("Current state: {$envelope->status->label()}");
 
-            // Lock (if settleable)
-            if ($envelope->status === EnvelopeStatus::ACTIVE && $envelope->isSettleable()) {
+            // Lock (requires READY_TO_SETTLE state)
+            if ($envelope->status === EnvelopeStatus::READY_TO_SETTLE) {
                 try {
                     $envelope = $envelopeService->lock($envelope);
-                    $this->step("Locked: active → locked");
+                    $this->step("Locked: ready_to_settle → locked");
                     $this->detail("Locked at: {$envelope->locked_at}");
                 } catch (\Exception $e) {
                     $this->warn("⚠ Lock failed: {$e->getMessage()}");
                 }
-            } elseif ($envelope->status === EnvelopeStatus::ACTIVE) {
-                $this->warn("⚠ Cannot lock: envelope is not settleable");
+            } elseif (!in_array($envelope->status, [EnvelopeStatus::LOCKED, EnvelopeStatus::SETTLED])) {
+                $this->warn("⚠ Cannot lock: envelope must be in READY_TO_SETTLE state (current: {$envelope->status->value})");
+                $this->detail("Missing requirements:");
+                
+                // Show what's missing
+                $requiredItems = $envelope->checklistItems->where('required', true);
+                $missingItems = $requiredItems->filter(fn($item) => $item->status->value === 'missing');
+                $pendingReview = $requiredItems->filter(fn($item) => in_array($item->status->value, ['uploaded', 'needs_review']));
+                
+                if ($missingItems->count() > 0) {
+                    $this->detail("  - Missing items: " . $missingItems->pluck('label')->join(', '));
+                }
+                if ($pendingReview->count() > 0) {
+                    $this->detail("  - Pending review: " . $pendingReview->pluck('label')->join(', '));
+                }
+                if (!$envelope->isSettleable()) {
+                    $this->detail("  - Settleable gate: false");
+                }
             }
 
-            // Settle
+            // Settle (requires LOCKED state)
             if ($envelope->status === EnvelopeStatus::LOCKED) {
                 try {
                     $envelope = $envelopeService->settle($envelope);
@@ -357,6 +373,39 @@ class TestEnvelopeCommand extends Command
             $icon = $signal->value === 'true' ? '<fg=green>✓</>' : '<fg=red>✗</>';
             $this->line("    {$icon} {$signal->key}: {$signal->value}");
         }
+    }
+
+    private function showStateProgress($envelope): void
+    {
+        $states = [
+            'draft' => 'DRAFT',
+            'in_progress' => 'IN_PROGRESS', 
+            'ready_for_review' => 'READY_FOR_REVIEW',
+            'ready_to_settle' => 'READY_TO_SETTLE',
+            'locked' => 'LOCKED',
+            'settled' => 'SETTLED',
+        ];
+        
+        $current = $envelope->status->value;
+        $stateKeys = array_keys($states);
+        $currentIndex = array_search($current, $stateKeys);
+        
+        $this->line("  State Flow:");
+        $line = '    ';
+        foreach ($states as $key => $label) {
+            $index = array_search($key, $stateKeys);
+            
+            if ($key === $current) {
+                $line .= "<fg=green;options=bold>[{$label}]</> ";
+            } elseif ($currentIndex !== false && $index < $currentIndex) {
+                $line .= "<fg=gray>{$label}</> → ";
+            } else {
+                $line .= "<fg=gray>{$label}</> → ";
+            }
+        }
+        $line = rtrim($line, ' → ');
+        $this->line($line);
+        $this->newLine();
     }
 
     private function uploadTestDocument($envelope, EnvelopeService $envelopeService)

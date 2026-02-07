@@ -557,14 +557,24 @@ class EnvelopeService
     /**
      * Automatically advance envelope state based on computed flags
      * State transitions are idempotent and derived from flags
+     * Loops until no more transitions are possible (stable state)
      */
     protected function autoAdvanceState(Envelope $envelope, array $gates): void
     {
-        $currentStatus = $envelope->status;
-        $newStatus = $this->computeNextState($envelope, $gates);
+        $maxIterations = 10; // Safety limit to prevent infinite loops
+        $iterations = 0;
         
-        if ($newStatus && $newStatus !== $currentStatus) {
+        while ($iterations < $maxIterations) {
+            $currentStatus = $envelope->status;
+            $newStatus = $this->computeNextState($envelope, $gates);
+            
+            if (!$newStatus || $newStatus === $currentStatus) {
+                // No more transitions - stable state reached
+                break;
+            }
+            
             $envelope->update(['status' => $newStatus]);
+            $envelope->refresh(); // Refresh to get updated status for next iteration
             
             $this->audit($envelope, EnvelopeAuditLog::ACTION_STATUS_CHANGE, null, 'system', [
                 'status' => $currentStatus->value,
@@ -572,6 +582,8 @@ class EnvelopeService
                 'status' => $newStatus->value,
                 'reason' => 'auto_transition',
             ]);
+            
+            $iterations++;
         }
     }
 
@@ -584,7 +596,8 @@ class EnvelopeService
         $current = $envelope->status;
         
         // Compute flags directly from envelope data (not from gates which are driver-specific)
-        $envelope->loadMissing(['checklistItems', 'signals']);
+        // Force refresh to get latest checklist/signal states
+        $envelope->load(['checklistItems', 'signals']);
         
         $requiredItems = $envelope->checklistItems->where('required', true);
         $requiredCount = $requiredItems->count();
