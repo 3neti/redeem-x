@@ -103,10 +103,11 @@ class EnvelopeChecklistItem extends Model
                 $this->update(['status' => ChecklistItemStatus::ACCEPTED]);
             } elseif ($attachment->review_status === 'rejected') {
                 $this->update(['status' => ChecklistItemStatus::REJECTED]);
-            } elseif ($this->requiresReview()) {
+            } elseif ($this->review_mode->allowsReview()) {
+                // Review is optional or required - wait for human review
                 $this->update(['status' => ChecklistItemStatus::NEEDS_REVIEW]);
             } else {
-                // No review required, uploaded = accepted
+                // review: none - no human review needed, uploaded = auto-accepted
                 $this->update(['status' => ChecklistItemStatus::ACCEPTED]);
             }
         }
