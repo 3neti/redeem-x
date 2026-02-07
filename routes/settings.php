@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Controllers\Settings\CampaignController;
+use App\Http\Controllers\Settings\EnvelopeDriverController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
@@ -55,5 +56,11 @@ Route::middleware([
             ->name('vendor-aliases.search-users');
         Route::resource('vendor-aliases', VendorAliasController::class)
             ->only(['index', 'store', 'update', 'destroy']);
+        
+        // Envelope Drivers (read-only)
+        Route::get('envelope-drivers', [EnvelopeDriverController::class, 'index'])
+            ->name('envelope-drivers.index');
+        Route::get('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'show'])
+            ->name('envelope-drivers.show');
     });
 });

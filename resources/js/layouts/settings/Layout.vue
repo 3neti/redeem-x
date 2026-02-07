@@ -9,6 +9,7 @@ import { index as campaignsIndex } from '@/actions/App/Http/Controllers/Settings
 import { index as apiTokensIndex } from '@/actions/App/Http/Controllers/Settings/ApiTokenController';
 import { edit as editSecurity } from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import { index as vendorAliasesIndex } from '@/actions/App/Http/Controllers/Settings/VendorAliasController';
+import { index as envelopeDriversIndex } from '@/actions/App/Http/Controllers/Settings/EnvelopeDriverController';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 
@@ -36,6 +37,10 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Vendor Aliases',
         href: vendorAliasesIndex.url(),
+    },
+    {
+        title: 'Envelope Drivers',
+        href: envelopeDriversIndex.url(),
     },
 ];
 
