@@ -51,6 +51,13 @@ class VoucherController extends Controller
             $envelope = $voucher->envelope;
             if ($envelope) {
                 $envelope->load(['checklistItems', 'attachments', 'signals', 'auditLogs']);
+                
+                // Compute gates and flags for UI
+                $envelopeService = app(\LBHurtado\SettlementEnvelope\Services\EnvelopeService::class);
+                $gates = $envelopeService->computeGates($envelope);
+                $checklistContext = $this->buildChecklistContext($envelope);
+                $signalContext = $this->buildSignalContext($envelope);
+                
                 $data['envelope'] = [
                     'id' => $envelope->id,
                     'reference_code' => $envelope->reference_code,
@@ -60,12 +67,37 @@ class VoucherController extends Controller
                     'payload' => $envelope->payload,
                     'payload_version' => $envelope->payload_version,
                     'context' => $envelope->context,
-                    'gates_cache' => $envelope->gates_cache ?? [],
+                    'gates_cache' => $gates,
+                    
+                    // Computed flags for state machine (Phase 4)
+                    'computed_flags' => [
+                        'required_present' => $checklistContext['required_present'],
+                        'required_accepted' => $checklistContext['required_accepted'],
+                        'blocking_signals' => $signalContext['blocking'],
+                        'all_signals_satisfied' => $signalContext['all_satisfied'],
+                        'settleable' => $gates['settleable'] ?? false,
+                    ],
+                    
+                    // Status helpers from enum
+                    'status_helpers' => [
+                        'can_edit' => $envelope->status->canEdit(),
+                        'can_lock' => $envelope->status->canLock(),
+                        'can_settle' => $envelope->status->value === 'locked',
+                        'can_cancel' => $envelope->status->canCancel(),
+                        'can_reject' => $envelope->status->canReject(),
+                        'can_reopen' => $envelope->status->canReopen(),
+                        'is_terminal' => $envelope->status->isTerminal(),
+                    ],
+                    
+                    // Timestamps
                     'locked_at' => $envelope->locked_at?->toIso8601String(),
                     'settled_at' => $envelope->settled_at?->toIso8601String(),
                     'cancelled_at' => $envelope->cancelled_at?->toIso8601String(),
+                    'rejected_at' => $envelope->rejected_at?->toIso8601String(),
                     'created_at' => $envelope->created_at->toIso8601String(),
                     'updated_at' => $envelope->updated_at->toIso8601String(),
+                    
+                    // Relationships
                     'checklist_items' => $envelope->checklistItems->map(fn ($item) => [
                         'id' => $item->id,
                         'key' => $item->key,
@@ -76,13 +108,16 @@ class VoucherController extends Controller
                         'doc_type' => $item->doc_type,
                         'payload_pointer' => $item->payload_pointer,
                         'signal_key' => $item->signal_key,
+                        'review_mode' => $item->review_mode ?? 'none',
                     ])->toArray(),
                     'attachments' => $envelope->attachments->map(fn ($att) => [
                         'id' => $att->id,
                         'doc_type' => $att->doc_type,
                         'original_filename' => $att->original_filename,
                         'mime_type' => $att->mime_type,
+                        'size' => $att->size ?? null,
                         'review_status' => $att->review_status,
+                        'rejection_reason' => $att->rejection_reason ?? null,
                         'url' => $att->file_path ? \Storage::disk($att->disk ?? 'public')->url($att->file_path) : null,
                         'created_at' => $att->created_at->toIso8601String(),
                     ])->toArray(),
@@ -98,8 +133,10 @@ class VoucherController extends Controller
                         'action' => $log->action,
                         'actor_type' => $log->actor_type,
                         'actor_id' => $log->actor_id,
+                        'actor_email' => $log->actor?->email ?? null,
                         'before' => $log->before,
                         'after' => $log->after,
+                        'reason' => $log->reason ?? null,
                         'created_at' => $log->created_at->toIso8601String(),
                     ])->toArray(),
                 ];
@@ -128,5 +165,54 @@ class VoucherController extends Controller
         }
 
         return Inertia::render('vouchers/Show', $data);
+    }
+
+    /**
+     * Build checklist context for computed flags.
+     * Mirrors GateEvaluator::buildChecklistContext() for frontend use.
+     */
+    private function buildChecklistContext($envelope): array
+    {
+        $items = $envelope->checklistItems;
+        $requiredItems = $items->where('required', true);
+        $requiredCount = $requiredItems->count();
+
+        // Count required items that are NOT missing
+        $requiredPresentCount = $requiredItems
+            ->filter(fn ($item) => $item->status->value !== 'missing')
+            ->count();
+
+        // Count required items that are accepted
+        $requiredAcceptedCount = $requiredItems
+            ->filter(fn ($item) => $item->status->value === 'accepted')
+            ->count();
+
+        return [
+            'required_present' => $requiredCount > 0 ? $requiredPresentCount === $requiredCount : true,
+            'required_accepted' => $requiredCount > 0 ? $requiredAcceptedCount === $requiredCount : true,
+        ];
+    }
+
+    /**
+     * Build signal context for computed flags.
+     * Extracts blocking signals for frontend display.
+     */
+    private function buildSignalContext($envelope): array
+    {
+        $blocking = [];
+
+        // Check for signals that should be true but aren't
+        foreach ($envelope->signals as $signal) {
+            // For now, consider boolean signals with value 'false' as blocking
+            // In Phase 5, this will use driver signal definitions for required/blocking logic
+            if ($signal->type === 'boolean' && $signal->value !== 'true') {
+                $blocking[] = $signal->key;
+            }
+        }
+
+        return [
+            'blocking' => $blocking,
+            'all_satisfied' => empty($blocking),
+        ];
     }
 }
