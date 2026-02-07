@@ -4,12 +4,14 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
+import { EnvelopeConfigCard } from '@/components/envelope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { computed, ref } from 'vue';
 import type { VoucherInputFieldOption } from '@/types/voucher';
+import type { DriverSummary, EnvelopeConfig } from '@/types/envelope';
 
 interface Campaign {
     id: number;
@@ -18,12 +20,14 @@ interface Campaign {
     description: string | null;
     status: 'draft' | 'active' | 'archived';
     instructions: any;
+    envelope_config: EnvelopeConfig | null;
     created_at: string;
 }
 
 interface Props {
     campaign: Campaign;
     input_field_options: VoucherInputFieldOption[];
+    envelope_drivers?: DriverSummary[];
 }
 
 const props = defineProps<Props>();
@@ -63,10 +67,28 @@ const parseInstructions = (inst: any) => {
 
 const instructionsFormData = ref(parseInstructions(props.campaign.instructions));
 
+// Initialize envelope config from campaign data - MUST be before useForm
+const envelopeConfig = ref<EnvelopeConfig | null>(
+    props.campaign.envelope_config?.enabled 
+        ? {
+            enabled: true,
+            driver_id: props.campaign.envelope_config.driver_id,
+            driver_version: props.campaign.envelope_config.driver_version,
+            initial_payload: props.campaign.envelope_config.initial_payload || {},
+        }
+        : null
+);
+
 const form = useForm({
     name: props.campaign.name,
     description: props.campaign.description,
     status: props.campaign.status,
+    envelope_config: computed(() => envelopeConfig.value?.enabled ? {
+        enabled: true,
+        driver_id: envelopeConfig.value.driver_id,
+        driver_version: envelopeConfig.value.driver_version,
+        initial_payload: envelopeConfig.value.initial_payload || {},
+    } : null),
     instructions: computed(() => ({
         cash: {
             amount: instructionsFormData.value.amount,
@@ -179,6 +201,14 @@ function submit() {
                         :input-field-options="input_field_options"
                         :validation-errors="form.errors"
                         :show-count-field="false"
+                    />
+
+                    <!-- Settlement Envelope Configuration -->
+                    <EnvelopeConfigCard
+                        v-if="envelope_drivers && envelope_drivers.length > 0"
+                        v-model="envelopeConfig"
+                        :available-drivers="envelope_drivers"
+                        :default-open="!!campaign.envelope_config?.enabled"
                     />
 
                     <!-- Actions -->

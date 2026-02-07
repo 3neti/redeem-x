@@ -27,6 +27,11 @@ class StoreCampaignRequest extends FormRequest
             'description' => 'nullable|string',
             'status' => 'required|in:draft,active,archived',
             'instructions' => 'required|array',
+            'envelope_config' => 'nullable|array',
+            'envelope_config.enabled' => 'boolean',
+            'envelope_config.driver_id' => 'required_if:envelope_config.enabled,true|nullable|string',
+            'envelope_config.driver_version' => 'required_if:envelope_config.enabled,true|nullable|string',
+            'envelope_config.initial_payload' => 'nullable|array',
         ], $this->prefixRules(VoucherInstructionsData::rules(), 'instructions'));
     }
 

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\SettlementEnvelope\Services\DriverService;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 
 class CampaignController extends Controller
@@ -46,6 +47,7 @@ class CampaignController extends Controller
 
         return Inertia::render('settings/campaigns/Create', [
             'input_field_options' => VoucherInputField::options(),
+            'envelope_drivers' => $this->getEnvelopeDrivers(),
         ]);
     }
 
@@ -98,6 +100,7 @@ class CampaignController extends Controller
         return Inertia::render('settings/campaigns/Edit', [
             'campaign' => $campaign,
             'input_field_options' => VoucherInputField::options(),
+            'envelope_drivers' => $this->getEnvelopeDrivers(),
         ]);
     }
 
@@ -142,5 +145,38 @@ class CampaignController extends Controller
 
         return redirect()->route('settings.campaigns.edit', $newCampaign)
             ->with('success', 'Campaign duplicated successfully.');
+    }
+
+    /**
+     * Get envelope drivers with full details including payload schema.
+     */
+    private function getEnvelopeDrivers(): array
+    {
+        try {
+            $driverService = app(DriverService::class);
+            $driverList = $driverService->list();
+            
+            return collect($driverList)->map(function ($item) use ($driverService) {
+                try {
+                    $driver = $driverService->load($item['id'], $item['version']);
+                    return [
+                        'id' => $driver->id,
+                        'version' => $driver->version,
+                        'title' => $driver->title,
+                        'description' => $driver->description,
+                        'domain' => $driver->domain,
+                        'documents_count' => $driver->documents->count(),
+                        'checklist_count' => $driver->checklist->count(),
+                        'signals_count' => $driver->signals->count(),
+                        'gates_count' => $driver->gates->count(),
+                        'payload_schema' => $driver->payload->schema->inline,
+                    ];
+                } catch (\Exception $e) {
+                    return null;
+                }
+            })->filter()->values()->all();
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 }

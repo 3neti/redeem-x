@@ -142,11 +142,43 @@ Route::middleware([
                 'saved_mode' => $savedMode,
             ]);
             
+            // Load envelope drivers for envelope configuration card
+            $envelopeDrivers = [];
+            try {
+                $driverService = app(\LBHurtado\SettlementEnvelope\Services\DriverService::class);
+                $driverList = $driverService->list();
+                \Log::info('[Generate Route] Envelope drivers found', ['count' => count($driverList)]);
+            $envelopeDrivers = collect($driverList)->map(function ($item) use ($driverService) {
+                    try {
+                        $driver = $driverService->load($item['id'], $item['version']);
+                        return [
+                            'id' => $driver->id,
+                            'version' => $driver->version,
+                            'title' => $driver->title,
+                            'description' => $driver->description,
+                            'domain' => $driver->domain,
+                            'documents_count' => $driver->documents->count(),
+                            'checklist_count' => $driver->checklist->count(),
+                            'signals_count' => $driver->signals->count(),
+                            'gates_count' => $driver->gates->count(),
+                            'payload_schema' => $driver->payload->schema->inline,
+                        ];
+                    } catch (\Exception $e) {
+                        \Log::warning('[Generate Route] Failed to load driver', ['driver' => $item, 'error' => $e->getMessage()]);
+                        return null;
+                    }
+                })->filter()->values()->all();
+                \Log::info('[Generate Route] Envelope drivers loaded', ['drivers' => $envelopeDrivers]);
+            } catch (\Exception $e) {
+                \Log::error('[Generate Route] DriverService error', ['error' => $e->getMessage()]);
+            }
+            
             return Inertia::render($component, [
                 'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),
                 'config' => config('generate'),
                 'saved_mode' => $savedMode, // Pass saved mode to frontend
                 'settlement_enabled' => \Laravel\Pennant\Feature::active('settlement-vouchers'),
+                'envelope_drivers' => $envelopeDrivers,
             ]);
         })->middleware(['requires.mobile', 'requires.balance'])->name('generate.create');
         

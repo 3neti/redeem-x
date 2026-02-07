@@ -183,6 +183,32 @@ class GenerateVouchers
                 }
             }
         }
+        
+        // Create settlement envelopes if configured
+        $envelopeConfig = $validated['envelope_config'] ?? null;
+        if ($envelopeConfig && ($envelopeConfig['enabled'] ?? false)) {
+            foreach ($vouchers as $voucher) {
+                try {
+                    $voucher->createEnvelope(
+                        driverId: $envelopeConfig['driver_id'],
+                        driverVersion: $envelopeConfig['driver_version'],
+                        initialPayload: $envelopeConfig['initial_payload'] ?? null,
+                        context: [
+                            'created_via' => 'voucher_generation',
+                            'campaign_id' => $validated['campaign_id'] ?? null,
+                        ],
+                        actor: $request->user()
+                    );
+                } catch (\Exception $e) {
+                    // Log but don't fail - envelope creation is optional
+                    \Log::warning('[GenerateVouchers] Failed to create envelope for voucher', [
+                        'voucher_code' => $voucher->code,
+                        'driver' => $envelopeConfig['driver_id'] . '@' . $envelopeConfig['driver_version'],
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
 
         // Transform to VoucherData DTOs using DataCollection
         $voucherData = new DataCollection(VoucherData::class, $vouchers->all());
@@ -285,6 +311,13 @@ class GenerateVouchers
             'validation_time.window.timezone' => 'required_with:validation_time.window|string|timezone',
             'validation_time.limit_minutes' => 'nullable|integer|min:1|max:1440',
             'validation_time.track_duration' => 'nullable|boolean',
+            
+            // Envelope configuration
+            'envelope_config' => 'nullable|array',
+            'envelope_config.enabled' => 'required_with:envelope_config|boolean',
+            'envelope_config.driver_id' => 'required_if:envelope_config.enabled,true|string',
+            'envelope_config.driver_version' => 'required_if:envelope_config.enabled,true|string',
+            'envelope_config.initial_payload' => 'nullable|array',
         ];
     }
 

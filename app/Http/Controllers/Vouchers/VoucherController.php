@@ -143,6 +143,35 @@ class VoucherController extends Controller
             }
         }
 
+        // Add envelope drivers for creating new envelopes (when voucher has no envelope)
+        if (!isset($data['envelope'])) {
+            try {
+                $driverService = app(\LBHurtado\SettlementEnvelope\Services\DriverService::class);
+                $driverList = $driverService->list();
+                $data['envelope_drivers'] = collect($driverList)->map(function ($item) use ($driverService) {
+                    try {
+                        $driver = $driverService->load($item['id'], $item['version']);
+                        return [
+                            'id' => $driver->id,
+                            'version' => $driver->version,
+                            'title' => $driver->title,
+                            'description' => $driver->description,
+                            'domain' => $driver->domain,
+                            'documents_count' => $driver->documents->count(),
+                            'checklist_count' => $driver->checklist->count(),
+                            'signals_count' => $driver->signals->count(),
+                            'gates_count' => $driver->gates->count(),
+                            'payload_schema' => $driver->payload->schema->inline,
+                        ];
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                })->filter()->values()->all();
+            } catch (\Exception $e) {
+                $data['envelope_drivers'] = [];
+            }
+        }
+
         // Add settlement data if feature is enabled
         if (Feature::active('settlement-vouchers') && $voucher->voucher_type) {
             $data['settlement'] = [

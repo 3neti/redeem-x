@@ -27,14 +27,17 @@ import {
     EnvelopePayloadCard,
     EnvelopeAuditLog,
     ReasonModal,
-    DocumentUploadModal 
+    DocumentUploadModal,
+    EnvelopeConfigCard 
 } from '@/components/envelope';
 import type { Envelope, EnvelopeAttachment } from '@/composables/useEnvelope';
+import type { DriverSummary, EnvelopeConfig } from '@/types/envelope';
+import axios from 'axios';
 import { useEnvelopeActions } from '@/composables/useEnvelopeActions';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 import { usePage } from '@inertiajs/vue3';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, XCircle, Info, Lock, Send, Ban, RotateCcw, ThumbsUp, ThumbsDown, Loader2, Upload } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Info, Lock, Send, Ban, RotateCcw, ThumbsUp, ThumbsDown, Loader2, Upload, PlusCircle } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 import type { VoucherInputFieldOption } from '@/types/voucher';
 
@@ -132,6 +135,7 @@ interface Props {
     settlement?: SettlementData;
     external_metadata?: Record<string, any> | null;
     envelope?: Envelope;
+    envelope_drivers?: DriverSummary[];
 }
 
 const props = defineProps<Props>();
@@ -236,6 +240,34 @@ const handleUpload = async (docType: string, file: File) => {
 
 const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
 const hasEnvelope = computed(() => !!props.envelope);
+
+// Envelope creation for vouchers without an envelope
+const envelopeConfig = ref<EnvelopeConfig | null>(null);
+const creatingEnvelope = ref(false);
+const envelopeCreationError = ref<string | null>(null);
+
+const handleCreateEnvelope = async () => {
+    if (!envelopeConfig.value?.enabled) return;
+    
+    creatingEnvelope.value = true;
+    envelopeCreationError.value = null;
+    
+    try {
+        await axios.post(`/api/v1/vouchers/${props.voucher.code}/envelope`, {
+            driver_id: envelopeConfig.value.driver_id,
+            driver_version: envelopeConfig.value.driver_version,
+            initial_payload: envelopeConfig.value.initial_payload || {},
+            context: { created_via: 'voucher_show' },
+        });
+        
+        // Refresh page to show the new envelope
+        router.reload();
+    } catch (error: any) {
+        envelopeCreationError.value = error.response?.data?.message || 'Failed to create envelope';
+    } finally {
+        creatingEnvelope.value = false;
+    }
+};
 
 const isOwner = computed(() => {
     const currentUser = (page.props as any).auth?.user;
@@ -526,6 +558,32 @@ const instructionsFormData = computed(() => {
                         :is-owner="isOwner"
                         :is-expired="settlement.is_expired"
                     />
+                    
+                    <!-- Attach Envelope (when voucher has no envelope) -->
+                    <EnvelopeConfigCard
+                        v-if="!hasEnvelope && envelope_drivers && envelope_drivers.length > 0"
+                        v-model="envelopeConfig"
+                        :available-drivers="envelope_drivers"
+                        :default-open="false"
+                    >
+                        <template #footer>
+                            <div class="flex items-center justify-between pt-4 border-t">
+                                <p v-if="envelopeCreationError" class="text-sm text-destructive">
+                                    {{ envelopeCreationError }}
+                                </p>
+                                <Button
+                                    v-if="envelopeConfig?.enabled"
+                                    @click="handleCreateEnvelope"
+                                    :disabled="creatingEnvelope || !envelopeConfig?.driver_id"
+                                    size="sm"
+                                >
+                                    <Loader2 v-if="creatingEnvelope" class="mr-2 h-4 w-4 animate-spin" />
+                                    <PlusCircle v-else class="mr-2 h-4 w-4" />
+                                    Attach Envelope
+                                </Button>
+                            </div>
+                        </template>
+                    </EnvelopeConfigCard>
                 </div>
 
                 <!-- Instructions Tab Content -->
@@ -664,6 +722,8 @@ const instructionsFormData = computed(() => {
                         :payload="envelope.payload || {}" 
                         :version="envelope.payload_version"
                         :context="envelope.context"
+                        :voucher-code="voucher.code"
+                        :readonly="!canUpload"
                     />
                     
                     <EnvelopeAuditLog 

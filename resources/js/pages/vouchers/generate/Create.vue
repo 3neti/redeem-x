@@ -22,6 +22,8 @@ import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 import LocationValidationForm from '@/components/voucher/forms/LocationValidationForm.vue';
 import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vue';
+import { EnvelopeConfigCard } from '@/components/envelope';
+import type { DriverSummary, EnvelopeConfig } from '@/types/envelope';
 import axios from 'axios';
 
 // Debug flag - set to false to suppress console logs
@@ -30,9 +32,13 @@ const DEBUG = false;
 interface Props {
     input_field_options: VoucherInputFieldOption[];
     config: any;
+    envelope_drivers?: DriverSummary[];
 }
 
 const props = defineProps<Props>();
+
+// Envelope configuration
+const envelopeConfig = ref<EnvelopeConfig | null>(null);
 
 // Config loaded successfully
 
@@ -60,6 +66,7 @@ interface Campaign {
     name: string;
     slug: string;
     instructions: any;
+    envelope_config?: EnvelopeConfig | null;
 }
 
 const campaigns = ref<Campaign[]>([]);
@@ -147,6 +154,18 @@ watch(selectedCampaignId, async (campaignId) => {
         if (inst.ttl) {
             const match = inst.ttl.match(/P(\d+)D/);
             ttlDays.value = match ? parseInt(match[1]) : props.config.basic_settings.ttl.default;
+        }
+        
+        // Populate envelope config from campaign
+        if (campaign.envelope_config?.enabled) {
+            envelopeConfig.value = {
+                enabled: true,
+                driver_id: campaign.envelope_config.driver_id,
+                driver_version: campaign.envelope_config.driver_version,
+                initial_payload: campaign.envelope_config.initial_payload || {},
+            };
+        } else {
+            envelopeConfig.value = null;
         }
     } catch (err) {
         console.error('Failed to load campaign:', err);
@@ -455,6 +474,8 @@ const handleSubmit = async () => {
         preview_enabled: previewEnabled.value,
         preview_scope: previewScope.value,
         preview_message: previewMessage.value || undefined,
+        // Envelope configuration
+        envelope_config: envelopeConfig.value?.enabled ? envelopeConfig.value : undefined,
     };
     
     const result = await generateVouchers(payload);
@@ -898,6 +919,13 @@ const handleSubmit = async () => {
                         v-model="timeValidation"
                         :validation-errors="validationErrors"
                         :config="config.time_validation"
+                    />
+
+                    <!-- Settlement Envelope -->
+                    <EnvelopeConfigCard
+                        v-if="envelope_drivers && envelope_drivers.length > 0"
+                        v-model="envelopeConfig"
+                        :available-drivers="envelope_drivers"
                     />
 
                     <!-- Preview Controls -->

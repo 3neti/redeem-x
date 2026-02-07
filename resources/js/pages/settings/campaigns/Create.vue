@@ -4,15 +4,18 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
+import { EnvelopeConfigCard } from '@/components/envelope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { computed, ref } from 'vue';
 import type { VoucherInputFieldOption } from '@/types/voucher';
+import type { DriverSummary, EnvelopeConfig } from '@/types/envelope';
 
 interface Props {
     input_field_options: VoucherInputFieldOption[];
+    envelope_drivers?: DriverSummary[];
 }
 
 const props = defineProps<Props>();
@@ -40,10 +43,19 @@ const instructionsFormData = ref({
     feeStrategy: 'absorb' as string,
 });
 
+// Envelope configuration - MUST be before useForm
+const envelopeConfig = ref<EnvelopeConfig | null>(null);
+
 const form = useForm({
     name: '',
     description: '',
     status: 'draft',
+    envelope_config: computed(() => envelopeConfig.value?.enabled ? {
+        enabled: true,
+        driver_id: envelopeConfig.value.driver_id,
+        driver_version: envelopeConfig.value.driver_version,
+        initial_payload: envelopeConfig.value.initial_payload || {},
+    } : null),
     instructions: computed(() => ({
         cash: {
             amount: instructionsFormData.value.amount,
@@ -156,6 +168,14 @@ function submit() {
                         :input-field-options="input_field_options"
                         :validation-errors="form.errors"
                         :show-count-field="false"
+                    />
+
+                    <!-- Settlement Envelope Configuration -->
+                    <EnvelopeConfigCard
+                        v-if="envelope_drivers && envelope_drivers.length > 0"
+                        v-model="envelopeConfig"
+                        :available-drivers="envelope_drivers"
+                        :default-open="false"
                     />
 
                     <!-- Actions -->

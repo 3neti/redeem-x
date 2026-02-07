@@ -294,12 +294,19 @@ class EnvelopeActionController extends Controller
             ], 422);
         }
 
-        $envelope = $this->envelopeService->updatePayload($envelope, $request->payload);
+        try {
+            $envelope = $this->envelopeService->updatePayload($envelope, $request->payload, Auth::user());
 
-        return response()->json([
-            'message' => 'Payload updated',
-            'envelope' => $this->formatEnvelope($envelope),
-        ]);
+            return response()->json([
+                'message' => 'Payload updated',
+                'envelope' => $this->formatEnvelope($envelope),
+            ]);
+        } catch (\LBHurtado\SettlementEnvelope\Exceptions\PayloadValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors,
+            ], 422);
+        }
     }
 
     /**

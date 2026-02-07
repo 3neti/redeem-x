@@ -97,6 +97,15 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
         ->name('collect');
     
     // =========================================================================
+    // Envelope Management (create envelope for existing voucher)
+    // =========================================================================
+    
+    // Create envelope for voucher
+    // POST /api/v1/vouchers/{code}/envelope
+    Route::post('{voucher:code}/envelope', [\App\Http\Controllers\Api\V1\EnvelopeManagementController::class, 'createEnvelope'])
+        ->name('envelope.create');
+    
+    // =========================================================================
     // Envelope Actions (for settlement envelope workflow)
     // =========================================================================
     Route::prefix('{voucher:code}/envelope')->name('envelope.')->group(function () {

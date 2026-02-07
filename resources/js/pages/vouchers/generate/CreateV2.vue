@@ -24,6 +24,8 @@ import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import { useWalletBalance } from '@/composables/useWalletBalance';
 import LocationValidationForm from '@/components/voucher/forms/LocationValidationForm.vue';
 import TimeValidationForm from '@/components/voucher/forms/TimeValidationForm.vue';
+import { EnvelopeConfigCard } from '@/components/envelope';
+import type { DriverSummary, EnvelopeConfig } from '@/types/envelope';
 import { useGenerateMode } from '@/composables/useGenerateMode';
 import { Switch } from '@/components/ui/switch';
 import axios from 'axios';
@@ -38,6 +40,7 @@ interface Props {
     config: any;
     saved_mode?: string;
     settlement_enabled?: boolean;
+    envelope_drivers?: DriverSummary[];
 }
 
 const props = defineProps<Props>();
@@ -225,6 +228,18 @@ watch(selectedCampaignId, async (campaignId) => {
         } else {
             externalMetadataJson.value = '';
         }
+        
+        // Populate envelope config from campaign
+        if (campaign.envelope_config?.enabled) {
+            envelopeConfig.value = {
+                enabled: true,
+                driver_id: campaign.envelope_config.driver_id,
+                driver_version: campaign.envelope_config.driver_version,
+                initial_payload: campaign.envelope_config.initial_payload || {},
+            };
+        } else {
+            envelopeConfig.value = null;
+        }
     } catch (err) {
         console.error('Failed to load campaign:', err);
     }
@@ -272,6 +287,9 @@ const voucherType = ref<string>('redeemable'); // redeemable, payable, settlemen
 const targetAmount = ref<number | null>(null);
 const settlementRules = ref<any>(null); // Optional JSON rules
 const externalMetadataJson = ref<string>(''); // Freeform JSON for payable vouchers
+
+// Envelope configuration
+const envelopeConfig = ref<EnvelopeConfig | null>(null);
 
 // Rail fees for preview (must match config/omnipay.php)
 const railFees = { INSTAPAY: 10, PESONET: 25 };
@@ -823,6 +841,8 @@ const handleSubmit = async () => {
         rules: (props.settlement_enabled && settlementRules.value) ? settlementRules.value : undefined,
         // External metadata (only for payable vouchers)
         external_metadata: parsedExternalMetadata,
+        // Envelope configuration
+        envelope_config: envelopeConfig.value?.enabled ? envelopeConfig.value : undefined,
     };
     
     const result = await generateVouchers(payload);
@@ -1539,6 +1559,13 @@ const handleSubmit = async () => {
                             </CollapsibleContent>
                         </Card>
                     </Collapsible>
+
+                    <!-- Settlement Envelope (Advanced Mode) -->
+                    <EnvelopeConfigCard
+                        v-if="!isSimpleMode && envelope_drivers && envelope_drivers.length > 0"
+                        v-model="envelopeConfig"
+                        :available-drivers="envelope_drivers"
+                    />
 
                     <!-- Instruction JSON Preview -->
                     <Collapsible v-if="!isSimpleMode && config.json_preview.show_card" v-model:open="collapsibleCards.json_preview">

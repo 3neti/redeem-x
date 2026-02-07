@@ -25,10 +25,12 @@ class Campaign extends Model
         'description',
         'status',
         'instructions',
+        'envelope_config',
     ];
 
     protected $casts = [
         'instructions' => 'array',
+        'envelope_config' => 'array',
     ];
 
     public function user(): BelongsTo

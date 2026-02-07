@@ -102,6 +102,10 @@ Route::prefix('v1')
         Route::get('campaigns/{campaign}', [\App\Http\Controllers\Api\CampaignController::class, 'show'])
             ->name('api.campaigns.show');
         
+        // Envelope Drivers API (for envelope configuration UI)
+        Route::get('envelope-drivers', [\App\Http\Controllers\Api\V1\EnvelopeManagementController::class, 'listDrivers'])
+            ->name('api.envelope-drivers.index');
+        
         // User preferences API
         Route::put('preferences/voucher-mode', [\App\Http\Controllers\Api\PreferencesController::class, 'updateVoucherMode'])
             ->name('api.preferences.voucher-mode');
