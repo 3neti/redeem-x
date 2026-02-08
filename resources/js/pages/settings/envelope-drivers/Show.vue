@@ -11,8 +11,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
     FileCode2, FileText, CheckSquare, Signal, Shield, ArrowLeft,
-    File, CheckCircle2, XCircle, Bot, User, Code, Pencil, Trash2, AlertTriangle, Download
+    File, CheckCircle2, XCircle, Bot, User, Code, Pencil, Trash2, AlertTriangle, Download, GitBranch, GitFork
 } from 'lucide-vue-next';
+
+// Parse driver ref to get id and version
+const parseDriverRef = (ref: string): { id: string; version: string } => {
+    const [id, version] = ref.split('@');
+    return { id, version: version || '1.0.0' };
+};
 
 interface DocumentType {
     type: string;
@@ -72,6 +78,9 @@ interface Driver {
     };
     permissions: any;
     ui: any;
+    extends: string[];
+    extended_by: string[];
+    is_base: boolean;
 }
 
 interface Props {
@@ -178,6 +187,12 @@ const getKindLabel = (kind: string) => {
                                 <p class="text-sm text-muted-foreground">Version</p>
                                 <Badge variant="outline">{{ driver.version }}</Badge>
                             </div>
+                            <div>
+                                <p class="text-sm text-muted-foreground">Type</p>
+                                <Badge :variant="driver.is_base ? 'default' : 'secondary'">
+                                    {{ driver.is_base ? 'Base Driver' : 'Overlay' }}
+                                </Badge>
+                            </div>
                             <div v-if="driver.domain">
                                 <p class="text-sm text-muted-foreground">Domain</p>
                                 <Badge>{{ driver.domain }}</Badge>
@@ -186,6 +201,64 @@ const getKindLabel = (kind: string) => {
                                 <p class="text-sm text-muted-foreground">Issuer Type</p>
                                 <span class="text-sm">{{ driver.issuer_type }}</span>
                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Composition Card -->
+                <Card v-if="driver.extends.length > 0 || driver.extended_by.length > 0">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <GitBranch class="h-5 w-5" />
+                            Composition
+                        </CardTitle>
+                        <CardDescription>
+                            Driver inheritance and extension relationships
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <!-- Extends -->
+                        <div v-if="driver.extends.length > 0">
+                            <p class="text-sm font-medium mb-2 flex items-center gap-2">
+                                <GitBranch class="h-4 w-4" />
+                                Extends
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <a
+                                    v-for="parentRef in driver.extends"
+                                    :key="parentRef"
+                                    :href="`/settings/envelope-drivers/${parseDriverRef(parentRef).id}/${parseDriverRef(parentRef).version}`"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-md text-sm text-primary hover:underline transition-colors"
+                                >
+                                    <FileCode2 class="h-3.5 w-3.5" />
+                                    {{ parentRef }}
+                                </a>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-2">
+                                This driver inherits documents, checklist, signals, and gates from its parent(s).
+                            </p>
+                        </div>
+
+                        <!-- Extended By -->
+                        <div v-if="driver.extended_by.length > 0">
+                            <p class="text-sm font-medium mb-2 flex items-center gap-2">
+                                <GitFork class="h-4 w-4" />
+                                Extended By
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <a
+                                    v-for="childRef in driver.extended_by"
+                                    :key="childRef"
+                                    :href="`/settings/envelope-drivers/${parseDriverRef(childRef).id}/${parseDriverRef(childRef).version}`"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-md text-sm text-primary hover:underline transition-colors"
+                                >
+                                    <FileCode2 class="h-3.5 w-3.5" />
+                                    {{ childRef }}
+                                </a>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-2">
+                                These drivers extend this one, adding or overriding its configuration.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

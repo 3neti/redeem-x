@@ -76,8 +76,8 @@ class DriverService
     /**
      * Resolve driver composition via extends
      *
-     * @param array $data The overlay driver data
-     * @param array $resolved Stack of resolved driver IDs (for circular detection)
+     * @param  array  $data  The overlay driver data
+     * @param  array  $resolved  Stack of resolved driver IDs (for circular detection)
      * @return array Merged driver data
      */
     protected function resolveComposition(array $data, array $resolved = []): array
@@ -99,7 +99,7 @@ class DriverService
             // Check for circular dependency
             if (in_array($parentId, $resolved)) {
                 throw new CircularDependencyException(
-                    "Circular dependency detected: " . implode(' -> ', [...$resolved, $parentId])
+                    'Circular dependency detected: '.implode(' -> ', [...$resolved, $parentId])
                 );
             }
 
@@ -128,8 +128,10 @@ class DriverService
     {
         if (str_contains($ref, '@')) {
             [$id, $version] = explode('@', $ref, 2);
+
             return [$id, $version];
         }
+
         return [$ref, null];
     }
 
@@ -454,6 +456,57 @@ class DriverService
         return \LBHurtado\SettlementEnvelope\Models\Envelope::where('driver_id', $driverId)
             ->where('driver_version', $version)
             ->count();
+    }
+
+    /**
+     * Get raw extends array without resolving composition
+     */
+    public function getRawExtends(string $driverId, string $version): array
+    {
+        $path = $this->resolveDriverPath($driverId, $version);
+
+        if (! $this->disk()->exists($path)) {
+            return [];
+        }
+
+        $content = $this->disk()->get($path);
+        $data = Yaml::parse($content);
+
+        return $data['extends'] ?? [];
+    }
+
+    /**
+     * Find all drivers that extend a given driver
+     */
+    public function getExtendedBy(string $driverId, string $version): array
+    {
+        $targetRef = "{$driverId}@{$version}";
+        $extendedBy = [];
+
+        foreach ($this->list() as $item) {
+            $extends = $this->getRawExtends($item['id'], $item['version']);
+            foreach ($extends as $parentRef) {
+                if ($parentRef === $targetRef || $parentRef === $driverId) {
+                    $extendedBy[] = "{$item['id']}@{$item['version']}";
+                    break;
+                }
+            }
+        }
+
+        return $extendedBy;
+    }
+
+    /**
+     * Extract family prefix from driver ID (e.g., "bank.home-loan" from "bank.home-loan.eligible.married")
+     */
+    public function extractFamily(string $driverId): ?string
+    {
+        $parts = explode('.', $driverId);
+        if (count($parts) >= 2) {
+            return $parts[0].'.'.$parts[1];
+        }
+
+        return null;
     }
 
     /**

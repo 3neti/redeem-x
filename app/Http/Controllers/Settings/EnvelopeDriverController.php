@@ -40,6 +40,7 @@ class EnvelopeDriverController extends Controller
         $drivers = collect($driverList)->map(function ($item) {
             try {
                 $driver = $this->driverService->load($item['id'], $item['version']);
+                $extends = $this->driverService->getRawExtends($item['id'], $item['version']);
 
                 return [
                     'id' => $driver->id,
@@ -51,6 +52,9 @@ class EnvelopeDriverController extends Controller
                     'checklist_count' => $driver->checklist->count(),
                     'signals_count' => $driver->signals->count(),
                     'gates_count' => $driver->gates->count(),
+                    'extends' => $extends,
+                    'is_base' => empty($extends),
+                    'family' => $this->driverService->extractFamily($driver->id),
                 ];
             } catch (\Exception $e) {
                 // Return basic info if driver fails to load
@@ -64,6 +68,9 @@ class EnvelopeDriverController extends Controller
                     'checklist_count' => 0,
                     'signals_count' => 0,
                     'gates_count' => 0,
+                    'extends' => [],
+                    'is_base' => true,
+                    'family' => $this->driverService->extractFamily($item['id']),
                     'error' => true,
                 ];
             }
@@ -83,6 +90,8 @@ class EnvelopeDriverController extends Controller
             $driver = $this->driverService->load($id, $version);
             $schema = $this->driverService->getSchema($driver);
             $usageCount = $this->driverService->getUsageCount($id, $version);
+            $extends = $this->driverService->getRawExtends($id, $version);
+            $extendedBy = $this->driverService->getExtendedBy($id, $version);
 
             return Inertia::render('settings/envelope-drivers/Show', [
                 'driver' => [
@@ -109,6 +118,9 @@ class EnvelopeDriverController extends Controller
                     ],
                     'permissions' => $driver->permissions,
                     'ui' => $driver->ui,
+                    'extends' => $extends,
+                    'extended_by' => $extendedBy,
+                    'is_base' => empty($extends),
                 ],
                 'usage_count' => $usageCount,
             ]);
