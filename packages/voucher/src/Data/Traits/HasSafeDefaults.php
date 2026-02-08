@@ -3,15 +3,14 @@
 namespace LBHurtado\Voucher\Data\Traits;
 
 use Carbon\CarbonInterval;
-use LBHurtado\Voucher\Data\Transformers\TtlToStringTransformer;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 trait HasSafeDefaults
 {
     /** @var bool Enable verbose validation logging */
     private const DEBUG = false;
-    
+
     /**
      * Loop over your rulesAndDefaults() map, validate each property,
      * and overwrite it with either the validated value or its default.
@@ -21,7 +20,7 @@ trait HasSafeDefaults
         $class = static::class;
 
         foreach ($this->rulesAndDefaults() as $key => [$rules, $default]) {
-            $raw    = $this->{$key};
+            $raw = $this->{$key};
             $toTest = $raw;
 
             // 🔑 If this is TTL and you have a CarbonInterval, convert it to ISO
@@ -39,9 +38,9 @@ trait HasSafeDefaults
             if ($validator->fails()) {
                 if (self::DEBUG) {
                     Log::debug("[{$class}] \"{$key}\" failed validation, falling back to default", [
-                        'raw'     => $toTest,
+                        'raw' => $toTest,
                         'default' => $default,
-                        'errors'  => $validator->errors()->all(),
+                        'errors' => $validator->errors()->all(),
                     ]);
                 }
 
@@ -50,7 +49,7 @@ trait HasSafeDefaults
                 $validated = $validator->validated()[$key];
                 if (self::DEBUG) {
                     Log::debug("[{$class}] \"{$key}\" validated successfully", [
-                        'raw'       => $toTest,
+                        'raw' => $toTest,
                         'validated' => $validated,
                     ]);
                 }
@@ -72,12 +71,12 @@ trait HasSafeDefaults
     {
         return sprintf(
             'P%s%s%sT%s%s%s',
-            $i->years  ? "{$i->years}Y"   : '',
-            $i->months ? "{$i->months}M"  : '',
-            $i->days   ? "{$i->days}D"    : '',
-            $i->hours  ? "{$i->hours}H"   : '',
-            $i->minutes? "{$i->minutes}M" : '',
-            $i->seconds? "{$i->seconds}S" : ''
+            $i->years ? "{$i->years}Y" : '',
+            $i->months ? "{$i->months}M" : '',
+            $i->days ? "{$i->days}D" : '',
+            $i->hours ? "{$i->hours}H" : '',
+            $i->minutes ? "{$i->minutes}M" : '',
+            $i->seconds ? "{$i->seconds}S" : ''
         );
     }
 
@@ -88,18 +87,17 @@ trait HasSafeDefaults
      */
     abstract protected function rulesAndDefaults(): array;
 
-
-//    protected function formatIso(CarbonInterval $i): string
-//    {
-//        // naive manual builder; tweak as needed
-//        return sprintf(
-//            'P%s%s%sT%s%s%s',
-//            $i->years  ? "{$i->years}Y"  : '',
-//            $i->months ? "{$i->months}M" : '',
-//            $i->days   ? "{$i->days}D"   : '',
-//            $i->hours  ? "{$i->hours}H"  : '',
-//            $i->minutes? "{$i->minutes}M": '',
-//            $i->seconds? "{$i->seconds}S": ''
-//        );
-//    }
+    //    protected function formatIso(CarbonInterval $i): string
+    //    {
+    //        // naive manual builder; tweak as needed
+    //        return sprintf(
+    //            'P%s%s%sT%s%s%s',
+    //            $i->years  ? "{$i->years}Y"  : '',
+    //            $i->months ? "{$i->months}M" : '',
+    //            $i->days   ? "{$i->days}D"   : '',
+    //            $i->hours  ? "{$i->hours}H"  : '',
+    //            $i->minutes? "{$i->minutes}M": '',
+    //            $i->seconds? "{$i->seconds}S": ''
+    //        );
+    //    }
 }

@@ -11,7 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Revoke a specific API token.
- * 
+ *
  * Endpoint: DELETE /api/v1/auth/tokens/{tokenId}
  */
 class RevokeToken

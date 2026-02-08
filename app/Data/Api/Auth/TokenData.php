@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Data\Api\Auth;
 
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\PersonalAccessToken;
-use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;
-use Illuminate\Support\Carbon;
 
 /**
  * API Token data transfer object.
- * 
+ *
  * Represents a Sanctum personal access token with its metadata.
  */
 class TokenData extends Data

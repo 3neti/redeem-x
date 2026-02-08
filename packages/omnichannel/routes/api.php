@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\OmniChannel\Http\Controllers\SMSController;
 use Illuminate\Support\Facades\Route;
+use LBHurtado\OmniChannel\Http\Controllers\SMSController;
 
 // Authenticated SMS endpoint (requires Bearer token)
 // Handles: GENERATE, PAYABLE, SETTLEMENT, BALANCE commands

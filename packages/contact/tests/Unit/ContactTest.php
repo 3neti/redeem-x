@@ -1,9 +1,9 @@
 <?php
 
-use Spatie\SchemalessAttributes\SchemalessAttributes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Propaganistas\LaravelPhone\PhoneNumber;
 use LBHurtado\Contact\Models\Contact;
+use Propaganistas\LaravelPhone\PhoneNumber;
+use Spatie\SchemalessAttributes\SchemalessAttributes;
 
 uses(RefreshDatabase::class);
 
@@ -31,7 +31,7 @@ it('defaults country to PH when not provided', function () {
 it('respects an explicit country attribute', function () {
     /** @var Contact $c */
     $c = Contact::create([
-        'mobile'  => '09171234567',
+        'mobile' => '09171234567',
         'country' => 'PH',
     ]);
 
@@ -42,7 +42,7 @@ it('formats mobile on set using the HasMobile mutator and persists it normalized
     $raw = ' (0917) 123-4567 ';
     /** @var Contact $c */
     $c = Contact::create([
-        'mobile'  => $raw,
+        'mobile' => $raw,
         'country' => '',
     ]);
 
@@ -53,7 +53,7 @@ it('formats mobile on set using the HasMobile mutator and persists it normalized
 
     // Stored value in DB should equal the normalized version
     $this->assertDatabaseHas('contacts', [
-        'id'     => $c->id,
+        'id' => $c->id,
         'mobile' => $expected,
     ]);
 });
@@ -64,7 +64,7 @@ it('formats mobile on get using the HasMobile accessor', function () {
 
     // Bypass creation logic to insert raw, then load and read accessor
     \DB::table('contacts')->insert([
-        'mobile'  => $formatted,
+        'mobile' => $formatted,
         'country' => 'PH',
         'created_at' => now(),
         'updated_at' => now(),
@@ -77,7 +77,7 @@ it('formats mobile on get using the HasMobile accessor', function () {
 it('works with a non-default country (e.g. US)', function () {
     $raw = '202-555-0133';
     $c = Contact::create([
-        'mobile'  => $raw,
+        'mobile' => $raw,
         'country' => 'US',
     ]);
 
@@ -88,8 +88,6 @@ it('works with a non-default country (e.g. US)', function () {
     expect($c->mobile)->toBe($expected);
 })->skip();
 
-
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 
 uses()->group('contact');
@@ -113,7 +111,7 @@ it('splits bank_account into bank_code and account_number', function () {
         ->and($contact->account_number)->toBe('1234567890');
 });
 
-//it('falls back gracefully when no colon is present', function () {
+// it('falls back gracefully when no colon is present', function () {
 //    $contact = Contact::make([
 //        'mobile' => '09171234567',
 //        'country' => 'PH',
@@ -122,7 +120,7 @@ it('splits bank_account into bank_code and account_number', function () {
 //
 //    expect($contact->bank_code)->toBe('JUSTONESTRING')
 //        ->and($contact->account_number)->toBe('');
-//});
+// });
 
 it('booted creating() ensures default bank_account is applied', function () {
     // clear any existing bank_account override

@@ -27,26 +27,27 @@ class SimulateDepositCommand extends Command
         if ($userIdentifier) {
             // Try email first
             $user = \App\Models\User::where('email', $userIdentifier)->first();
-            
+
             // If not found by email, try mobile via HasChannels trait
-            if (!$user) {
+            if (! $user) {
                 $user = \App\Models\User::findByMobile($userIdentifier);
             }
         } else {
             $user = \App\Models\User::first();
         }
-        
-        if (!$user) {
-            $this->error($userIdentifier 
+
+        if (! $user) {
+            $this->error($userIdentifier
                 ? "No user found with mobile/email: {$userIdentifier}"
-                : "No users in database. Please create a user first."
+                : 'No users in database. Please create a user first.'
             );
+
             return self::FAILURE;
         }
-        
+
         // Ensure user has mobile for webhook
         $mobile = $user->mobile ?? '09173011987';
-        if (!$user->mobile) {
+        if (! $user->mobile) {
             $this->warn("User has no mobile number, using default: {$mobile}");
         }
 
@@ -57,8 +58,8 @@ class SimulateDepositCommand extends Command
         // Generate fake webhook payload matching NetBank structure
         $operationId = random_int(100000000, 999999999);
         $commandId = random_int(100000000, 999999999);
-        $refNumber = now()->format('Ymd') . $senderInstitution . 'B' . str_pad((string)random_int(1, 999999), 6, '0', STR_PAD_LEFT);
-        
+        $refNumber = now()->format('Ymd').$senderInstitution.'B'.str_pad((string) random_int(1, 999999), 6, '0', STR_PAD_LEFT);
+
         $payload = [
             'alias' => '91500',
             'amount' => (int) $amount, // Keep in major units (pesos)
@@ -67,7 +68,7 @@ class SimulateDepositCommand extends Command
             'externalTransferStatus' => 'SETTLED',
             'operationId' => $operationId,
             'productBranchCode' => '000',
-            'recipientAccountNumber' => '91500' . $mobile,
+            'recipientAccountNumber' => '91500'.$mobile,
             'recipientAccountNumberBankFormat' => '113-001-00001-9',
             'referenceCode' => substr($mobile, 1), // Remove leading 0
             'referenceNumber' => $refNumber,
@@ -90,14 +91,15 @@ class SimulateDepositCommand extends Command
         $this->line(json_encode($payload, JSON_PRETTY_PRINT));
         $this->newLine();
 
-        if (!$this->option('force') && !$this->confirm('Send this webhook to confirm deposit?', true)) {
+        if (! $this->option('force') && ! $this->confirm('Send this webhook to confirm deposit?', true)) {
             $this->info('Cancelled.');
+
             return self::SUCCESS;
         }
 
         // Get payment gateway and confirm deposit
         $gateway = app(PaymentGatewayInterface::class);
-        
+
         $this->info('Processing deposit...');
         $result = $gateway->confirmDeposit($payload);
 
@@ -108,17 +110,18 @@ class SimulateDepositCommand extends Command
             $this->line('  2. Pusher debug console for balance.updated event');
             $this->line('  3. Browser console for Echo events');
             $this->line('  4. Toast notification in UI');
-            
+
             // Show updated balance
             $user->refresh();
             $balance = $user->wallet ? $user->wallet->balanceFloat : 0;
             $this->newLine();
             $this->info("New wallet balance: ₱{$balance}");
-            
+
             return self::SUCCESS;
         }
 
         $this->error('❌ Deposit confirmation failed. Check logs for details.');
+
         return self::FAILURE;
     }
 }

@@ -84,7 +84,7 @@ class ApiTokenController extends Controller
             ->tokens()
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(fn($token) => [
+            ->map(fn ($token) => [
                 'id' => $token->id,
                 'name' => $token->name,
                 'abilities' => $token->abilities ?? [],
@@ -107,7 +107,7 @@ class ApiTokenController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'abilities' => ['required', 'array', 'min:1'],
-            'abilities.*' => ['required', 'string', 'in:' . implode(',', array_column(self::availableAbilities(), 'value'))],
+            'abilities.*' => ['required', 'string', 'in:'.implode(',', array_column(self::availableAbilities(), 'value'))],
             'expires_in_days' => ['nullable', 'integer', 'in:30,60,90,180,365'],
         ]);
 
@@ -128,7 +128,7 @@ class ApiTokenController extends Controller
             ->tokens()
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'id' => $t->id,
                 'name' => $t->name,
                 'abilities' => $t->abilities ?? [],

@@ -253,7 +253,6 @@ test('cannot cancel already settled envelope', function () {
  * -------------------------
  * These are scaffolds for rules you may implement next.
  */
-
 test('uploader cannot accept/reject their own upload when review is required', function () {
     // Your current EnvelopeService does NOT enforce actor separation in reviewAttachment().
     // Keep this scaffold so you can implement policy enforcement later and unskip.

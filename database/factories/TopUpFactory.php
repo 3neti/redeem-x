@@ -19,7 +19,7 @@ class TopUpFactory extends Factory
         return [
             'user_id' => \App\Models\User::factory(),
             'gateway' => 'netbank',
-            'reference_no' => 'TOPUP-' . strtoupper($this->faker->bothify('??########')),
+            'reference_no' => 'TOPUP-'.strtoupper($this->faker->bothify('??########')),
             'amount' => $this->faker->randomFloat(2, 100, 10000),
             'currency' => 'PHP',
             'payment_status' => 'PENDING',

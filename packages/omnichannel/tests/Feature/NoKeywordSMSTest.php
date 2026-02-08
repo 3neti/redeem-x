@@ -1,18 +1,17 @@
 <?php
-use Illuminate\Support\Facades\Log;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
-use LBHurtado\OmniChannel\Services\SMSRouterService;
-use LBHurtado\OmniChannel\Middlewares\{
-    LogSMS,
-    RateLimitSMS,
-    CleanSMS,
-    AutoReplySMS,
-    StoreSMS
-};
+use Illuminate\Support\Facades\Log;
 use LBHurtado\OmniChannel\Data\SMSData;
 use LBHurtado\OmniChannel\Events\SMSArrived;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use LBHurtado\OmniChannel\Middlewares\AutoReplySMS;
+use LBHurtado\OmniChannel\Middlewares\CleanSMS;
+use LBHurtado\OmniChannel\Middlewares\LogSMS;
+use LBHurtado\OmniChannel\Middlewares\RateLimitSMS;
+use LBHurtado\OmniChannel\Middlewares\StoreSMS;
+use LBHurtado\OmniChannel\Services\SMSRouterService;
 
 uses(RefreshDatabase::class);
 
@@ -30,7 +29,7 @@ it('runs the full sms pipeline for a normal message', function () {
     $router = $this->app->make(SMSRouterService::class);
     $router->register(
         '{message}',
-        fn($values, $from, $to) => response()->json(['message' => null]),
+        fn ($values, $from, $to) => response()->json(['message' => null]),
         [
             LogSMS::class,
             RateLimitSMS::class,
@@ -43,8 +42,8 @@ it('runs the full sms pipeline for a normal message', function () {
 
     // 3) Hit the endpoint
     $payload = [
-        'from'    => '09171234567',
-        'to'      => '22560537',
+        'from' => '09171234567',
+        'to' => '22560537',
         'message' => '  hello   world  ',
     ];
 
@@ -54,8 +53,7 @@ it('runs the full sms pipeline for a normal message', function () {
         ->assertExactJson(['message' => null]);
 
     // 4) Event was dispatched with cleaned data
-    Event::assertDispatched(SMSArrived::class, fn($e) =>
-        $e->data instanceof SMSData
+    Event::assertDispatched(SMSArrived::class, fn ($e) => $e->data instanceof SMSData
         && $e->data->message === 'hello   world'
     );
 
@@ -70,8 +68,8 @@ it('runs the full sms pipeline for a normal message', function () {
 
     // 7) StoreSMS wrote to the DB
     $this->assertDatabaseHas('sms', [
-        'from'    => $payload['from'],
-        'to'      => $payload['to'],
+        'from' => $payload['from'],
+        'to' => $payload['to'],
         'message' => 'hello world',
     ]);
 });

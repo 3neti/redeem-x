@@ -2,9 +2,9 @@
 
 namespace LBHurtado\Voucher\Actions;
 
+use Brick\Money\Money;
 use LBHurtado\Voucher\Models\MoneyIssuer;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Brick\Money\Money;
 
 /** @deprecated  */
 class CheckBalance

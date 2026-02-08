@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('voucher_id')->constrained()->cascadeOnDelete();
             $table->json('instructions_snapshot'); // Snapshot of campaign instructions at generation time
             $table->timestamps();
-            
+
             $table->unique(['campaign_id', 'voucher_id']);
         });
     }

@@ -6,10 +6,10 @@ namespace App\Actions\Api\Redemption;
 
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Lorisleiva\Actions\ActionRequest;
-use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
+use Lorisleiva\Actions\ActionRequest;
+use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Validate redemption code and return voucher details.
@@ -27,7 +27,7 @@ class ValidateRedemptionCode
         // Find voucher
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return ApiResponse::error('Invalid voucher code.', 404);
         }
 
@@ -37,10 +37,10 @@ class ValidateRedemptionCode
         // Extract required validation and inputs
         $requiredValidation = [];
         $requiredInputs = [];
-        
+
         try {
             $instructions = $voucher->instructions;
-            
+
             // Cash validation requirements
             if ($instructions->cash->validation) {
                 $validation = $instructions->cash->validation;
@@ -57,7 +57,7 @@ class ValidateRedemptionCode
                     ];
                 }
             }
-            
+
             // Input fields required
             if ($instructions->inputs && $instructions->inputs->fields) {
                 $requiredInputs = $instructions->inputs->fields;

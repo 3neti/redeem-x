@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Redeem\{KYCRedemptionController, RedeemController, SuccessRedirectController};
+use App\Http\Controllers\Redeem\KYCRedemptionController;
+use App\Http\Controllers\Redeem\RedeemController;
+use App\Http\Controllers\Redeem\SuccessRedirectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,7 +33,7 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
     Route::prefix('{voucher:code}')->group(function () {
         // Step 1: Collect bank account
         Route::get('/wallet', [RedeemController::class, 'wallet'])->name('wallet');
-//        Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
+        //        Route::post('/wallet', [RedeemWizardController::class, 'storeWallet'])->name('wallet.store');
 
         // Step 2: Inputs (API-first flow) - Collect email, birthdate, name, etc.
         Route::get('/inputs', [RedeemController::class, 'inputs'])->name('inputs');
@@ -65,11 +67,11 @@ Route::prefix('redeem')->name('redeem.')->group(function () {
         // Step 5: Success page
         Route::get('/success', [RedeemController::class, 'success'])->name('success');
 
-//        // Step 2: Dynamic plugin-based input collection (must be last)
-//        Route::get('/{plugin}', [RedeemWizardController::class, 'plugin'])->name('plugin');
-//        Route::post('/{plugin}', [RedeemWizardController::class, 'storePlugin'])->name('plugin.store');
+        //        // Step 2: Dynamic plugin-based input collection (must be last)
+        //        Route::get('/{plugin}', [RedeemWizardController::class, 'plugin'])->name('plugin');
+        //        Route::post('/{plugin}', [RedeemWizardController::class, 'storePlugin'])->name('plugin.store');
     });
-    
+
     // Step 6: Redirect to external URL (rider URL) - outside model binding to allow redeemed vouchers
     Route::get('/{code}/redirect', SuccessRedirectController::class)->name('redirect');
 });

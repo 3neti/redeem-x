@@ -1,8 +1,8 @@
 <?php
 
+use Carbon\CarbonInterval;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
-use Carbon\CarbonInterval;
 
 it('validates and serializes voucher instructions data', function () {
     $data = VoucherInstructionsData::from([
@@ -32,7 +32,7 @@ it('validates and serializes voucher instructions data', function () {
         'count' => 3, // New field for count
         'prefix' => 'PROMO', // New field for prefix
         'mask' => '******', // New field for mask
-//        'ttl' => CarbonInterval::hours(24), // New field for ttl
+        //        'ttl' => CarbonInterval::hours(24), // New field for ttl
     ]);
 
     // Validate nested properties
@@ -47,14 +47,13 @@ it('validates and serializes voucher instructions data', function () {
     expect($data->count)->toBe(3);
     expect($data->prefix)->toBe('PROMO');
     expect($data->mask)->toBe('******');
-//    expect($data->ttl)->toEqual(CarbonInterval::hours(24));
+    //    expect($data->ttl)->toEqual(CarbonInterval::hours(24));
 });
-
 
 it('validates and constructs instructions from array', function () {
     $data = VoucherInstructionsData::createFromAttribs([
         'cash' => ['amount' => 10, 'currency' => 'PHP'],
-//        'inputs' => ['fields' => []],
+        //        'inputs' => ['fields' => []],
         'count' => 5,
     ]);
 

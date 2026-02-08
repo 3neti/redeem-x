@@ -1,15 +1,15 @@
 <?php
 
+use Bavix\Wallet\Interfaces\Wallet;
+use FrittenKeeZ\Vouchers\Facades\Vouchers;
+use Illuminate\Support\Facades\Config;
+use LBHurtado\Cash\Models\Cash;
 use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 use LBHurtado\PaymentGateway\Services\ResolvePayable;
 use LBHurtado\PaymentGateway\Tests\Models\User;
-use FrittenKeeZ\Vouchers\Facades\Vouchers;
-use Illuminate\Support\Facades\Config;
 use LBHurtado\Voucher\Models\Voucher;
-use Bavix\Wallet\Interfaces\Wallet;
-use LBHurtado\Cash\Models\Cash;
 
-beforeEach(function(){
+beforeEach(function () {
     // wire up our configs
     Config::set('payment-gateway.models.user', User::class);
     Config::set('payment.models.voucher', [
@@ -18,13 +18,13 @@ beforeEach(function(){
     ]);
 });
 
-it('resolves a User wallet when mobile matches', function(){
+it('resolves a User wallet when mobile matches', function () {
     $user = User::factory()->create();
     $user->mobile = '09170000001';
     $user->save();
 
     // pretend this is the incoming "91500:09170000001"
-    $dto = new RecipientAccountNumberData('91500','09170000001');
+    $dto = new RecipientAccountNumberData('91500', '09170000001');
 
     $wallet = app(ResolvePayable::class)
         ->execute($dto);
@@ -33,7 +33,7 @@ it('resolves a User wallet when mobile matches', function(){
         ->and($wallet->is($user))->toBeTrue();
 });
 
-it('resolves a Voucher cash wallet when code matches', function(){
+it('resolves a Voucher cash wallet when code matches', function () {
     // create a voucher + cash
     $voucher = Vouchers::create();
 
@@ -47,7 +47,7 @@ it('resolves a Voucher cash wallet when code matches', function(){
     $voucher->addEntities(...$entities);
     $voucher->refresh();
 
-    $dto = RecipientAccountNumberData::fromRecipientAccountNumber('91500' . $voucher->code);
+    $dto = RecipientAccountNumberData::fromRecipientAccountNumber('91500'.$voucher->code);
 
     $wallet = app(ResolvePayable::class)
         ->execute($dto);
@@ -56,7 +56,7 @@ it('resolves a Voucher cash wallet when code matches', function(){
         ->and($wallet->getKey())->toBe($cash->getKey());
 });
 
-it('throws if neither user nor voucher found', function(){
-    $dto = new RecipientAccountNumberData('91500','NOTEXIST');
+it('throws if neither user nor voucher found', function () {
+    $dto = new RecipientAccountNumberData('91500', 'NOTEXIST');
     app(ResolvePayable::class)->execute($dto);
 })->throws(\RuntimeException::class);

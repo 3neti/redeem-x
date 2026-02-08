@@ -9,7 +9,7 @@ use Inertia\Response;
 
 /**
  * Dashboard Controller
- * 
+ *
  * Renders the main dashboard page.
  * Data is fetched via API endpoints on the frontend.
  */

@@ -32,7 +32,7 @@ class VoucherGenerationRequest extends FormRequest
                 'nullable',
                 'string',
                 function ($attribute, $value, $fail) {
-                    if (!preg_match("/^[\*\-]+$/", $value)) {
+                    if (! preg_match("/^[\*\-]+$/", $value)) {
                         $fail('The :attribute may only contain asterisks (*) and hyphens (-).');
                     }
 
@@ -48,27 +48,27 @@ class VoucherGenerationRequest extends FormRequest
                 },
             ],
             'ttl_days' => 'nullable|integer|min:1',
-            
+
             'input_fields' => 'nullable|array',
-            'input_fields.*' => ['nullable', 'string', 'in:' . implode(',', VoucherInputField::values())],
-            
+            'input_fields.*' => ['nullable', 'string', 'in:'.implode(',', VoucherInputField::values())],
+
             'validation_secret' => 'nullable|string',
             'validation_mobile' => ['nullable', (new Phone)->country('PH')->type('mobile')],
-            
+
             'feedback_email' => 'nullable|email',
             'feedback_mobile' => ['nullable', (new Phone)->country('PH')->type('mobile')],
             'feedback_webhook' => 'nullable|url',
-            
+
             'rider_message' => 'nullable|string|min:1',
             'rider_url' => 'nullable|url',
             'rider_redirect_timeout' => 'nullable|integer|min:0|max:300',
             'rider_splash' => 'nullable|string|max:51200',
             'rider_splash_timeout' => 'nullable|integer|min:0|max:60',
-            
+
             // Settlement rail and fee strategy
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
             'fee_strategy' => 'nullable|string|in:absorb,include,add',
-            
+
             // External metadata for external system integration
             'external_metadata' => 'nullable|array|max:5',
             'external_metadata.external_id' => 'nullable|string|max:255',
@@ -85,13 +85,13 @@ class VoucherGenerationRequest extends FormRequest
     public function toInstructions(): VoucherInstructionsData
     {
         $validated = $this->validated();
-        
+
         // DEBUG: Log splash fields
         \Log::info('[VoucherGenerationRequest] Validated data', [
             'rider_splash' => $validated['rider_splash'] ?? 'NOT SET',
             'rider_splash_timeout' => $validated['rider_splash_timeout'] ?? 'NOT SET',
         ]);
-        
+
         // Parse input_fields if it's JSON string
         $inputFields = $validated['input_fields'] ?? [];
         if (is_string($inputFields)) {
@@ -100,7 +100,7 @@ class VoucherGenerationRequest extends FormRequest
 
         // Convert ttl_days to CarbonInterval
         $ttl = null;
-        if (!empty($validated['ttl_days'])) {
+        if (! empty($validated['ttl_days'])) {
             $ttl = CarbonInterval::days($validated['ttl_days']);
         }
 

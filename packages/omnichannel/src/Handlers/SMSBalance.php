@@ -25,10 +25,10 @@ class SMSBalance extends BaseSMSHandler
     /**
      * Handle BALANCE SMS command.
      *
-     * @param User|null $user The authenticated user
-     * @param array $values Parsed values from the SMS message
-     * @param string $from Sender's phone number
-     * @param string $to Receiver's phone number
+     * @param  User|null  $user  The authenticated user
+     * @param  array  $values  Parsed values from the SMS message
+     * @param  string  $from  Sender's phone number
+     * @param  string  $to  Receiver's phone number
      * @return JsonResponse The response to send back
      */
     protected function handle(?User $user, array $values, string $from, string $to): JsonResponse
@@ -50,7 +50,7 @@ class SMSBalance extends BaseSMSHandler
     protected function handleUserBalance(User $user, string $from): JsonResponse
     {
         $balance = BalanceData::fromWallet($user->wallet);
-        
+
         $message = sprintf('Balance: %s', $this->formatMoney($balance->balance, 'PHP'));
 
         $this->logInfo('User balance retrieved', [
@@ -74,7 +74,7 @@ class SMSBalance extends BaseSMSHandler
     protected function handleSystemBalance(User $user, string $from): JsonResponse
     {
         // Check permission
-        if (!$user->can('view-balances')) {
+        if (! $user->can('view-balances')) {
             $this->logWarning('Unauthorized system balance request', [
                 'user_id' => $user->id,
                 'email' => $user->email,
@@ -106,7 +106,7 @@ class SMSBalance extends BaseSMSHandler
                 'wallet' => $systemBalance,
                 'products' => $productsBalance,
             ];
-            
+
             if ($bankBalanceData) {
                 $balances['bank'] = $bankBalanceData['balance'];
                 $balances['bank_timestamp'] = $bankBalanceData['timestamp'];
@@ -140,7 +140,7 @@ class SMSBalance extends BaseSMSHandler
                 if ($bankBalanceData['stale']) {
                     $bankLine .= ' ⚠️ STALE';
                 }
-                $message .= "\n" . $bankLine;
+                $message .= "\n".$bankLine;
             }
 
             return response()->json(['message' => $message]);
@@ -151,7 +151,7 @@ class SMSBalance extends BaseSMSHandler
 
     /**
      * Get bank balance data with staleness indicator.
-     * 
+     *
      * @return array|null ['balance' => float, 'timestamp' => string, 'stale' => bool]
      */
     protected function getBankBalanceData(): ?array
@@ -159,7 +159,7 @@ class SMSBalance extends BaseSMSHandler
         try {
             $accountNumber = env('BALANCE_DEFAULT_ACCOUNT');
 
-            if (!$accountNumber) {
+            if (! $accountNumber) {
                 return null;
             }
 
@@ -195,7 +195,7 @@ class SMSBalance extends BaseSMSHandler
         try {
             // Set timeout using a quick process
             $startTime = microtime(true);
-            
+
             $service = app(BalanceService::class);
             $balance = $service->checkAndUpdate($accountNumber);
 
@@ -206,6 +206,7 @@ class SMSBalance extends BaseSMSHandler
                     'elapsed' => $elapsed,
                     'account' => $accountNumber,
                 ]);
+
                 return null;
             }
 
@@ -218,13 +219,14 @@ class SMSBalance extends BaseSMSHandler
             $this->logWarning('Bank API failed, using cache', [
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     /**
      * Get cached bank balance data with staleness indicator.
-     * 
+     *
      * @return array|null ['balance' => float, 'timestamp' => string, 'stale' => bool]
      */
     protected function getCachedBankBalanceData(string $accountNumber): ?array
@@ -235,14 +237,14 @@ class SMSBalance extends BaseSMSHandler
             ->where('gateway', $gatewayName)
             ->first();
 
-        if (!$cached) {
+        if (! $cached) {
             return null;
         }
 
         $minutesAgo = $cached->checked_at->diffInMinutes(now());
         $isStale = $minutesAgo > self::STALE_THRESHOLD_MINUTES;
 
-        $timestamp = $isStale 
+        $timestamp = $isStale
             ? $cached->checked_at->format('M j, g:i A')
             : ($minutesAgo < 1 ? 'just now' : "{$minutesAgo} min ago");
 
@@ -252,5 +254,4 @@ class SMSBalance extends BaseSMSHandler
             'stale' => $isStale,
         ];
     }
-
 }

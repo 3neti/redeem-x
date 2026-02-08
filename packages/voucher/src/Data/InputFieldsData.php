@@ -16,14 +16,14 @@ class InputFieldsData extends Data
     use HasSafeDefaults;
 
     /**
-     * @param array<VoucherInputField> $fields
+     * @param  array<VoucherInputField>  $fields
      */
     public function __construct(
         #[WithCast(EnumCast::class, VoucherInputField::class)]
-        public array|null $fields = []
+        public ?array $fields = []
     ) {
         $this->applyRulesAndDefaults();
-//        $this->fields = empty($fields) ? config('instructions.input_fields') : $fields;
+        //        $this->fields = empty($fields) ? config('instructions.input_fields') : $fields;
     }
 
     public static function fromArray(array $input): self
@@ -42,15 +42,15 @@ class InputFieldsData extends Data
         return new self($fields);
     }
 
-//    public static function fromArray(array $input): self
-//    {
-//        $fields = $input['fields'] ?? $input;
-//
-//        return new self(array_map(
-//            fn ($field) => VoucherInputField::from($field),
-//            $fields
-//        ));
-//    }
+    //    public static function fromArray(array $input): self
+    //    {
+    //        $fields = $input['fields'] ?? $input;
+    //
+    //        return new self(array_map(
+    //            fn ($field) => VoucherInputField::from($field),
+    //            $fields
+    //        ));
+    //    }
 
     public function contains(VoucherInputField $field): bool
     {
@@ -66,7 +66,7 @@ class InputFieldsData extends Data
     {
         return [
             'fields' => ['required', 'array'],
-            'fields.*' => ['string', 'in:' . implode(',', array_column(VoucherInputField::cases(), 'value'))],
+            'fields.*' => ['string', 'in:'.implode(',', array_column(VoucherInputField::cases(), 'value'))],
         ];
     }
 
@@ -82,19 +82,19 @@ class InputFieldsData extends Data
         ];
     }
 
-//    public static function from(...$payloads): static
-//    {
-//        /** Ensure 'fields' is always an array */
-//        if (!isset($payloads[0]['fields']) || !is_array($payloads[0]['fields'])) {
-//            $payloads[0]['fields'] = [];
-//        }
-//
-//        // Normalize each field into a VoucherInputField enum instance
-//        $payloads[0]['fields'] = array_map(
-//            fn ($field) => VoucherInputField::from($field),
-//            $payloads[0]['fields']
-//        );
-//
-//        return parent::from(...$payloads);
-//    }
+    //    public static function from(...$payloads): static
+    //    {
+    //        /** Ensure 'fields' is always an array */
+    //        if (!isset($payloads[0]['fields']) || !is_array($payloads[0]['fields'])) {
+    //            $payloads[0]['fields'] = [];
+    //        }
+    //
+    //        // Normalize each field into a VoucherInputField enum instance
+    //        $payloads[0]['fields'] = array_map(
+    //            fn ($field) => VoucherInputField::from($field),
+    //            $payloads[0]['fields']
+    //        );
+    //
+    //        return parent::from(...$payloads);
+    //    }
 }

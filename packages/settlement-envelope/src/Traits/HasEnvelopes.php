@@ -3,8 +3,8 @@
 namespace LBHurtado\SettlementEnvelope\Traits;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use LBHurtado\SettlementEnvelope\Models\Envelope;
 use LBHurtado\SettlementEnvelope\Services\EnvelopeService;
 
@@ -70,6 +70,7 @@ trait HasEnvelopes
         }
 
         $modelName = class_basename($this);
+
         return strtoupper("{$modelName}-{$this->getKey()}");
     }
 
@@ -110,7 +111,7 @@ trait HasEnvelopes
      */
     public function setEnvelopeSignal(string $key, mixed $value, ?Model $actor = null): void
     {
-        if (!$this->envelope) {
+        if (! $this->envelope) {
             return;
         }
 

@@ -1,14 +1,12 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
-use LBHurtado\Voucher\Models\Voucher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Handlers\{
-    HandleShouldMarkRedeemedVoucher,
-    HandleRedeemingVoucher,
-    HandleRedeemedVoucher
-};
+use LBHurtado\Voucher\Handlers\HandleRedeemedVoucher;
+use LBHurtado\Voucher\Handlers\HandleRedeemingVoucher;
+use LBHurtado\Voucher\Handlers\HandleShouldMarkRedeemedVoucher;
+use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
 
@@ -19,9 +17,9 @@ it('invokes all three redemption handlers via the observer events', function () 
     $voucher = is_array($created) ? collect($created)->first() : $created;
 
     // 2) Make spies for each of your handlers, and bind them into the container
-    $spyRedeeming      = Mockery::spy(HandleRedeemingVoucher::class);
-    $spyShouldMark    = Mockery::spy(HandleShouldMarkRedeemedVoucher::class);
-    $spyRedeemed      = Mockery::spy(HandleRedeemedVoucher::class);
+    $spyRedeeming = Mockery::spy(HandleRedeemingVoucher::class);
+    $spyShouldMark = Mockery::spy(HandleShouldMarkRedeemedVoucher::class);
+    $spyRedeemed = Mockery::spy(HandleRedeemedVoucher::class);
 
     $this->app->instance(HandleRedeemingVoucher::class, $spyRedeeming);
     $this->app->instance(HandleShouldMarkRedeemedVoucher::class, $spyShouldMark);

@@ -3,7 +3,6 @@
 namespace Tests\Concerns;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
 trait SetsUpRedemptionEnvironment
@@ -12,7 +11,7 @@ trait SetsUpRedemptionEnvironment
 
     /**
      * Set up the redemption test environment.
-     * 
+     *
      * This method:
      * - Seeds the database with roles, permissions, users, and instruction items
      * - Mocks external API calls (funds API, etc.)

@@ -107,9 +107,9 @@ return [
 
         'middleware' => ['api'],
 
-        'name_prefix' => env('PAYMENT_GATEWAY_ROUTE_NAME_PREFIX', ), // e.g., 'pg.'
+        'name_prefix' => env('PAYMENT_GATEWAY_ROUTE_NAME_PREFIX'), // e.g., 'pg.'
 
-        'version' => env('PAYMENT_GATEWAY_ROUTE_VERSION',), // e.g., 'v1'
+        'version' => env('PAYMENT_GATEWAY_ROUTE_VERSION'), // e.g., 'v1'
 
         'domain' => env('PAYMENT_GATEWAY_DOMAIN'), // optional
     ],

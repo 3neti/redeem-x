@@ -2,20 +2,20 @@
 
 namespace LBHurtado\Voucher\Handlers;
 
-use LBHurtado\Voucher\Models\Voucher;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\Voucher\Models\Voucher;
 
 class HandleUpdatedVoucher
 {
     private const DEBUG = false;
-    
+
     public function handle(Voucher $voucher): void
     {
         if (self::DEBUG) {
             Log::info('[HandleUpdatedVoucher] Starting pipeline for updated voucher.', [
                 'voucher' => $voucher->code,
-                'id'      => $voucher->getKey(),
+                'id' => $voucher->getKey(),
             ]);
         }
 
@@ -42,9 +42,9 @@ class HandleUpdatedVoucher
                 });
         } catch (\Throwable $e) {
             Log::error('[HandleUpdatedVoucher] Pipeline failed.', [
-                'voucher'   => $voucher->code,
+                'voucher' => $voucher->code,
                 'exception' => $e->getMessage(),
-                'trace'     => $e->getTraceAsString(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;

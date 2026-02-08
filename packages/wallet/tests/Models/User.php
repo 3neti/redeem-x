@@ -4,32 +4,36 @@ declare(strict_types=1);
 
 namespace LBHurtado\Wallet\Tests\Models;
 
-use Bavix\Wallet\Interfaces\{Confirmable, Customer, Wallet};
-use LBHurtado\Wallet\Services\WalletProvisioningService;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Bavix\Wallet\Interfaces\Confirmable;
+use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Interfaces\Wallet;
+use Bavix\Wallet\Traits\CanConfirm;
+use Bavix\Wallet\Traits\CanPay;
+use Bavix\Wallet\Traits\HasWalletFloat;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use LBHurtado\Wallet\Database\Factories\UserFactory;
-use LBHurtado\Wallet\Traits\HasPlatformWallets;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Bavix\Wallet\Traits\{CanConfirm, CanPay, HasWalletFloat};
+use LBHurtado\Wallet\Database\Factories\UserFactory;
+use LBHurtado\Wallet\Services\WalletProvisioningService;
+use LBHurtado\Wallet\Traits\HasPlatformWallets;
 
 /**
  * Class User.
  *
- * @property int        $id
- * @property string     $name
- * @property string     $email
+ * @property int $id
+ * @property string $name
+ * @property string $email
  *
  * @method int getKey()
  */
-class User extends Authenticatable implements Wallet, Confirmable, Customer
+class User extends Authenticatable implements Confirmable, Customer, Wallet
 {
-    use HasPlatformWallets;
-    use HasWalletFloat;
-    use HasFactory;
-    use Notifiable;
     use CanConfirm;
     use CanPay;
+    use HasFactory;
+    use HasPlatformWallets;
+    use HasWalletFloat;
+    use Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -40,7 +44,7 @@ class User extends Authenticatable implements Wallet, Confirmable, Customer
         'name',
         'email',
         'password',
-        'mobile'
+        'mobile',
     ];
 
     /**

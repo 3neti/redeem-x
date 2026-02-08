@@ -2,10 +2,12 @@
 
 namespace LBHurtado\PaymentGateway\Services;
 
-use LBHurtado\PaymentGateway\Pipelines\ResolvePayable\{CheckMobile, CheckVoucher, ThrowIfUnresolved};
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 use Bavix\Wallet\Interfaces\Wallet;
 use Illuminate\Pipeline\Pipeline;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
+use LBHurtado\PaymentGateway\Pipelines\ResolvePayable\CheckMobile;
+use LBHurtado\PaymentGateway\Pipelines\ResolvePayable\CheckVoucher;
+use LBHurtado\PaymentGateway\Pipelines\ResolvePayable\ThrowIfUnresolved;
 
 class ResolvePayable
 {

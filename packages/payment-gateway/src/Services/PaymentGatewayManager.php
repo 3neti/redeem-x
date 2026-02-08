@@ -2,10 +2,10 @@
 
 namespace LBHurtado\PaymentGateway\Services;
 
-use LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway;
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use LBHurtado\PaymentGateway\Omnipay\Support\OmnipayFactory;
 use Illuminate\Support\Manager;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway;
+use LBHurtado\PaymentGateway\Omnipay\Support\OmnipayFactory;
 
 class PaymentGatewayManager extends Manager
 {
@@ -22,9 +22,9 @@ class PaymentGatewayManager extends Manager
                 OmnipayFactory::create('netbank')
             );
         }
-        
+
         // Use legacy implementation
-        return new NetbankPaymentGateway();
+        return new NetbankPaymentGateway;
     }
 
     public function createIcashDriver(): PaymentGatewayInterface
@@ -35,16 +35,15 @@ class PaymentGatewayManager extends Manager
                 OmnipayFactory::create('icash')
             );
         }
-        
+
         // ICash legacy driver not implemented
         throw new \RuntimeException('iCash driver not implemented yet.');
     }
-    
+
     /**
      * Create an Omnipay-based driver
-     * 
-     * @param string $gateway Gateway name from omnipay config
-     * @return PaymentGatewayInterface
+     *
+     * @param  string  $gateway  Gateway name from omnipay config
      */
     public function createOmnipayDriver(string $gateway = 'netbank'): PaymentGatewayInterface
     {

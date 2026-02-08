@@ -12,6 +12,5 @@ class RedemptionContext extends Data
         public ?string $vendorAlias = null,
         public array $inputs = [],
         public array $bankAccount = [],
-    ) {
-    }
+    ) {}
 }

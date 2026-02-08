@@ -92,7 +92,7 @@ it('calculates distance accurately using Haversine formula', function () {
 
     // 1 degree latitude ≈ 111km at equator
     $result = $data->validateLocation(1.0, 0.0);
-    
+
     expect($result->distance_meters)->toBeGreaterThan(110000)
         ->and($result->distance_meters)->toBeLessThan(112000);
 });

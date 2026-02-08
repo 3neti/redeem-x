@@ -21,7 +21,7 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['owner_user_id', 'status']);
             $table->index('alias');
         });

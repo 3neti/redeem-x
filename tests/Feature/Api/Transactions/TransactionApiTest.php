@@ -3,14 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
-use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Actions\RedeemVoucher;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
 use Tests\Helpers\VoucherTestHelper;
 
@@ -19,22 +16,21 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Fake events to avoid queue serialization, but allow voucher events
     Event::fake();
-    
+
     // Set contact config for bank_account
     config(['contact.default.country' => 'PH']);
     config(['contact.default.bank_code' => 'GXCHPHM2XXX']);
-    
+
     $this->user = User::factory()->create();
     $this->user->depositFloat(10000);
-    
-    // Create a contact for redemptions  
+
+    // Create a contact for redemptions
     $this->contact = Contact::factory()->create([
         'mobile' => '09171234567',
         'country' => 'PH',
         'bank_account' => 'GXCHPHM2XXX:09171234567',
     ]);
 });
-
 
 // List Transactions Tests
 test('authenticated user can list transactions', function () {
@@ -71,7 +67,7 @@ test('transactions list can filter by date range', function () {
 
     // Create vouchers with different redemption dates
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 2);
-    
+
     $oldVoucher = $vouchers[0];
     RedeemVoucher::run($this->contact, $oldVoucher->code);
     $oldVoucher->redeemed_at = now()->subDays(10);
@@ -83,7 +79,7 @@ test('transactions list can filter by date range', function () {
     $recentVoucher->save();
 
     // Filter for recent transactions only
-    $response = $this->getJson('/api/v1/transactions?date_from=' . now()->subDays(5)->format('Y-m-d'));
+    $response = $this->getJson('/api/v1/transactions?date_from='.now()->subDays(5)->format('Y-m-d'));
 
     $response->assertStatus(200);
     expect($response->json('data.pagination.total'))->toBe(1);
@@ -133,7 +129,7 @@ test('authenticated user can show transaction details', function () {
     $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
     $redeemed = RedeemVoucher::run($this->contact, $voucher->code);
     expect($redeemed)->toBeTrue('Voucher redemption should succeed');
-    
+
     // Verify voucher is actually redeemed in DB
     $freshVoucher = Voucher::where('code', $voucher->code)->first();
     expect($freshVoucher->redeemed_at)->not->toBeNull('Voucher should have redeemed_at timestamp');
@@ -219,7 +215,7 @@ test('transaction stats can filter by date range', function () {
         $voucher->save();
     });
 
-    $response = $this->getJson('/api/v1/transactions/stats?date_from=' . now()->subDays(7)->format('Y-m-d'));
+    $response = $this->getJson('/api/v1/transactions/stats?date_from='.now()->subDays(7)->format('Y-m-d'));
 
     $response->assertStatus(200);
     expect($response->json('data.stats.total'))->toBe(5);
@@ -247,7 +243,7 @@ test('export respects date filters', function () {
 
     // Create old transaction
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 2);
-    
+
     $oldVoucher = $vouchers[0];
     RedeemVoucher::run($this->contact, $oldVoucher->code);
     $oldVoucher->redeemed_at = now()->subDays(30);
@@ -257,11 +253,11 @@ test('export respects date filters', function () {
     $recentVoucher = $vouchers[1];
     RedeemVoucher::run($this->contact, $recentVoucher->code);
 
-    $response = $this->getJson('/api/v1/transactions/export?date_from=' . now()->subDays(7)->format('Y-m-d'));
+    $response = $this->getJson('/api/v1/transactions/export?date_from='.now()->subDays(7)->format('Y-m-d'));
 
     $response->assertStatus(200);
     $content = $response->streamedContent();
-    
+
     // Should only include recent voucher
     expect($content)->toContain($recentVoucher->code);
     expect($content)->not->toContain($oldVoucher->code);

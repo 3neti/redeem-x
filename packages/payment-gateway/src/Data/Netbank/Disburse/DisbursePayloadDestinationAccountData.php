@@ -11,5 +11,5 @@ class DisbursePayloadDestinationAccountData extends Data
         #[MapInputName('bank')]
         public string $bank_code,
         public string $account_number,
-    ){}
+    ) {}
 }

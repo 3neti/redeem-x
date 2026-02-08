@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('checked_at')->index();
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->unique(['account_number', 'gateway']);
         });
     }

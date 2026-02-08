@@ -7,15 +7,15 @@ use Spatie\LaravelData\Data;
 
 /**
  * Location validation configuration for geo-fencing
- * 
+ *
  * Defines target coordinates and radius for location-based validation.
  * Used to enforce that redemptions happen at specific locations.
- * 
- * @property bool   $required       - Whether location validation is required
- * @property float  $target_lat     - Target latitude (-90 to 90)
- * @property float  $target_lng     - Target longitude (-180 to 180)
- * @property int    $radius_meters  - Acceptable radius in meters
- * @property string $on_failure     - Action on failure: 'block' or 'warn'
+ *
+ * @property bool $required - Whether location validation is required
+ * @property float $target_lat - Target latitude (-90 to 90)
+ * @property float $target_lng - Target longitude (-180 to 180)
+ * @property int $radius_meters - Acceptable radius in meters
+ * @property string $on_failure - Action on failure: 'block' or 'warn'
  */
 class LocationValidationData extends Data
 {
@@ -72,7 +72,7 @@ class LocationValidationData extends Data
         return LocationValidationResultData::from([
             'validated' => $withinRadius,
             'distance_meters' => round($distance, 2),
-            'should_block' => !$withinRadius && $this->on_failure === 'block',
+            'should_block' => ! $withinRadius && $this->on_failure === 'block',
         ]);
     }
 
@@ -87,11 +87,11 @@ class LocationValidationData extends Data
         $dLat = deg2rad($this->target_lat - $lat);
         $dLon = deg2rad($this->target_lng - $lng);
 
-        $a = sin($dLat/2) * sin($dLat/2) +
+        $a = sin($dLat / 2) * sin($dLat / 2) +
              cos(deg2rad($lat)) * cos(deg2rad($this->target_lat)) *
-             sin($dLon/2) * sin($dLon/2);
+             sin($dLon / 2) * sin($dLon / 2);
 
-        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
     }

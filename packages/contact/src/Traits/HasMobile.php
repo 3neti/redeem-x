@@ -25,7 +25,7 @@ trait HasMobile
         );
     }
 
-    static public function fromPhoneNumber(PhoneNumber $phoneNumber): ?static
+    public static function fromPhoneNumber(PhoneNumber $phoneNumber): ?static
     {
         $mobile = $phoneNumber->formatForMobileDialingInCountry($phoneNumber->getCountry());
         $country = $phoneNumber->getCountry();

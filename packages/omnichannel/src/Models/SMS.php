@@ -2,19 +2,18 @@
 
 namespace LBHurtado\OmniChannel\Models;
 
-use LBHurtado\OmniChannel\Database\Factories\SMSFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use LBHurtado\OmniChannel\Data\SMSData;
+use LBHurtado\OmniChannel\Database\Factories\SMSFactory;
 
 /**
  * Class SMS.
  *
- * @property int         $id
- * @property string      $from
- * @property string      $to
- * @property string      $message
- *
+ * @property int $id
+ * @property string $from
+ * @property string $to
+ * @property string $message
  *
  * @method int getKey()
  */
@@ -27,7 +26,7 @@ class SMS extends Model
     protected $fillable = [
         'from',
         'to',
-        'message'
+        'message',
     ];
 
     public static function newFactory(): SMSFactory

@@ -7,7 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Events\DisbursementFailed;
 
 uses(RefreshDatabase::class);
@@ -23,7 +22,7 @@ test('disbursement attempt is logged when disbursement starts', function () {
     $voucher = Vouchers::withMetadata(['instructions' => $instructions->toCleanArray()])
         ->withOwner($user)
         ->create();
-    
+
     // Mock a disbursement attempt
     $attempt = DisbursementAttempt::create([
         'voucher_id' => $voucher->id,
@@ -51,7 +50,7 @@ test('disbursement attempt is marked as failed when disbursement fails', functio
     $voucher = Vouchers::withMetadata(['instructions' => $instructions->toCleanArray()])
         ->withOwner($user)
         ->create();
-    
+
     $attempt = DisbursementAttempt::create([
         'voucher_id' => $voucher->id,
         'voucher_code' => $voucher->code,
@@ -95,7 +94,7 @@ test('disbursement failure event triggers admin notification', function () {
     // Since we don't have admin users in this test, check that notification would be sent
     // In a real scenario with admin users, use:
     // Notification::assertSentTo($adminUser, DisbursementFailedNotification::class);
-    
+
     expect(true)->toBeTrue(); // Event fired successfully
 });
 
@@ -107,9 +106,9 @@ test('disbursement failed notification contains voucher details', function () {
         ->create();
     $code = $voucher->code; // Use actual generated code
     $exception = new \RuntimeException('Gateway error occurred');
-    
+
     $notification = DisbursementFailedNotification::fromException($voucher, $exception);
-    
+
     // Check array representation - BaseNotification uses standardized structure
     $array = $notification->toArray($user);
     expect($array)->toHaveKeys(['type', 'timestamp', 'data', 'audit'])
@@ -170,7 +169,7 @@ test('disbursement attempt scopes work correctly', function () {
 
 test('alerts can be disabled via configuration', function () {
     config(['disbursement.alerts.enabled' => false]);
-    
+
     $user = User::factory()->create();
     $instructions = VoucherInstructionsData::generateFromScratch();
     $voucher = Vouchers::withMetadata(['instructions' => $instructions->toCleanArray()])

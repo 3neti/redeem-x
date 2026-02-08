@@ -1,8 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\App;
 use LBHurtado\Wallet\Services\WalletProvisioningService;
 use LBHurtado\Wallet\Tests\Models\User;
-use Illuminate\Support\Facades\App;
 
 it('provisions default wallets on user creation', function () {
     // Fake the WalletProvisioningService and bind it to the container

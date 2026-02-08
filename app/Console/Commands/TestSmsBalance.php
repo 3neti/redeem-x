@@ -22,10 +22,10 @@ class TestSmsBalance extends Command
         $isNonAdminTest = $this->option('non-admin');
 
         // If no mobile provided, use first user or create one
-        if (!$mobile) {
+        if (! $mobile) {
             $user = User::first();
-            
-            if (!$user) {
+
+            if (! $user) {
                 $this->error('No users found. Creating test user...');
                 $user = User::factory()->create([
                     'name' => 'Test User',
@@ -36,8 +36,8 @@ class TestSmsBalance extends Command
 
             // Get mobile from channels
             $mobileChannel = $user->channels()->where('name', 'mobile')->first();
-            
-            if (!$mobileChannel) {
+
+            if (! $mobileChannel) {
                 $this->error('User has no mobile channel. Creating one...');
                 $user->channels()->create([
                     'name' => 'mobile',
@@ -50,7 +50,7 @@ class TestSmsBalance extends Command
 
             $this->info("Using mobile: {$mobile}");
             $this->info("User: {$user->name} ({$user->email})");
-            
+
             // Check permissions
             if ($user->can('view-balances')) {
                 $this->info("✓ User has 'view-balances' permission (admin)");
@@ -60,8 +60,8 @@ class TestSmsBalance extends Command
 
             // Show wallet balance
             $balance = $user->balanceFloat;
-            $this->info("Wallet balance: ₱" . number_format($balance, 2));
-            
+            $this->info('Wallet balance: ₱'.number_format($balance, 2));
+
             $this->newLine();
         }
 
@@ -81,13 +81,13 @@ class TestSmsBalance extends Command
                 'name' => 'Regular User',
                 'email' => 'regular@example.com',
             ]);
-            
+
             // Create mobile channel
             $nonAdminUser->channels()->create([
                 'name' => 'mobile',
                 'value' => '09171234567',
             ]);
-            
+
             $mobile = '09171234567';
             $this->info("Created non-admin user: {$nonAdminUser->email}");
             $this->info("Mobile: {$mobile}");
@@ -102,7 +102,7 @@ class TestSmsBalance extends Command
 
         try {
             // Use the internal SMS route
-            $response = Http::post(config('app.url') . '/sms', [
+            $response = Http::post(config('app.url').'/sms', [
                 'from' => $mobile,
                 'to' => config('sms.default_sender', '2929'), // Short code
                 'message' => $smsText,
@@ -110,32 +110,34 @@ class TestSmsBalance extends Command
 
             if ($response->successful()) {
                 $data = $response->json();
-                
+
                 $this->info('✓ SMS processed successfully');
                 $this->newLine();
-                
+
                 $this->info('Response:');
                 $this->line('─────────────────────────────────────────────');
                 $this->line($data['message'] ?? 'No message in response');
                 $this->line('─────────────────────────────────────────────');
                 $this->newLine();
-                
+
                 // Show full response data
                 if ($this->output->isVerbose()) {
                     $this->info('Full response data:');
                     dump($data);
                 }
-                
+
                 return self::SUCCESS;
             } else {
                 $this->error('✗ SMS processing failed');
                 $this->error("Status: {$response->status()}");
                 $this->error("Response: {$response->body()}");
+
                 return self::FAILURE;
             }
         } catch (\Exception $e) {
             $this->error('✗ Exception occurred:');
             $this->error($e->getMessage());
+
             return self::FAILURE;
         }
     }

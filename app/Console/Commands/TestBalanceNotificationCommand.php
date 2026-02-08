@@ -23,8 +23,8 @@ class TestBalanceNotificationCommand extends Command
 
         // Find or create user
         $user = User::where('email', $email)->first();
-        
-        if (!$user) {
+
+        if (! $user) {
             $this->info("Creating user: {$email}");
             $user = User::factory()->create([
                 'email' => $email,
@@ -44,12 +44,12 @@ class TestBalanceNotificationCommand extends Command
                 'bank_timestamp' => now()->format('g:i A'),
                 'bank_stale' => false,
             ];
-            $this->info("Testing SYSTEM balance notification");
+            $this->info('Testing SYSTEM balance notification');
         } else {
             $balances = [
                 'wallet' => 1500.50,
             ];
-            $this->info("Testing USER balance notification");
+            $this->info('Testing USER balance notification');
         }
 
         // Send notification
@@ -61,11 +61,11 @@ class TestBalanceNotificationCommand extends Command
         $this->info("Sending notification to {$email} / {$mobile}...");
         $user->notify($notification);
 
-        $this->info("✓ BalanceNotification sent successfully!");
-        $this->info("Check:");
+        $this->info('✓ BalanceNotification sent successfully!');
+        $this->info('Check:');
         $this->info("  - Email: {$email}");
         $this->info("  - SMS: {$mobile}");
-        $this->info("  - Database: notifications table");
+        $this->info('  - Database: notifications table');
 
         return self::SUCCESS;
     }

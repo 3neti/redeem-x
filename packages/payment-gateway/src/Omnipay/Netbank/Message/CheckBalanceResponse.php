@@ -32,10 +32,10 @@ class CheckBalanceResponse extends AbstractResponse
     public function isSuccessful(): bool
     {
         // NetBank returns account data directly (not wrapped in status/data)
-        return isset($this->data['account_number']) 
+        return isset($this->data['account_number'])
             && isset($this->data['balance']);
     }
-    
+
     /**
      * Get the balance in minor units (centavos)
      * NetBank returns balance as {"cur": "PHP", "num": "135000"}
@@ -45,9 +45,10 @@ class CheckBalanceResponse extends AbstractResponse
         if (isset($this->data['balance']['num'])) {
             return (int) $this->data['balance']['num'];
         }
+
         return null;
     }
-    
+
     /**
      * Get the available balance in minor units (centavos)
      * Available balance excludes pending transactions
@@ -58,9 +59,10 @@ class CheckBalanceResponse extends AbstractResponse
         if (isset($this->data['available_balance']['num'])) {
             return (int) $this->data['available_balance']['num'];
         }
+
         return $this->getBalance();
     }
-    
+
     /**
      * Get the currency code
      * NetBank returns currency in balance object: {"cur": "PHP", "num": "135000"}
@@ -69,7 +71,7 @@ class CheckBalanceResponse extends AbstractResponse
     {
         return $this->data['balance']['cur'] ?? 'PHP';
     }
-    
+
     /**
      * Get the account number
      */
@@ -77,7 +79,7 @@ class CheckBalanceResponse extends AbstractResponse
     {
         return $this->data['account_number'] ?? null;
     }
-    
+
     /**
      * Get the timestamp when balance was calculated
      * NetBank doesn't provide this, use created_date or null
@@ -86,37 +88,37 @@ class CheckBalanceResponse extends AbstractResponse
     {
         return $this->data['created_date'] ?? null;
     }
-    
+
     /**
      * Get balance as BalanceData object
      */
     public function getBalanceData(): ?BalanceData
     {
-        if (!$this->isSuccessful()) {
+        if (! $this->isSuccessful()) {
             return null;
         }
-        
+
         return new BalanceData(
             amount: $this->getBalance(),
             currency: $this->getCurrency(),
         );
     }
-    
+
     /**
      * Get available balance as BalanceData object
      */
     public function getAvailableBalanceData(): ?BalanceData
     {
-        if (!$this->isSuccessful()) {
+        if (! $this->isSuccessful()) {
             return null;
         }
-        
+
         return new BalanceData(
             amount: $this->getAvailableBalance(),
             currency: $this->getCurrency(),
         );
     }
-    
+
     /**
      * Get the error message if request failed
      */
@@ -125,12 +127,12 @@ class CheckBalanceResponse extends AbstractResponse
         if ($this->isSuccessful()) {
             return null;
         }
-        
-        return $this->data['message'] 
-            ?? $this->data['error'] 
+
+        return $this->data['message']
+            ?? $this->data['error']
             ?? 'Unknown error occurred';
     }
-    
+
     /**
      * Get the error code if request failed
      */

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('charge_per_voucher', 10, 2);
             $table->timestamp('generated_at');
             $table->timestamps();
-            
+
             $table->index(['user_id', 'generated_at']);
             $table->index('campaign_id');
         });

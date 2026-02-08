@@ -2,9 +2,9 @@
 
 namespace LBHurtado\OmniChannel\Notifications;
 
+use Illuminate\Notifications\Notification;
 use LBHurtado\OmniChannel\Services\OmniChannelService;
 use Propaganistas\LaravelPhone\PhoneNumber;
-use Illuminate\Notifications\Notification;
 
 class OmniChannelSmsChannel
 {
@@ -13,7 +13,6 @@ class OmniChannelSmsChannel
     /**
      * Send the given notification.
      */
-
     public function send($notifiable, Notification $notification): void
     {
         // 1) Get the recipient(s)

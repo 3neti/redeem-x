@@ -2,29 +2,25 @@
 
 namespace LBHurtado\PaymentGateway\Gateways\Netbank\Traits;
 
-use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\{
-    CollectionRequestData,
-    CollectionResponseData,
-    CollectionTransactionData,
-    FinancialInstitutionData
-};
-use Illuminate\Support\Facades\{Http, Log};
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\CollectionRequestData;
+use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\CollectionResponseData;
+use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\CollectionTransactionData;
+use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\FinancialInstitutionData;
 
 trait CanCollect
 {
     /**
      * Initiate a collection via Direct Checkout.
-     *
-     * @param CollectionRequestData $request
-     * @return CollectionResponseData|null
      */
     public function initiateCollection(CollectionRequestData $request): ?CollectionResponseData
     {
         try {
             // Check if in fake/mock mode
             $useFake = config('payment-gateway.netbank.direct_checkout.use_fake', false);
-            
+
             if ($useFake) {
                 Log::info('[Netbank DirectCheckout FAKE] Initiating collection (mock mode)', [
                     'reference_no' => $request->reference_no,
@@ -34,7 +30,7 @@ trait CanCollect
 
                 // Return fake response
                 return CollectionResponseData::from([
-                    'redirect_url' => url('/topup/callback?reference_no=' . $request->reference_no . '&mock=1'),
+                    'redirect_url' => url('/topup/callback?reference_no='.$request->reference_no.'&mock=1'),
                     'reference_no' => $request->reference_no,
                 ]);
             }
@@ -52,16 +48,17 @@ trait CanCollect
                 'Content-Type' => 'application/json',
             ])->post($endpoint, $payload);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('[Netbank DirectCheckout] Collection initiation failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
+
                 return null;
             }
 
             $data = $response->json();
-            
+
             Log::info('[Netbank DirectCheckout] Collection initiated successfully', [
                 'reference_no' => $data['reference_no'] ?? null,
                 'redirect_url' => $data['redirect_url'] ?? null,
@@ -76,15 +73,13 @@ trait CanCollect
                 'error' => $e->getMessage(),
                 'reference_no' => $request->reference_no,
             ]);
+
             return null;
         }
     }
 
     /**
      * Get collection transaction status.
-     *
-     * @param string $referenceNo
-     * @return CollectionTransactionData|null
      */
     public function getCollectionTransaction(string $referenceNo): ?CollectionTransactionData
     {
@@ -97,11 +92,12 @@ trait CanCollect
                 'x-access-key' => $accessKey,
             ])->get($endpoint);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('[Netbank DirectCheckout] Transaction retrieval failed', [
                     'reference_no' => $referenceNo,
                     'status' => $response->status(),
                 ]);
+
                 return null;
             }
 
@@ -122,6 +118,7 @@ trait CanCollect
                 'error' => $e->getMessage(),
                 'reference_no' => $referenceNo,
             ]);
+
             return null;
         }
     }
@@ -141,17 +138,18 @@ trait CanCollect
                 'x-access-key' => $accessKey,
             ])->get($endpoint);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('[Netbank DirectCheckout] Institutions list failed', [
                     'status' => $response->status(),
                 ]);
+
                 return collect();
             }
 
             $data = $response->json();
 
             return collect($data['financial_institutions'] ?? [])
-                ->map(fn($institution) => FinancialInstitutionData::from([
+                ->map(fn ($institution) => FinancialInstitutionData::from([
                     'institution_code' => $institution['institution_code'],
                     'name' => $institution['name'],
                     'logo_url' => $institution['logo_url'] ?? null,
@@ -160,6 +158,7 @@ trait CanCollect
             Log::error('[Netbank DirectCheckout] Institutions list error', [
                 'error' => $e->getMessage(),
             ]);
+
             return collect();
         }
     }

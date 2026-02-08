@@ -70,7 +70,7 @@ test('isKycApproved returns true for approved contacts', function () {
     expect($contact->isKycApproved())->toBeFalse();
 
     $contact->update(['kyc_status' => 'approved']);
-    
+
     expect($contact->isKycApproved())->toBeTrue();
 });
 
@@ -82,7 +82,7 @@ test('needsKyc returns true when KYC not approved', function () {
     expect($contact->needsKyc())->toBeTrue();
 
     $contact->update(['kyc_status' => 'approved']);
-    
+
     expect($contact->needsKyc())->toBeFalse();
 });
 
@@ -155,11 +155,11 @@ test('FetchContactKYCResult updates contact with approved status', function () {
 
     // Mock FetchKYCResult and ValidateKYCResult
     $this->partialMock(FetchKYCResult::class, function ($mock) {
-        $mock->shouldReceive('run')->once()->andReturn((object)['status' => 'success']);
+        $mock->shouldReceive('run')->once()->andReturn((object) ['status' => 'success']);
     });
 
     $this->partialMock(ValidateKYCResult::class, function ($mock) {
-        $mock->shouldReceive('run')->once()->andReturn((object)[
+        $mock->shouldReceive('run')->once()->andReturn((object) [
             'valid' => true,
             'reasons' => [],
         ]);
@@ -181,11 +181,11 @@ test('FetchContactKYCResult updates contact with rejected status', function () {
 
     // Mock FetchKYCResult and ValidateKYCResult with rejection
     $this->partialMock(FetchKYCResult::class, function ($mock) {
-        $mock->shouldReceive('run')->once()->andReturn((object)['status' => 'failed']);
+        $mock->shouldReceive('run')->once()->andReturn((object) ['status' => 'failed']);
     });
 
     $this->partialMock(ValidateKYCResult::class, function ($mock) {
-        $mock->shouldReceive('run')->once()->andReturn((object)[
+        $mock->shouldReceive('run')->once()->andReturn((object) [
             'valid' => false,
             'reasons' => ['Face mismatch', 'ID expired'],
         ]);
@@ -227,7 +227,7 @@ test('redemption blocked when KYC required but not approved', function () {
     ]);
 
     // Attempt redemption - should throw exception
-    expect(fn() => ProcessRedemption::run($voucher, $phoneNumber, [], []))
+    expect(fn () => ProcessRedemption::run($voucher, $phoneNumber, [], []))
         ->toThrow(RuntimeException::class, 'Identity verification required');
 });
 
@@ -344,11 +344,11 @@ test('complete KYC redemption flow end-to-end', function () {
 
     // Step 3: Simulate KYC completion (mock HyperVerge approval)
     $this->partialMock(FetchKYCResult::class, function ($mock) {
-        $mock->shouldReceive('run')->once()->andReturn((object)['status' => 'success']);
+        $mock->shouldReceive('run')->once()->andReturn((object) ['status' => 'success']);
     });
 
     $this->partialMock(ValidateKYCResult::class, function ($mock) {
-        $mock->shouldReceive('run')->once()->andReturn((object)[
+        $mock->shouldReceive('run')->once()->andReturn((object) [
             'valid' => true,
             'reasons' => [],
         ]);

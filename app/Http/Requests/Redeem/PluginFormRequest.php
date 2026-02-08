@@ -7,7 +7,6 @@ namespace App\Http\Requests\Redeem;
 use App\Support\RedeemPluginMap;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Validator as ValidatorFacade;
 use Illuminate\Validation\Validator;
 use LBHurtado\ModelInput\Support\InputRuleBuilder;
 use LBHurtado\Voucher\Enums\VoucherInputField;
@@ -128,8 +127,6 @@ class PluginFormRequest extends FormRequest
      * Configure the validator instance with additional rules.
      *
      * Add custom validation for OTP if present.
-     *
-     * @param  Validator  $validator
      */
     public function withValidator(Validator $validator): void
     {

@@ -2,17 +2,17 @@
 
 namespace LBHurtado\Voucher\Data\Casts;
 
-use Spatie\LaravelData\Support\Creation\CreationContext;
-use Spatie\LaravelData\Support\DataProperty;
-use Spatie\LaravelData\Casts\Cast;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\Log;
+use Spatie\LaravelData\Casts\Cast;
+use Spatie\LaravelData\Support\Creation\CreationContext;
+use Spatie\LaravelData\Support\DataProperty;
 
 class CarbonIntervalCast implements Cast
 {
     /** @var bool Enable verbose casting logging */
     private const DEBUG = false;
-    
+
     public function cast(
         DataProperty $property,
         mixed $value,
@@ -29,6 +29,7 @@ class CarbonIntervalCast implements Cast
             if (self::DEBUG) {
                 Log::debug("[CarbonIntervalCast] \"{$name}\" is already a CarbonInterval, returning as-is");
             }
+
             return $value;
         }
 
@@ -37,6 +38,7 @@ class CarbonIntervalCast implements Cast
             if (self::DEBUG) {
                 Log::debug("[CarbonIntervalCast] \"{$name}\" is empty string, casting to null");
             }
+
             return null;
         }
 
@@ -45,6 +47,7 @@ class CarbonIntervalCast implements Cast
             if (self::DEBUG) {
                 Log::debug("[CarbonIntervalCast] \"{$name}\" is null, returning null");
             }
+
             return null;
         }
 
@@ -53,6 +56,7 @@ class CarbonIntervalCast implements Cast
             if (self::DEBUG) {
                 Log::debug("[CarbonIntervalCast] \"{$name}\" array with 'd' key, reconstructing CarbonInterval");
             }
+
             return CarbonInterval::days($value['d'])
                 ->addMonths($value['m'] ?? 0)
                 ->addYears($value['y'] ?? 0)
@@ -60,12 +64,13 @@ class CarbonIntervalCast implements Cast
                 ->addMinutes($value['i'] ?? 0)
                 ->addSeconds($value['s'] ?? 0);
         }
-        
+
         // Numeric → seconds
         if (is_numeric($value)) {
             if (self::DEBUG) {
                 Log::debug("[CarbonIntervalCast] \"{$name}\" numeric, interpreting as seconds");
             }
+
             return CarbonInterval::seconds((int) $value);
         }
 
@@ -79,6 +84,7 @@ class CarbonIntervalCast implements Cast
                 if (self::DEBUG) {
                     Log::debug("[CarbonIntervalCast] \"{$name}\" parsed successfully", ['interval' => $ci]);
                 }
+
                 return $ci;
             } catch (\Throwable $e) {
                 Log::error("[CarbonIntervalCast] “{$name}” failed to parse as CarbonInterval", [
@@ -91,6 +97,6 @@ class CarbonIntervalCast implements Cast
 
         // Anything else → fatal
         Log::error("[CarbonIntervalCast] “{$name}” unsupported type", ['value' => $value]);
-        throw new \InvalidArgumentException("Cannot cast “{$name}” to CarbonInterval: " . print_r($value, true));
+        throw new \InvalidArgumentException("Cannot cast “{$name}” to CarbonInterval: ".print_r($value, true));
     }
 }

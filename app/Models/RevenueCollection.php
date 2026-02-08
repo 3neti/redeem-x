@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use Bavix\Wallet\Models\Transfer;
+use Brick\Money\Money;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Bavix\Wallet\Models\Transfer;
-use Brick\Money\Money;
 
 /**
  * Revenue collection record.
- * 
+ *
  * Tracks revenue collected from InstructionItem wallets to destination wallets.
  * Supports polymorphic destinations (User, Organization, etc.).
  */
@@ -69,7 +69,7 @@ class RevenueCollection extends Model
     protected function formattedAmount(): Attribute
     {
         return Attribute::make(
-            get: fn() => Money::ofMinor($this->amount, 'PHP')->formatTo('en_PH')
+            get: fn () => Money::ofMinor($this->amount, 'PHP')->formatTo('en_PH')
         );
     }
 
@@ -79,7 +79,7 @@ class RevenueCollection extends Model
     protected function amountFloat(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->amount / 100
+            get: fn () => $this->amount / 100
         );
     }
 
@@ -89,14 +89,16 @@ class RevenueCollection extends Model
     protected function destinationName(): Attribute
     {
         return Attribute::make(
-            get: function() {
+            get: function () {
                 $dest = $this->destination;
-                if (!$dest) return 'Unknown';
-                
+                if (! $dest) {
+                    return 'Unknown';
+                }
+
                 return match (true) {
                     $dest instanceof User => $dest->name ?? $dest->email,
                     method_exists($dest, 'getName') => $dest->getName(),
-                    default => class_basename($dest) . ' #' . $dest->id,
+                    default => class_basename($dest).' #'.$dest->id,
                 };
             }
         );

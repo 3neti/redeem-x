@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\User;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 use FrittenKeeZ\Vouchers\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use LBHurtado\Voucher\Actions\GenerateVouchers;
 
 uses(RefreshDatabase::class);
 
@@ -36,7 +36,7 @@ it('generates vouchers with metadata', function () {
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher->metadata)->toHaveKey('instructions');
     expect($voucher->metadata['instructions'])->toHaveKey('metadata');
-    
+
     $metadata = $voucher->metadata['instructions']['metadata'];
     expect($metadata)->toHaveKey('version');
     expect($metadata)->toHaveKey('system_name');
@@ -156,7 +156,7 @@ it('inspect endpoint returns metadata for new vouchers', function () {
         'code' => $voucher->code,
         'status' => 'active',
     ]);
-    
+
     $response->assertJsonPath('metadata.version', '1.0.0');
     $response->assertJsonPath('metadata.issuer_name', 'Test User');
     $response->assertJsonPath('info.issuer.email', 'test@example.com');
@@ -221,7 +221,7 @@ it('filters out null values from metadata licenses', function () {
     ])->first();
 
     $metadata = $voucher->metadata['instructions']['metadata'];
-    
+
     expect($metadata['licenses'])->toHaveKey('BSP');
     expect($metadata['licenses'])->not->toHaveKey('SEC');
     expect($metadata['licenses'])->not->toHaveKey('NTC');

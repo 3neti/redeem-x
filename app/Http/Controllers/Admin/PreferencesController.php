@@ -61,7 +61,7 @@ class PreferencesController extends Controller
         $settings->default_portal_endpoint = $request->default_portal_endpoint;
         $settings->default_home_route = $request->default_home_route;
         $settings->auto_disburse_minimum = (int) $request->auto_disburse_minimum;
-        
+
         $settings->save();
 
         return to_route('admin.preferences.index')->with('status', 'Preferences updated successfully!');

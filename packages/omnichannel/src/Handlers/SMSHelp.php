@@ -86,7 +86,7 @@ MSG;
         if ($helpText) {
             // Send notification (SMS)
             $this->sendNotification($user, new HelpNotification($helpText));
-            
+
             return response()->json(['message' => $helpText]);
         }
 

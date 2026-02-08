@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamp('attempted_at');
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
-            
+
             // Indexes for reporting
             $table->index(['status', 'attempted_at']);
             $table->index(['gateway', 'status']);

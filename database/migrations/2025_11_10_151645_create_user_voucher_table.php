@@ -16,12 +16,12 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('voucher_code')->index();
             $table->foreign('voucher_code')
-                  ->references('code')
-                  ->on('vouchers')
-                  ->cascadeOnDelete();
+                ->references('code')
+                ->on('vouchers')
+                ->cascadeOnDelete();
             $table->timestamp('generated_at');
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'voucher_code']);
         });
     }

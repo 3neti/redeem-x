@@ -2,7 +2,7 @@
 
 /**
  * Demo: What happens when ADMIN_OVERRIDE_EMAILS is commented out?
- * 
+ *
  * Run: php test-env-override.php
  */
 
@@ -13,7 +13,7 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $user = App\Models\User::where('email', 'lester@hurtado.ph')->first();
 
-if (!$user) {
+if (! $user) {
     echo "❌ User not found. Run: php artisan db:seed --class=UserSeeder\n";
     exit(1);
 }
@@ -24,27 +24,27 @@ echo "════════════════════════�
 
 // Check role-based access
 echo "1️⃣  ROLE-BASED ACCESS (Database)\n";
-echo "   Has super-admin role: " . ($user->hasRole('super-admin') ? '✅ YES' : '❌ NO') . "\n";
-echo "   Has any admin role: " . ($user->hasAnyRole(['super-admin', 'admin', 'power-user']) ? '✅ YES' : '❌ NO') . "\n";
-echo "   Permissions: " . implode(', ', $user->getAllPermissions()->pluck('name')->toArray()) . "\n\n";
+echo '   Has super-admin role: '.($user->hasRole('super-admin') ? '✅ YES' : '❌ NO')."\n";
+echo '   Has any admin role: '.($user->hasAnyRole(['super-admin', 'admin', 'power-user']) ? '✅ YES' : '❌ NO')."\n";
+echo '   Permissions: '.implode(', ', $user->getAllPermissions()->pluck('name')->toArray())."\n\n";
 
 // Check .env override
 $overrideEmails = config('admin.override_emails', []);
 $isOverride = in_array($user->email, $overrideEmails);
 
 echo "2️⃣  .ENV OVERRIDE (Configuration)\n";
-echo "   ADMIN_OVERRIDE_EMAILS: " . (empty($overrideEmails) ? '(empty/commented)' : implode(', ', $overrideEmails)) . "\n";
-echo "   Is in override list: " . ($isOverride ? '✅ YES' : '❌ NO') . "\n\n";
+echo '   ADMIN_OVERRIDE_EMAILS: '.(empty($overrideEmails) ? '(empty/commented)' : implode(', ', $overrideEmails))."\n";
+echo '   Is in override list: '.($isOverride ? '✅ YES' : '❌ NO')."\n\n";
 
 // Final result
 $hasRoleAccess = $user->hasAnyRole(['super-admin', 'admin', 'power-user']);
 $hasAccess = $hasRoleAccess || $isOverride;
 
 echo "3️⃣  FINAL AUTHORIZATION RESULT\n";
-echo "   Access via role: " . ($hasRoleAccess ? '✅ YES' : '❌ NO') . "\n";
-echo "   Access via override: " . ($isOverride ? '✅ YES' : '❌ NO') . "\n";
+echo '   Access via role: '.($hasRoleAccess ? '✅ YES' : '❌ NO')."\n";
+echo '   Access via override: '.($isOverride ? '✅ YES' : '❌ NO')."\n";
 echo "   ───────────────────────────────────────\n";
-echo "   TOTAL ACCESS: " . ($hasAccess ? '✅ GRANTED' : '❌ DENIED') . "\n\n";
+echo '   TOTAL ACCESS: '.($hasAccess ? '✅ GRANTED' : '❌ DENIED')."\n\n";
 
 // Show what pages user can access
 echo "4️⃣  ACCESSIBLE PAGES\n";

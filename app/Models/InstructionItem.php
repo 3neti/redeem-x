@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Bavix\Wallet\Interfaces\ProductInterface;
-use Illuminate\Database\Eloquent\Model;
 use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Interfaces\ProductInterface;
 use Bavix\Wallet\Traits\HasWallet;
 use Bavix\Wallet\Traits\HasWalletFloat;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class InstructionItem extends Model implements ProductInterface
@@ -15,6 +15,7 @@ class InstructionItem extends Model implements ProductInterface
     use HasFactory;
     use HasWallet;
     use HasWalletFloat;
+
     protected $fillable = [
         'name',
         'index',
@@ -62,6 +63,7 @@ class InstructionItem extends Model implements ProductInterface
                     return 0;
                 }
             }
+
             return $this->price; // TODO: granular pricing for different users
         }
 
@@ -93,12 +95,12 @@ class InstructionItem extends Model implements ProductInterface
     public static function attributesFromIndex(string $index, array $overrides = []): array
     {
         return array_merge([
-            'index'    => $index,
-            'name'     => Str::of($index)->afterLast('.')->headline()->toString(),
-            'type'     => Str::of($index)->explode('.')[1] ?? 'general',
-            'price'    => 0,
+            'index' => $index,
+            'name' => Str::of($index)->afterLast('.')->headline()->toString(),
+            'type' => Str::of($index)->explode('.')[1] ?? 'general',
+            'price' => 0,
             'currency' => 'PHP',
-            'meta'     => [],
+            'meta' => [],
         ], $overrides);
     }
 }

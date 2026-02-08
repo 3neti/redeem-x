@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Actions\Api\Vouchers;
 
 use App\Http\Responses\ApiResponse;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -27,7 +27,7 @@ class CancelVoucher
 
     /**
      * Cancel a voucher
-     * 
+     *
      * Soft delete an unredeemed voucher to prevent future redemption.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
@@ -53,5 +53,4 @@ class CancelVoucher
             'code' => $voucher->code,
         ]);
     }
-
 }

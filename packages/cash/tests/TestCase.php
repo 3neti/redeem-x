@@ -3,8 +3,8 @@
 namespace LBHurtado\Cash\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use LBHurtado\Cash\Tests\Models\User;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -25,7 +25,7 @@ abstract class TestCase extends BaseTestCase
         return [
             \LBHurtado\Cash\CashServiceProvider::class,
             \LBHurtado\Wallet\WalletServiceProvider::class,
-            \Bavix\Wallet\WalletServiceProvider::class
+            \Bavix\Wallet\WalletServiceProvider::class,
         ];
     }
 
@@ -49,11 +49,11 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('auth.defaults.guard', 'web');
 
         // Run the migration from the local package
-        $userMigration = include __DIR__ . '/../database/migrations/test/0001_01_01_000000_create_users_table.php';
+        $userMigration = include __DIR__.'/../database/migrations/test/0001_01_01_000000_create_users_table.php';
         $userMigration->up();
-        $statusMigration = include __DIR__ . '/../database/migrations/test/2024_08_03_202500_create_statuses_table.php';
+        $statusMigration = include __DIR__.'/../database/migrations/test/2024_08_03_202500_create_statuses_table.php';
         $statusMigration->up();
-        $tagMigration = include __DIR__ . '/../database/migrations/test/2024_08_04_202500_create_tag_tables.php';
+        $tagMigration = include __DIR__.'/../database/migrations/test/2024_08_04_202500_create_tag_tables.php';
         $tagMigration->up();
     }
 
@@ -77,7 +77,7 @@ abstract class TestCase extends BaseTestCase
     {
         $this->app['config']->set(
             'model-channel',
-            require __DIR__ . '/../config/cash.php'
+            require __DIR__.'/../config/cash.php'
         );
     }
 }

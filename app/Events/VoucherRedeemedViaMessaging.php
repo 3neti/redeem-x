@@ -11,10 +11,10 @@ use LBHurtado\Voucher\Models\Voucher;
 
 /**
  * Voucher Redeemed Via Messaging Event
- * 
+ *
  * Fired when a voucher is redeemed through any messaging channel
  * (SMS, Viber, Messenger, WhatsApp, etc.)
- * 
+ *
  * This event has no listeners yet - it's for future extensibility:
  * - Analytics tracking
  * - Custom business logic hooks
@@ -31,6 +31,5 @@ class VoucherRedeemedViaMessaging
         public string $channel,        // 'sms', 'viber', 'messenger', 'whatsapp', etc.
         public string $bankAccount,    // Resolved bank account (e.g., 'GCASH:639173011987')
         public array $messageMetadata = [] // Original message data for audit trail
-    ) {
-    }
+    ) {}
 }

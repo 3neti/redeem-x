@@ -13,7 +13,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Fetch and process KYC results from HyperVerge.
- * 
+ *
  * This action retrieves the KYC verification results, validates them,
  * stores images if approved, and updates the contact status.
  */
@@ -23,14 +23,15 @@ class FetchContactKYCResult
 
     /**
      * Retrieve and process KYC results from HyperVerge.
-     * 
+     *
      * @param  Contact  $contact  The contact to fetch results for
-     * @return Contact  The updated contact
-     * @throws \Exception  If no transaction ID is set
+     * @return Contact The updated contact
+     *
+     * @throws \Exception If no transaction ID is set
      */
     public function handle(Contact $contact): Contact
     {
-        if (!$contact->kyc_transaction_id) {
+        if (! $contact->kyc_transaction_id) {
             throw new \Exception('Contact has no KYC transaction ID');
         }
 
@@ -56,7 +57,7 @@ class FetchContactKYCResult
                 // Extract and store images (async job would be better for production)
                 try {
                     $imageUrls = \LBHurtado\HyperVerge\Actions\Results\ExtractKYCImages::run($contact->kyc_transaction_id);
-                    if (!empty($imageUrls)) {
+                    if (! empty($imageUrls)) {
                         StoreKYCImages::run($contact, $imageUrls, $contact->kyc_transaction_id);
                     }
                 } catch (\Exception $e) {

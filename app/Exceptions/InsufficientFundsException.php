@@ -21,12 +21,12 @@ class InsufficientFundsException extends Exception
     ) {
         $formattedRequired = Number::format($required, locale: 'en_PH');
         $formattedAvailable = Number::format($available, locale: 'en_PH');
-        
+
         parent::__construct(
             "Insufficient funds. Required: ₱{$formattedRequired}, Available: ₱{$formattedAvailable}"
         );
     }
-    
+
     /**
      * Get a formatted message suitable for SMS responses.
      */
@@ -34,7 +34,7 @@ class InsufficientFundsException extends Exception
     {
         return $this->getMessage();
     }
-    
+
     /**
      * Get a formatted message suitable for API responses.
      */
@@ -42,7 +42,7 @@ class InsufficientFundsException extends Exception
     {
         return 'Insufficient wallet balance to generate vouchers.';
     }
-    
+
     /**
      * Get detailed breakdown for debugging/logging.
      */

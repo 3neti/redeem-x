@@ -1,15 +1,16 @@
 <?php
 
-use LBHurtado\Voucher\Data\ValidationResultsData;
+use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\LocationValidationResultData;
 use LBHurtado\Voucher\Data\TimeValidationResultData;
+use LBHurtado\Voucher\Data\ValidationResultsData;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 
 function createVoucher(): \LBHurtado\Voucher\Models\Voucher
 {
     $instructions = VoucherInstructionsData::generateFromScratch();
     $result = GenerateVouchers::run($instructions);
+
     return $result->vouchers->first();
 }
 

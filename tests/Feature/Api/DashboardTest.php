@@ -111,7 +111,7 @@ describe('Recent Activity API', function () {
 
         $response
             ->assertOk();
-        
+
         $activityCount = count($response->json('data.activity'));
         expect($activityCount)->toBeLessThanOrEqual(20); // Should limit to recent 20
     });

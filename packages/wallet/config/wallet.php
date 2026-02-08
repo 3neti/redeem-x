@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Bavix\Wallet\Internal\Assembler\AvailabilityDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\BalanceUpdatedEventAssembler;
 use Bavix\Wallet\Internal\Assembler\ExtraDtoAssembler;
 use Bavix\Wallet\Internal\Assembler\OptionDtoAssembler;
 use Bavix\Wallet\Internal\Assembler\TransactionCreatedEventAssembler;
@@ -12,7 +11,6 @@ use Bavix\Wallet\Internal\Assembler\TransactionQueryAssembler;
 use Bavix\Wallet\Internal\Assembler\TransferDtoAssembler;
 use Bavix\Wallet\Internal\Assembler\TransferLazyDtoAssembler;
 use Bavix\Wallet\Internal\Assembler\TransferQueryAssembler;
-use Bavix\Wallet\Internal\Events\BalanceUpdatedEvent;
 use Bavix\Wallet\Internal\Events\TransactionCreatedEvent;
 use Bavix\Wallet\Internal\Events\WalletCreatedEvent;
 use Bavix\Wallet\Internal\Repository\TransactionRepository;
@@ -53,7 +51,6 @@ use Bavix\Wallet\Services\TaxService;
 use Bavix\Wallet\Services\TransactionService;
 use Bavix\Wallet\Services\TransferService;
 use Bavix\Wallet\Services\WalletService;
-
 use LBHurtado\Wallet\Classes\BalanceUpdatedAssembler;
 use LBHurtado\Wallet\Events\BalanceUpdated;
 

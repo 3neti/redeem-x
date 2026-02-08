@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('currency', 3)->default('PHP');
             $table->json('meta')->nullable();
             $table->timestamps();
-            
+
             $table->index('type');
         });
     }

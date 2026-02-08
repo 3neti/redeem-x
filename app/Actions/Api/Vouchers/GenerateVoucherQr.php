@@ -2,11 +2,12 @@
 
 namespace App\Actions\Api\Vouchers;
 
+use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Support\Facades\Gate;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Illuminate\Support\Facades\Gate;
-use Symfony\Component\HttpKernel\Exception\{AccessDeniedHttpException, NotFoundHttpException};
-use Dedoc\Scramble\Attributes\Group;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Vouchers')]
 class GenerateVoucherQr
@@ -20,13 +21,13 @@ class GenerateVoucherQr
     public function handle(Voucher $voucher): array
     {
         // Determine endpoint based on voucher type
-        $redemptionEndpoint = match($voucher->voucher_type) {
+        $redemptionEndpoint = match ($voucher->voucher_type) {
             \LBHurtado\Voucher\Enums\VoucherType::PAYABLE => '/pay',
             \LBHurtado\Voucher\Enums\VoucherType::SETTLEMENT => '/pay', // Settlement can accept payments
             \LBHurtado\Voucher\Enums\VoucherType::REDEEMABLE => '/disburse',
             default => '/disburse', // Fallback for backward compatibility
         };
-        
+
         // Generate redemption URL
         $redemptionUrl = url("{$redemptionEndpoint}?code={$voucher->code}");
 
@@ -36,7 +37,7 @@ class GenerateVoucherQr
         // Safely get cash details (voucher might not have instructions)
         $amount = null;
         $currency = null;
-        
+
         try {
             if ($voucher->cash) {
                 $amount = $voucher->cash->getAmount();
@@ -60,10 +61,10 @@ class GenerateVoucherQr
 
     /**
      * Generate QR code for voucher
-     * 
+     *
      * Create a QR code image and redemption URL for the specified voucher.
-     * 
-     * @param string $code Voucher code
+     *
+     * @param  string  $code  Voucher code
      * @return array|\Illuminate\Http\Response
      */
     public function asController(string $code)
@@ -73,26 +74,26 @@ class GenerateVoucherQr
         // Find voucher by code
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             throw new NotFoundHttpException('Voucher not found');
         }
 
         // Check if user owns this voucher
-        if (!Gate::allows('view', $voucher)) {
+        if (! Gate::allows('view', $voucher)) {
             throw new AccessDeniedHttpException('You do not have permission to view this voucher');
         }
 
         $qrData = $this->handle($voucher);
-        
+
         // If format=image, return the QR code as PNG image directly
         if (request()->query('format') === 'image') {
             // Extract base64 data from data URI
             $base64Data = preg_replace('/^data:image\/\w+;base64,/', '', $qrData['qr_code']);
             $imageData = base64_decode($base64Data);
-            
+
             return response($imageData, 200)
                 ->header('Content-Type', 'image/png')
-                ->header('Content-Disposition', 'inline; filename="' . $code . '.png"')
+                ->header('Content-Disposition', 'inline; filename="'.$code.'.png"')
                 ->header('Cache-Control', 'public, max-age=3600');
         }
 
@@ -115,7 +116,7 @@ class GenerateVoucherQr
         // Use a simple QR code library or service
         // For now, return a placeholder - in production, use a library like endroid/qr-code
         // Or defer to client-side generation for better performance
-        
+
         try {
             // Check if endroid/qr-code is available
             if (class_exists(\Endroid\QrCode\QrCode::class)) {
@@ -129,7 +130,7 @@ class GenerateVoucherQr
                     roundBlockSizeMode: \Endroid\QrCode\RoundBlockSizeMode::Margin
                 );
 
-                $writer = new \Endroid\QrCode\Writer\PngWriter();
+                $writer = new \Endroid\QrCode\Writer\PngWriter;
                 $result = $writer->write($qrCode);
 
                 return $result->getDataUri();
@@ -141,7 +142,7 @@ class GenerateVoucherQr
         }
 
         // Fallback: Return a data URL indicating client-side generation is recommended
-        return 'data:text/plain;base64,' . base64_encode(
+        return 'data:text/plain;base64,'.base64_encode(
             'QR_CODE_PLACEHOLDER: Use client-side generation via /resources/js/composables/useVoucherQr.ts for better performance'
         );
     }

@@ -67,44 +67,44 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     // DELETE /api/v1/vouchers/{voucher}
     Route::delete('{voucher:code}', [\App\Actions\Api\Vouchers\CancelVoucher::class, 'asController'])
         ->name('cancel');
-    
+
     // Manually confirm payment (owner only)
     // POST /api/v1/vouchers/confirm-payment
     Route::post('confirm-payment', \App\Actions\Api\Vouchers\ConfirmPayment::class)
         ->name('confirm-payment');
-    
+
     // Get pending payment requests (owner only)
     // GET /api/v1/vouchers/{code}/pending-payments
     Route::get('{code}/pending-payments', \App\Actions\Api\Vouchers\GetPendingPaymentRequests::class)
         ->name('pending-payments');
-    
+
     // State management actions (owner only)
     // POST /api/v1/vouchers/lock
     Route::post('lock', \App\Actions\Api\Vouchers\LockVoucher::class)
         ->name('lock');
-    
+
     // POST /api/v1/vouchers/unlock
     Route::post('unlock', \App\Actions\Api\Vouchers\UnlockVoucher::class)
         ->name('unlock');
-    
+
     // POST /api/v1/vouchers/force-close
     Route::post('force-close', \App\Actions\Api\Vouchers\ForceCloseVoucher::class)
         ->name('force-close');
-    
+
     // Collect payments from settlement voucher (owner only)
     // POST /api/v1/vouchers/{code}/collect
     Route::post('{code}/collect', \App\Actions\Api\Vouchers\CollectPayments::class)
         ->name('collect');
-    
+
     // =========================================================================
     // Envelope Management (create envelope for existing voucher)
     // =========================================================================
-    
+
     // Create envelope for voucher
     // POST /api/v1/vouchers/{code}/envelope
     Route::post('{voucher:code}/envelope', [\App\Http\Controllers\Api\V1\EnvelopeManagementController::class, 'createEnvelope'])
         ->name('envelope.create');
-    
+
     // =========================================================================
     // Envelope Actions (for settlement envelope workflow)
     // =========================================================================
@@ -112,27 +112,27 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
         // Lock envelope (transition to LOCKED state)
         Route::post('lock', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'lock'])
             ->name('lock');
-        
+
         // Settle envelope (transition to SETTLED state, triggers disbursement)
         Route::post('settle', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'settle'])
             ->name('settle');
-        
+
         // Cancel envelope (requires reason)
         Route::post('cancel', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'cancel'])
             ->name('cancel');
-        
+
         // Reopen locked envelope (requires reason)
         Route::post('reopen', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'reopen'])
             ->name('reopen');
-        
+
         // Set signal value
         Route::post('signals/{key}', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'setSignal'])
             ->name('signals.set');
-        
+
         // Update payload
         Route::patch('payload', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'updatePayload'])
             ->name('payload.update');
-        
+
         // Upload attachment
         Route::post('attachments', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'uploadAttachment'])
             ->name('attachments.upload');
@@ -144,7 +144,7 @@ Route::prefix('envelopes/{envelope}')->name('api.envelopes.')->group(function ()
     // Accept attachment
     Route::post('attachments/{attachment}/accept', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'acceptAttachment'])
         ->name('attachments.accept');
-    
+
     // Reject attachment (requires reason)
     Route::post('attachments/{attachment}/reject', [\App\Http\Controllers\Api\V1\EnvelopeActionController::class, 'rejectAttachment'])
         ->name('attachments.reject');

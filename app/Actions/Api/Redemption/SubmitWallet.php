@@ -8,11 +8,11 @@ use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Responses\ApiResponse;
 use App\Services\VoucherRedemptionService;
 use Illuminate\Http\JsonResponse;
-use Lorisleiva\Actions\ActionRequest;
-use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Exceptions\RedemptionException;
 use LBHurtado\Voucher\Models\Voucher;
+use Lorisleiva\Actions\ActionRequest;
+use Lorisleiva\Actions\Concerns\AsAction;
 use Propaganistas\LaravelPhone\PhoneNumber;
 use Propaganistas\LaravelPhone\Rules\Phone;
 
@@ -32,7 +32,7 @@ class SubmitWallet
         // Find voucher
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return ApiResponse::error('Invalid voucher code.', 404);
         }
 
@@ -62,7 +62,7 @@ class SubmitWallet
 
         // Prepare bank account
         $bankAccount = [];
-        if (!empty($validated['bank_code'])) {
+        if (! empty($validated['bank_code'])) {
             $bankAccount = [
                 'bank_code' => $validated['bank_code'],
                 'account_number' => $validated['account_number'] ?? $validated['mobile'],
@@ -71,14 +71,14 @@ class SubmitWallet
 
         // Prepare inputs
         $inputs = $validated['inputs'] ?? [];
-        
+
         // Validate using Unified Validation Gateway
-        $service = new VoucherRedemptionService();
+        $service = new VoucherRedemptionService;
         $context = $service->resolveContextFromArray($validated);
-        
+
         try {
             $service->validateRedemption($voucher, $context);
-            
+
             // Process redemption
             ProcessRedemption::run($voucher, $phoneNumber, $inputs, $bankAccount);
 

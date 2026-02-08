@@ -52,7 +52,7 @@ class ChargeCalculationController extends Controller
                 'mask' => '',
                 'ttl' => null,
             ];
-            
+
             // Merge cash separately to preserve nested validation
             $data = array_merge($defaults, $validated);
             if (isset($validated['cash'])) {

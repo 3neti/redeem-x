@@ -2,11 +2,11 @@
 
 namespace LBHurtado\PaymentGateway\Http\Controllers;
 
-use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use Bavix\Wallet\Interfaces\Wallet;
-use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
 
 class DisburseController extends Controller
 {
@@ -18,7 +18,7 @@ class DisburseController extends Controller
 
         $user = auth()->user();
 
-        if (!$user instanceof Wallet) {
+        if (! $user instanceof Wallet) {
             return response()->json(['message' => 'User does not support wallet functionality'], 403);
         }
 

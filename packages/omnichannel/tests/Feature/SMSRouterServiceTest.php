@@ -1,18 +1,17 @@
 <?php
 
-use LBHurtado\OmniChannel\Middlewares\SMSMiddlewareInterface;
-use LBHurtado\OmniChannel\Services\SMSRouterService;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\JsonResponse;
+use LBHurtado\OmniChannel\Services\SMSRouterService;
 
 uses(WithFaker::class);
 
 beforeEach(function () {
-    $this->router = new SMSRouterService();
+    $this->router = new SMSRouterService;
 });
 
 it('rejects middleware that does not implement SMSMiddlewareInterface', function () {
-    $this->router->register('CMD', fn() => null, [
+    $this->router->register('CMD', fn () => null, [
         class_exists(\stdClass::class) ? \stdClass::class : 'stdClass',
     ]);
 })->throws(InvalidArgumentException::class);
@@ -26,8 +25,8 @@ it('returns 404 on unknown command', function () {
 });
 
 it('matches a simple callable handler with no params', function () {
-    $this->router->register('PING', fn($v, $from, $to) => response()->json([
-        'pong' => true, 'from' => $from, 'to' => $to
+    $this->router->register('PING', fn ($v, $from, $to) => response()->json([
+        'pong' => true, 'from' => $from, 'to' => $to,
     ]));
 
     $resp = $this->router->handle('PING', 'A', 'B');
@@ -61,7 +60,7 @@ it('invokes a handler class with __invoke method', function () {
 
     $resp = $this->router->handle('HI', 'X', 'Y');
     expect($resp->getData(true))
-        ->toMatchArray(['ok'=>true,'vals'=>[],'from'=>'X','to'=>'Y']);
+        ->toMatchArray(['ok' => true, 'vals' => [], 'from' => 'X', 'to' => 'Y']);
 });
 
 it('invokes a handler class with handle method', function () {
@@ -78,7 +77,7 @@ it('invokes a handler class with handle method', function () {
 
     $resp = $this->router->handle('HELLO', 'AA', 'BB');
     expect($resp->getData(true))
-        ->toMatchArray(['handled'=>true,'from'=>'AA','to'=>'BB']);
+        ->toMatchArray(['handled' => true, 'from' => 'AA', 'to' => 'BB']);
 });
 
 it('runs through middleware in the right order', function () {
@@ -104,7 +103,7 @@ it('runs through middleware in the right order', function () {
     $this->router->register(
         'M {text}',
         function ($vals, $from, $to) {
-            return response()->json(['final'=> $vals['text']]);
+            return response()->json(['final' => $vals['text']]);
         },
         [\Tests\Stubs\FirstMw::class, \Tests\Stubs\SecondMw::class]
     );

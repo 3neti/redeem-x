@@ -1,20 +1,25 @@
 <?php
 
-use LBHurtado\Merchant\Models\Merchant;
-use LBHurtado\PaymentGateway\Data\{Netbank\Deposit\DepositResponseData, Netbank\Deposit\DepositSenderData};
-use LBHurtado\PaymentGateway\Data\Netbank\{Deposit\DepositMerchantDetailsData,
-    Disburse\DisburseInputData,
-    Disburse\DisburseResponseData};
-use LBHurtado\Wallet\Events\{DisbursementConfirmed, DepositConfirmed};
-use LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway;
-use Illuminate\Support\Facades\{Config, Event, Http, Log};
-use LBHurtado\Wallet\Services\SystemUserResolverService;
-use LBHurtado\Wallet\Actions\TopupWalletAction;
-use LBHurtado\PaymentGateway\Tests\Models\User;
-use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Interfaces\Wallet;
-use Illuminate\Support\Str;
+use Bavix\Wallet\Models\Transaction;
 use Brick\Money\Money;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use LBHurtado\Merchant\Models\Merchant;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\DepositMerchantDetailsData;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\DepositResponseData;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\DepositSenderData;
+use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisburseResponseData;
+use LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway;
+use LBHurtado\PaymentGateway\Tests\Models\User;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
+use LBHurtado\Wallet\Events\DepositConfirmed;
+use LBHurtado\Wallet\Events\DisbursementConfirmed;
+use LBHurtado\Wallet\Services\SystemUserResolverService;
 
 beforeEach(function () {
     Config::set('account.system_user.identifier', 'system@dev-asiana.io');
@@ -38,13 +43,13 @@ it('tests the NetbankPaymentGateway generate method', function () {
     expect($user->merchant)->not->toBeNull();
     expect($user->merchant->name)->toBe('Test Merchant');
     expect($user->merchant->city)->toBe('Test City');
-//    expect($user->merchant->code)->toBe('123ABC'); // Assumes you store the merchant code here
+    //    expect($user->merchant->code)->toBe('123ABC'); // Assumes you store the merchant code here
 
     // Fake HTTP responses for token and QR code endpoints
     Http::fake([
         // Fake token response
         config('disbursement.server.token-end-point') => Http::response([
-            'access_token' => 'fake-access-token'
+            'access_token' => 'fake-access-token',
         ], 200),
 
         // Fake QR code response
@@ -54,7 +59,7 @@ it('tests the NetbankPaymentGateway generate method', function () {
     ]);
 
     // Create an instance of NetbankPaymentGateway
-    $gateway = new NetbankPaymentGateway();
+    $gateway = new NetbankPaymentGateway;
 
     // Define the transaction amount for generating the QR code
     $amount = Money::of(1_000, 'PHP'); // Example amount: 1000 PHP
@@ -70,23 +75,23 @@ it('tests the NetbankPaymentGateway generate method', function () {
         return $request->url() === config('disbursement.server.token-end-point') &&
             $request->hasHeader(
                 'Authorization',
-                'Basic ' . base64_encode(config('disbursement.client.id') . ':' . config('disbursement.client.secret'))
+                'Basic '.base64_encode(config('disbursement.client.id').':'.config('disbursement.client.secret'))
             );
     });
 
-//    // Assert the QR code endpoint was called correctly with the appropriate payload
-//    Http::assertSent(function ($request) use ($user, $amount) {
-//        $payload = $request->data();
-//        return $request->url() === config('disbursement.server.qr-end-point') &&
-//            $payload['merchant_name'] === $user->merchant->name &&
-//            $payload['merchant_city'] === $user->merchant->city &&
-//            $payload['qr_type'] === ($amount->isZero() ? 'Static' : 'Dynamic') &&
-//            $payload['qr_transaction_type'] === 'P2M' &&
-//            $payload['destination_account'] === __(':alias:account', [
-//                'alias' => config('disbursement.client.alias'),
-//                'account' => $user->merchant->code, // Use real merchant code here
-//            ]);
-//    });
+    //    // Assert the QR code endpoint was called correctly with the appropriate payload
+    //    Http::assertSent(function ($request) use ($user, $amount) {
+    //        $payload = $request->data();
+    //        return $request->url() === config('disbursement.server.qr-end-point') &&
+    //            $payload['merchant_name'] === $user->merchant->name &&
+    //            $payload['merchant_city'] === $user->merchant->city &&
+    //            $payload['qr_type'] === ($amount->isZero() ? 'Static' : 'Dynamic') &&
+    //            $payload['qr_transaction_type'] === 'P2M' &&
+    //            $payload['destination_account'] === __(':alias:account', [
+    //                'alias' => config('disbursement.client.alias'),
+    //                'account' => $user->merchant->code, // Use real merchant code here
+    //            ]);
+    //    });
 });
 
 it('sends a live QR transaction to Netbank', function () {
@@ -99,7 +104,7 @@ it('sends a live QR transaction to Netbank', function () {
     expect($user->merchant->city)->not->toBeNull();
 
     // Create an instance of NetbankPaymentGateway
-    $gateway = new NetbankPaymentGateway();
+    $gateway = new NetbankPaymentGateway;
 
     // Define the transaction amount (adjust as needed)
     $amount = Money::of(1_000, 'PHP'); // Example amount: 1000 PHP
@@ -123,25 +128,25 @@ it('sends a live QR transaction to Netbank', function () {
 
 dataset('user', function () {
     return [
-        [fn() => tap(auth()->user(), function (User $user) {
+        [fn () => tap(auth()->user(), function (User $user) {
             $user->mobile = '09173011987';
             $user->merchant = Merchant::factory()->create(['code' => 1]);
             $user->save();
             $user->wallet; // Explicitly create the wallet
             $user->wallet->refreshBalance();
-        })]
+        })],
     ];
 });
 
 dataset('response', function () {
     return [
-        [fn() => new DepositResponseData(
+        [fn () => new DepositResponseData(
             alias: 'TEST_ALIAS',
             amount: 1_000, // Deposit amount
             channel: 'TestChannel',
-            commandId: 123,//'COMMAND123',
+            commandId: 123,// 'COMMAND123',
             externalTransferStatus: 'SUCCESS',
-            operationId: 456,//'OPID-456',
+            operationId: 456,// 'OPID-456',
             productBranchCode: '1010',
             recipientAccountNumber: '09181234567',
             recipientAccountNumberBankFormat: '09181234567',
@@ -159,14 +164,13 @@ dataset('response', function () {
                 merchant_code: 'A',
                 merchant_account: '09171234567'
             )
-        )]
+        )],
     ];
 });
 
-
 dataset('live_response', function () {
     return [
-        [fn() => new DepositResponseData(
+        [fn () => new DepositResponseData(
             alias: '91500',
             amount: 150,
             channel: 'INSTAPAY',
@@ -190,7 +194,7 @@ dataset('live_response', function () {
                 merchant_code: '1',
                 merchant_account: '09173011987'
             )
-        )]
+        )],
     ];
 });
 
@@ -224,7 +228,7 @@ it('tests confirmDeposit function in NetbankPaymentGateway', function (User $use
         ->with($user, $response->amount)
         ->andReturn($transfer); // Return the mocked transfer
 
-    $gateway = new NetbankPaymentGateway();
+    $gateway = new NetbankPaymentGateway;
 
     // Act
     $result = $gateway->confirmDeposit($response->toArray()); // Call the method under test
@@ -237,8 +241,7 @@ it('tests confirmDeposit function in NetbankPaymentGateway', function (User $use
         return
             $event->transaction->getAttribute('payable')->is($transaction->getAttribute('payable'))
             && $event->transaction->getAttribute('amount') === $transaction->getAttribute('amount')
-            && $event->transaction->getAttribute('type') === $transaction->getAttribute('type')
-            ;// Compare against the actual mocked transaction
+            && $event->transaction->getAttribute('type') === $transaction->getAttribute('type'); // Compare against the actual mocked transaction
     });
 
     // (Optional) Verify logging
@@ -254,7 +257,7 @@ it('tests confirmDeposit with valid payload and updates balances', function (Use
     expect((float) $user->balanceFloat)->toBe(0.00);
 
     // Mock the gateway BUT DO NOT mock transferToWallet
-    $gateway = new NetbankPaymentGateway(); // No Mockery here; use the actual implementation
+    $gateway = new NetbankPaymentGateway; // No Mockery here; use the actual implementation
 
     // Act: Call confirmDeposit to test the full integration
     $result = $gateway->confirmDeposit($response->toArray());
@@ -301,13 +304,13 @@ it('successfully disburses funds to a bank account', function (User $user, array
         config('disbursement.server.token-end-point') => Http::response(['access_token' => 'fake-token'], 200),
         config('disbursement.server.end-point') => Http::response([
             'transaction_id' => 'TXN-987654',
-            'status' => 'PENDING'
+            'status' => 'PENDING',
         ], 200),
     ]);
 
     Log::spy();
 
-    $gateway = new NetbankPaymentGateway();
+    $gateway = new NetbankPaymentGateway;
 
     $data = DisburseInputData::from($validated);
 
@@ -334,8 +337,7 @@ it('successfully disburses funds to a bank account', function (User $user, array
     $user->wallet->refreshBalance();
     expect((float) $user->balanceFloat)->toBe(2000.00);
 
-    Http::assertSent(fn ($request) =>
-        $request->url() === config('disbursement.server.end-point') &&
+    Http::assertSent(fn ($request) => $request->url() === config('disbursement.server.end-point') &&
         $request->hasHeader('Authorization', 'Bearer fake-token') &&
         $request['reference_id'] === $validated['reference']
     );
@@ -361,11 +363,11 @@ it('confirms disbursement and deducts from user wallet', function (User $user, a
         config('disbursement.server.token-end-point') => Http::response(['access_token' => 'fake-token'], 200),
         config('disbursement.server.end-point') => Http::response([
             'transaction_id' => 'CONFIRM-TXN-001',
-            'status' => 'PENDING'
+            'status' => 'PENDING',
         ], 200),
     ]);
 
-    $gateway = new NetbankPaymentGateway();
+    $gateway = new NetbankPaymentGateway;
     $response = $gateway->disburse($user, $validated);
     $operationId = $response->transaction_id;
 
@@ -400,24 +402,24 @@ it('sends a live disbursement transaction to Netbank', function () {
     expect($user->email)->not->toBeNull();
 
     // Define the validated input (disbursement data)
-//    $validated = [
-//        'reference'         => Str::random(4) . '-09173011987',  // Unique reference for this transaction
-//        'amount'            => 53.17,                            // Transaction amount
-//        'account_number'    => '09173011987',                    // Destination bank account
-//        'bank'              => 'GXCHPHM2XXX',                    // GCash Bank Code
-//        'via'               => 'INSTAPAY'
-//    ];
+    //    $validated = [
+    //        'reference'         => Str::random(4) . '-09173011987',  // Unique reference for this transaction
+    //        'amount'            => 53.17,                            // Transaction amount
+    //        'account_number'    => '09173011987',                    // Destination bank account
+    //        'bank'              => 'GXCHPHM2XXX',                    // GCash Bank Code
+    //        'via'               => 'INSTAPAY'
+    //    ];
 
     $validated = [
-        'reference'         => Str::random(4) . '-09173011987',  // Unique reference for this transaction
-        'amount'            => 53.17,                            // Transaction amount
-        'account_number'    => '09173011987',                    // Destination bank account
-        'bank'              => 'PAPHPHM1XXX',                    // Maya Bank Code
-        'via'               => 'INSTAPAY'
+        'reference' => Str::random(4).'-09173011987',  // Unique reference for this transaction
+        'amount' => 53.17,                            // Transaction amount
+        'account_number' => '09173011987',                    // Destination bank account
+        'bank' => 'PAPHPHM1XXX',                    // Maya Bank Code
+        'via' => 'INSTAPAY',
     ];
 
     // Create an instance of NetbankPaymentGateway
-    $gateway = new NetbankPaymentGateway();
+    $gateway = new NetbankPaymentGateway;
 
     try {
         // Send the live disbursement request
@@ -429,7 +431,7 @@ it('sends a live disbursement transaction to Netbank', function () {
         // Assert the response is valid and contains expected keys
         expect($response)->toBeInstanceOf(DisburseResponseData::class);
         expect($response->transaction_id)->not->toBeNull();
-//        expect($response->status)->toBeOneOf(['PENDING', 'SUCCESS']);
+        //        expect($response->status)->toBeOneOf(['PENDING', 'SUCCESS']);
 
     } catch (\Throwable $e) {
         // Catch and log any potential errors returned by Netbank or the gateway
@@ -437,4 +439,3 @@ it('sends a live disbursement transaction to Netbank', function () {
         throw $e; // Rethrow the exception for assertion purposes
     }
 })->skip();
-

@@ -2,29 +2,29 @@
 
 namespace LBHurtado\Merchant\Models;
 
-use LBHurtado\Merchant\Database\Factories\MerchantFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use LBHurtado\Merchant\Database\Factories\MerchantFactory;
 
 /**
  * Class Merchant.
  *
- * @property int         $id
- * @property string      $uuid
- * @property string      $code
- * @property string      $name
+ * @property int $id
+ * @property string $uuid
+ * @property string $code
+ * @property string $name
  * @property string|null $city
  * @property string|null $description
- * @property string      $merchant_category_code
+ * @property string $merchant_category_code
  * @property string|null $logo_url
- * @property bool        $allow_tip
- * @property bool        $is_dynamic
- * @property float|null  $default_amount
- * @property float|null  $min_amount
- * @property float|null  $max_amount
- * @property string      $merchant_name_template
- * @property bool        $is_active
+ * @property bool $allow_tip
+ * @property bool $is_dynamic
+ * @property float|null $default_amount
+ * @property float|null $min_amount
+ * @property float|null $max_amount
+ * @property string $merchant_name_template
+ * @property bool $is_active
  *
  * @method int getKey()
  */

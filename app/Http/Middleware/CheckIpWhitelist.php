@@ -19,7 +19,7 @@ class CheckIpWhitelist
         $settings = app(SecuritySettings::class);
 
         // Skip if IP whitelisting is globally disabled
-        if (!$settings->ip_whitelist_enabled) {
+        if (! $settings->ip_whitelist_enabled) {
             return $next($request);
         }
 
@@ -40,7 +40,7 @@ class CheckIpWhitelist
         $clientIp = $this->getClientIp($request);
 
         // Check if IP is whitelisted (supports CIDR notation)
-        if (!$this->isIpWhitelisted($clientIp, $whitelist)) {
+        if (! $this->isIpWhitelisted($clientIp, $whitelist)) {
             Log::warning('IP whitelist violation', [
                 'user_id' => $request->user()?->id,
                 'client_ip' => $clientIp,
@@ -65,6 +65,7 @@ class CheckIpWhitelist
         // Check X-Forwarded-For header (behind proxy/load balancer)
         if ($request->header('X-Forwarded-For')) {
             $ips = explode(',', $request->header('X-Forwarded-For'));
+
             return trim($ips[0]); // First IP is the original client
         }
 

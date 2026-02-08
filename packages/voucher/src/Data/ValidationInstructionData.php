@@ -7,12 +7,12 @@ use Spatie\LaravelData\Data;
 
 /**
  * Container for all validation instructions
- * 
+ *
  * Aggregates location and time validation configurations
  * for voucher redemption validation.
- * 
+ *
  * @property LocationValidationData|null $location - Location validation config
- * @property TimeValidationData|null     $time     - Time validation config
+ * @property TimeValidationData|null $time - Time validation config
  */
 class ValidationInstructionData extends Data
 {

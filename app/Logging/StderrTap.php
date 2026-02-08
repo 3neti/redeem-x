@@ -9,9 +9,6 @@ class StderrTap
 {
     /**
      * Customize the stderr handler for large payloads (location, signature data).
-     *
-     * @param  \Illuminate\Log\Logger  $logger
-     * @return void
      */
     public function __invoke(Logger $logger): void
     {

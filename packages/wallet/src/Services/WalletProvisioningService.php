@@ -2,9 +2,9 @@
 
 namespace LBHurtado\Wallet\Services;
 
-use LBHurtado\Wallet\Tests\Models\User; //TODO: change this to dynamic
-use LBHurtado\Wallet\Enums\WalletType;
+// TODO: change this to dynamic
 use Bavix\Wallet\Interfaces\Wallet;
+use LBHurtado\Wallet\Enums\WalletType;
 
 class WalletProvisioningService
 {

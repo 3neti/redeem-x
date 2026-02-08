@@ -39,4 +39,3 @@ class SMSRequest extends FormRequest
         return $validated;
     }
 }
-

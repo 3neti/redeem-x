@@ -15,14 +15,14 @@ class ReservedAliasSeeder extends Seeder
         $reserved = [
             // System / Admin
             'ADMIN', 'ROOT', 'SYSTEM', 'NULL', 'DEFAULT',
-            
+
             // Government
             'GOV', 'GOVT', 'DOF', 'DBM', 'DICT', 'DTI', 'DOH',
-            
+
             // Banks
             'BSP', 'BDO', 'BPI', 'LANDBANK', 'RCBC', 'METRO',
             'PNB', 'UCPB', 'SECURITY', 'UNION',
-            
+
             // EMIs / Fintech
             'GCASH', 'MAYA', 'PAYMAYA', 'COINS', 'GRAB',
             'SHOPEEP', 'LAZADA',

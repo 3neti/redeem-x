@@ -3,7 +3,8 @@
 namespace LBHurtado\Voucher\Pipelines\GeneratedVouchers;
 
 use Closure;
-use Illuminate\Support\Facades\{Http, Log};
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CheckFundsAvailability
 {
@@ -19,7 +20,7 @@ class CheckFundsAvailability
             $voucherCurrency = $instructions->cash->currency ?? null;
 
             // Ensure amount and currency are present
-            if (!$amount || !$voucherCurrency) {
+            if (! $amount || ! $voucherCurrency) {
                 throw new \Exception("Missing amount or currency in voucher metadata for voucher ID: {$voucher->id}.");
             }
 
@@ -52,7 +53,7 @@ class CheckFundsAvailability
 
             $responseData = $response->json();
 
-            if (!$responseData['available']) {
+            if (! $responseData['available']) {
                 throw new \Exception("Funds unavailable for the total amount: $totalAmount $currency.");
             }
         } catch (\Exception $e) {

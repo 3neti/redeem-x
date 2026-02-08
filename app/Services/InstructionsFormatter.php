@@ -38,8 +38,8 @@ class InstructionsFormatter
 
         // Add settlement rail if set
         if ($instructions->cash->settlement_rail) {
-            $rail = is_object($instructions->cash->settlement_rail) 
-                ? $instructions->cash->settlement_rail->value 
+            $rail = is_object($instructions->cash->settlement_rail)
+                ? $instructions->cash->settlement_rail->value
                 : $instructions->cash->settlement_rail;
             $data['cash']['settlement_rail'] = $rail;
             $data['cash']['fee_strategy'] = $instructions->cash->fee_strategy ?? 'absorb';
@@ -47,7 +47,7 @@ class InstructionsFormatter
 
         // Add input fields if any
         if ($instructions->inputs && $instructions->inputs->fields) {
-            $data['inputs'] = array_map(fn($f) => $f->value, $instructions->inputs->fields);
+            $data['inputs'] = array_map(fn ($f) => $f->value, $instructions->inputs->fields);
         }
 
         // Add feedback channels if present
@@ -117,15 +117,15 @@ class InstructionsFormatter
 
         // Amount
         $money = \Brick\Money\Money::of($instructions->cash->amount, $instructions->cash->currency);
-        $lines[] = "Amount: " . $money->formatTo(Number::defaultLocale());
+        $lines[] = 'Amount: '.$money->formatTo(Number::defaultLocale());
 
         // Settlement rail
         if ($instructions->cash->settlement_rail) {
-            $rail = is_object($instructions->cash->settlement_rail) 
-                ? $instructions->cash->settlement_rail->value 
+            $rail = is_object($instructions->cash->settlement_rail)
+                ? $instructions->cash->settlement_rail->value
                 : $instructions->cash->settlement_rail;
             $feeStrategy = $instructions->cash->fee_strategy ?? 'absorb';
-            $feeText = match($feeStrategy) {
+            $feeText = match ($feeStrategy) {
                 'absorb' => 'fee absorbed by issuer',
                 'include' => 'fee deducted from amount',
                 'add' => 'fee added to disbursement',
@@ -137,10 +137,10 @@ class InstructionsFormatter
         // Required inputs
         if ($instructions->inputs && $instructions->inputs->fields) {
             $fieldLabels = array_map(
-                fn($field) => static::getInputFieldLabel($field),
+                fn ($field) => static::getInputFieldLabel($field),
                 $instructions->inputs->fields
             );
-            $lines[] = "Inputs: " . implode(', ', $fieldLabels);
+            $lines[] = 'Inputs: '.implode(', ', $fieldLabels);
         }
 
         // Feedback channels
@@ -155,7 +155,7 @@ class InstructionsFormatter
             if ($instructions->feedback->webhook) {
                 $feedbackParts[] = $instructions->feedback->webhook;
             }
-            $lines[] = "Feedback: " . implode(', ', $feedbackParts);
+            $lines[] = 'Feedback: '.implode(', ', $feedbackParts);
         }
 
         // Location validation
@@ -209,10 +209,10 @@ class InstructionsFormatter
 
         // Too long - create compact version
         $compact = static::formatCompact($instructions);
-        
+
         // If still too long, truncate
         if (mb_strlen($compact) > static::SMS_REASONABLE_LENGTH) {
-            return mb_substr($compact, 0, static::SMS_REASONABLE_LENGTH - 3) . '...';
+            return mb_substr($compact, 0, static::SMS_REASONABLE_LENGTH - 3).'...';
         }
 
         return $compact;
@@ -241,14 +241,14 @@ class InstructionsFormatter
 
         // Inputs (priority 1)
         if ($instructions->inputs && $instructions->inputs->fields) {
-            $fields = array_map(fn($f) => ucfirst($f->value), $instructions->inputs->fields);
-            $parts[] = "Inputs: " . implode(', ', $fields);
+            $fields = array_map(fn ($f) => ucfirst($f->value), $instructions->inputs->fields);
+            $parts[] = 'Inputs: '.implode(', ', $fields);
         }
 
         // Rail (priority 2)
         if ($instructions->cash->settlement_rail) {
-            $rail = is_object($instructions->cash->settlement_rail) 
-                ? $instructions->cash->settlement_rail->value 
+            $rail = is_object($instructions->cash->settlement_rail)
+                ? $instructions->cash->settlement_rail->value
                 : $instructions->cash->settlement_rail;
             $parts[] = "Rail: {$rail}";
         }

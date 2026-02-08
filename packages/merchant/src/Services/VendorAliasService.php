@@ -16,7 +16,7 @@ class VendorAliasService
 
     /**
      * Validate alias format.
-     * 
+     *
      * Rules:
      * - Must be ASCII only
      * - Must start with a letter (A-Z)
@@ -33,7 +33,7 @@ class VendorAliasService
         // Regex: starts with letter, 3-8 chars total, uppercase letters/digits only
         // Default pattern - can be overridden by config
         $pattern = '^[A-Z][A-Z0-9]{2,7}$';
-        
+
         // Try to get from config if Laravel app is available
         try {
             if (function_exists('app') && app()->has('config')) {
@@ -42,7 +42,7 @@ class VendorAliasService
         } catch (\Throwable $e) {
             // Fallback to default pattern if config unavailable
         }
-        
+
         return (bool) preg_match('/'.$pattern.'/', $alias);
     }
 
@@ -53,7 +53,7 @@ class VendorAliasService
     public function isReserved(string $alias): bool
     {
         $normalized = $this->normalize($alias);
-        
+
         return DB::table('reserved_vendor_aliases')
             ->where('alias', $normalized)
             ->exists();

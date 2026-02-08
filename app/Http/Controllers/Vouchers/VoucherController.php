@@ -8,10 +8,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Models\Voucher;
-use Laravel\Pennant\Feature;
 
 /**
  * Voucher Management Controller
@@ -51,13 +51,13 @@ class VoucherController extends Controller
             $envelope = $voucher->envelope;
             if ($envelope) {
                 $envelope->load(['checklistItems', 'attachments', 'signals', 'auditLogs']);
-                
+
                 // Compute gates and flags for UI
                 $envelopeService = app(\LBHurtado\SettlementEnvelope\Services\EnvelopeService::class);
                 $gates = $envelopeService->computeGates($envelope);
                 $checklistContext = $this->buildChecklistContext($envelope);
                 $signalContext = $this->buildSignalContext($envelope);
-                
+
                 $data['envelope'] = [
                     'id' => $envelope->id,
                     'reference_code' => $envelope->reference_code,
@@ -68,7 +68,7 @@ class VoucherController extends Controller
                     'payload_version' => $envelope->payload_version,
                     'context' => $envelope->context,
                     'gates_cache' => $gates,
-                    
+
                     // Computed flags for state machine (Phase 4)
                     'computed_flags' => [
                         'required_present' => $checklistContext['required_present'],
@@ -77,7 +77,7 @@ class VoucherController extends Controller
                         'all_signals_satisfied' => $signalContext['all_satisfied'],
                         'settleable' => $gates['settleable'] ?? false,
                     ],
-                    
+
                     // Status helpers from enum
                     'status_helpers' => [
                         'can_edit' => $envelope->status->canEdit(),
@@ -88,7 +88,7 @@ class VoucherController extends Controller
                         'can_reopen' => $envelope->status->canReopen(),
                         'is_terminal' => $envelope->status->isTerminal(),
                     ],
-                    
+
                     // Timestamps
                     'locked_at' => $envelope->locked_at?->toIso8601String(),
                     'settled_at' => $envelope->settled_at?->toIso8601String(),
@@ -96,7 +96,7 @@ class VoucherController extends Controller
                     'rejected_at' => $envelope->rejected_at?->toIso8601String(),
                     'created_at' => $envelope->created_at->toIso8601String(),
                     'updated_at' => $envelope->updated_at->toIso8601String(),
-                    
+
                     // Relationships
                     'checklist_items' => $envelope->checklistItems->map(fn ($item) => [
                         'id' => $item->id,
@@ -144,13 +144,14 @@ class VoucherController extends Controller
         }
 
         // Add envelope drivers for creating new envelopes (when voucher has no envelope)
-        if (!isset($data['envelope'])) {
+        if (! isset($data['envelope'])) {
             try {
                 $driverService = app(\LBHurtado\SettlementEnvelope\Services\DriverService::class);
                 $driverList = $driverService->list();
                 $data['envelope_drivers'] = collect($driverList)->map(function ($item) use ($driverService) {
                     try {
                         $driver = $driverService->load($item['id'], $item['version']);
+
                         return [
                             'id' => $driver->id,
                             'version' => $driver->version,

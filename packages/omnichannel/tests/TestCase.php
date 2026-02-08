@@ -3,8 +3,8 @@
 namespace LBHurtado\OmniChannel\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use LBHurtado\OmniChannel\Tests\Models\User;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -23,7 +23,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
-        \LBHurtado\OmniChannel\OmniChannelServiceProvider::class,
+            \LBHurtado\OmniChannel\OmniChannelServiceProvider::class,
         ];
     }
 
@@ -47,7 +47,7 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('auth.defaults.guard', 'web');
 
         // Run the migration from the local package
-        $userMigration = include __DIR__ . '/../database/migrations/test/0001_01_01_000000_create_users_table.php';
+        $userMigration = include __DIR__.'/../database/migrations/test/0001_01_01_000000_create_users_table.php';
         $userMigration->up();
     }
 
@@ -71,13 +71,13 @@ abstract class TestCase extends BaseTestCase
     {
         $this->app['config']->set(
             'omnichannel',
-            require __DIR__ . '/../config/omnichannel.php'
+            require __DIR__.'/../config/omnichannel.php'
         );
     }
 
     protected function loadEnvironment()
     {
-        $path =__DIR__ . '/../.env';
+        $path = __DIR__.'/../.env';
 
         if (file_exists($path)) {
             \Dotenv\Dotenv::createImmutable(dirname($path), '.env')->load();

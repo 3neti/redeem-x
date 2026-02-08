@@ -7,13 +7,13 @@ use Spatie\LaravelData\Data;
 
 /**
  * Time window configuration for time-of-day validation
- * 
+ *
  * Defines a daily time window when redemptions are allowed.
  * Supports cross-midnight windows (e.g., 22:00 to 02:00).
- * 
+ *
  * @property string $start_time - Start time in H:i format (e.g., "09:00")
- * @property string $end_time   - End time in H:i format (e.g., "17:00")
- * @property string $timezone   - Timezone for time comparison
+ * @property string $end_time - End time in H:i format (e.g., "17:00")
+ * @property string $timezone - Timezone for time comparison
  */
 class TimeWindowData extends Data
 {
@@ -29,7 +29,7 @@ class TimeWindowData extends Data
     public function isWithinWindow(?Carbon $time = null): bool
     {
         $now = $time ?? Carbon::now($this->timezone);
-        
+
         $start = $this->parseTime($this->start_time, $now);
         $end = $this->parseTime($this->end_time, $now);
 
@@ -49,7 +49,7 @@ class TimeWindowData extends Data
     protected function parseTime(string $time, Carbon $date): Carbon
     {
         [$hour, $minute] = explode(':', $time);
-        
+
         return $date->copy()
             ->setTime((int) $hour, (int) $minute, 0);
     }
@@ -60,6 +60,7 @@ class TimeWindowData extends Data
     public function getStartTime(?Carbon $date = null): Carbon
     {
         $date = $date ?? Carbon::now($this->timezone);
+
         return $this->parseTime($this->start_time, $date);
     }
 
@@ -69,6 +70,7 @@ class TimeWindowData extends Data
     public function getEndTime(?Carbon $date = null): Carbon
     {
         $date = $date ?? Carbon::now($this->timezone);
+
         return $this->parseTime($this->end_time, $date);
     }
 
@@ -80,7 +82,7 @@ class TimeWindowData extends Data
         $date = Carbon::now($this->timezone);
         $start = $this->getStartTime($date);
         $end = $this->getEndTime($date);
-        
+
         return $end->lessThan($start);
     }
 }

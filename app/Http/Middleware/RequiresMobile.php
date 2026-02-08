@@ -17,13 +17,13 @@ class RequiresMobile
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        
+
         // Load channels relationship if not already loaded
-        if (!$user->relationLoaded('channels')) {
+        if (! $user->relationLoaded('channels')) {
             $user->load('channels');
         }
-        
-        if (!$user->mobile) {
+
+        if (! $user->mobile) {
             return redirect()->route('profile.edit', [
                 'reason' => 'mobile_required',
                 'return_to' => $request->fullUrl(),
@@ -32,7 +32,7 @@ class RequiresMobile
                 'message' => 'Please add your mobile number to continue.',
             ]);
         }
-        
+
         return $next($request);
     }
 }

@@ -16,7 +16,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->user = User::factory()->create();
     $this->user->deposit(10000);
-    
+
     // Create real token instead of using Sanctum::actingAs mock
     $token = $this->user->createToken('test-token');
     $this->withToken($token->plainTextToken);
@@ -25,9 +25,9 @@ beforeEach(function () {
 test('shows basic voucher information', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -49,7 +49,7 @@ test('shows basic voucher information', function () {
 test('shows external metadata when present', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     // Set external metadata
     $voucher->external_metadata = ExternalMetadataData::from([
         'external_id' => 'quest-999',
@@ -59,9 +59,9 @@ test('shows external metadata when present', function () {
         'custom' => ['level' => 50, 'mission' => 'final-boss'],
     ]);
     $voucher->save();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonPath('data.external_metadata.external_id', 'quest-999')
         ->assertJsonPath('data.external_metadata.external_type', 'questpay')
@@ -74,9 +74,9 @@ test('shows external metadata when present', function () {
 test('shows null external metadata when not present', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonPath('data.external_metadata', null);
 });
@@ -84,16 +84,16 @@ test('shows null external metadata when not present', function () {
 test('shows timing data when tracked', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     // Track timing events
     $voucher->trackClick();
     sleep(1);
     $voucher->trackRedemptionStart();
     sleep(1);
     $voucher->trackRedemptionSubmit();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -105,7 +105,7 @@ test('shows timing data when tracked', function () {
                 ],
             ],
         ]);
-    
+
     $timing = $response->json('data.timing');
     expect($timing['clicked_at'])->not->toBeNull();
     expect($timing['started_at'])->not->toBeNull();
@@ -116,9 +116,9 @@ test('shows timing data when tracked', function () {
 test('shows null timing when not tracked', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonPath('data.timing', null);
 });
@@ -126,26 +126,26 @@ test('shows null timing when not tracked', function () {
 test('shows validation results when present', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     // Store validation results
     $location = LocationValidationResultData::from([
         'validated' => true,
         'distance_meters' => 25.5,
         'should_block' => false,
     ]);
-    
+
     $time = TimeValidationResultData::from([
         'within_window' => true,
         'within_duration' => true,
         'duration_seconds' => 180,
         'should_block' => false,
     ]);
-    
+
     $voucher->storeValidationResults($location, $time);
     $voucher->save();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -175,9 +175,9 @@ test('shows validation results when present', function () {
 test('shows null validation results when not present', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonPath('data.validation_results', null);
 });
@@ -193,15 +193,15 @@ test('shows collected inputs when present', function () {
         'mask' => '****',
         'ttl' => null,
     ]);
-    
+
     $voucher = $vouchers->first();
-    
+
     // Add input data
     $voucher->forceSetInput('name', 'John Doe');
     $voucher->forceSetInput('email', 'john@example.com');
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonPath('data.inputs.name', 'John Doe')
         ->assertJsonPath('data.inputs.email', 'john@example.com');
@@ -218,9 +218,9 @@ test('shows location input in structured format', function () {
         'mask' => '****',
         'ttl' => null,
     ]);
-    
+
     $voucher = $vouchers->first();
-    
+
     // Add location data
     $voucher->forceSetInput('location', json_encode([
         'latitude' => 14.5995,
@@ -232,9 +232,9 @@ test('shows location input in structured format', function () {
         ],
         'snapshot' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
     ]));
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -267,15 +267,15 @@ test('shows signature input metadata without full data URL', function () {
         'mask' => '****',
         'ttl' => null,
     ]);
-    
+
     $voucher = $vouchers->first();
-    
+
     // Add signature data
     $signatureDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
     $voucher->forceSetInput('signature', $signatureDataUrl);
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -290,7 +290,7 @@ test('shows signature input metadata without full data URL', function () {
         ])
         ->assertJsonPath('data.inputs.signature.present', true)
         ->assertJsonPath('data.inputs.signature.format', 'png');
-    
+
     $sizeBytes = $response->json('data.inputs.signature.size_bytes');
     expect($sizeBytes)->toBeGreaterThan(0);
     expect($sizeBytes)->toBe(strlen($signatureDataUrl));
@@ -307,15 +307,15 @@ test('shows selfie input metadata without full data URL', function () {
         'mask' => '****',
         'ttl' => null,
     ]);
-    
+
     $voucher = $vouchers->first();
-    
+
     // Add selfie data (JPEG format)
     $selfieDataUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA==';
     $voucher->forceSetInput('selfie', $selfieDataUrl);
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonPath('data.inputs.selfie.present', true)
         ->assertJsonPath('data.inputs.selfie.format', 'jpeg');
@@ -324,11 +324,11 @@ test('shows selfie input metadata without full data URL', function () {
 test('does not show inputs key when no inputs collected', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk();
-    
+
     $data = $response->json('data');
     expect($data)->not->toHaveKey('inputs');
 });
@@ -336,15 +336,15 @@ test('does not show inputs key when no inputs collected', function () {
 test('shows redeemer information when voucher is redeemed', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     // Redeem voucher
     $contact = Contact::factory()->create(['mobile' => '09171234567']);
     RedeemVoucher::run($contact, $voucher->code);
-    
+
     $voucher->refresh();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -355,7 +355,7 @@ test('shows redeemer information when voucher is redeemed', function () {
                 ],
             ],
         ]);
-    
+
     // Check redeemer data exists
     $redeemedBy = $response->json('data.redeemed_by');
     expect($redeemedBy)->not->toBeNull();
@@ -367,11 +367,11 @@ test('shows redeemer information when voucher is redeemed', function () {
 test('does not show redeemer information when voucher is not redeemed', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST');
     $voucher = $vouchers->first();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk();
-    
+
     $data = $response->json('data');
     expect($data)->not->toHaveKey('redeemed_by');
 });
@@ -387,9 +387,9 @@ test('shows complete voucher with all metadata and inputs', function () {
         'mask' => '****',
         'ttl' => null,
     ]);
-    
+
     $voucher = $vouchers->first();
-    
+
     // 1. Set external metadata
     $voucher->external_metadata = ExternalMetadataData::from([
         'external_id' => 'complete-test',
@@ -397,29 +397,29 @@ test('shows complete voucher with all metadata and inputs', function () {
         'user_id' => 'user-123',
     ]);
     $voucher->save();
-    
+
     // 2. Track timing
     $voucher->trackClick();
     $voucher->trackRedemptionStart();
     $voucher->trackRedemptionSubmit();
-    
+
     // 3. Store validation results
     $location = LocationValidationResultData::from([
         'validated' => true,
         'distance_meters' => 10.0,
         'should_block' => false,
     ]);
-    
+
     $time = TimeValidationResultData::from([
         'within_window' => true,
         'within_duration' => true,
         'duration_seconds' => 60,
         'should_block' => false,
     ]);
-    
+
     $voucher->storeValidationResults($location, $time);
     $voucher->save();
-    
+
     // 4. Add inputs
     $voucher->forceSetInput('name', 'Jane Doe');
     $voucher->forceSetInput('email', 'jane@example.com');
@@ -429,17 +429,17 @@ test('shows complete voucher with all metadata and inputs', function () {
         'address' => ['formatted' => 'Quezon City, Philippines'],
     ]));
     $voucher->forceSetInput('signature', 'data:image/png;base64,test123');
-    
+
     // 5. Redeem voucher
     $contact = Contact::factory()->create(['mobile' => '09179876543']);
     RedeemVoucher::run($contact, $voucher->code);
-    
+
     $voucher->refresh();
-    
+
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
-    
+
     $response->assertOk();
-    
+
     // Verify all sections are present
     $data = $response->json('data');
     expect($data)->toHaveKey('voucher');
@@ -449,23 +449,23 @@ test('shows complete voucher with all metadata and inputs', function () {
     expect($data)->toHaveKey('validation_results');
     expect($data)->toHaveKey('inputs');
     expect($data)->toHaveKey('redeemed_by');
-    
+
     // Verify external metadata
     expect($data['external_metadata']['external_id'])->toBe('complete-test');
-    
+
     // Verify timing exists (duration may be 0 if tracking calls are too fast)
     expect($data['timing'])->not->toBeNull();
     expect($data['timing']['duration_seconds'])->toBeGreaterThanOrEqual(0);
-    
+
     // Verify validation
     expect($data['validation_results']['passed'])->toBe(true);
     expect($data['validation_results']['location']['distance_meters'])->toBe(10);
-    
+
     // Verify inputs
     expect($data['inputs']['name'])->toBe('Jane Doe');
     expect($data['inputs']['location']['latitude'])->toBe(14.5);
     expect($data['inputs']['signature']['present'])->toBe(true);
-    
+
     // Verify redeemer
     expect($data['redeemed_by']['mobile'])->toBe('09179876543');
 });
@@ -478,7 +478,7 @@ test('cannot view another users voucher', function () {
 
 test('returns 404 for non-existent voucher', function () {
     $response = $this->getJson('/api/v1/vouchers/NONEXISTENT123');
-    
+
     $response->assertNotFound();
 });
 

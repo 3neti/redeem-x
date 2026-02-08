@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\ExternalMetadataData;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -18,11 +17,11 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Disable queues to avoid serialization issues in tests
     Queue::fake();
-    
+
     // Create authenticated user with sufficient balance
     $this->user = User::factory()->create();
     $this->user->deposit(100000); // ₱100,000 balance
-    
+
     Sanctum::actingAs($this->user, ['*']);
 });
 
@@ -64,11 +63,11 @@ describe('Set External Metadata API', function () {
     test('cannot set external metadata on voucher owned by another user', function () {
         $otherUser = User::factory()->create();
         $otherUser->deposit(10000);
-        
+
         // Switch auth context to create voucher for other user
         auth()->setUser($otherUser);
         $voucher = VoucherTestHelper::createVouchersWithInstructions($otherUser, 1, 'TEST')->first();
-        
+
         // Switch back to original user
         Sanctum::actingAs($this->user, ['*']);
 
@@ -123,11 +122,11 @@ describe('Track Timing API', function () {
 
     test('can track redemption submit with duration', function () {
         $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST')->first();
-        
+
         // Track start first
         $voucher->trackRedemptionStart();
         $voucher->save();
-        
+
         sleep(1); // Wait 1 second
 
         $response = $this->postJson("/api/v1/vouchers/{$voucher->code}/timing/submit");
@@ -150,11 +149,11 @@ describe('Track Timing API', function () {
     test('cannot track timing on voucher owned by another user', function () {
         $otherUser = User::factory()->create();
         $otherUser->deposit(10000);
-        
+
         // Switch auth context to create voucher for other user
         auth()->setUser($otherUser);
         $voucher = VoucherTestHelper::createVouchersWithInstructions($otherUser, 1, 'TEST')->first();
-        
+
         // Switch back to original user
         Sanctum::actingAs($this->user, ['*']);
 
@@ -167,13 +166,13 @@ describe('Track Timing API', function () {
 describe('Show Voucher API', function () {
     test('includes external metadata, timing, and validation results', function () {
         $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST')->first();
-        
+
         // Set external metadata
         $voucher->external_metadata = ExternalMetadataData::from([
             'external_id' => 'quest-123',
             'external_type' => 'questpay',
         ]);
-        
+
         // Track timing
         $voucher->trackClick();
         $voucher->save();
@@ -197,21 +196,21 @@ describe('Query Vouchers API', function () {
     beforeEach(function () {
         // Create vouchers with different external metadata
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3, 'TEST');
-        
+
         $vouchers[0]->external_metadata = ExternalMetadataData::from([
             'external_type' => 'questpay',
             'external_id' => 'quest-1',
             'user_id' => 'player-1',
         ]);
         $vouchers[0]->save();
-        
+
         $vouchers[1]->external_metadata = ExternalMetadataData::from([
             'external_type' => 'questpay',
             'external_id' => 'quest-2',
             'user_id' => 'player-2',
         ]);
         $vouchers[1]->save();
-        
+
         $vouchers[2]->external_metadata = ExternalMetadataData::from([
             'external_type' => 'rewards',
             'external_id' => 'reward-1',
@@ -329,7 +328,7 @@ describe('Bulk Create Vouchers API', function () {
         // Note: Skipping this test due to wallet balance persistence issues in test environment
         // The wallet balance isn't being properly reset between tests
         // TODO: Investigate bavix/laravel-wallet behavior in test transactions
-        
+
         $this->markTestSkipped('Wallet balance test needs investigation - balance persists across tests');
     })->skip();
 
@@ -364,9 +363,9 @@ describe('Authentication', function () {
     test('requires authentication for all endpoints', function () {
         // Remove authentication
         $this->withoutMiddleware(\Illuminate\Auth\Middleware\Authenticate::class);
-        
+
         Sanctum::actingAs(User::factory()->create(), []);
-        
+
         $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST')->first();
 
         $endpoints = [

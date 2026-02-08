@@ -1,25 +1,22 @@
 <?php
 
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
+use FrittenKeeZ\Vouchers\Models\Voucher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use LBHurtado\Cash\Models\Cash;
-use LBHurtado\Voucher\Data\CashValidationRulesData;
-use LBHurtado\Voucher\Data\FeedbackInstructionData;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use LBHurtado\Voucher\Data\RiderInstructionData;
+use LBHurtado\Contact\Models\Contact;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\CashInstructionData;
-use LBHurtado\Voucher\Events\VouchersGenerated;
-use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Data\CashValidationRulesData;
+use LBHurtado\Voucher\Data\FeedbackInstructionData;
 use LBHurtado\Voucher\Data\InputFieldsData;
-use FrittenKeeZ\Vouchers\Models\Voucher;
-use Illuminate\Support\Facades\Event;
-use Carbon\CarbonInterval;
+use LBHurtado\Voucher\Data\RiderInstructionData;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Pipelines\RedeemedVoucher\DisburseCash;
 use LBHurtado\Voucher\Tests\Models\User;
 use LBHurtado\Wallet\Services\SystemUserResolverService;
-use LBHurtado\Contact\Models\Contact;
 
 uses(RefreshDatabase::class);
 
@@ -42,7 +39,7 @@ beforeEach(function () {
 
 dataset('voucher', function () {
     return [
-        [ fn() => GenerateVouchers::run(new VoucherInstructionsData(
+        [fn () => GenerateVouchers::run(new VoucherInstructionsData(
             cash: new CashInstructionData(
                 amount: 53.7,
                 currency: 'PHP',
@@ -71,7 +68,7 @@ dataset('voucher', function () {
             prefix: null, // Use default prefix from config
             mask: null,   // Use default mask from config
             ttl: null     // Use default TTL (12 hours) from action
-        ))->first() ]
+        ))->first()],
     ];
 });
 
@@ -87,7 +84,7 @@ it('disburse voucher invokes handler which in turn invokes the disburse cash pip
 
     $spy->shouldHaveReceived('handle')
         ->once()
-        ->withArgs(function($passedVoucher, $next) use ($voucher) {
+        ->withArgs(function ($passedVoucher, $next) use ($voucher) {
             // The first arg is your Voucher model
             return $passedVoucher instanceof Voucher
                 && $passedVoucher->is($voucher)
@@ -96,17 +93,17 @@ it('disburse voucher invokes handler which in turn invokes the disburse cash pip
         });
 })->with('voucher');
 
-it('disburses cash live', function  ($voucher) {
+it('disburses cash live', function ($voucher) {
     $cash = $voucher->getEntities(Cash::class)->first();
     expect((float) $cash->balanceFloat)->toBe(53.7);
 
     $contact = Contact::factory()->create(['mobile' => '09467438575']);
-//    $contact = Contact::factory()->create(['mobile' => '09173011987']);
+    //    $contact = Contact::factory()->create(['mobile' => '09173011987']);
 
     $success = Vouchers::redeem($voucher->code, $contact);
-//    $success = Vouchers::redeem($voucher->code, $contact, ['bank_account' => 'BNORPHMMXXX:000661592316']);
+    //    $success = Vouchers::redeem($voucher->code, $contact, ['bank_account' => 'BNORPHMMXXX:000661592316']);
     expect($success)->toBeTrue();
     $cash = $voucher->getEntities(Cash::class)->first();
     $cash->wallet->refreshBalance();
-    expect((float) $cash->wallet->balanceFloat)->toBe(53.7);//need to be confirmed to become zero
+    expect((float) $cash->wallet->balanceFloat)->toBe(53.7); // need to be confirmed to become zero
 })->with('voucher')->skip();

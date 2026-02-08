@@ -2,75 +2,75 @@
 
 namespace LBHurtado\PaymentGateway\Gateways\Omnipay;
 
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
-use LBHurtado\PaymentGateway\Omnipay\Support\OmnipayFactory;
-use LBHurtado\PaymentGateway\Data\Disburse\{
-    DisburseInputData,
-    DisburseResponseData
-};
-use LBHurtado\MoneyIssuer\Support\BankRegistry;
-use LBHurtado\PaymentGateway\Enums\SettlementRail;
-use Omnipay\Common\GatewayInterface;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Models\Transaction;
 use Brick\Money\Money;
-use Illuminate\Support\Facades\{DB, Log};
-use LBHurtado\Wallet\Events\DisbursementConfirmed;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\CanConfirmDeposit;
+use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
+use LBHurtado\PaymentGateway\Omnipay\Support\OmnipayFactory;
+use LBHurtado\Wallet\Events\DisbursementConfirmed;
+use Omnipay\Common\GatewayInterface;
 
 /**
  * Omnipay-based payment gateway adapter.
- * 
+ *
  * Implements PaymentGatewayInterface using the Omnipay framework,
  * providing settlement rail validation, EMI detection, and KYC workarounds.
  */
 class OmnipayPaymentGateway implements PaymentGatewayInterface
 {
     use CanConfirmDeposit;
-    
+
     private const DEBUG = false;
-    
+
     protected GatewayInterface $gateway;
+
     protected BankRegistry $bankRegistry;
-    
+
     public function __construct()
     {
         $gatewayName = config('payment-gateway.default', 'netbank');
         $this->gateway = OmnipayFactory::create($gatewayName);
         $this->bankRegistry = app(BankRegistry::class);
     }
-    
+
     /**
      * Disburse funds to a recipient via Omnipay.
-     * 
+     *
      * IMPORTANT: This method handles ONLY the external disbursement API call.
      * Wallet operations (deposits/withdrawals) are handled by the calling pipeline
      * (DisburseCash) to maintain separation of concerns:
-     * 
+     *
      * Flow:
      * 1. DisburseCash pipeline calls WithdrawCash::run() - withdraws from cash wallet
      * 2. DisburseCash pipeline calls this method - sends funds via external gateway
      * 3. This method stores operation metadata and returns response
-     * 
+     *
      * Historical note: Previously, this method performed TopupWalletAction before
      * the API call, which caused duplicate deposits (one from PersistCash during
      * generation, one from this method during redemption). This was removed to fix
      * the bug where settlement vouchers showed ₱100 instead of ₱50.
-     * 
-     * @param Wallet $wallet The wallet being disbursed (for metadata only)
-     * @param DisburseInputData|array $validated Disbursement data
+     *
+     * @param  Wallet  $wallet  The wallet being disbursed (for metadata only)
+     * @param  DisburseInputData|array  $validated  Disbursement data
      * @return DisburseResponseData|bool Response data or false on failure
      */
     public function disburse(
-        Wallet $wallet, 
+        Wallet $wallet,
         DisburseInputData|array $validated
     ): DisburseResponseData|bool {
         // Convert to array if DisburseInputData
         $data = $validated instanceof DisburseInputData
             ? $validated->toArray()
             : $validated;
-        
+
         if (self::DEBUG) {
             Log::debug('[OmnipayPaymentGateway] Starting disbursement', [
                 'wallet_id' => $wallet->getKey(),
@@ -80,10 +80,10 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'via' => $data['via'],
             ]);
         }
-        
+
         $amount = $data['amount'];
         $currency = config('disbursement.currency', 'PHP');
-        
+
         // Log disbursement attempt (for audit trail)
         $attempt = DisbursementAttempt::create([
             'voucher_id' => $data['voucher_id'] ?? null,
@@ -101,7 +101,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             'request_payload' => $data,
             'attempted_at' => now(),
         ]);
-        
+
         // Validate settlement rail
         try {
             $rail = SettlementRail::from($data['via']);
@@ -112,15 +112,16 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'bank' => $data['bank'],
                 'via' => $data['via'],
             ]);
+
             return false;
         }
-        
+
         DB::beginTransaction();
-        
+
         try {
             // Convert amount to minor units (centavos)
             $amountInCentavos = (int) ($amount * 100);
-            
+
             // Call Omnipay gateway
             $response = $this->gateway->disburse([
                 'amount' => $amountInCentavos,
@@ -130,11 +131,11 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'via' => $data['via'],
                 'currency' => $currency,
             ])->send();
-            
-            if (!$response->isSuccessful()) {
+
+            if (! $response->isSuccessful()) {
                 $errorType = $response->getData()['error_type'] ?? 'unknown';
                 $logLevel = $errorType === 'network_timeout' ? 'warning' : 'warning';
-                
+
                 // Update attempt record with failure
                 $attempt->update([
                     'status' => 'failed',
@@ -143,7 +144,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'response_payload' => $response->getData(),
                     'completed_at' => now(),
                 ]);
-                
+
                 Log::$logLevel('[OmnipayPaymentGateway] Disbursement failed', [
                     'message' => $response->getMessage(),
                     'code' => $response->getCode(),
@@ -154,9 +155,10 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'is_timeout' => $errorType === 'network_timeout',
                 ]);
                 DB::rollBack();
+
                 return false;
             }
-            
+
             // Update attempt record with success
             $attempt->update([
                 'status' => 'success',
@@ -164,9 +166,9 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'response_payload' => $response->getData(),
                 'completed_at' => now(),
             ]);
-            
+
             DB::commit();
-            
+
             Log::info('[OmnipayPaymentGateway] Disbursement initiated', [
                 'operation_id' => $response->getOperationId(),
                 'rail' => $rail->value,
@@ -174,7 +176,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'amount' => $amount,
                 'status' => $response->getStatus(),
             ]);
-            
+
             // Return response DTO
             // Note: uuid is generated here as this method no longer creates wallet transactions.
             // Wallet operations are handled by the calling pipeline (DisburseCash + WithdrawCash).
@@ -183,7 +185,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'transaction_id' => $response->getOperationId() ?? 'PENDING',
                 'status' => $response->getStatus() ?? 'Pending',
             ]);
-            
+
         } catch (\Throwable $e) {
             // Update attempt record with error
             if (isset($attempt)) {
@@ -199,7 +201,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'completed_at' => now(),
                 ]);
             }
-            
+
             Log::error('[OmnipayPaymentGateway] Disbursement error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -207,16 +209,17 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'bank' => $data['bank'] ?? null,
             ]);
             DB::rollBack();
+
             return false;
         }
     }
-    
+
     /**
      * Generate QR code for payment collection.
-     * 
-     * @param string $account Account number
-     * @param Money $amount Amount to collect
-     * @param array $merchantData Optional merchant information (merchant, user objects)
+     *
+     * @param  string  $account  Account number
+     * @param  Money  $amount  Amount to collect
+     * @param  array  $merchantData  Optional merchant information (merchant, user objects)
      * @return string QR code data (base64 PNG)
      */
     public function generate(string $account, Money $amount, array $merchantData = []): string
@@ -227,36 +230,36 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'amount' => $amount->getAmount()->toFloat(),
             ]);
         }
-        
+
         // Convert to minor units
         $amountInCentavos = $amount->getMinorAmount()->toInt();
-        
+
         $params = [
             'accountNumber' => $account,
             'amount' => $amountInCentavos,
             'currency' => $amount->getCurrency()->getCurrencyCode(),
         ];
-        
+
         // Render merchant name using template service if merchant and user provided
         if (isset($merchantData['merchant']) && isset($merchantData['user'])) {
             $merchant = $merchantData['merchant'];
             $templateService = app(\App\Services\MerchantNameTemplateService::class);
             // Use merchant's template (fallback to config or default)
-            $template = $merchant->merchant_name_template 
+            $template = $merchant->merchant_name_template
                 ?? config('payment-gateway.qr_merchant_name.template', '{name} - {city}');
-            
+
             $merchantName = $templateService->render(
                 $template,
                 $merchant,
                 $merchantData['user']
             );
-            
+
             $params['merchantName'] = $merchantName;
-            
+
             // NetBank API requires merchant_city as separate field (even though it may not display)
             // We send city to satisfy API requirements
             $params['merchantCity'] = $merchant->city ?? 'Manila';
-            
+
             if (self::DEBUG) {
                 Log::debug('[OmnipayPaymentGateway] Rendered merchant name', [
                     'template' => $template,
@@ -265,27 +268,27 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 ]);
             }
         }
-        
+
         $response = $this->gateway->generateQr($params)->send();
-        
-        if (!$response->isSuccessful()) {
+
+        if (! $response->isSuccessful()) {
             Log::error('[OmnipayPaymentGateway] QR generation failed', [
                 'message' => $response->getMessage(),
             ]);
-            throw new \RuntimeException('Failed to generate QR code: ' . $response->getMessage());
+            throw new \RuntimeException('Failed to generate QR code: '.$response->getMessage());
         }
-        
+
         Log::info('[OmnipayPaymentGateway] QR code generated successfully');
-        
+
         return $response->getQrCode();
     }
-    
+
     // confirmDeposit() method is implemented via CanConfirmDeposit trait
-    
+
     /**
      * Confirm a disbursement operation.
-     * 
-     * @param string $operationId Gateway operation ID
+     *
+     * @param  string  $operationId  Gateway operation ID
      * @return bool Success status
      */
     public function confirmDisbursement(string $operationId): bool
@@ -293,45 +296,46 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         try {
             $transaction = Transaction::whereJsonContains('meta->operationId', $operationId)
                 ->firstOrFail();
-            
+
             if (self::DEBUG) {
                 Log::debug('[OmnipayPaymentGateway] Found transaction for confirmation', [
                     'operation_id' => $operationId,
                     'transaction_uuid' => $transaction->uuid,
                 ]);
             }
-            
+
             // Confirm the transaction
             $transaction->payable->confirm($transaction);
-            
+
             // Dispatch event
             DisbursementConfirmed::dispatch($transaction);
-            
+
             $rail = $transaction->meta['settlement_rail'] ?? 'unknown';
             $bank = $transaction->meta['bank_code'] ?? 'unknown';
-            
+
             Log::info('[OmnipayPaymentGateway] Disbursement confirmed', [
                 'operation_id' => $operationId,
                 'transaction_uuid' => $transaction->uuid,
                 'rail' => $rail,
                 'bank' => $bank,
             ]);
-            
+
             return true;
-            
+
         } catch (\Throwable $e) {
             Log::error('[OmnipayPaymentGateway] Confirm disbursement failed', [
                 'operation_id' => $operationId,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
-    
+
     /**
      * Check the status of a disbursement transaction.
-     * 
-     * @param string $transactionId Gateway transaction ID
+     *
+     * @param  string  $transactionId  Gateway transaction ID
      * @return array{status: string, raw: array} Normalized status + raw response
      */
     public function checkDisbursementStatus(string $transactionId): array
@@ -342,18 +346,19 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'transactionId' => $transactionId,
                 ])
                 ->send();
-            
-            if (!$response->isSuccessful()) {
+
+            if (! $response->isSuccessful()) {
                 Log::warning('[OmnipayPaymentGateway] Status check failed', [
                     'transaction_id' => $transactionId,
                     'message' => $response->getMessage(),
                 ]);
+
                 return ['status' => 'pending', 'raw' => []];
             }
-            
+
             $rawStatus = $response->getStatus();
             $normalized = \LBHurtado\PaymentGateway\Enums\DisbursementStatus::fromGateway('netbank', $rawStatus);
-            
+
             if (self::DEBUG) {
                 Log::info('[OmnipayPaymentGateway] Status checked', [
                     'transaction_id' => $transactionId,
@@ -361,7 +366,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'normalized_status' => $normalized->value,
                 ]);
             }
-            
+
             return [
                 'status' => $normalized->value,
                 'raw' => $response->getRawData(),
@@ -369,16 +374,17 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
         } catch (\Throwable $e) {
             Log::error('[OmnipayPaymentGateway] Status check error', [
                 'transaction_id' => $transactionId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return ['status' => 'pending', 'raw' => []];
         }
     }
-    
+
     /**
      * Check account balance.
-     * 
-     * @param string $accountNumber Account number to check
+     *
+     * @param  string  $accountNumber  Account number to check
      * @return array{balance: int, available_balance: int, currency: string, as_of: ?string, raw: array}
      */
     public function checkAccountBalance(string $accountNumber): array
@@ -389,17 +395,17 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'account' => $accountNumber,
                 ]);
             }
-            
+
             $response = $this->gateway->checkBalance([
                 'accountNumber' => $accountNumber,
             ])->send();
-            
-            if (!$response->isSuccessful()) {
+
+            if (! $response->isSuccessful()) {
                 Log::warning('[OmnipayPaymentGateway] Balance check failed', [
                     'account' => $accountNumber,
                     'error' => $response->getMessage(),
                 ]);
-                
+
                 return [
                     'balance' => 0,
                     'available_balance' => 0,
@@ -408,14 +414,14 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                     'raw' => [],
                 ];
             }
-            
+
             if (self::DEBUG) {
                 Log::info('[OmnipayPaymentGateway] Balance checked', [
                     'account' => $accountNumber,
                     'balance' => $response->getBalance(),
                 ]);
             }
-            
+
             return [
                 'balance' => $response->getBalance(),
                 'available_balance' => $response->getAvailableBalance(),
@@ -423,13 +429,13 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 'as_of' => $response->getAsOf(),
                 'raw' => $response->getData(),
             ];
-            
+
         } catch (\Throwable $e) {
             Log::error('[OmnipayPaymentGateway] Balance check error', [
                 'account' => $accountNumber,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return [
                 'balance' => 0,
                 'available_balance' => 0,
@@ -439,31 +445,32 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             ];
         }
     }
-    
+
     /**
      * Get the transaction fee for a specific settlement rail.
-     * 
-     * @param SettlementRail $rail The settlement rail
+     *
+     * @param  SettlementRail  $rail  The settlement rail
      * @return int Fee amount in minor units (centavos)
      */
     public function getRailFee(SettlementRail $rail): int
     {
         $railsConfig = config('omnipay.gateways.netbank.options.rails', []);
         $railConfig = $railsConfig[$rail->value] ?? [];
-        
+
         return $railConfig['fee'] ?? 0;
     }
-    
+
     /**
      * Validate that bank supports the selected settlement rail.
-     * 
-     * @param string $bankCode SWIFT BIC code
-     * @param SettlementRail $rail Settlement rail
+     *
+     * @param  string  $bankCode  SWIFT BIC code
+     * @param  SettlementRail  $rail  Settlement rail
+     *
      * @throws \InvalidArgumentException If bank doesn't support rail
      */
     protected function validateBankSupportsRail(string $bankCode, SettlementRail $rail): void
     {
-        if (!$this->bankRegistry->supportsRail($bankCode, $rail)) {
+        if (! $this->bankRegistry->supportsRail($bankCode, $rail)) {
             throw new \InvalidArgumentException(
                 "Bank {$bankCode} does not support {$rail->value} settlement rail"
             );

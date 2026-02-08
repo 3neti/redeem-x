@@ -2,18 +2,20 @@
 
 namespace LBHurtado\OmniChannel\Handlers;
 
-use Symfony\Component\Console\Input\{InputDefinition, InputOption, StringInput};
-use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
-use Propaganistas\LaravelPhone\Rules\Phone;
-//use App\Actions\SendRegistrationFeedback;
-use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\JsonResponse;
-//use App\Events\RegisteredViaSMS;
-use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Validator;
+// use App\Actions\SendRegistrationFeedback;
 use Illuminate\Validation\Rule;
-use App\Models\User;
+use Illuminate\Validation\Rules;
+use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
+use Propaganistas\LaravelPhone\Rules\Phone;
+// use App\Events\RegisteredViaSMS;
+use Symfony\Component\Console\Input\InputDefinition;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\StringInput;
 
 class SMSRegister implements SMSHandlerInterface
 {
@@ -70,7 +72,7 @@ class SMSRegister implements SMSHandlerInterface
                 'password' => Hash::make($password),
             ]);
 
-//            RegisteredViaSMS::dispatch($user);
+            //            RegisteredViaSMS::dispatch($user);
 
             Log::info('✅ User registered successfully', [
                 'id' => $user->id,
@@ -83,15 +85,15 @@ class SMSRegister implements SMSHandlerInterface
 
             if ($selfRegistration) {
                 return response()->json([
-                    'message' => "Registered: {$user->name} <{$user->email}>"
+                    'message' => "Registered: {$user->name} <{$user->email}>",
                 ]);
             }
 
             // Notify the registered user via SMS
-//            SendRegistrationFeedback::run($user);
+            //            SendRegistrationFeedback::run($user);
 
             return response()->json([
-                'message' => "Registration complete. We've notified {$user->mobile} with their account details."
+                'message' => "Registration complete. We've notified {$user->mobile} with their account details.",
             ]);
         } catch (\Throwable $th) {
             Log::error('❌ SMS registration failed', [
@@ -102,7 +104,7 @@ class SMSRegister implements SMSHandlerInterface
             report($th);
 
             return response()->json([
-                'message' => "Syntax: REGISTER [mobile] [-e\"Email\"] [-n\"Full Name\"] [-p\"Password\"]",
+                'message' => 'Syntax: REGISTER [mobile] [-e"Email"] [-n"Full Name"] [-p"Password"]',
             ]);
         }
     }
@@ -135,12 +137,14 @@ class SMSRegister implements SMSHandlerInterface
             ];
 
             Log::debug('📦 Parsed extras from SMS', array_filter($results));
+
             return array_filter($results);
         } catch (\Throwable $e) {
             Log::warning('⚠️ Failed to parse SMS extras', [
                 'extra' => $extra,
                 'exception' => $e->getMessage(),
             ]);
+
             return [];
         }
     }

@@ -5,17 +5,26 @@ namespace LBHurtado\Contact\Traits;
 trait HasAdditionalAttributes
 {
     const NAME_FIELD = 'name';
+
     const EMAIL_FIELD = 'email';
+
     const BIRTH_DATE = 'birth_date';
+
     const ADDRESS_FIELD = 'address';
+
     const GROSS_MONTHLY_INCOME_FIELD = 'gross_monthly_income';
-    
+
     // KYC fields
     const KYC_TRANSACTION_ID = 'kyc_transaction_id';
+
     const KYC_STATUS = 'kyc_status';
+
     const KYC_ONBOARDING_URL = 'kyc_onboarding_url';
+
     const KYC_SUBMITTED_AT = 'kyc_submitted_at';
+
     const KYC_COMPLETED_AT = 'kyc_completed_at';
+
     const KYC_REJECTION_REASONS = 'kyc_rejection_reasons';
 
     public function initializeHasAdditionalAttributes(): void
@@ -114,6 +123,7 @@ trait HasAdditionalAttributes
         if ($value !== null) {
             $this->getAttribute('meta')->set(self::KYC_TRANSACTION_ID, $value);
         }
+
         return $this;
     }
 
@@ -127,6 +137,7 @@ trait HasAdditionalAttributes
         if ($value !== null) {
             $this->getAttribute('meta')->set(self::KYC_STATUS, $value);
         }
+
         return $this;
     }
 
@@ -140,6 +151,7 @@ trait HasAdditionalAttributes
         if ($value !== null) {
             $this->getAttribute('meta')->set(self::KYC_ONBOARDING_URL, $value);
         }
+
         return $this;
     }
 
@@ -153,6 +165,7 @@ trait HasAdditionalAttributes
         if ($value !== null) {
             $this->getAttribute('meta')->set(self::KYC_SUBMITTED_AT, $value);
         }
+
         return $this;
     }
 
@@ -166,6 +179,7 @@ trait HasAdditionalAttributes
         if ($value !== null) {
             $this->getAttribute('meta')->set(self::KYC_COMPLETED_AT, $value);
         }
+
         return $this;
     }
 
@@ -179,6 +193,7 @@ trait HasAdditionalAttributes
         if ($value !== null) {
             $this->getAttribute('meta')->set(self::KYC_REJECTION_REASONS, $value);
         }
+
         return $this;
     }
 

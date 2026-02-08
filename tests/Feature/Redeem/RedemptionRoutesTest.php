@@ -19,16 +19,16 @@ beforeEach(function () {
 
 test('redemption start page route exists', function () {
     $response = $this->get('/redeem');
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page->component('redeem/Start'));
 });
 
 test('wallet page route exists and requires voucher code', function () {
     $voucher = createRedeemableVoucher($this->user);
-    
+
     $response = $this->get("/redeem/{$voucher->code}/wallet");
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('redeem/Wallet')
@@ -38,13 +38,13 @@ test('wallet page route exists and requires voucher code', function () {
 
 test('wallet page returns 404 for invalid voucher code', function () {
     $response = $this->get('/redeem/INVALID/wallet');
-    
+
     $response->assertNotFound();
 });
 
 test('success page route exists and requires voucher code', function () {
     $voucher = createRedeemableVoucher($this->user);
-    
+
     // Redeem the voucher
     $contact = Contact::factory()->create([
         'mobile' => '09171234567',
@@ -52,9 +52,9 @@ test('success page route exists and requires voucher code', function () {
         'bank_account' => 'GXCHPHM2XXX:09171234567',
     ]);
     RedeemVoucher::run($contact, $voucher->code);
-    
+
     $response = $this->get("/redeem/{$voucher->code}/success");
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('redeem/Success')
@@ -64,15 +64,15 @@ test('success page route exists and requires voucher code', function () {
 
 test('success page without voucher code returns 404', function () {
     $response = $this->get('/redeem/success');
-    
+
     $response->assertNotFound();
 });
 
 test('success page returns error for unredeemed voucher', function () {
     $voucher = createRedeemableVoucher($this->user);
-    
+
     $response = $this->get("/redeem/{$voucher->code}/success");
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('redeem/Error')
@@ -82,9 +82,9 @@ test('success page returns error for unredeemed voucher', function () {
 
 test('finalize page route exists', function () {
     $voucher = createRedeemableVoucher($this->user);
-    
+
     $response = $this->get("/redeem/{$voucher->code}/finalize");
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('redeem/Finalize')
@@ -95,7 +95,7 @@ test('finalize page route exists', function () {
 function createRedeemableVoucher($user)
 {
     auth()->login($user);
-    
+
     $instructions = VoucherInstructionsData::from([
         'cash' => [
             'amount' => 100,
@@ -116,6 +116,6 @@ function createRedeemableVoucher($user)
         'mask' => '****',
         'ttl' => CarbonInterval::hours(12),
     ]);
-    
+
     return GenerateVouchers::run($instructions)->first();
 }

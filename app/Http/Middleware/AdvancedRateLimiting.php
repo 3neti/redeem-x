@@ -23,7 +23,7 @@ class AdvancedRateLimiting
     public function handle(Request $request, Closure $next): Response
     {
         // Skip if advanced rate limiting is disabled
-        if (!config('api.rate_limiting.enabled', true)) {
+        if (! config('api.rate_limiting.enabled', true)) {
             return $next($request);
         }
 
@@ -39,16 +39,16 @@ class AdvancedRateLimiting
         $refillRate = $requestsPerMinute / 60; // Tokens per second
 
         // Create unique key (global for all users since tier is global)
-        $key = "global";
+        $key = 'global';
 
         // Attempt to consume a token
         $result = $this->limiter->attempt($key, $maxTokens, $refillRate);
 
         // Check if rate limited
-        if (!$result['allowed']) {
+        if (! $result['allowed']) {
             return response()->json([
                 'error' => 'rate_limit_exceeded',
-                'message' => 'Too many requests. Please retry after ' . ($result['reset_at'] - time()) . ' seconds.',
+                'message' => 'Too many requests. Please retry after '.($result['reset_at'] - time()).' seconds.',
                 'retry_after' => $result['reset_at'] - time(),
             ], 429, $this->buildHeaders(
                 $requestsPerMinute,

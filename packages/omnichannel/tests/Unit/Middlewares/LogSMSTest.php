@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\OmniChannel\Middlewares\LogSMS;
 use Illuminate\Support\Facades\Log;
+use LBHurtado\OmniChannel\Middlewares\LogSMS;
 
 it('logs the incoming SMS then continues', function () {
     // Arrange: fake the Log facade
@@ -9,11 +9,11 @@ it('logs the incoming SMS then continues', function () {
         ->once()
         ->with('📩 Incoming SMS', [
             'message' => 'TEST MESSAGE',
-            'from'    => '09171234567',
-            'to'      => '22560537',
+            'from' => '09171234567',
+            'to' => '22560537',
         ]);
 
-    $mw = new LogSMS();
+    $mw = new LogSMS;
 
     // Act: invoke handle()
     $result = $mw->handle(

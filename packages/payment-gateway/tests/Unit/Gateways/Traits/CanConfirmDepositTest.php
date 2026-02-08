@@ -1,37 +1,37 @@
 <?php
 
-use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\CanConfirmDeposit;
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\DepositResponseData;
-use LBHurtado\PaymentGateway\Services\ResolvePayable;
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 use Bavix\Wallet\Interfaces\Wallet;
+use Illuminate\Support\Facades\Event;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\DepositResponseData;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
+use LBHurtado\PaymentGateway\Gateways\Netbank\Traits\CanConfirmDeposit;
+use LBHurtado\PaymentGateway\Services\ResolvePayable;
 use LBHurtado\Wallet\Actions\TopupWalletAction;
 use LBHurtado\Wallet\Events\DepositConfirmed;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
 
-//uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+// uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-beforeEach(function(){
+beforeEach(function () {
     // 1) stub out DepositResponseData::from()
     $this->fakePayload = [
         'recipientAccountNumber' => '91500:09171234567',
-        'amount'                  => 123.45,
+        'amount' => 123.45,
         // …plus whatever else your DepositResponseData needs…
     ];
 
     // 2) bind ResolvePayable to return a dummy wallet
     resolve(ResolvePayable::class);
     $this->dummyWallet = Mockery::mock(Wallet::class);
-    $this->app->instance(ResolvePayable::class, new class {
-        public function execute(RecipientAccountNumberData $dto) {
+    $this->app->instance(ResolvePayable::class, new class
+    {
+        public function execute(RecipientAccountNumberData $dto)
+        {
             return Mockery::mock(Wallet::class)->shouldIgnoreMissing();
         }
     });
 });
 
-//it('returns false if pipeline throws', function(){
+// it('returns false if pipeline throws', function(){
 //    // make pipeline throw
 //    $this->app->instance(ResolvePayable::class, new class {
 //        public function execute($_){ throw new \RuntimeException("boom"); }
@@ -42,9 +42,9 @@ beforeEach(function(){
 //
 //    expect($t->confirmDeposit($this->fakePayload))
 //        ->toBeFalse();
-//});
+// });
 //
-//it('returns false if pipeline returns non-wallet', function(){
+// it('returns false if pipeline returns non-wallet', function(){
 //    $this->app->instance(ResolvePayable::class, new class {
 //        public function execute($_){ return null; }
 //    });
@@ -52,9 +52,9 @@ beforeEach(function(){
 //
 //    expect($t->confirmDeposit($this->fakePayload))
 //        ->toBeFalse();
-//});
+// });
 //
-//it('tops up and dispatches the DepositConfirmed event on success', function(){
+// it('tops up and dispatches the DepositConfirmed event on success', function(){
 //    // fake event & action
 //    Event::fake([DepositConfirmed::class]);
 //    // stub TopupWalletAction
@@ -81,4 +81,4 @@ beforeEach(function(){
 //    expect($ok)->toBeTrue();
 //
 //    Event::assertDispatched(DepositConfirmed::class);
-//});
+// });

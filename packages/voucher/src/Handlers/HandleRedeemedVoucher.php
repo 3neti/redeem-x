@@ -2,15 +2,13 @@
 
 namespace LBHurtado\Voucher\Handlers;
 
-use LBHurtado\Voucher\Pipelines\RedeemedVoucher\ValidateRedeemerAndCash;
-use LBHurtado\Voucher\Pipelines\RedeemedVoucher\DisburseCash;
-use LBHurtado\Voucher\Events\DisbursementRequested;
-use LBHurtado\Wallet\Events\DisbursementFailed;
-use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
-use Lorisleiva\Actions\Concerns\AsAction;
-use LBHurtado\Voucher\Models\Voucher;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\Voucher\Events\DisbursementRequested;
+use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
+use LBHurtado\Voucher\Models\Voucher;
+use LBHurtado\Wallet\Events\DisbursementFailed;
+use Lorisleiva\Actions\Concerns\AsAction;
 
 class HandleRedeemedVoucher
 {
@@ -23,16 +21,14 @@ class HandleRedeemedVoucher
      *  3. Fire DisbursementRequested on success
      *  4. Fire DisbursementFailed (and rethrow) on any error
      *
-     * @param  Voucher  $voucher
-     * @return void
      *
-     * @throws \Throwable  Allows the exception to bubble after firing DisbursementFailed
+     * @throws \Throwable Allows the exception to bubble after firing DisbursementFailed
      */
     public function handle(Voucher $voucher): void
     {
         Log::info('[HandleRedeemedVoucher] Starting pipeline for redeemed voucher.', [
             'voucher' => $voucher->code,
-            'id'      => $voucher->getKey(),
+            'id' => $voucher->getKey(),
         ]);
 
         $post_redemption_pipeline_array = config('voucher-pipeline.post-redemption');
@@ -57,15 +53,15 @@ class HandleRedeemedVoucher
             // Handle known business exceptions gracefully (no stack trace)
             if ($e instanceof InvalidSettlementRailException) {
                 Log::warning('[HandleRedeemedVoucher] Settlement rail validation failed.', [
-                    'voucher'   => $voucher->code,
-                    'message'   => $e->getMessage(),
+                    'voucher' => $voucher->code,
+                    'message' => $e->getMessage(),
                 ]);
             } else {
                 // Log unexpected errors with full trace for debugging
                 Log::error('[HandleRedeemedVoucher] Pipeline failed; dispatching DisbursementFailed.', [
-                    'voucher'   => $voucher->code,
+                    'voucher' => $voucher->code,
                     'exception' => $e->getMessage(),
-                    'trace'     => $e->getTraceAsString(),
+                    'trace' => $e->getTraceAsString(),
                 ]);
             }
 

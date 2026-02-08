@@ -2,8 +2,8 @@
 
 namespace LBHurtado\OmniChannel\Middlewares;
 
-use Illuminate\Support\Facades\Log;
 use Closure;
+use Illuminate\Support\Facades\Log;
 
 class BlockBlacklistedWords implements SMSMiddlewareInterface
 {
@@ -13,7 +13,7 @@ class BlockBlacklistedWords implements SMSMiddlewareInterface
     {
         foreach ($this->blacklist as $word) {
             if (stripos($message, $word) !== false) {
-                Log::warning("Blocked SMS due to blacklisted word", [
+                Log::warning('Blocked SMS due to blacklisted word', [
                     'message' => $message,
                     'from' => $from,
                     'to' => $to,
@@ -22,7 +22,7 @@ class BlockBlacklistedWords implements SMSMiddlewareInterface
                 return response()->json(['error' => 'Message contains prohibited words.'], 403);
             }
         }
-        Log::info("🛠 Running BlockBlacklistedWords Middleware", compact('message', 'from', 'to'));
+        Log::info('🛠 Running BlockBlacklistedWords Middleware', compact('message', 'from', 'to'));
 
         return $next($message, $from, $to);
     }

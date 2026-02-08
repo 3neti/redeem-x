@@ -3,8 +3,8 @@
 namespace Tests;
 
 use App\Settings\VoucherSettings;
-use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -21,7 +21,7 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Fake VoucherSettings with default values
         // This prevents tests from hitting the database for settings
         VoucherSettings::fake([

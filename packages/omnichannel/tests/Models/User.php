@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace LBHurtado\OmniChannel\Tests\Models;
 
-use LBHurtado\OmniChannel\Database\Factories\UserFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use LBHurtado\OmniChannel\Database\Factories\UserFactory;
 
 /**
  * Class User.
  *
- * @property int        $id
- * @property string     $name
- * @property string     $email
+ * @property int $id
+ * @property string $name
+ * @property string $email
  *
  * @method int getKey()
  */

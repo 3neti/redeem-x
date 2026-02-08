@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
@@ -12,7 +12,7 @@ beforeEach(function () {
 
 it('returns the real code column via __get', function () {
     $voucher = Vouchers::create();       // creates & persists a Voucher
-    $code    = $voucher->code;
+    $code = $voucher->code;
 
     // Even if somebody later adds an input named "code", $voucher->code stays the real column:
     $voucher->inputs()->create(['name' => 'code', 'value' => 'SHOULD_NOT_OVERRIDE']);
@@ -38,9 +38,9 @@ it('persists inputs when you assign via magic __set', function () {
 
     $this->assertDatabaseHas('inputs', [
         'model_type' => Voucher::class,
-        'model_id'   => $voucher->getKey(),
-        'name'       => 'signature',
-        'value'      => 'signature_block',
+        'model_id' => $voucher->getKey(),
+        'name' => 'signature',
+        'value' => 'signature_block',
     ]);
 
     expect($voucher->signature)->toBe('signature_block');
@@ -56,8 +56,8 @@ it('setting a real attribute via magic __set still updates the attribute', funct
 
     $this->assertDatabaseMissing('inputs', [
         'model_type' => Voucher::class,
-        'model_id'   => $voucher->getKey(),
-        'name'       => 'code',
+        'model_id' => $voucher->getKey(),
+        'name' => 'code',
     ]);
 
     expect($voucher->fresh()->code)->toBe('NEWCODE123');

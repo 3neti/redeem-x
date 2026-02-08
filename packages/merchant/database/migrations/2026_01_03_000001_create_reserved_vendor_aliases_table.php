@@ -15,7 +15,7 @@ return new class extends Migration
             $table->unsignedBigInteger('reserved_by')->nullable();
             $table->timestamp('reserved_at');
             $table->timestamps();
-            
+
             $table->index('alias');
         });
     }

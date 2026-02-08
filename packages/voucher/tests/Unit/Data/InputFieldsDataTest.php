@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Data\InputFieldsData;
+use LBHurtado\Voucher\Enums\VoucherInputField;
 
 it('can create InputFieldsData from strings and cast to enum', function () {
     $fields = ['email', 'mobile', 'kyc'];

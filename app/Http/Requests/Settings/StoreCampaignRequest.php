@@ -44,6 +44,7 @@ class StoreCampaignRequest extends FormRequest
         foreach ($rules as $key => $rule) {
             $prefixed["{$prefix}.{$key}"] = $rule;
         }
+
         return $prefixed;
     }
 }

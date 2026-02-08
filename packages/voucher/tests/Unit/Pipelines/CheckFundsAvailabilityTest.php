@@ -1,9 +1,9 @@
 <?php
 
-use LBHurtado\Voucher\Pipelines\GeneratedVouchers\CheckFundsAvailability;
+use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Pipeline\Pipeline;
+use LBHurtado\Voucher\Pipelines\GeneratedVouchers\CheckFundsAvailability;
 
 it('proceeds when funds are sufficient', function () {
     // Mock the external API response for sufficient funds
@@ -15,7 +15,7 @@ it('proceeds when funds are sufficient', function () {
 
     // Mock vouchers
     $vouchers = collect([
-        (object)[
+        (object) [
             'id' => 1,
             'metadata' => [
                 'instructions' => [
@@ -26,7 +26,7 @@ it('proceeds when funds are sufficient', function () {
                 ],
             ],
         ],
-        (object)[
+        (object) [
             'id' => 2,
             'metadata' => [
                 'instructions' => [
@@ -61,7 +61,7 @@ it('throws an exception when funds are insufficient', function () {
 
     // Mock vouchers
     $vouchers = collect([
-        (object)[
+        (object) [
             'id' => 1,
             'metadata' => [
                 'instructions' => [
@@ -72,7 +72,7 @@ it('throws an exception when funds are insufficient', function () {
                 ],
             ],
         ],
-        (object)[
+        (object) [
             'id' => 2,
             'metadata' => [
                 'instructions' => [
@@ -92,7 +92,7 @@ it('throws an exception when funds are insufficient', function () {
             CheckFundsAvailability::class,
         ])
         ->thenReturn();
-})->throws(Exception::class, "Funds unavailable for the total amount: 1200 USD.");
+})->throws(Exception::class, 'Funds unavailable for the total amount: 1200 USD.');
 
 it('throws an exception when the API fails', function () {
     // Mock the external API to simulate a server error
@@ -102,7 +102,7 @@ it('throws an exception when the API fails', function () {
 
     // Mock vouchers
     $vouchers = collect([
-        (object)[
+        (object) [
             'id' => 1,
             'metadata' => [
                 'instructions' => [
@@ -122,7 +122,7 @@ it('throws an exception when the API fails', function () {
             CheckFundsAvailability::class,
         ])
         ->thenReturn();
-})->throws(Exception::class, "Funds API request failed with status code: 500");
+})->throws(Exception::class, 'Funds API request failed with status code: 500');
 
 it('logs errors when funds are insufficient', function () {
     // Mock the external API for insufficient funds
@@ -141,7 +141,7 @@ it('logs errors when funds are insufficient', function () {
 
     // Mock vouchers
     $vouchers = collect([
-        (object)[
+        (object) [
             'id' => 1,
             'metadata' => [
                 'instructions' => [

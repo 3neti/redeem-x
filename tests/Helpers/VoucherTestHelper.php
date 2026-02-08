@@ -41,7 +41,7 @@ class VoucherTestHelper
         // Authenticate as user for GenerateVouchers
         // Set user on default guard for GenerateVouchers to find
         auth()->setUser($user);
-        
+
         return GenerateVouchers::run($instructions);
     }
 }

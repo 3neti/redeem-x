@@ -13,16 +13,15 @@
  * - Host app: `php artisan test:envelope`
  * - Shell script: `scripts/testing/test-envelope-flow.sh`
  */
-
 describe('HasEnvelopes trait on Voucher model', function () {
     test('voucher model file contains HasEnvelopes trait import', function () {
-        $voucherFile = file_get_contents(__DIR__ . '/../../../src/Models/Voucher.php');
+        $voucherFile = file_get_contents(__DIR__.'/../../../src/Models/Voucher.php');
 
         expect($voucherFile)->toContain('use LBHurtado\SettlementEnvelope\Traits\HasEnvelopes;');
     });
 
     test('voucher model file uses HasEnvelopes trait', function () {
-        $voucherFile = file_get_contents(__DIR__ . '/../../../src/Models/Voucher.php');
+        $voucherFile = file_get_contents(__DIR__.'/../../../src/Models/Voucher.php');
 
         // Check for "use HasEnvelopes;" within the class body
         expect($voucherFile)->toMatch('/class Voucher[^{]*\{[^}]*use HasEnvelopes;/s');

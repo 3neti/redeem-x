@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * @deprecated This seeder is deprecated. Voucher settings are now managed via migrations.
- * 
+ *
  * All voucher settings have been moved to individual migrations:
  * - 2026_01_13_090208_add_core_voucher_settings_to_settings.php (core settings)
  * - 2026_01_07_091011_add_default_settlement_endpoint_to_settings.php
  * - 2026_01_11_121748_add_portal_endpoint_to_voucher_settings.php
  * - 2026_01_12_075432_add_auto_disburse_minimum_to_voucher_settings.php
- * 
+ *
  * This file is kept for historical reference but is no longer called by DatabaseSeeder.
  * Use migrations for any new voucher settings.
  */
@@ -21,7 +21,7 @@ class VoucherSettingsSeeder extends Seeder
 {
     /**
      * Seed the voucher settings.
-     * 
+     *
      * @deprecated Use migrations instead
      */
     public function run(): void
@@ -73,7 +73,7 @@ class VoucherSettingsSeeder extends Seeder
                 ->where('name', $setting['name'])
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 DB::table('settings')->insert([
                     'group' => 'voucher',
                     'name' => $setting['name'],

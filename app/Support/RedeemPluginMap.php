@@ -35,7 +35,7 @@ class RedeemPluginMap
      * Get the Inertia page component for a plugin.
      *
      * @param  string  $plugin  Plugin key
-     * @return string|null  Page path (e.g., 'Redeem/Inputs')
+     * @return string|null Page path (e.g., 'Redeem/Inputs')
      */
     public static function pageFor(string $plugin): ?string
     {
@@ -52,7 +52,7 @@ class RedeemPluginMap
      * Get the session key for a plugin.
      *
      * @param  string  $plugin  Plugin key
-     * @return string|null  Session key (e.g., 'inputs', 'signature')
+     * @return string|null Session key (e.g., 'inputs', 'signature')
      */
     public static function sessionKeyFor(string $plugin): ?string
     {
@@ -97,8 +97,6 @@ class RedeemPluginMap
 
     /**
      * Return the first enabled plugin, or null if none.
-     *
-     * @return string|null
      */
     public static function firstPlugin(): ?string
     {
@@ -112,7 +110,7 @@ class RedeemPluginMap
      * Return the next plugin in the sequence after the given plugin.
      *
      * @param  string  $current  Current plugin key
-     * @return string|null  Next plugin key, or null if last
+     * @return string|null Next plugin key, or null if last
      */
     public static function nextPluginAfter(string $current): ?string
     {
@@ -134,7 +132,6 @@ class RedeemPluginMap
      * Check if a plugin is enabled.
      *
      * @param  string  $plugin  Plugin key
-     * @return bool
      */
     public static function isEnabled(string $plugin): bool
     {

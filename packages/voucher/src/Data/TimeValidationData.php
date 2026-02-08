@@ -7,13 +7,13 @@ use Spatie\LaravelData\Data;
 
 /**
  * Time-based validation configuration
- * 
+ *
  * Defines time window restrictions and duration tracking for redemptions.
  * Can enforce time-of-day windows and maximum completion durations.
- * 
- * @property TimeWindowData|null $window         - Time window for allowed redemptions
- * @property int|null            $limit_minutes  - Max minutes to complete redemption
- * @property bool                $track_duration - Whether to track redemption duration
+ *
+ * @property TimeWindowData|null $window - Time window for allowed redemptions
+ * @property int|null $limit_minutes - Max minutes to complete redemption
+ * @property bool $track_duration - Whether to track redemption duration
  */
 class TimeValidationData extends Data
 {
@@ -70,7 +70,7 @@ class TimeValidationData extends Data
      */
     public function isWithinWindow(): bool
     {
-        if (!$this->hasWindowValidation()) {
+        if (! $this->hasWindowValidation()) {
             return true; // No window = always valid
         }
 
@@ -82,11 +82,12 @@ class TimeValidationData extends Data
      */
     public function exceedsDurationLimit(int $durationSeconds): bool
     {
-        if (!$this->hasDurationLimit()) {
+        if (! $this->hasDurationLimit()) {
             return false; // No limit = never exceeds
         }
 
         $limitSeconds = $this->limit_minutes * 60;
+
         return $durationSeconds > $limitSeconds;
     }
 }

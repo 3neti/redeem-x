@@ -11,7 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Revoke all API tokens for the authenticated user.
- * 
+ *
  * Endpoint: DELETE /api/v1/auth/tokens
  */
 class RevokeAllTokens

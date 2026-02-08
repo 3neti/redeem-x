@@ -25,7 +25,7 @@ class BalanceController extends Controller
             ->where('gateway', $gatewayName)
             ->orderBy('checked_at', 'desc')
             ->get()
-            ->map(fn($balance) => [
+            ->map(fn ($balance) => [
                 'account_number' => $balance->account_number,
                 'gateway' => $balance->gateway,
                 'balance' => $balance->balance,
@@ -49,7 +49,7 @@ class BalanceController extends Controller
     {
         $balance = $this->service->getCurrentBalance($accountNumber);
 
-        if (!$balance) {
+        if (! $balance) {
             return response()->json([
                 'message' => 'Account balance not found.',
             ], 404);
@@ -114,7 +114,7 @@ class BalanceController extends Controller
             : $this->service->getHistory($accountNumber, $limit);
 
         return response()->json([
-            'data' => $history->map(fn($entry) => [
+            'data' => $history->map(fn ($entry) => [
                 'balance' => $entry->balance,
                 'available_balance' => $entry->available_balance,
                 'currency' => $entry->currency,

@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Enums\VoucherState;
 use LBHurtado\Voucher\Models\Voucher;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
  * Unlock Voucher
  *
  * Restore a locked voucher back to ACTIVE state.
  * Cannot unlock expired, closed, or cancelled vouchers.
- * 
+ *
  * @group Vouchers
+ *
  * @authenticated
  */
 #[Group('Vouchers')]
@@ -26,7 +27,7 @@ class UnlockVoucher
 {
     /**
      * Unlock a voucher
-     * 
+     *
      * Change voucher state from LOCKED back to ACTIVE.
      * Only locked vouchers that haven't expired can be unlocked.
      */
@@ -46,7 +47,7 @@ class UnlockVoucher
         // Find voucher
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return response()->json([
                 'success' => false,
                 'message' => 'Voucher not found',

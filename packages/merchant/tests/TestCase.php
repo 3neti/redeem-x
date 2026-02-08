@@ -30,7 +30,7 @@ class TestCase extends Orchestra
     protected function defineDatabaseMigrations(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        
+
         // Create users table for tests
         $this->app['db']->connection()->getSchemaBuilder()->create('users', function ($table) {
             $table->id();

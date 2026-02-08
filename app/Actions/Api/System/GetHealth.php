@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\System;
 
-use App\Http\Responses\ApiResponse;
 use App\Services\HealthCheckService;
 use Illuminate\Http\JsonResponse;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Get system health status.
- * 
+ *
  * Endpoint: GET /api/v1/health (authenticated)
  * Public endpoint: GET /health (no auth)
- * 
+ *
  * Returns health status of critical system components for uptime monitoring
  * and SLA tracking. Used by monitoring services like UptimeRobot or Pingdom.
  */
@@ -28,7 +27,7 @@ class GetHealth
 
     /**
      * Handle API request.
-     * 
+     *
      * Note: This action supports both authenticated (/api/v1/health) and
      * public (/health) endpoints via route configuration.
      */
@@ -55,7 +54,7 @@ class GetHealth
 
     /**
      * Get simple health status (for public endpoint).
-     * 
+     *
      * Returns minimal response for basic uptime monitoring.
      */
     public function simple(): JsonResponse

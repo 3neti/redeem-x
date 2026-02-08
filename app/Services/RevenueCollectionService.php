@@ -6,15 +6,15 @@ use App\Models\InstructionItem;
 use App\Models\RevenueCollection;
 use App\Models\User;
 use Bavix\Wallet\Interfaces\Wallet;
+use Brick\Money\Money;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Wallet\Services\SystemUserResolverService;
-use Brick\Money\Money;
 
 /**
  * Revenue Collection Service
- * 
+ *
  * Handles collection of fees from InstructionItem wallets with flexible destination routing.
  * Each InstructionItem can specify its own revenue destination (polymorphic), or fall back
  * to the default revenue/system wallet.
@@ -27,9 +27,8 @@ class RevenueCollectionService
 
     /**
      * Get all InstructionItems with non-zero balances and their destinations.
-     * 
-     * @param float|null $minAmount Minimum balance in PHP (optional filter)
-     * @return Collection
+     *
+     * @param  float|null  $minAmount  Minimum balance in PHP (optional filter)
      */
     public function getPendingRevenue(?float $minAmount = null): Collection
     {
@@ -37,15 +36,16 @@ class RevenueCollectionService
         // This works with bavix/wallet's lazy initialization
         return InstructionItem::with('revenueDestination')
             ->get()
-            ->filter(function($item) use ($minAmount) {
+            ->filter(function ($item) use ($minAmount) {
                 $balance = (float) $item->balanceFloat;
                 $minBalance = $minAmount ?? 0;
+
                 return $balance > $minBalance;
             })
-            ->map(function($item) {
+            ->map(function ($item) {
                 $destination = $this->resolveDestination($item);
                 $balance = (float) $item->balanceFloat;
-                
+
                 return [
                     'id' => $item->id,
                     'name' => $item->name,
@@ -58,7 +58,7 @@ class RevenueCollectionService
                         'type' => class_basename($destination),
                         'id' => $destination->getKey(),
                         'name' => $this->getDestinationName($destination),
-                        'is_default' => !$item->revenueDestination,
+                        'is_default' => ! $item->revenueDestination,
                     ],
                 ];
             });
@@ -66,11 +66,11 @@ class RevenueCollectionService
 
     /**
      * Collect revenue from a specific InstructionItem.
-     * 
-     * @param InstructionItem $item Source of revenue
-     * @param Wallet|null $destinationOverride Optional destination override
-     * @param string|null $notes Optional notes
-     * @return RevenueCollection
+     *
+     * @param  InstructionItem  $item  Source of revenue
+     * @param  Wallet|null  $destinationOverride  Optional destination override
+     * @param  string|null  $notes  Optional notes
+     *
      * @throws \InvalidArgumentException
      */
     public function collect(
@@ -79,20 +79,20 @@ class RevenueCollectionService
         ?string $notes = null
     ): RevenueCollection {
         $balance = (float) $item->balanceFloat;
-        
+
         if ($balance <= 0) {
             throw new \InvalidArgumentException("InstructionItem '{$item->name}' has no balance to collect");
         }
-        
+
         // Resolve destination (override > configured > default)
         $destination = $destinationOverride ?? $this->resolveDestination($item);
-        
+
         DB::beginTransaction();
         try {
             // Transfer from InstructionItem wallet to destination wallet
             // Use transferFloat since $balance is in PHP (major units), not centavos
             $transfer = $item->transferFloat($destination, $balance);
-            
+
             // Record collection
             $collection = RevenueCollection::create([
                 'instruction_item_id' => $item->id,
@@ -103,9 +103,9 @@ class RevenueCollectionService
                 'transfer_uuid' => $transfer->uuid,
                 'notes' => $notes,
             ]);
-            
+
             DB::commit();
-            
+
             Log::info('[RevenueCollection] Collected', [
                 'collection_id' => $collection->id,
                 'item_id' => $item->id,
@@ -117,27 +117,27 @@ class RevenueCollectionService
                 'is_override' => $destinationOverride !== null,
                 'is_configured' => $item->revenueDestination !== null,
             ]);
-            
+
             return $collection;
-            
+
         } catch (\Throwable $e) {
             DB::rollBack();
-            
+
             Log::error('[RevenueCollection] Failed', [
                 'item_id' => $item->id,
                 'item_name' => $item->name,
                 'error' => $e->getMessage(),
             ]);
-            
+
             throw $e;
         }
     }
 
     /**
      * Collect from all InstructionItems with balance.
-     * 
-     * @param float|null $minAmount Minimum balance in PHP to collect
-     * @param Wallet|null $destinationOverride Override destination for all items
+     *
+     * @param  float|null  $minAmount  Minimum balance in PHP to collect
+     * @param  Wallet|null  $destinationOverride  Override destination for all items
      * @return Collection Collection of RevenueCollection records
      */
     public function collectAll(
@@ -146,15 +146,16 @@ class RevenueCollectionService
     ): Collection {
         // Get all items and filter by balance in PHP
         $items = InstructionItem::all()
-            ->filter(function($item) use ($minAmount) {
+            ->filter(function ($item) use ($minAmount) {
                 $balance = (float) $item->balanceFloat;
                 $minBalance = $minAmount ?? 0;
+
                 return $balance > $minBalance;
             });
-        
+
         $collections = collect();
         $errors = collect();
-        
+
         foreach ($items as $item) {
             try {
                 $collections->push($this->collect($item, $destinationOverride));
@@ -166,45 +167,43 @@ class RevenueCollectionService
                 ]);
             }
         }
-        
+
         if ($errors->isNotEmpty()) {
             Log::warning('[RevenueCollection] Some collections failed', [
                 'errors' => $errors->toArray(),
             ]);
         }
-        
+
         return $collections;
     }
 
     /**
      * Get total pending revenue across all InstructionItems.
-     * 
+     *
      * @return float Total in PHP
      */
     public function getTotalPendingRevenue(): float
     {
         // Query all items and sum balances in PHP
         return InstructionItem::all()
-            ->sum(fn($item) => (float) $item->balanceFloat);
+            ->sum(fn ($item) => (float) $item->balanceFloat);
     }
 
     /**
      * Get revenue statistics for reporting.
-     * 
-     * @return array
      */
     public function getStatistics(): array
     {
         $pending = $this->getPendingRevenue();
         $totalPending = $pending->sum('balance');
-        
+
         $allTimeCollected = (float) (RevenueCollection::sum('amount') / 100);
         $collectionsCount = RevenueCollection::count();
-        
+
         $lastCollection = RevenueCollection::with(['instructionItem', 'destination'])
             ->latest()
             ->first();
-        
+
         return [
             'pending' => [
                 'count' => $pending->count(),
@@ -229,14 +228,11 @@ class RevenueCollectionService
 
     /**
      * Resolve destination wallet for an InstructionItem.
-     * 
+     *
      * Priority:
      * 1. InstructionItem's configured revenueDestination
      * 2. Default revenue user (from config)
      * 3. System user (fallback)
-     * 
-     * @param InstructionItem $item
-     * @return Wallet
      */
     protected function resolveDestination(InstructionItem $item): Wallet
     {
@@ -247,9 +243,10 @@ class RevenueCollectionService
                 'destination_type' => class_basename($item->revenueDestination),
                 'destination_id' => $item->revenueDestination->getKey(),
             ]);
+
             return $item->revenueDestination;
         }
-        
+
         // 2. Try default revenue user from config
         $revenueUser = $this->getRevenueUser();
         if ($revenueUser) {
@@ -257,48 +254,44 @@ class RevenueCollectionService
                 'item_id' => $item->id,
                 'revenue_user_email' => $revenueUser->email,
             ]);
+
             return $revenueUser;
         }
-        
+
         // 3. Fallback to system user
         $systemUser = $this->systemUserResolver->resolve();
         Log::debug('[RevenueCollection] Using system user as fallback', [
             'item_id' => $item->id,
         ]);
-        
+
         return $systemUser;
     }
 
     /**
      * Get the configured revenue user from config.
-     * 
-     * @return User|null
      */
     protected function getRevenueUser(): ?User
     {
         $modelClass = config('account.revenue_user.model');
         $identifier = config('account.revenue_user.identifier');
         $column = config('account.revenue_user.identifier_column', 'email');
-        
-        if (!$modelClass || !$identifier) {
+
+        if (! $modelClass || ! $identifier) {
             return null;
         }
-        
+
         return $modelClass::where($column, $identifier)->first();
     }
 
     /**
      * Get display name for a destination wallet.
-     * 
-     * @param Wallet $destination
-     * @return string
      */
     protected function getDestinationName(Wallet $destination): string
     {
         return match (true) {
             $destination instanceof User => $destination->name ?? $destination->email,
             method_exists($destination, 'getName') => $destination->getName(),
-            default => class_basename($destination) . ' #' . $destination->getKey(),
+            default => class_basename($destination).' #'.$destination->getKey(),
         };
     }
 }

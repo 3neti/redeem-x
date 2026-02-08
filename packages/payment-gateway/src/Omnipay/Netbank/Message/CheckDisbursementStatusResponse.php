@@ -37,9 +37,9 @@ class CheckDisbursementStatusResponse extends AbstractResponse
      */
     public function isSuccessful(): bool
     {
-        return isset($this->data['status']) && !isset($this->data['error']);
+        return isset($this->data['status']) && ! isset($this->data['error']);
     }
-    
+
     /**
      * Get the transaction status
      * Returns NetBank-specific status: Pending, ForSettlement, Settled, Rejected
@@ -48,7 +48,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['status'] ?? 'Pending';
     }
-    
+
     /**
      * Get the transaction ID
      */
@@ -56,7 +56,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['transaction_id'] ?? null;
     }
-    
+
     /**
      * Get the transaction amount in minor units (centavos)
      */
@@ -64,7 +64,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['amount'] ?? null;
     }
-    
+
     /**
      * Get the currency code
      */
@@ -72,7 +72,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['currency'] ?? 'PHP';
     }
-    
+
     /**
      * Get the recipient account number
      */
@@ -80,7 +80,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['recipient_account'] ?? null;
     }
-    
+
     /**
      * Get the bank code (BIC/SWIFT)
      */
@@ -88,7 +88,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['bank_code'] ?? null;
     }
-    
+
     /**
      * Get the settlement rail (INSTAPAY or PESONET)
      */
@@ -96,7 +96,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['settlement_rail'] ?? null;
     }
-    
+
     /**
      * Get the transaction creation timestamp
      */
@@ -104,7 +104,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['created_at'] ?? null;
     }
-    
+
     /**
      * Get the settlement timestamp (if settled)
      */
@@ -112,7 +112,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['settled_at'] ?? null;
     }
-    
+
     /**
      * Get the rejection reason (if rejected)
      */
@@ -120,7 +120,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['rejection_reason'] ?? null;
     }
-    
+
     /**
      * Get the complete raw response data
      */
@@ -128,7 +128,7 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data;
     }
-    
+
     /**
      * Get the error message if request failed
      */
@@ -137,12 +137,12 @@ class CheckDisbursementStatusResponse extends AbstractResponse
         if ($this->isSuccessful()) {
             return null;
         }
-        
-        return $this->data['message'] 
-            ?? $this->data['error'] 
+
+        return $this->data['message']
+            ?? $this->data['error']
             ?? 'Unknown error occurred';
     }
-    
+
     /**
      * Get the error code if request failed
      */
@@ -150,22 +150,24 @@ class CheckDisbursementStatusResponse extends AbstractResponse
     {
         return $this->data['code'] ?? null;
     }
-    
+
     /**
      * Check if transaction is in final state (no more updates expected)
      */
     public function isFinal(): bool
     {
         $status = strtoupper(str_replace(' ', '', $this->getStatus()));
+
         return in_array($status, ['SETTLED', 'REJECTED']);
     }
-    
+
     /**
      * Check if transaction is still pending
      */
     public function isPending(): bool
     {
         $status = strtoupper(str_replace(' ', '', $this->getStatus()));
+
         return in_array($status, ['PENDING', 'FORSETTLEMENT']);
     }
 }

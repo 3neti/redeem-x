@@ -14,7 +14,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Create a new API token for the authenticated user.
- * 
+ *
  * Endpoint: POST /api/v1/auth/tokens
  */
 class CreateToken
@@ -66,7 +66,7 @@ class CreateToken
         return [
             'name' => ['required', 'string', 'max:255'],
             'abilities' => ['nullable', 'array'],
-            'abilities.*' => ['required', 'string', 'in:' . implode(',', $availableAbilities) . ',*'],
+            'abilities.*' => ['required', 'string', 'in:'.implode(',', $availableAbilities).',*'],
             'expires_in_days' => ['nullable', 'integer', 'in:30,60,90,180,365'],
         ];
     }

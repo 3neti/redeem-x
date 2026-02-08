@@ -16,14 +16,16 @@ enum VoucherInputField: string
     case LOCATION = 'location';
     case OTP = 'otp';
     case SELFIE = 'selfie';
+
     public static function valuesToCsv(): string
     {
         return implode(',', array_column(self::cases(), 'value'));
     }
+
     public static function options(): array
     {
         return array_map(
-            fn(self $case) => [
+            fn (self $case) => [
                 'label' => str(self::label($case))->headline()->toString(),
                 'value' => $case->value,
             ],

@@ -2,12 +2,12 @@
 
 namespace LBHurtado\OmniChannel\Middlewares;
 
-use LBHurtado\OmniChannel\Rules\DoesNotMatchAppDomain;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use Closure;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use LBHurtado\OmniChannel\Rules\DoesNotMatchAppDomain;
 
 class ContinueRegistrationMiddleware implements SMSMiddlewareInterface
 {
@@ -21,12 +21,13 @@ class ContinueRegistrationMiddleware implements SMSMiddlewareInterface
         if ($user && str_ends_with($user->email, "@{$appDomain}")) {
             $key = "pending_email:{$from}";
 
-            if (!Cache::has($key)) {
+            if (! Cache::has($key)) {
                 Cache::put($key, true, now()->addMinutes(5));
 
                 Log::info("📨 Prompting {$from} for missing email.");
+
                 return response()->json([
-                    'message' => "Hi! Almost done. Please reply with your email address to complete registration."
+                    'message' => 'Hi! Almost done. Please reply with your email address to complete registration.',
                 ]);
             }
 
@@ -38,7 +39,7 @@ class ContinueRegistrationMiddleware implements SMSMiddlewareInterface
                 Log::warning("⚠️ Invalid email attempt from {$from}: {$message}");
 
                 return response()->json([
-                    'message' => "Oops! That doesn't look like a valid or unused email. Try again."
+                    'message' => "Oops! That doesn't look like a valid or unused email. Try again.",
                 ]);
             }
 
@@ -49,7 +50,7 @@ class ContinueRegistrationMiddleware implements SMSMiddlewareInterface
             Log::info("✅ Email updated for {$from}: {$user->email}");
 
             return response()->json([
-                'message' => "Thanks! You're now fully registered as {$user->email}."
+                'message' => "Thanks! You're now fully registered as {$user->email}.",
             ]);
         }
 

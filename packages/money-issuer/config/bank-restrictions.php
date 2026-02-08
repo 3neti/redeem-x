@@ -2,13 +2,13 @@
 
 /**
  * Bank Rail Restrictions Configuration
- * 
+ *
  * This file defines restrictions on settlement rails for specific banks,
  * particularly EMIs (Electronic Money Issuers) that only support INSTAPAY.
- * 
+ *
  * This is a temporary override layer on top of banks.json to prevent
  * failed transactions while maintaining backward compatibility.
- * 
+ *
  * Context: EMIs like GCash and PayMaya only support real-time INSTAPAY transfers,
  * but banks.json shows them supporting both INSTAPAY and PESONET. This causes
  * failed transactions when PESONET is selected for EMI disbursements.
@@ -17,10 +17,10 @@
 return [
     /**
      * EMI Rail Restrictions
-     * 
+     *
      * Lists EMIs that have limited rail support (INSTAPAY only).
      * These overrides take precedence over banks.json data.
-     * 
+     *
      * Format:
      * 'SWIFT_BIC' => [
      *     'allowed_rails' => ['RAIL1', 'RAIL2'],
@@ -67,7 +67,7 @@ return [
 
     /**
      * Amount Limits Per Rail
-     * 
+     *
      * Defines transaction amount limits for each settlement rail.
      * These are default limits; specific banks may have different limits.
      */
@@ -86,16 +86,16 @@ return [
         ],
     ],
 
-    /**
-     * Future: Bank-specific overrides
-     * 
-     * If certain banks have different limits or restrictions,
-     * they can be added here:
-     * 
-     * 'bank_specific' => [
-     *     'BNORPHMMXXX' => [
-     *         'INSTAPAY' => ['max' => 100000], // Custom BDO limit
-     *     ],
-     * ],
-     */
+/**
+ * Future: Bank-specific overrides
+ *
+ * If certain banks have different limits or restrictions,
+ * they can be added here:
+ *
+ * 'bank_specific' => [
+ *     'BNORPHMMXXX' => [
+ *         'INSTAPAY' => ['max' => 100000], // Custom BDO limit
+ *     ],
+ * ],
+ */
 ];

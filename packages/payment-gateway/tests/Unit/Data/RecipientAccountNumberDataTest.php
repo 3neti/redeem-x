@@ -1,13 +1,13 @@
 <?php
 
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 use Illuminate\Support\Facades\Config;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 
 it('extracts alias and reference code when alias prefixes the account number', function () {
     Config::set('disbursement.client.alias', '91500');
 
     $input = '9150009173011987';
-    $dto   = RecipientAccountNumberData::fromRecipientAccountNumber($input);
+    $dto = RecipientAccountNumberData::fromRecipientAccountNumber($input);
 
     expect($dto->alias)
         ->toBe('91500');

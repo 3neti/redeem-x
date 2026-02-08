@@ -2,14 +2,15 @@
 
 namespace LBHurtado\Voucher\Listeners;
 
-use LBHurtado\Voucher\Events\VouchersGenerated;
-use Illuminate\Support\Facades\{DB, Log};
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\Voucher\Events\VouchersGenerated;
 
 class HandleGeneratedVouchers
 {
     private const DEBUG = false;
-    
+
     public function handle(VouchersGenerated $event): void
     {
         if (self::DEBUG) {
@@ -26,7 +27,7 @@ class HandleGeneratedVouchers
                 }
 
                 // Process only unprocessed vouchers in the pipeline
-                $unprocessed = $all->filter(fn($voucher) => !$voucher->processed);
+                $unprocessed = $all->filter(fn ($voucher) => ! $voucher->processed);
                 if (self::DEBUG) {
                     Log::debug('[HandleGeneratedVouchers] Unprocessed vouchers', ['count' => $unprocessed->count()]);
                 }

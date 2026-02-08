@@ -30,9 +30,9 @@ class GenerateQrResponse extends AbstractResponse
     public function isSuccessful(): bool
     {
         // NetBank returns {"qr_code": "base64data..."} directly
-        return isset($this->data['qr_code']) && !isset($this->data['error']);
+        return isset($this->data['qr_code']) && ! isset($this->data['error']);
     }
-    
+
     /**
      * Get the QR code string (base64 PNG image from NetBank)
      */
@@ -40,9 +40,10 @@ class GenerateQrResponse extends AbstractResponse
     {
         // NetBank returns base64 PNG, prepend data URI scheme
         $qrCode = $this->data['qr_code'] ?? null;
-        return $qrCode ? 'data:image/png;base64,' . $qrCode : null;
+
+        return $qrCode ? 'data:image/png;base64,'.$qrCode : null;
     }
-    
+
     /**
      * Get the QR code URL (for displaying or sharing)
      */
@@ -50,7 +51,7 @@ class GenerateQrResponse extends AbstractResponse
     {
         return $this->data['data']['qr_url'] ?? null;
     }
-    
+
     /**
      * Get the QR ID from the provider
      */
@@ -58,7 +59,7 @@ class GenerateQrResponse extends AbstractResponse
     {
         return $this->data['data']['qr_id'] ?? null;
     }
-    
+
     /**
      * Get the expiration timestamp
      */
@@ -66,7 +67,7 @@ class GenerateQrResponse extends AbstractResponse
     {
         return $this->data['data']['expires_at'] ?? null;
     }
-    
+
     /**
      * Get the error message if request failed
      */
@@ -75,12 +76,12 @@ class GenerateQrResponse extends AbstractResponse
         if ($this->isSuccessful()) {
             return null;
         }
-        
-        return $this->data['message'] 
-            ?? $this->data['error'] 
+
+        return $this->data['message']
+            ?? $this->data['error']
             ?? 'Unknown error occurred';
     }
-    
+
     /**
      * Get the error code if request failed
      */

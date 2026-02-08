@@ -2,14 +2,14 @@
 
 namespace LBHurtado\OmniChannel\Rules;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
 
 class DoesNotMatchAppDomain implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (!is_string($value) || !str_contains($value, '@')) {
+        if (! is_string($value) || ! str_contains($value, '@')) {
             return; // Let other email rules handle malformed emails
         }
 
@@ -17,7 +17,7 @@ class DoesNotMatchAppDomain implements ValidationRule
         $appDomain = strtolower(parse_url(config('app.url'), PHP_URL_HOST));
 
         if ($emailDomain === $appDomain) {
-            $fail("The :attribute must not be a temporary system-generated address.");
+            $fail('The :attribute must not be a temporary system-generated address.');
         }
     }
 }

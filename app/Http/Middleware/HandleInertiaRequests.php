@@ -43,10 +43,10 @@ class HandleInertiaRequests extends Middleware
 
         $permissions = [];
         $featureFlags = [];
-        
+
         if ($request->user()) {
             $permissions = $request->user()->getAllPermissions()->pluck('name')->toArray();
-            
+
             // Get feature flags for current user
             $featureFlags = [
                 'advanced_pricing_mode' => Feature::for($request->user())->active('advanced-pricing-mode'),
@@ -55,7 +55,7 @@ class HandleInertiaRequests extends Middleware
         }
 
         $parentShare = parent::share($request);
-        
+
         return array_merge($parentShare, [
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],

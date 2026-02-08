@@ -15,8 +15,7 @@ class HttpClientFactory
     /**
      * Create a configured HTTP client with timeout settings
      *
-     * @param array $config Configuration options (timeout, connect_timeout, etc.)
-     * @return ClientInterface
+     * @param  array  $config  Configuration options (timeout, connect_timeout, etc.)
      */
     public static function create(array $config = []): ClientInterface
     {
@@ -26,13 +25,13 @@ class HttpClientFactory
             'http_errors' => false, // Don't throw on 4xx/5xx responses
             'verify' => true, // Verify SSL certificates
         ];
-        
+
         // Create Guzzle client with configuration
         $guzzleClient = new GuzzleClient($guzzleConfig);
-        
+
         // Wrap in php-http adapter (HttpClient interface)
         $httpClient = new GuzzleAdapter($guzzleClient);
-        
+
         // Wrap in Omnipay's Client (ClientInterface)
         return new Client($httpClient);
     }

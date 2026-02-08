@@ -52,10 +52,10 @@ trait HasMerchant
     {
         $merchant = $this->getMerchantAttribute();
 
-        if (!$merchant) {
+        if (! $merchant) {
             $merchant = Merchant::create([
-                'code' => 'USR-' . $this->getKey(),
-                'name' => $this->name ?? 'User ' . $this->getKey(),
+                'code' => 'USR-'.$this->getKey(),
+                'name' => $this->name ?? 'User '.$this->getKey(),
                 'city' => 'Manila',
                 'merchant_category_code' => '0000', // General/Personal
                 'description' => 'Personal wallet',

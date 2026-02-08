@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\PaymentGateway\Data\Netbank\Common\PayloadAmountData;
 use Brick\Money\Money;
+use LBHurtado\PaymentGateway\Data\Netbank\Common\PayloadAmountData;
 
 test('the num transformer works for non-zero num', function () {
     $data = PayloadAmountData::from([

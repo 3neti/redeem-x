@@ -15,23 +15,25 @@ class ValidVendorAlias implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $service = new VendorAliasService();
-        
+        $service = new VendorAliasService;
+
         // Normalize the alias
         $normalized = $service->normalize($value);
-        
+
         // Validate format (3-8 chars, starts with letter, uppercase letters/digits only)
-        if (!$service->validate($normalized)) {
+        if (! $service->validate($normalized)) {
             $minLength = config('merchant.alias.min_length', 3);
             $maxLength = config('merchant.alias.max_length', 8);
-            
+
             $fail("The {$attribute} must be {$minLength}-{$maxLength} characters, start with a letter, and contain only uppercase letters and digits.");
+
             return;
         }
-        
+
         // Check if reserved
         if ($service->isReserved($normalized)) {
             $fail("The {$attribute} '{$normalized}' is reserved and cannot be assigned.");
+
             return;
         }
     }

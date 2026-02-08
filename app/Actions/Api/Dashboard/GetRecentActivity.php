@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Actions\Api\Dashboard;
 
 use App\Http\Responses\ApiResponse;
-use Illuminate\Http\JsonResponse;
-use Lorisleiva\Actions\ActionRequest;
-use Lorisleiva\Actions\Concerns\AsAction;
-use LBHurtado\Voucher\Models\Voucher;
 use App\Models\TopUp;
 use App\Models\VoucherGenerationCharge;
+use Illuminate\Http\JsonResponse;
+use LBHurtado\Voucher\Models\Voucher;
+use Lorisleiva\Actions\ActionRequest;
+use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Get recent activity for dashboard.
@@ -32,23 +32,23 @@ class GetRecentActivity
             ->get()
             ->map(function ($charge) {
                 // Get voucher amount from instructions snapshot (JSON column)
-                $instructions = is_array($charge->instructions_snapshot) 
-                    ? $charge->instructions_snapshot 
+                $instructions = is_array($charge->instructions_snapshot)
+                    ? $charge->instructions_snapshot
                     : json_decode($charge->instructions_snapshot, true);
-                
+
                 $voucherAmount = $instructions['cash']['amount'] ?? 0;
                 $totalAmount = $voucherAmount * $charge->voucher_count;
-                
+
                 // Get voucher codes - show first code if multiple, or "Multiple" if > 3
                 $codes = $charge->voucher_codes ?? [];
-                $codeDisplay = match(count($codes)) {
+                $codeDisplay = match (count($codes)) {
                     0 => 'N/A',
                     1 => $codes[0],
                     2 => implode(', ', $codes),
                     3 => implode(', ', $codes),
-                    default => $codes[0] . ' +' . (count($codes) - 1) . ' more'
+                    default => $codes[0].' +'.(count($codes) - 1).' more'
                 };
-                
+
                 return [
                     'id' => $charge->id,
                     'type' => 'generation',
@@ -106,10 +106,10 @@ class GetRecentActivity
             ->get()
             ->map(function ($topUp) {
                 // Show institution if selected, otherwise show gateway name
-                $displayName = $topUp->institution_code 
-                    ?? ucfirst($topUp->gateway) 
+                $displayName = $topUp->institution_code
+                    ?? ucfirst($topUp->gateway)
                     ?? 'Manual';
-                
+
                 return [
                     'id' => $topUp->id,
                     'type' => 'topup',
@@ -134,8 +134,8 @@ class GetRecentActivity
     private function getRedemptionStatus($voucher): string
     {
         $disbursement = $voucher->metadata['disbursement'] ?? null;
-        
-        if (!$disbursement) {
+
+        if (! $disbursement) {
             return 'pending';
         }
 

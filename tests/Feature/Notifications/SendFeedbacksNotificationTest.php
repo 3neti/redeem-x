@@ -2,7 +2,7 @@
 
 /**
  * Unit tests for SendFeedbacksNotification class.
- * 
+ *
  * These tests focus on:
  * - Notification class structure and methods
  * - Channel resolution logic
@@ -14,8 +14,8 @@ use App\Models\User;
 use App\Notifications\SendFeedbacksNotification;
 use Illuminate\Support\Facades\Notification;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\Voucher\Actions\{GenerateVouchers, RedeemVoucher};
+use LBHurtado\Voucher\Actions\GenerateVouchers;
+use LBHurtado\Voucher\Actions\RedeemVoucher;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Tests\Concerns\SetsUpRedemptionEnvironment;
 
@@ -29,9 +29,9 @@ beforeEach(function () {
 test('notification can be created with voucher code', function () {
     $user = $this->getSystemUser();
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
-    
+
     $this->actingAs($user);
-    
+
     $instructions = VoucherInstructionsData::from([
         'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => []],
         'feedback' => [
@@ -45,21 +45,21 @@ test('notification can be created with voucher code', function () {
         'mask' => '####',
         'ttl' => 'PT24H',
     ]);
-    
+
     $generateAction = app(GenerateVouchers::class);
     $voucher = $generateAction->handle($instructions, $user)->first();
-    
+
     $notification = new SendFeedbacksNotification($voucher->code);
-    
+
     expect($notification)->toBeInstanceOf(SendFeedbacksNotification::class);
 });
 
 test('notification returns correct channels', function () {
     $user = $this->getSystemUser();
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
-    
+
     $this->actingAs($user);
-    
+
     $instructions = VoucherInstructionsData::from([
         'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => []],
         'feedback' => [
@@ -73,17 +73,17 @@ test('notification returns correct channels', function () {
         'mask' => '####',
         'ttl' => 'PT24H',
     ]);
-    
+
     $generateAction = app(GenerateVouchers::class);
     $voucher = $generateAction->handle($instructions, $user)->first();
-    
+
     $notification = new SendFeedbacksNotification($voucher->code);
-    
+
     // Test with AnonymousNotifiable (used in actual redemption flow)
     $anonymousChannels = $notification->via(\Illuminate\Support\Facades\Notification::route('mail', 'test@example.com'));
     expect($anonymousChannels)->toContain('mail')
         ->and($anonymousChannels)->toContain('engage_spark');
-    
+
     // Test with User model (database logging)
     $userChannels = $notification->via($user);
     expect($userChannels)->toContain('database');
@@ -92,9 +92,9 @@ test('notification returns correct channels', function () {
 test('toMail returns MailMessage with correct type', function () {
     $user = $this->getSystemUser();
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
-    
+
     $this->actingAs($user);
-    
+
     $instructions = VoucherInstructionsData::from([
         'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => []],
         'feedback' => [
@@ -107,16 +107,16 @@ test('toMail returns MailMessage with correct type', function () {
         'mask' => '####',
         'ttl' => 'PT24H',
     ]);
-    
+
     $generateAction = app(GenerateVouchers::class);
     $voucher = $generateAction->handle($instructions, $user)->first();
-    
+
     $redeemAction = app(RedeemVoucher::class);
     $redeemAction->handle($contact, $voucher->code);
-    
+
     $notification = new SendFeedbacksNotification($voucher->code);
-    $mailMessage = $notification->toMail(new \stdClass());
-    
+    $mailMessage = $notification->toMail(new \stdClass);
+
     expect($mailMessage)->toBeInstanceOf(\Illuminate\Notifications\Messages\MailMessage::class)
         ->and($mailMessage->subject)->toBeString()
         ->and($mailMessage->introLines)->toBeArray()
@@ -126,9 +126,9 @@ test('toMail returns MailMessage with correct type', function () {
 test('toEngageSpark returns EngageSparkMessage with content', function () {
     $user = $this->getSystemUser();
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
-    
+
     $this->actingAs($user);
-    
+
     $instructions = VoucherInstructionsData::from([
         'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => []],
         'feedback' => [
@@ -141,16 +141,16 @@ test('toEngageSpark returns EngageSparkMessage with content', function () {
         'mask' => '####',
         'ttl' => 'PT24H',
     ]);
-    
+
     $generateAction = app(GenerateVouchers::class);
     $voucher = $generateAction->handle($instructions, $user)->first();
-    
+
     $redeemAction = app(RedeemVoucher::class);
     $redeemAction->handle($contact, $voucher->code);
-    
+
     $notification = new SendFeedbacksNotification($voucher->code);
-    $smsMessage = $notification->toEngageSpark(new \stdClass());
-    
+    $smsMessage = $notification->toEngageSpark(new \stdClass);
+
     expect($smsMessage)->toBeInstanceOf(\LBHurtado\EngageSpark\EngageSparkMessage::class)
         ->and($smsMessage->content)->toBeString()
         ->and($smsMessage->content)->not->toBeEmpty();
@@ -161,9 +161,9 @@ test('toEngageSpark returns EngageSparkMessage with content', function () {
 test('toArray returns correct data structure', function () {
     $user = $this->getSystemUser();
     $contact = Contact::factory()->create(['mobile' => '09178251991']);
-    
+
     $this->actingAs($user);
-    
+
     $instructions = VoucherInstructionsData::from([
         'cash' => ['amount' => 100, 'currency' => 'PHP', 'validation' => []],
         'feedback' => [
@@ -176,16 +176,16 @@ test('toArray returns correct data structure', function () {
         'mask' => '####',
         'ttl' => 'PT24H',
     ]);
-    
+
     $generateAction = app(GenerateVouchers::class);
     $voucher = $generateAction->handle($instructions, $user)->first();
-    
+
     $redeemAction = app(RedeemVoucher::class);
     $redeemAction->handle($contact, $voucher->code);
-    
+
     $notification = new SendFeedbacksNotification($voucher->code);
-    $arrayData = $notification->toArray(new \stdClass());
-    
+    $arrayData = $notification->toArray(new \stdClass);
+
     // BaseNotification uses standardized structure
     expect($arrayData)->toHaveKeys(['type', 'timestamp', 'data', 'audit'])
         ->and($arrayData['type'])->toBe('voucher_redeemed')

@@ -7,7 +7,6 @@ use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
@@ -15,7 +14,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Fake events to avoid queue serialization issues in tests
     Event::fake();
-    
+
     // Create user with wallet balance
     $this->user = User::factory()->create();
     $this->user->depositFloat(10000); // Add PHP 10,000 balance

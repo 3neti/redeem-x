@@ -30,7 +30,7 @@ class ConfirmTopUp extends Command
 
         $reference = $this->argument('reference');
 
-        if (!$reference) {
+        if (! $reference) {
             // Show interactive list of pending top-ups
             $pending = TopUp::where('payment_status', 'PENDING')
                 ->with('user')
@@ -39,15 +39,16 @@ class ConfirmTopUp extends Command
 
             if ($pending->isEmpty()) {
                 $this->info('No pending top-ups found.');
+
                 return 0;
             }
 
             $this->table(
                 ['Reference', 'User', 'Amount', 'Created'],
-                $pending->map(fn($t) => [
+                $pending->map(fn ($t) => [
                     $t->reference_no,
                     $t->user->email,
-                    '₱' . number_format($t->amount, 2),
+                    '₱'.number_format($t->amount, 2),
                     $t->created_at->diffForHumans(),
                 ])
             );
@@ -57,17 +58,19 @@ class ConfirmTopUp extends Command
 
         $topUp = TopUp::where('reference_no', $reference)->first();
 
-        if (!$topUp) {
+        if (! $topUp) {
             $this->error("Top-up not found: {$reference}");
+
             return 1;
         }
 
         if ($topUp->isPaid()) {
             $this->warn("Top-up already confirmed: {$reference}");
+
             return 0;
         }
 
-        $paymentId = $this->option('payment-id') ?: 'MANUAL-' . now()->timestamp;
+        $paymentId = $this->option('payment-id') ?: 'MANUAL-'.now()->timestamp;
 
         $topUp->markAsPaid($paymentId);
         // Console command: no initiatedBy (system operation)
@@ -75,8 +78,8 @@ class ConfirmTopUp extends Command
 
         $this->info("✅ Top-up confirmed: {$topUp->reference_no}");
         $this->line("   User: {$topUp->user->email}");
-        $this->line("   Amount: ₱" . number_format($topUp->amount, 2));
-        $this->line("   New Balance: ₱" . number_format($topUp->user->fresh()->balanceFloat, 2));
+        $this->line('   Amount: ₱'.number_format($topUp->amount, 2));
+        $this->line('   New Balance: ₱'.number_format($topUp->user->fresh()->balanceFloat, 2));
 
         return 0;
     }
@@ -90,26 +93,28 @@ class ConfirmTopUp extends Command
 
         if ($pending->isEmpty()) {
             $this->info('No pending top-ups found.');
+
             return 0;
         }
 
         $this->warn("Found {$pending->count()} pending top-up(s)");
 
-        if (!$this->confirm('Confirm all?', true)) {
+        if (! $this->confirm('Confirm all?', true)) {
             $this->info('Cancelled.');
+
             return 0;
         }
 
         $confirmed = 0;
 
         foreach ($pending as $topUp) {
-            $paymentId = 'MANUAL-' . now()->timestamp . '-' . $topUp->id;
+            $paymentId = 'MANUAL-'.now()->timestamp.'-'.$topUp->id;
             $topUp->markAsPaid($paymentId);
             // Console command: no initiatedBy (system operation)
             $topUp->user->creditWalletFromTopUp($topUp, null);
             $confirmed++;
 
-            $this->line("✅ {$topUp->reference_no} - {$topUp->user->email} - ₱" . number_format($topUp->amount, 2));
+            $this->line("✅ {$topUp->reference_no} - {$topUp->user->email} - ₱".number_format($topUp->amount, 2));
         }
 
         $this->info("Confirmed {$confirmed} top-up(s)");

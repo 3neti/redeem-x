@@ -20,13 +20,13 @@ class InstructionItemSeeder extends Seeder
                 'label' => $data['label'] ?? null,
                 'category' => $data['category'] ?? 'other',
             ];
-            
+
             // Add deprecated flag if present
             if (isset($data['deprecated']) && $data['deprecated']) {
                 $meta['deprecated'] = true;
                 $meta['deprecated_reason'] = $data['deprecated_reason'] ?? 'No longer in use';
             }
-            
+
             InstructionItem::updateOrCreate(
                 ['index' => $index],
                 InstructionItem::attributesFromIndex($index, [

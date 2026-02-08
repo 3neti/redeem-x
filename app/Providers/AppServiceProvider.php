@@ -27,19 +27,19 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register data enricher registry as singleton
         $this->app->singleton(DataEnricherRegistry::class, function ($app) {
-            return new DataEnricherRegistry();
+            return new DataEnricherRegistry;
         });
-        
+
         // Register custom payment gateway with payment classification
         $useOmnipay = filter_var(env('USE_OMNIPAY', false), FILTER_VALIDATE_BOOLEAN);
-        
+
         $this->app->bind(
             \LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface::class,
-            $useOmnipay 
+            $useOmnipay
                 ? \App\Gateways\CustomOmnipayPaymentGateway::class
                 : \App\Gateways\CustomNetbankPaymentGateway::class
         );
-        
+
         // Bind voucher generation notification interface to host app implementation
         $this->app->bind(
             \LBHurtado\Voucher\Contracts\VouchersGeneratedNotificationInterface::class,
@@ -63,13 +63,13 @@ class AppServiceProvider extends ServiceProvider
             DisbursementFailed::class,
             NotifyAdminOfDisbursementFailure::class
         );
-        
+
         // Register KYC status update listener
         Event::listen(
             DisbursementRequested::class,
             UpdateContactKycStatus::class
         );
-        
+
         // Register payment confirmation SMS job
         Event::listen(
             \App\Events\PaymentDetectedButNotConfirmed::class,
@@ -99,6 +99,7 @@ class AppServiceProvider extends ServiceProvider
             if (app()->environment('local', 'staging')) {
                 return true;
             }
+
             // In production, require user-specific activation
             // Guests cannot access (returns false)
             return false;

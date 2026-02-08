@@ -29,7 +29,7 @@ use Omnipay\Common\Message\AbstractRequest;
 class CheckDisbursementStatusRequest extends AbstractRequest
 {
     use HasOAuth2;
-    
+
     /**
      * Get the transaction ID
      */
@@ -37,7 +37,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->getParameter('transactionId');
     }
-    
+
     /**
      * Set the transaction ID
      */
@@ -45,7 +45,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->setParameter('transactionId', $value);
     }
-    
+
     /**
      * Get the status endpoint
      */
@@ -53,7 +53,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->getParameter('statusEndpoint');
     }
-    
+
     /**
      * Set the status endpoint
      */
@@ -61,7 +61,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->setParameter('statusEndpoint', $value);
     }
-    
+
     /**
      * Validate the request
      *
@@ -71,20 +71,21 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         // Validate transaction ID is provided
         $this->validate('transactionId');
+
         return [];
     }
-    
+
     /**
      * Send the request with authentication
      *
-     * @param mixed $data
+     * @param  mixed  $data
      * @return CheckDisbursementStatusResponse
      */
     public function sendData($data)
     {
         try {
             $token = $this->getAccessToken();
-            
+
             // GET request to status endpoint
             $httpResponse = $this->httpClient->request(
                 'GET',
@@ -95,9 +96,9 @@ class CheckDisbursementStatusRequest extends AbstractRequest
                     'Accept' => 'application/json',
                 ]
             );
-            
+
             $responseData = json_decode($httpResponse->getBody()->getContents(), true);
-            
+
             return $this->response = new CheckDisbursementStatusResponse($this, $responseData);
         } catch (\Exception $e) {
             // Return error response
@@ -110,19 +111,20 @@ class CheckDisbursementStatusRequest extends AbstractRequest
             );
         }
     }
-    
+
     /**
      * Get the API endpoint for status check
-     * 
+     *
      * Format: GET https://api.netbank.ph/v1/transactions/{transaction_id}
      */
     public function getEndpoint(): string
     {
         $baseUrl = $this->getStatusEndpoint();
         $transactionId = $this->getTransactionId();
-        return rtrim($baseUrl, '/') . '/' . $transactionId;
+
+        return rtrim($baseUrl, '/').'/'.$transactionId;
     }
-    
+
     /**
      * Get Client ID for OAuth2 (required by HasOAuth2 trait)
      */
@@ -130,7 +132,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->getParameter('clientId');
     }
-    
+
     /**
      * Set Client ID
      */
@@ -138,7 +140,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->setParameter('clientId', $value);
     }
-    
+
     /**
      * Get Client Secret for OAuth2 (required by HasOAuth2 trait)
      */
@@ -146,7 +148,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->getParameter('clientSecret');
     }
-    
+
     /**
      * Set Client Secret
      */
@@ -154,7 +156,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->setParameter('clientSecret', $value);
     }
-    
+
     /**
      * Get Token Endpoint for OAuth2 (required by HasOAuth2 trait)
      */
@@ -162,7 +164,7 @@ class CheckDisbursementStatusRequest extends AbstractRequest
     {
         return $this->getParameter('tokenEndpoint');
     }
-    
+
     /**
      * Set Token Endpoint
      */

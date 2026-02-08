@@ -2,8 +2,8 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use LBHurtado\Cash\Models\Cash;
 use Illuminate\Support\Str;
+use LBHurtado\Cash\Models\Cash;
 
 uses(RefreshDatabase::class);
 
@@ -81,7 +81,7 @@ it('does not allow redemption if cash has expired', function () {
     expect($cash->verifySecret($rawSecret))->toBeTrue();
 
     // Simulate redemption logic that also considers expiration
-    $redemptionAllowed = !$cash->expires_on->isPast() && $cash->verifySecret($rawSecret);
+    $redemptionAllowed = ! $cash->expires_on->isPast() && $cash->verifySecret($rawSecret);
 
     // Ensure redemption fails because of expiration
     expect($redemptionAllowed)->toBeFalse();

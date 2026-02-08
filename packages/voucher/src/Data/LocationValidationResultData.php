@@ -6,13 +6,13 @@ use Spatie\LaravelData\Data;
 
 /**
  * Result of location validation check
- * 
+ *
  * Contains the outcome of validating a user's coordinates
  * against target location and radius.
- * 
- * @property bool  $validated       - Whether location is within radius
+ *
+ * @property bool $validated - Whether location is within radius
  * @property float $distance_meters - Actual distance from target
- * @property bool  $should_block    - Whether to block redemption
+ * @property bool $should_block - Whether to block redemption
  */
 class LocationValidationResultData extends Data
 {
@@ -35,7 +35,7 @@ class LocationValidationResultData extends Data
      */
     public function failed(): bool
     {
-        return !$this->validated;
+        return ! $this->validated;
     }
 
     /**

@@ -14,7 +14,9 @@ class ChargeInstructions
     public function handle($voucher, Closure $next)
     {
         $owner = $voucher->owner;
-        if (!$owner || !$owner->wallet) return $next($voucher);
+        if (! $owner || ! $owner->wallet) {
+            return $next($voucher);
+        }
 
         $charges = $this->evaluator->evaluate($voucher->owner, $voucher->instructions);
 
@@ -23,7 +25,7 @@ class ChargeInstructions
             if ($charge['item'] === null) {
                 continue;
             }
-            
+
             $owner->pay($charge['item']);
         }
 

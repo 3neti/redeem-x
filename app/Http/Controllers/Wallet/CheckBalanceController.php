@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Wallet;
 
-use App\Http\Controllers\Controller;
 use App\Actions\Wallet\CheckBalance;
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

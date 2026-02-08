@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Notifications\DisbursementFailedNotification;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Illuminate\Console\Command;
 use LBHurtado\Contact\Models\Contact;
@@ -35,7 +34,7 @@ class TestDisbursementFailureCommand extends Command
         $user = User::first() ?? User::factory()->create();
         $instructions = VoucherInstructionsData::generateFromScratch();
         $instructions->cash->amount = 100; // ₱100
-        
+
         $voucher = Vouchers::withMetadata(['instructions' => $instructions->toCleanArray()])
             ->withOwner($user)
             ->create();
@@ -71,7 +70,7 @@ class TestDisbursementFailureCommand extends Command
         $this->newLine();
 
         // 4. Simulate failure based on type
-        $exception = match($type) {
+        $exception = match ($type) {
             'timeout' => new \RuntimeException('Connection timeout: Gateway did not respond within 15 seconds'),
             'gateway_error' => new \RuntimeException('Gateway error: Transaction processing failed (Error code: 5001)'),
             'insufficient_funds' => new \RuntimeException('Insufficient funds in system wallet'),
@@ -79,7 +78,7 @@ class TestDisbursementFailureCommand extends Command
         };
 
         // Update attempt with failure
-        $errorType = match($type) {
+        $errorType = match ($type) {
             'timeout' => 'network_timeout',
             'gateway_error' => 'gateway_error',
             'insufficient_funds' => 'insufficient_funds',
@@ -111,7 +110,7 @@ class TestDisbursementFailureCommand extends Command
         // 6. Show results
         $this->info('📊 Results:');
         $this->line("  Voucher Code: {$voucher->code}");
-        $this->line("  Amount: ₱100.00");
+        $this->line('  Amount: ₱100.00');
         $this->line("  Redeemer: {$contact->mobile}");
         $this->line("  Error Type: {$errorType}");
         $this->line("  Attempt ID: {$attempt->id}");
@@ -120,7 +119,7 @@ class TestDisbursementFailureCommand extends Command
         // 7. Check if alerts are enabled
         if (config('disbursement.alerts.enabled')) {
             $emails = config('disbursement.alerts.emails');
-            if (!empty($emails)) {
+            if (! empty($emails)) {
                 $this->info('📧 Email notification queued to:');
                 foreach ($emails as $recipientEmail) {
                     $this->line("  • {$recipientEmail}");
@@ -139,7 +138,7 @@ class TestDisbursementFailureCommand extends Command
         $this->comment('  • Run queue worker to process email: php artisan queue:work');
         $this->comment('  • Check logs: tail -f storage/logs/laravel.log');
         $this->comment("  • View attempt: php artisan tinker → DisbursementAttempt::find({$attempt->id})");
-        $this->comment("  • Query failures: php artisan tinker → DisbursementAttempt::failed()->get()");
+        $this->comment('  • Query failures: php artisan tinker → DisbursementAttempt::failed()->get()');
 
         return self::SUCCESS;
     }

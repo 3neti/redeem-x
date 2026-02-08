@@ -15,7 +15,7 @@ class CashFactory extends Factory
         return [
             'amount' => $this->faker->numberBetween(100, 10000),
             'currency' => 'PHP',
-            'meta' => ['notes' => $this->faker->sentence ],
+            'meta' => ['notes' => $this->faker->sentence],
         ];
     }
 
@@ -27,4 +27,3 @@ class CashFactory extends Factory
         ]);
     }
 }
-

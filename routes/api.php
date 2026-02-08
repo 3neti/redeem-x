@@ -26,7 +26,7 @@ Route::prefix('v1')->group(function () {
     // Public redemption API routes
     // Rate limited to 10 requests per minute for public access
     Route::middleware(['throttle:10,1'])->group(base_path('routes/api/redemption.php'));
-    
+
     // Public timing tracking (no auth required - vouchers can be redeemed publicly)
     Route::middleware(['throttle:60,1'])->prefix('vouchers')->name('api.vouchers.')->group(function () {
         Route::post('/{voucher:code}/timing/click', [\App\Actions\Api\Vouchers\TrackClick::class, 'asController'])
@@ -34,7 +34,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/{voucher:code}/timing/start', [\App\Actions\Api\Vouchers\TrackRedemptionStart::class, 'asController'])
             ->name('timing.start');
     });
-    
+
     // Public payment QR generation (no auth - anyone can pay a voucher)
     Route::middleware(['throttle:20,1'])->prefix('pay')->name('api.pay.')->group(function () {
         Route::post('/generate-qr', \App\Actions\Api\Pay\GeneratePaymentQr::class)
@@ -42,7 +42,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/mark-done', \App\Actions\Api\Pay\MarkPaymentDone::class)
             ->name('mark-done');
     });
-    
+
     // Public voucher payment history (no auth - anyone can view payment history)
     Route::middleware(['throttle:60,1'])->prefix('vouchers')->name('api.vouchers.')->group(function () {
         Route::get('/{code}/payments', \App\Actions\Api\Vouchers\GetPaymentHistory::class)
@@ -101,15 +101,15 @@ Route::prefix('v1')
             ->name('api.campaigns.index');
         Route::get('campaigns/{campaign}', [\App\Http\Controllers\Api\CampaignController::class, 'show'])
             ->name('api.campaigns.show');
-        
+
         // Envelope Drivers API (for envelope configuration UI)
         Route::get('envelope-drivers', [\App\Http\Controllers\Api\V1\EnvelopeManagementController::class, 'listDrivers'])
             ->name('api.envelope-drivers.index');
-        
+
         // User preferences API
         Route::put('preferences/voucher-mode', [\App\Http\Controllers\Api\PreferencesController::class, 'updateVoucherMode'])
             ->name('api.preferences.voucher-mode');
-        
+
         // Charge calculation API (for real-time pricing preview)
         Route::post('/calculate-charges', \App\Http\Controllers\Api\ChargeCalculationController::class)
             ->name('calculate-charges');
@@ -121,19 +121,19 @@ Route::prefix('v1')
             Route::post('/{accountNumber}/refresh', [\App\Http\Controllers\Api\BalanceController::class, 'refresh']);
             Route::get('/{accountNumber}/history', [\App\Http\Controllers\Api\BalanceController::class, 'history']);
         });
-        
+
         // System balances API (internal wallets)
         Route::get('/system/balances', \App\Actions\Api\System\GetBalances::class)
             ->name('api.system.balances');
-        
+
         // Health check API (detailed, authenticated)
         Route::get('/health', [\App\Actions\Api\System\GetHealth::class, 'asController'])
             ->name('api.health');
-        
+
         // Wallet QR code generation API
         Route::post('/wallet/generate-qr', \App\Actions\Api\Wallet\GenerateQrCode::class)
             ->name('api.wallet.generate-qr');
-        
+
         // Merchant profile API
         Route::get('/merchant/profile', [\App\Http\Controllers\Api\MerchantProfileController::class, 'show'])
             ->name('api.merchant.profile.show');

@@ -12,7 +12,7 @@ class ContactFactory extends Factory
     public function definition(): array
     {
         return [
-            'mobile' => '0917' . str_pad($this->faker->randomNumber(7, true), 7, '0', STR_PAD_LEFT),
+            'mobile' => '0917'.str_pad($this->faker->randomNumber(7, true), 7, '0', STR_PAD_LEFT),
             'country' => 'PH',
         ];
     }

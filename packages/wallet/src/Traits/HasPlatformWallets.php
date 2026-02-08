@@ -18,7 +18,7 @@ trait HasPlatformWallets
         return $this->wallets()->firstOrCreate(
             ['slug' => $type],
             array_merge([
-                'name' => ucfirst(str_replace('-', ' ', $type)) . ' Wallet',
+                'name' => ucfirst(str_replace('-', ' ', $type)).' Wallet',
                 'meta' => [],
             ], $attributes)
         );

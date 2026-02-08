@@ -2,11 +2,10 @@
 
 namespace LBHurtado\OmniChannel\Handlers;
 
-use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-
+use LBHurtado\OmniChannel\Contracts\SMSHandlerInterface;
 use LBHurtado\OmniChannel\Tests\Models\User;
 
 class SMSAutoRegister implements SMSHandlerInterface

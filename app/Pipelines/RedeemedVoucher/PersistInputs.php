@@ -2,8 +2,8 @@
 
 namespace App\Pipelines\RedeemedVoucher;
 
-use Illuminate\Support\Facades\Log;
 use Closure;
+use Illuminate\Support\Facades\Log;
 
 /**
  * PersistInputs is a pipeline stage that saves redemption inputs from
@@ -15,6 +15,7 @@ use Closure;
 class PersistInputs
 {
     private const DEBUG = false;
+
     /**
      * Handle the persistence of redemption inputs to the voucher inputs table.
      *
@@ -24,7 +25,6 @@ class PersistInputs
      *  - Saves each input to the voucher inputs table using forceSetInput()
      *
      * @param  \LBHurtado\Voucher\Models\Voucher  $voucher
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle($voucher, Closure $next)
@@ -37,6 +37,7 @@ class PersistInputs
                     'voucher' => $voucher->code,
                 ]);
             }
+
             return $next($voucher);
         }
 
@@ -45,7 +46,7 @@ class PersistInputs
 
         if (self::DEBUG) {
             Log::debug('[PersistInputs] Loaded redemption metadata', [
-                'voucher'  => $voucher->code,
+                'voucher' => $voucher->code,
                 'inputs' => array_keys($inputs),
             ]);
         }
@@ -59,13 +60,14 @@ class PersistInputs
                         'input' => $name,
                     ]);
                 }
+
                 continue;
             }
 
             try {
                 // Use forceSetInput to save to inputs table (bypasses validation)
                 $voucher->forceSetInput($name, $value);
-                
+
                 Log::info('[PersistInputs] Saved input to voucher', [
                     'voucher' => $voucher->code,
                     'input' => $name,

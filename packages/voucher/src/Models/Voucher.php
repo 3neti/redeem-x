@@ -5,61 +5,59 @@ namespace LBHurtado\Voucher\Models;
 use FrittenKeeZ\Vouchers\Models\Redeemer;
 use FrittenKeeZ\Vouchers\Models\Voucher as BaseVoucher;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Carbon;
 use LBHurtado\Cash\Models\Cash;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use LBHurtado\Voucher\Observers\VoucherObserver;
-use LBHurtado\Voucher\Scopes\RedeemedScope;
-use LBHurtado\Voucher\Data\VoucherData;
-use Spatie\LaravelData\WithData;
-use Illuminate\Support\Carbon;
 use LBHurtado\ModelInput\Contracts\InputInterface;
 use LBHurtado\ModelInput\Traits\HasInputs;
 use LBHurtado\SettlementEnvelope\Traits\HasEnvelopes;
-use LBHurtado\Voucher\Traits\HasExternalMetadata;
-use LBHurtado\Voucher\Traits\HasVoucherTiming;
-use LBHurtado\Voucher\Traits\HasValidationResults;
-use LBHurtado\Voucher\Enums\VoucherType;
+use LBHurtado\Voucher\Data\VoucherData;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherState;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use LBHurtado\Voucher\Enums\VoucherType;
+use LBHurtado\Voucher\Observers\VoucherObserver;
+use LBHurtado\Voucher\Traits\HasExternalMetadata;
+use LBHurtado\Voucher\Traits\HasValidationResults;
+use LBHurtado\Voucher\Traits\HasVoucherTiming;
+use Spatie\LaravelData\WithData;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * Class Voucher.
  *
- * @property int                                        $id
- * @property string                                     $code
- * @property \Illuminate\Database\Eloquent\Model        $owner
- * @property array                                      $metadata
- * @property Carbon                                     $starts_at
- * @property Carbon                                     $expires_at
- * @property Carbon                                     $redeemed_at
- * @property Carbon                                     $processed_on
- * @property bool                                       $processed
- * @property VoucherInstructionsData                    $instructions
- * @property \FrittenKeeZ\Vouchers\Models\Redeemer      $redeemer
- * @property \Illuminate\Database\Eloquent\Collection   $voucherEntities
- * @property \Illuminate\Database\Eloquent\Collection   $redeemers
- * @property Cash                                       $cash
- * @property Contact                                    $contact
+ * @property int $id
+ * @property string $code
+ * @property \Illuminate\Database\Eloquent\Model $owner
+ * @property array $metadata
+ * @property Carbon $starts_at
+ * @property Carbon $expires_at
+ * @property Carbon $redeemed_at
+ * @property Carbon $processed_on
+ * @property bool $processed
+ * @property VoucherInstructionsData $instructions
+ * @property \FrittenKeeZ\Vouchers\Models\Redeemer $redeemer
+ * @property \Illuminate\Database\Eloquent\Collection $voucherEntities
+ * @property \Illuminate\Database\Eloquent\Collection $redeemers
+ * @property Cash $cash
+ * @property Contact $contact
  * @property \LBHurtado\Voucher\Data\ExternalMetadataData $external_metadata
- * @property \LBHurtado\Voucher\Data\VoucherTimingData    $timing
+ * @property \LBHurtado\Voucher\Data\VoucherTimingData $timing
  * @property \LBHurtado\Voucher\Data\ValidationResultsData $validation_results
  *
  * @method int getKey()
  */
 #[ObservedBy([VoucherObserver::class])]
-class Voucher extends BaseVoucher implements InputInterface, HasMedia
+class Voucher extends BaseVoucher implements HasMedia, InputInterface
 {
-    use WithData;
-    use HasInputs;
     use HasEnvelopes;
     use HasExternalMetadata;
-    use HasVoucherTiming;
+    use HasInputs;
     use HasValidationResults;
+    use HasVoucherTiming;
     use InteractsWithMedia;
+    use WithData;
 
     protected string $dataClass = VoucherData::class;
 
@@ -78,8 +76,9 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
         ]);
     }
 
-    public function getRouteKeyName() {
-        return "code";
+    public function getRouteKeyName()
+    {
+        return 'code';
     }
 
     /**
@@ -157,20 +156,20 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
     }
 
     // Domain Guards
-    
+
     public function canAcceptPayment(): bool
     {
         return in_array($this->voucher_type, [VoucherType::PAYABLE, VoucherType::SETTLEMENT])
             && $this->state === VoucherState::ACTIVE
-            && !$this->isExpired()
-            && !$this->isClosed();
+            && ! $this->isExpired()
+            && ! $this->isClosed();
     }
 
     public function canRedeem(): bool
     {
         return in_array($this->voucher_type, [VoucherType::REDEEMABLE, VoucherType::SETTLEMENT])
             && $this->state === VoucherState::ACTIVE
-            && !$this->isExpired()
+            && ! $this->isExpired()
             && $this->redeemed_at === null;
     }
 
@@ -193,7 +192,7 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
 
     public function getPaidTotal(): float
     {
-        if (!$this->cash || !$this->cash->wallet) {
+        if (! $this->cash || ! $this->cash->wallet) {
             return 0.0;
         }
 
@@ -206,7 +205,7 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
 
     public function getRedeemedTotal(): float
     {
-        if (!$this->cash || !$this->cash->wallet) {
+        if (! $this->cash || ! $this->cash->wallet) {
             return 0.0;
         }
 
@@ -218,7 +217,7 @@ class Voucher extends BaseVoucher implements InputInterface, HasMedia
 
     public function getRemaining(): float
     {
-        if (!$this->target_amount) {
+        if (! $this->target_amount) {
             return 0.0;
         }
 

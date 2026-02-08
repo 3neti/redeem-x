@@ -18,7 +18,7 @@ return new class extends Migration
             $table->bigInteger('target_amount')->nullable()->comment('Target amount in minor units (centavos)');
             $table->timestamp('locked_at')->nullable();
             $table->timestamp('closed_at')->nullable();
-            
+
             // Add indexes for frequent queries
             $table->index('voucher_type');
             $table->index('state');

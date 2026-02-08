@@ -4,7 +4,8 @@ namespace App\Data\Api\Wallet;
 
 use App\Models\TopUp;
 use Carbon\Carbon;
-use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;

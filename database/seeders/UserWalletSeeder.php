@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use LBHurtado\Wallet\Actions\TopupWalletAction;
 
 class UserWalletSeeder extends Seeder
 {
@@ -17,15 +16,17 @@ class UserWalletSeeder extends Seeder
         $systemEmail = env('SYSTEM_USER_ID');
         $systemUser = User::where('email', $systemEmail)->first();
 
-        if (!$systemUser) {
+        if (! $systemUser) {
             $this->command->error('System user not found. Please run SystemUserSeeder first.');
+
             return;
         }
 
         $user = User::where('email', '!=', $systemEmail)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->command->error('No regular users found. Please create a user first.');
+
             return;
         }
 
@@ -37,6 +38,6 @@ class UserWalletSeeder extends Seeder
         $user->wallet->refreshBalance();
 
         $this->command->info("✅ Funded {$user->email}'s wallet with ₱100,000.00");
-        $this->command->info("Current balance: ₱" . number_format($user->wallet->balanceFloat, 2));
+        $this->command->info('Current balance: ₱'.number_format($user->wallet->balanceFloat, 2));
     }
 }

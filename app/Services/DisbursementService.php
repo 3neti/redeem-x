@@ -13,11 +13,11 @@ use LBHurtado\PaymentGateway\Enums\SettlementRail;
 
 /**
  * Reusable Disbursement Service
- * 
+ *
  * Handles bank disbursements for:
  * - Voucher redemptions (existing flow via DisburseCash pipeline)
  * - Settlement auto-disbursements (new feature)
- * 
+ *
  * Responsibilities:
  * - Validate minimum threshold
  * - Build disburse input data
@@ -33,24 +33,25 @@ class DisbursementService
 
     /**
      * Check if amount meets minimum threshold for disbursement.
-     * 
-     * @param float $amount Amount in pesos
+     *
+     * @param  float  $amount  Amount in pesos
      * @return bool True if amount >= threshold
      */
     public function meetsMinimumThreshold(float $amount): bool
     {
         $threshold = $this->settings->auto_disburse_minimum;
+
         return $amount >= $threshold;
     }
 
     /**
      * Disburse funds to user's bank account.
-     * 
-     * @param User $user User to disburse to
-     * @param float $amount Amount in pesos
-     * @param array $bankAccount Bank account data ['bank_code' => string, 'account_number' => string]
-     * @param string|null $settlementRail Settlement rail (INSTAPAY/PESONET), null for auto
-     * @param array $metadata Additional metadata to log
+     *
+     * @param  User  $user  User to disburse to
+     * @param  float  $amount  Amount in pesos
+     * @param  array  $bankAccount  Bank account data ['bank_code' => string, 'account_number' => string]
+     * @param  string|null  $settlementRail  Settlement rail (INSTAPAY/PESONET), null for auto
+     * @param  array  $metadata  Additional metadata to log
      * @return array{success: bool, message: string, transaction_id: ?string, error: ?string}
      */
     public function disburse(
@@ -71,8 +72,9 @@ class DisbursementService
         }
 
         // Check minimum threshold
-        if (!$this->meetsMinimumThreshold($amount)) {
+        if (! $this->meetsMinimumThreshold($amount)) {
             $threshold = $this->settings->auto_disburse_minimum;
+
             return [
                 'success' => false,
                 'message' => "Amount ₱{$amount} is below minimum threshold ₱{$threshold}",
@@ -88,20 +90,20 @@ class DisbursementService
         // Format: VOUCHER-MOBILE (e.g., GLWH-09173011987)
         $voucherCode = $metadata['voucher_code'] ?? 'SETTLE';
         $rawMobile = $user->mobile ?? $user->account_number ?? '09000000000';
-        
+
         // Format mobile for local dialing (e.g., 09173011987)
         $mobile = phone($rawMobile, 'PH')->formatNational();
         // Remove spaces from formatted number
         $mobile = str_replace(' ', '', $mobile);
-        
+
         $reference = "{$voucherCode}-{$mobile}";
-        
+
         Log::debug('[DisbursementService] Building DisburseInputData', [
             'metadata' => $metadata,
             'voucher_id_from_metadata' => $metadata['voucher_id'] ?? null,
             'reference' => $reference,
         ]);
-        
+
         $disburseData = DisburseInputData::from([
             'reference' => $reference,
             'amount' => $amount,
@@ -113,7 +115,7 @@ class DisbursementService
             'voucher_code' => $metadata['voucher_code'] ?? null,
             'user_id' => $user->id,
         ]);
-        
+
         Log::debug('[DisbursementService] DisburseInputData created', [
             'voucher_id' => $disburseData->voucher_id,
             'voucher_code' => $disburseData->voucher_code,
@@ -136,13 +138,13 @@ class DisbursementService
                 if ($voucher && $voucher->cash && $voucher->cash->wallet) {
                     $cashWallet = $voucher->cash->wallet;
                     $currentBalance = $cashWallet->balanceFloat;
-                    
+
                     Log::info('[DisbursementService] Withdrawing from voucher cash wallet', [
                         'voucher_code' => $voucher->code,
                         'current_balance' => $currentBalance,
                         'withdraw_amount' => $amount,
                     ]);
-                    
+
                     // Withdraw from voucher's cash wallet
                     // Note: Bavix Wallet expects int (centavos) not float (pesos)
                     $amountInCentavos = (int) ($amount * 100);
@@ -153,13 +155,13 @@ class DisbursementService
                         'bank_code' => $bankAccount['bank_code'],
                         'account_number' => $bankAccount['account_number'],
                     ]);
-                    
+
                     Log::info('[DisbursementService] Withdrawn from cash wallet', [
                         'new_balance' => $cashWallet->balanceFloat,
                     ]);
                 }
             }
-            
+
             $response = $this->gateway->disburse($user, $disburseData);
 
             // Gateway returns DisburseResponseData on success, false on failure
@@ -202,7 +204,7 @@ class DisbursementService
 
             return [
                 'success' => false,
-                'message' => 'Disbursement failed: ' . $e->getMessage(),
+                'message' => 'Disbursement failed: '.$e->getMessage(),
                 'transaction_id' => null,
                 'error' => 'exception',
             ];
@@ -211,9 +213,9 @@ class DisbursementService
 
     /**
      * Determine appropriate settlement rail based on amount and preference.
-     * 
-     * @param float $amount Amount in pesos
-     * @param string|null $preferred Preferred rail or null for auto
+     *
+     * @param  float  $amount  Amount in pesos
+     * @param  string|null  $preferred  Preferred rail or null for auto
      * @return string INSTAPAY or PESONET
      */
     public function determineSettlementRail(float $amount, ?string $preferred): string
@@ -231,15 +233,16 @@ class DisbursementService
 
     /**
      * Get disbursement fee for a given rail and amount.
-     * 
-     * @param string $rail INSTAPAY or PESONET
-     * @param float $amount Amount in pesos
+     *
+     * @param  string  $rail  INSTAPAY or PESONET
+     * @param  float  $amount  Amount in pesos
      * @return int Fee in pesos
      */
     public function getFee(string $rail, float $amount): int
     {
         $railEnum = SettlementRail::from(strtoupper($rail));
         $feeInCentavos = $this->gateway->getRailFee($railEnum);
+
         return (int) ($feeInCentavos / 100); // Convert to pesos
     }
 }

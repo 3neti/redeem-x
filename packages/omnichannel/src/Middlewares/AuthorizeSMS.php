@@ -2,9 +2,8 @@
 
 namespace LBHurtado\OmniChannel\Middlewares;
 
-use Illuminate\Support\Facades\Log;
-use Illuminate\Http\JsonResponse;
 use Closure;
+use Illuminate\Support\Facades\Log;
 
 class AuthorizeSMS implements SMSMiddlewareInterface
 {
@@ -26,11 +25,10 @@ class AuthorizeSMS implements SMSMiddlewareInterface
     /**
      * Handle an incoming SMS.
      *
-     * @param string   $message The SMS message.
-     * @param string   $from    The sender's phone number.
-     * @param string   $to      The recipient's phone number.
-     * @param Closure  $next    The next middleware or handler.
-     *
+     * @param  string  $message  The SMS message.
+     * @param  string  $from  The sender's phone number.
+     * @param  string  $to  The recipient's phone number.
+     * @param  Closure  $next  The next middleware or handler.
      * @return mixed
      */
     public function handle(string $message, string $from, string $to, Closure $next)
@@ -41,11 +39,11 @@ class AuthorizeSMS implements SMSMiddlewareInterface
         // Check if the command is restricted
         if (isset($this->allowedNumbers[$command])) {
             // If the sender is NOT in the allowed list, deny access
-            if (!in_array($from, $this->allowedNumbers[$command])) {
-                Log::warning("🚫 Unauthorized SMS attempt", ['command' => $command, 'from' => $from]);
+            if (! in_array($from, $this->allowedNumbers[$command])) {
+                Log::warning('🚫 Unauthorized SMS attempt', ['command' => $command, 'from' => $from]);
 
                 return response()->json([
-                    'message' => "Unauthorized access. You are not allowed to use this command.",
+                    'message' => 'Unauthorized access. You are not allowed to use this command.',
                 ], 403);
             }
         }
@@ -106,7 +104,7 @@ class AuthorizeSMS implements SMSMiddlewareInterface
 
         // Convert keys to uppercase while ensuring values remain arrays
         return collect($allowedCommands)
-            ->mapWithKeys(fn($numbers, $command) => [strtoupper($command) => is_array($numbers) ? $numbers : []])
+            ->mapWithKeys(fn ($numbers, $command) => [strtoupper($command) => is_array($numbers) ? $numbers : []])
             ->toArray();
     }
 }

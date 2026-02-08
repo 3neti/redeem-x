@@ -2,9 +2,9 @@
 
 namespace LBHurtado\ModelInput\Models;
 
-use LBHurtado\ModelInput\Database\Factories\InputFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use LBHurtado\ModelInput\Database\Factories\InputFactory;
 
 class Input extends Model
 {
@@ -12,7 +12,7 @@ class Input extends Model
 
     protected $fillable = [
         'name',
-        'value'
+        'value',
     ];
 
     public static function newFactory(): InputFactory

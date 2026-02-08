@@ -13,9 +13,9 @@ return [
 
     'alerts' => [
         'enabled' => env('DISBURSEMENT_ALERT_ENABLED', true),
-        
+
         'emails' => array_filter(explode(',', env('DISBURSEMENT_ALERT_EMAILS', ''))),
-        
+
         /*
         |--------------------------------------------------------------------------
         | Alert Throttling

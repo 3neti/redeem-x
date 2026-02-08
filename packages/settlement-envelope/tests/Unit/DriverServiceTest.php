@@ -5,7 +5,7 @@ use LBHurtado\SettlementEnvelope\Exceptions\DriverNotFoundException;
 use LBHurtado\SettlementEnvelope\Services\DriverService;
 
 beforeEach(function () {
-    $this->driverDirectory = __DIR__ . '/../../drivers';
+    $this->driverDirectory = __DIR__.'/../../drivers';
     $this->service = new DriverService($this->driverDirectory);
 });
 
@@ -30,7 +30,7 @@ describe('driver loading', function () {
     });
 
     test('throws exception for non-existent driver', function () {
-        expect(fn() => $this->service->load('non.existent'))
+        expect(fn () => $this->service->load('non.existent'))
             ->toThrow(DriverNotFoundException::class);
     });
 

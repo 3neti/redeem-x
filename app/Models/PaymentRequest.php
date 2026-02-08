@@ -10,6 +10,7 @@ use LBHurtado\Voucher\Models\Voucher;
 class PaymentRequest extends Model
 {
     use Notifiable;
+
     protected $fillable = [
         'reference_id',
         'voucher_id',

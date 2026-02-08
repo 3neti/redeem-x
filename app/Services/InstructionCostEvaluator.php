@@ -11,7 +11,7 @@ use LBHurtado\Voucher\Data\VoucherInstructionsData;
 class InstructionCostEvaluator
 {
     private const DEBUG = true;
-    
+
     protected array $excludedFields = [
         'count',
         'mask',
@@ -58,20 +58,22 @@ class InstructionCostEvaluator
             if (str_starts_with($item->index, 'inputs.fields.')) {
                 $fieldName = str_replace('inputs.fields.', '', $item->index);
                 $selectedFieldsRaw = data_get($source, 'inputs.fields', []);
-                
+
                 // Extract string values from enum objects
                 $selectedFields = collect($selectedFieldsRaw)->map(function ($field) {
                     // If it's an enum object like {VoucherInputField: "email"}, extract the value
                     if (is_array($field) || is_object($field)) {
                         $values = collect((array) $field)->values();
+
                         return $values->first(); // Get the first (and only) value
                     }
+
                     return $field;
                 })->filter()->toArray();
-                
+
                 // Case-insensitive comparison (enum values are uppercase)
                 $isSelected = in_array(strtoupper($fieldName), array_map('strtoupper', $selectedFields));
-                
+
                 if (self::DEBUG) {
                     Log::debug("[InstructionCostEvaluator] Checking input field: {$fieldName}", [
                         'selectedFieldsRaw' => $selectedFieldsRaw,
@@ -84,7 +86,7 @@ class InstructionCostEvaluator
                 // Handle cash.validation specially - it's a nested Data object
                 $fieldName = str_replace('cash.validation.', '', $item->index);
                 $value = $source->cash->validation->{$fieldName} ?? null;
-                
+
                 if (self::DEBUG) {
                     Log::debug("[InstructionCostEvaluator] Checking cash.validation field: {$fieldName}", [
                         'value' => $value,
@@ -93,7 +95,7 @@ class InstructionCostEvaluator
             } else {
                 $value = data_get($source, $item->index);
             }
-            
+
             // Special handling for validation items
             if (str_starts_with($item->index, 'validation.')) {
                 // Value might be a Data object or array
@@ -104,7 +106,7 @@ class InstructionCostEvaluator
                 } else {
                     $valueArray = [];
                 }
-                
+
                 // Different validation types have different "enabled" criteria:
                 // - Location: has 'required' field
                 // - Time: enabled if window or limit_minutes is set
@@ -113,13 +115,13 @@ class InstructionCostEvaluator
                     $isEnabled = $valueArray['required'] === true;
                 } elseif (isset($valueArray['window']) || isset($valueArray['limit_minutes'])) {
                     // TimeValidationData - enabled if window or limit is configured
-                    $isEnabled = !empty($valueArray['window']) || !empty($valueArray['limit_minutes']);
+                    $isEnabled = ! empty($valueArray['window']) || ! empty($valueArray['limit_minutes']);
                 } else {
                     $isEnabled = false;
                 }
-                
+
                 $shouldCharge = $isEnabled && $item->price > 0;
-                
+
                 if (self::DEBUG) {
                     Log::debug("[InstructionCostEvaluator] Validation item: {$item->index}", [
                         'value' => $value,
@@ -133,7 +135,7 @@ class InstructionCostEvaluator
                 $isTruthyBoolean = is_bool($value) && $value === true;
                 $isTruthyInteger = is_int($value) && $value > 0;
                 $isTruthyFloat = is_float($value) && $value > 0.0;
-                $isTruthyObject = (is_array($value) || is_object($value)) && !empty((array) $value);
+                $isTruthyObject = (is_array($value) || is_object($value)) && ! empty((array) $value);
                 $shouldCharge = ($isTruthyString || $isTruthyBoolean || $isTruthyInteger || $isTruthyFloat || $isTruthyObject) && $item->price > 0;
             }
 

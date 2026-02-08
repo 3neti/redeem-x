@@ -27,7 +27,7 @@ class MerchantService
     public function updateMerchantProfile(User $user, array $data): Merchant
     {
         $merchant = $user->getOrCreateMerchant();
-        
+
         \Illuminate\Support\Facades\Log::debug('[MerchantService] Updating merchant profile', [
             'merchant_id' => $merchant->id,
             'data' => $data,
@@ -45,11 +45,11 @@ class MerchantService
             'merchant_name_template' => $data['merchant_name_template'] ?? $merchant->merchant_name_template,
             'allow_tip' => array_key_exists('allow_tip', $data) ? $data['allow_tip'] : $merchant->allow_tip,
         ];
-        
+
         \Illuminate\Support\Facades\Log::debug('[MerchantService] Update data prepared', [
             'update_data' => $updateData,
         ]);
-        
+
         $merchant->update($updateData);
 
         // Clear QR cache for this user since merchant data changed

@@ -2,14 +2,13 @@
 
 namespace LBHurtado\Wallet\Events;
 
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Broadcasting\Channel;
 use Bavix\Wallet\Models\Transaction;
 use Brick\Money\Money;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 abstract class DisbursementEvent implements ShouldBroadcast
 {
@@ -30,7 +29,7 @@ abstract class DisbursementEvent implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('App.Models.User.' . $this->transaction->payable->id),
+            new PrivateChannel('App.Models.User.'.$this->transaction->payable->id),
         ];
     }
 

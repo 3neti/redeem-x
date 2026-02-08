@@ -3,16 +3,15 @@
 namespace App\Notifications;
 
 use App\Models\PaymentRequest as PaymentRequestModel;
-use App\Notifications\BaseNotification;
 use Illuminate\Support\Facades\URL;
 use LBHurtado\EngageSpark\EngageSparkMessage;
 
 /**
  * Payment Confirmation Notification
- * 
+ *
  * Sends SMS confirmation when settlement payment is received.
  * Used by SendPaymentConfirmationSms job after payment webhook.
- * 
+ *
  * Migration to BaseNotification:
  * - Extends BaseNotification for standardized behavior
  * - Uses config/notifications.php for channel configuration
@@ -43,7 +42,7 @@ class PaymentConfirmationNotification extends BaseNotification
         $signedUrl = $this->buildConfirmationUrl($pr);
         $amount = number_format($pr->getAmountInMajorUnits(), 0);
         $code = $pr->voucher?->code ?? 'N/A';
-        
+
         return [
             'payment_request_id' => $pr->id,
             'voucher_id' => $pr->voucher_id,
@@ -74,18 +73,18 @@ class PaymentConfirmationNotification extends BaseNotification
         $signedUrl = $this->buildConfirmationUrl($pr);
         $amount = number_format($pr->getAmountInMajorUnits(), 0);
         $code = $pr->voucher?->code ?? 'N/A';
-        
+
         // Build context for template processing
         $context = [
             'amount' => $amount,
             'voucher_code' => $code,
             'confirmation_url' => $signedUrl,
         ];
-        
+
         // Use localized template
         $content = $this->getLocalizedTemplate('notifications.payment_confirmation.sms', $context);
-        
-        return (new EngageSparkMessage())->content($content);
+
+        return (new EngageSparkMessage)->content($content);
     }
 
     /**

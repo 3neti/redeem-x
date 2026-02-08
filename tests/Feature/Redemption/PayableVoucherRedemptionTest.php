@@ -17,14 +17,14 @@ beforeEach(function () {
     // Create users with vendor aliases
     $this->userBB = User::factory()->create(['email' => 'bb@test.com']);
     $this->userOther = User::factory()->create(['email' => 'other@test.com']);
-    
+
     // Create vendor aliases
     $this->aliasBB = VendorAlias::factory()->create([
         'owner_user_id' => $this->userBB->id,
         'alias' => 'BB',
         'status' => 'active',
     ]);
-    
+
     $this->aliasOther = VendorAlias::factory()->create([
         'owner_user_id' => $this->userOther->id,
         'alias' => 'OTHER',
@@ -48,20 +48,20 @@ it('allows authenticated user with correct vendor alias to redeem B2B voucher', 
             )
         )
     );
-    
+
     $action = app(GenerateVouchers::class);
     $vouchers = $action->handle(
         user: $this->userBB,
         instructions: $instructions,
         count: 1
     );
-    
+
     $voucher = $vouchers->first();
-    
+
     // Act: Try to redeem with correct user
-    $payAction = new PayWithVoucher();
+    $payAction = new PayWithVoucher;
     $result = $payAction->handle($this->userBB, $voucher->code);
-    
+
     // Assert
     expect($result['success'])->toBeTrue()
         ->and($result['amount'])->toBe(100.0);
@@ -76,27 +76,27 @@ it('blocks authenticated user with wrong vendor alias from redeeming B2B voucher
             validation: new CashValidationRulesData(
                 secret: null,
                 mobile: null,
-                payable: 'BB', // B2B voucher  
+                payable: 'BB', // B2B voucher
                 country: null,
                 location: null,
                 radius: null
             )
         )
     );
-    
+
     $action = app(GenerateVouchers::class);
     $vouchers = $action->handle(
         user: $this->userBB,
         instructions: $instructions,
         count: 1
     );
-    
+
     $voucher = $vouchers->first();
-    
+
     // Act & Assert: Try to redeem with wrong user
-    $payAction = new PayWithVoucher();
-    
-    expect(fn() => $payAction->handle($this->userOther, $voucher->code))
+    $payAction = new PayWithVoucher;
+
+    expect(fn () => $payAction->handle($this->userOther, $voucher->code))
         ->toThrow(RedemptionException::class, 'payable to merchant "BB"');
 });
 

@@ -2,11 +2,11 @@
 
 namespace LBHurtado\PaymentGateway\Data\Casts;
 
+use Brick\Money\Money;
+use Illuminate\Support\Number;
+use Spatie\LaravelData\Casts\Cast;
 use Spatie\LaravelData\Support\Creation\CreationContext;
 use Spatie\LaravelData\Support\DataProperty;
-use Spatie\LaravelData\Casts\Cast;
-use Illuminate\Support\Number;
-use Brick\Money\Money;
 
 class MoneyCast implements Cast
 {
@@ -28,7 +28,6 @@ class MoneyCast implements Cast
             return Money::of($value, Number::defaultCurrency()); // default currency
         }
 
-        throw new \InvalidArgumentException("Cannot cast value to Money: " . print_r($value, true));
+        throw new \InvalidArgumentException('Cannot cast value to Money: '.print_r($value, true));
     }
 }
-

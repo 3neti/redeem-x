@@ -2,9 +2,9 @@
 
 namespace LBHurtado\PaymentGateway\Pipelines\ResolvePayable;
 
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 use Bavix\Wallet\Models\Wallet;
 use Closure;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 
 class CheckVoucher
 {

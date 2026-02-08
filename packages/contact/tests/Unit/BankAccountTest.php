@@ -32,7 +32,6 @@ it('throws if account is empty', function () {
     BankAccount::fromBankAccount('ABC:');
 })->throws(InvalidArgumentException::class, 'cannot be empty');
 
-
 describe('BankAccount', function () {
     it('can return the bank account as a string', function () {
         $ba = new BankAccount('ABC', '123456');

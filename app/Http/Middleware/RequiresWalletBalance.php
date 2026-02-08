@@ -17,7 +17,7 @@ class RequiresWalletBalance
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        
+
         if ($user->balanceFloat <= 0) {
             return redirect()->route('wallet.qr', [
                 'reason' => 'insufficient_balance',
@@ -27,7 +27,7 @@ class RequiresWalletBalance
                 'message' => 'Please add funds to your wallet to generate vouchers.',
             ]);
         }
-        
+
         return $next($request);
     }
 }

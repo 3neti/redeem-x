@@ -22,10 +22,12 @@ class PingAutoReply implements AutoReplyInterface
     private function getUptime(): string
     {
         if (function_exists('shell_exec')) {
-            $uptime = shell_exec("uptime -p");
-            return $uptime ? trim($uptime) : "Unknown";
+            $uptime = shell_exec('uptime -p');
+
+            return $uptime ? trim($uptime) : 'Unknown';
         }
-        return "Not available";
+
+        return 'Not available';
     }
 
     /**
@@ -35,9 +37,11 @@ class PingAutoReply implements AutoReplyInterface
     {
         if (function_exists('sys_getloadavg')) {
             $load = sys_getloadavg();
-            return $load ? implode(", ", array_map(fn ($v) => round($v, 2), $load)) : "Unknown";
+
+            return $load ? implode(', ', array_map(fn ($v) => round($v, 2), $load)) : 'Unknown';
         }
-        return "Not available";
+
+        return 'Not available';
     }
 
     /**
@@ -47,8 +51,10 @@ class PingAutoReply implements AutoReplyInterface
     {
         if (function_exists('memory_get_usage')) {
             $memory = memory_get_usage(true) / 1024 / 1024; // Convert to MB
-            return round($memory, 2) . " MB";
+
+            return round($memory, 2).' MB';
         }
-        return "Not available";
+
+        return 'Not available';
     }
 }

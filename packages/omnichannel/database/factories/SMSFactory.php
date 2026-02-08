@@ -12,9 +12,9 @@ class SMSFactory extends Factory
     public function definition(): array
     {
         return [
-            'from' => '0917825' . $this->faker->numberBetween(1000,9999),
-            'to' => '0917301' . $this->faker->numberBetween(1000,9999),
-            'message' => $this->faker->sentence()
+            'from' => '0917825'.$this->faker->numberBetween(1000, 9999),
+            'to' => '0917301'.$this->faker->numberBetween(1000, 9999),
+            'message' => $this->faker->sentence(),
         ];
     }
 }

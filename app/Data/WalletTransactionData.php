@@ -34,7 +34,7 @@ class WalletTransactionData extends Data
     public static function fromTransaction(Transaction $tx): self
     {
         $meta = $tx->meta ?? [];
-        
+
         // Derive metadata based on transaction type and existing data
         if ($tx->type === 'deposit') {
             [$senderName, $senderIdentifier, $paymentMethod, $depositType] = self::deriveDepositMetadata($tx, $meta);
@@ -42,7 +42,7 @@ class WalletTransactionData extends Data
             // For withdrawals, derive voucher and disbursement info
             [$voucherCode, $disbursement] = self::deriveWithdrawalMetadata($tx, $meta);
         }
-        
+
         return new self(
             id: $tx->id,
             uuid: $tx->uuid,
@@ -61,7 +61,7 @@ class WalletTransactionData extends Data
             updated_at: $tx->updated_at->toIso8601String(),
         );
     }
-    
+
     /**
      * Derive deposit metadata from transaction and meta data.
      * Be resourceful - extract from existing fields.
@@ -69,7 +69,7 @@ class WalletTransactionData extends Data
     protected static function deriveDepositMetadata(Transaction $tx, array $meta): array
     {
         // Check for explicitly set new fields first
-        if (!empty($meta['sender_name']) && !empty($meta['deposit_type'])) {
+        if (! empty($meta['sender_name']) && ! empty($meta['deposit_type'])) {
             return [
                 $meta['sender_name'],
                 $meta['sender_identifier'] ?? null,
@@ -77,16 +77,16 @@ class WalletTransactionData extends Data
                 $meta['deposit_type'],
             ];
         }
-        
+
         // Derive from existing meta structure
         $type = $meta['type'] ?? null;
         $gateway = $meta['gateway'] ?? null;
-        
+
         // Voucher payment (from another user redeeming a voucher)
         if ($type === 'voucher_payment') {
             $voucherCode = $meta['voucher_code'] ?? null;
             $issuerName = 'Voucher Payment';
-            
+
             // Try to get issuer info from voucher
             if ($voucherCode) {
                 $voucher = Voucher::where('code', $voucherCode)->first();
@@ -94,7 +94,7 @@ class WalletTransactionData extends Data
                     $issuerName = $voucher->owner->name ?? $voucher->owner->email;
                 }
             }
-            
+
             return [
                 $issuerName,
                 $voucherCode,
@@ -102,12 +102,12 @@ class WalletTransactionData extends Data
                 'voucher_payment',
             ];
         }
-        
+
         // Bank/NetBank top-up
         if ($type === 'top_up' || $gateway === 'netbank') {
             $wallet = $tx->wallet;
             $user = $wallet?->holder;
-            
+
             return [
                 $user?->name ?? $user?->email ?? 'Wallet Top-Up',
                 $meta['reference_no'] ?? null,
@@ -115,7 +115,7 @@ class WalletTransactionData extends Data
                 'manual_topup',
             ];
         }
-        
+
         // QR payment (future)
         if ($type === 'qr_payment') {
             return [
@@ -125,7 +125,7 @@ class WalletTransactionData extends Data
                 'qr_payment',
             ];
         }
-        
+
         // Default fallback
         return [
             'Deposit',
@@ -134,25 +134,25 @@ class WalletTransactionData extends Data
             $type,
         ];
     }
-    
+
     /**
      * Derive withdrawal metadata (voucher generation charges).
      */
     protected static function deriveWithdrawalMetadata(Transaction $tx, array $meta): array
     {
         // Check for explicitly set fields first
-        if (!empty($meta['voucher_code'])) {
+        if (! empty($meta['voucher_code'])) {
             return [
                 $meta['voucher_code'],
                 $meta['disbursement'] ?? null,
             ];
         }
-        
+
         // Try to find voucher generation charge by timestamp and amount
         // Voucher generations happen in batches at the same time
         $wallet = $tx->wallet;
         $userId = $wallet?->holder?->id;
-        
+
         if ($userId) {
             // Look for generation charges within 1 second of this transaction
             $charge = VoucherGenerationCharge::where('user_id', $userId)
@@ -161,30 +161,30 @@ class WalletTransactionData extends Data
                     $tx->created_at->addSecond(),
                 ])
                 ->first();
-            
+
             if ($charge) {
                 // Found a matching batch - use first voucher code as representative
                 $codes = $charge->voucher_codes;
-                $voucherCode = is_array($codes) && !empty($codes) ? $codes[0] : null;
-                
+                $voucherCode = is_array($codes) && ! empty($codes) ? $codes[0] : null;
+
                 // Try to get disbursement info from any voucher in this batch
                 if ($voucherCode) {
                     $voucher = Voucher::where('code', $voucherCode)->first();
-                    if ($voucher && !empty($voucher->metadata['disbursement'])) {
+                    if ($voucher && ! empty($voucher->metadata['disbursement'])) {
                         return [
-                            $voucherCode . ($charge->voucher_count > 1 ? ' (+' . ($charge->voucher_count - 1) . ' more)' : ''),
+                            $voucherCode.($charge->voucher_count > 1 ? ' (+'.($charge->voucher_count - 1).' more)' : ''),
                             $voucher->metadata['disbursement'],
                         ];
                     }
-                    
+
                     return [
-                        $voucherCode . ($charge->voucher_count > 1 ? ' (+' . ($charge->voucher_count - 1) . ' more)' : ''),
+                        $voucherCode.($charge->voucher_count > 1 ? ' (+'.($charge->voucher_count - 1).' more)' : ''),
                         null,
                     ];
                 }
             }
         }
-        
+
         // Fallback - generic voucher generation charge
         return [
             null,

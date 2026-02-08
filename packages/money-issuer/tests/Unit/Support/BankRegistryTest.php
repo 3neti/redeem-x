@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use Illuminate\Support\Collection;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 beforeEach(function () {
     // Define the mock file path using the helper
@@ -10,46 +10,46 @@ beforeEach(function () {
     // Write temporary banks.json file with the provided data
     file_put_contents($this->banksPath, json_encode([
         'banks' => [
-            "AGBUPHM1XXX" => [
-                "full_name" => "AGRIBUSINESS RURAL BANK, INC.",
-                "swift_bic" => "AGBUPHM1XXX",
-                "settlement_rail" => [
-                    "PESONET" => [
-                        "bank_code" => "AGBUPHM1XXX",
-                        "name" => "PESONET"
-                    ]
-                ]
+            'AGBUPHM1XXX' => [
+                'full_name' => 'AGRIBUSINESS RURAL BANK, INC.',
+                'swift_bic' => 'AGBUPHM1XXX',
+                'settlement_rail' => [
+                    'PESONET' => [
+                        'bank_code' => 'AGBUPHM1XXX',
+                        'name' => 'PESONET',
+                    ],
+                ],
             ],
-            "AIIPPHM1XXX" => [
-                "full_name" => "AL-AMANAH ISLAMIC BANK",
-                "swift_bic" => "AIIPPHM1XXX",
-                "settlement_rail" => [
-                    "PESONET" => [
-                        "bank_code" => "AIIPPHM1XXX",
-                        "name" => "PESONET"
-                    ]
-                ]
+            'AIIPPHM1XXX' => [
+                'full_name' => 'AL-AMANAH ISLAMIC BANK',
+                'swift_bic' => 'AIIPPHM1XXX',
+                'settlement_rail' => [
+                    'PESONET' => [
+                        'bank_code' => 'AIIPPHM1XXX',
+                        'name' => 'PESONET',
+                    ],
+                ],
             ],
-            "ALKBPHM2XXX" => [
-                "full_name" => "ALLBANK, INC.",
-                "swift_bic" => "ALKBPHM2XXX",
-                "settlement_rail" => [
-                    "PESONET" => [
-                        "bank_code" => "ALKBPHM2XXX",
-                        "name" => "PESONET"
-                    ]
-                ]
+            'ALKBPHM2XXX' => [
+                'full_name' => 'ALLBANK, INC.',
+                'swift_bic' => 'ALKBPHM2XXX',
+                'settlement_rail' => [
+                    'PESONET' => [
+                        'bank_code' => 'ALKBPHM2XXX',
+                        'name' => 'PESONET',
+                    ],
+                ],
             ],
         ],
     ]));
 });
 
-//afterEach(function () {
+// afterEach(function () {
 //    // Remove the mock banks.json file using the helper path
 //    if (file_exists($this->banksPath)) {
 //        unlink($this->banksPath);
 //    }
-//});
+// });
 
 it('validates that the banks.json file exists and the BankRegistry loads it correctly', function () {
     // Path to the banks.json file using the helper
@@ -59,7 +59,7 @@ it('validates that the banks.json file exists and the BankRegistry loads it corr
     expect(file_exists($path))->toBeTrue();
 
     // Instantiate the BankRegistry (should not throw an exception)
-    $bankRegistry = new BankRegistry();
+    $bankRegistry = new BankRegistry;
 
     // Validate all() returns data
     $allBanks = $bankRegistry->all();
@@ -74,11 +74,11 @@ it('throws an exception if the file format is invalid', function () {
     $this->expectException(UnexpectedValueException::class);
     $this->expectExceptionMessage("Invalid format in banks.json. Expected 'banks' root key.");
 
-    (new BankRegistry());
+    (new BankRegistry);
 });
 
 it('returns all banks using the all() method', function () {
-    $bankRegistry = new BankRegistry();
+    $bankRegistry = new BankRegistry;
 
     $allBanks = $bankRegistry->all();
 
@@ -94,7 +94,7 @@ it('returns all banks using the all() method', function () {
 });
 
 it('finds a bank by swift_bic using the find() method', function () {
-    $bankRegistry = new BankRegistry();
+    $bankRegistry = new BankRegistry;
 
     // Test existing bank
     $bank = $bankRegistry->find('AGBUPHM1XXX');
@@ -108,7 +108,7 @@ it('finds a bank by swift_bic using the find() method', function () {
 });
 
 it('returns supported settlement rails for a bank', function () {
-    $bankRegistry = new BankRegistry();
+    $bankRegistry = new BankRegistry;
 
     // Test settlement rail for an existing bank
     $rails = $bankRegistry->supportedSettlementRails('AGBUPHM1XXX');
@@ -125,7 +125,7 @@ it('returns supported settlement rails for a bank', function () {
 });
 
 it('returns a collection using the toCollection() method', function () {
-    $bankRegistry = new BankRegistry();
+    $bankRegistry = new BankRegistry;
 
     $collection = $bankRegistry->toCollection();
 

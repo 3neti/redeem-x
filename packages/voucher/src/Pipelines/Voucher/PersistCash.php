@@ -3,18 +3,19 @@
 namespace LBHurtado\Voucher\Pipelines\Voucher;
 
 use Bavix\Wallet\Interfaces\Customer;
+use Closure;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Cash\Models\Cash;
 use LBHurtado\Voucher\Services\FeeCalculator;
-use Closure;
 
 class PersistCash
 {
     private const DEBUG = false;
-    
+
     public function __construct(
         protected FeeCalculator $feeCalculator
     ) {}
+
     public function handle($voucher, Closure $next)
     {
         if (self::DEBUG) {
@@ -28,10 +29,10 @@ class PersistCash
 
         if (self::DEBUG) {
             Log::debug('[RedeemVoucher] Voucher owner:', [
-                'id'      => $user?->getKey(),
-                'class'   => $user::class,
-            'payload' => $user?->toArray(),
-        ]);
+                'id' => $user?->getKey(),
+                'class' => $user::class,
+                'payload' => $user?->toArray(),
+            ]);
         }
 
         if (! $user instanceof Customer) {
@@ -40,9 +41,9 @@ class PersistCash
 
         $instructions = $voucher->instructions;
         $originalAmount = $instructions->cash->amount;
-        $currency     = $instructions->cash->currency;
-        $secret       = $instructions->cash->validation->secret;
-        
+        $currency = $instructions->cash->currency;
+        $secret = $instructions->cash->validation->secret;
+
         // Calculate adjusted amount based on fee strategy
         $feeCalculation = $this->feeCalculator->calculateAdjustedAmount($originalAmount, $instructions);
         $amount = $feeCalculation['adjusted_amount'];
@@ -60,9 +61,9 @@ class PersistCash
         }
 
         $cash = Cash::create([
-            'amount'   => $amount,
+            'amount' => $amount,
             'currency' => $currency,
-            'meta'     => [
+            'meta' => [
                 'notes' => 'Cash entity with fee calculation',
                 'original_amount' => $originalAmount,
                 'fee_calculation' => $feeCalculation,
@@ -74,8 +75,8 @@ class PersistCash
 
         if (self::DEBUG) {
             Log::info('[PersistCash] Cash record created', [
-                'cash_id'  => $cash->getKey(),
-                'amount'   => $cash->amount,
+                'cash_id' => $cash->getKey(),
+                'amount' => $cash->amount,
                 'currency' => $cash->currency,
             ]);
         }
@@ -86,7 +87,7 @@ class PersistCash
         if (self::DEBUG) {
             Log::debug('[PersistCash] Attached cash entity to voucher', [
                 'voucher_code' => $voucher->code,
-                'attached'     => array_keys($entities),
+                'attached' => array_keys($entities),
             ]);
         }
 

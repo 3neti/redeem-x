@@ -8,9 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreEnvelopeDriverRequest;
 use App\Http\Requests\Settings\UpdateEnvelopeDriverRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\SettlementEnvelope\Exceptions\InvalidDriverException;
 use LBHurtado\SettlementEnvelope\Services\DriverService;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Envelope Driver Controller
@@ -240,6 +245,72 @@ class EnvelopeDriverController extends Controller
         return redirect()
             ->route('settings.envelope-drivers.index')
             ->with('success', "Driver '{$id}@{$version}' deleted successfully.");
+    }
+
+    /**
+     * Export a driver as YAML file download.
+     */
+    public function export(string $id, string $version): StreamedResponse
+    {
+        $disk = config('settlement-envelope.driver_disk', 'envelope-drivers');
+        $path = "{$id}/v{$version}.yaml";
+
+        if (! Storage::disk($disk)->exists($path)) {
+            abort(404, "Driver not found: {$id}@{$version}");
+        }
+
+        $filename = "{$id}-v{$version}.yaml";
+
+        return Storage::disk($disk)->download($path, $filename, [
+            'Content-Type' => 'application/x-yaml',
+        ]);
+    }
+
+    /**
+     * Import a driver from uploaded YAML file.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:yaml,yml,txt', 'max:1024'], // 1MB max
+        ]);
+
+        $content = file_get_contents($request->file('file')->getRealPath());
+
+        try {
+            $data = Yaml::parse($content);
+        } catch (\Exception $e) {
+            return back()->withErrors(['file' => 'Invalid YAML file: '.$e->getMessage()]);
+        }
+
+        // Validate driver structure
+        if (! isset($data['driver']['id']) || ! isset($data['driver']['version'])) {
+            return back()->withErrors(['file' => 'Invalid driver format: missing driver.id or driver.version']);
+        }
+
+        $driverId = $data['driver']['id'];
+        $version = $data['driver']['version'];
+
+        // Check if driver already exists
+        if ($this->driverService->exists($driverId, $version)) {
+            return back()->withErrors(['file' => "Driver '{$driverId}@{$version}' already exists. Delete it first or change the version."]);
+        }
+
+        // Validate the driver can be parsed
+        try {
+            $this->driverService->write($driverId, $version, $data);
+            // Try to load it to validate
+            $this->driverService->load($driverId, $version);
+        } catch (InvalidDriverException $e) {
+            // Delete the invalid driver
+            $this->driverService->delete($driverId, $version);
+
+            return back()->withErrors(['file' => 'Invalid driver structure: '.$e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('settings.envelope-drivers.show', ['id' => $driverId, 'version' => $version])
+            ->with('success', "Driver '{$driverId}@{$version}' imported successfully.");
     }
 
     /**

@@ -5,10 +5,8 @@ use LBHurtado\Contact\Tests\Models\User;
 
 uses(RefreshDatabase::class);
 
-
 /** This test is does not mean that Contact will be implementing InputInterface. */
 /** We are just using the User model in the Test */
-
 beforeEach(function () {
     // Make sure default country/bank_code are set
     config()->set('contact.default.country', 'PH');
@@ -17,7 +15,7 @@ beforeEach(function () {
 
 it('returns the real mobile column via __get', function () {
     $user = User::factory()->create([
-        'mobile'       => '09170000001',
+        'mobile' => '09170000001',
     ]);
 
     // Even if we later add an input record named "mobile", $user->mobile should still be the column value:
@@ -46,9 +44,9 @@ it('persists inputs when you assign via magic __set', function () {
     // It should have created an input record:
     $this->assertDatabaseHas('inputs', [
         'model_type' => User::class,
-        'model_id'   => $user->getKey(),
-        'name'       => 'signature',
-        'value'      => 'my_sig',
+        'model_id' => $user->getKey(),
+        'name' => 'signature',
+        'value' => 'my_sig',
     ]);
 
     // And magic __get returns it:
@@ -65,8 +63,8 @@ it('setting a real attribute via magic __set still updates the attribute', funct
     // No input record should be created for "mobile":
     $this->assertDatabaseMissing('inputs', [
         'model_type' => User::class,
-        'model_id'   => $user->getKey(),
-        'name'       => 'mobile',
+        'model_id' => $user->getKey(),
+        'name' => 'mobile',
     ]);
 
     // And the model's mobile attribute should reflect the change:

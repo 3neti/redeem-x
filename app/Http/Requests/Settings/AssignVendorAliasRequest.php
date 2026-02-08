@@ -23,7 +23,7 @@ class AssignVendorAliasRequest extends FormRequest
     {
         $minLength = config('merchant.alias.min_length', 3);
         $maxLength = config('merchant.alias.max_length', 8);
-        
+
         return [
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'alias' => [
@@ -32,7 +32,7 @@ class AssignVendorAliasRequest extends FormRequest
                 'uppercase',
                 "min:{$minLength}",
                 "max:{$maxLength}",
-                new ValidVendorAlias(),
+                new ValidVendorAlias,
                 'unique:vendor_aliases,alias',
             ],
             'notes' => ['nullable', 'string', 'max:500'],

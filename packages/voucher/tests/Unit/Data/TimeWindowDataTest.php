@@ -155,7 +155,7 @@ it('respects timezone', function () {
     // Same absolute time, different timezones
     // Manila is UTC+8, so 09:00 Manila = 01:00 UTC
     $time = Carbon::parse('2024-01-15 09:00:00', 'Asia/Manila');
-    
+
     expect($manila->isWithinWindow($time))->toBeTrue();
     // In UTC, this time would be 01:00 which is outside 09:00-17:00 UTC
     expect($utc->isWithinWindow($time))->toBeFalse();

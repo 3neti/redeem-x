@@ -9,7 +9,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Validate if a contact has approved KYC verification.
- * 
+ *
  * This is a simple check to see if the contact's KYC status is approved.
  * Can be extended in the future to check expiry dates, etc.
  */
@@ -19,9 +19,9 @@ class ValidateContactKYC
 
     /**
      * Check if contact has valid KYC approval.
-     * 
+     *
      * @param  Contact  $contact  The contact to validate
-     * @return bool  True if KYC is approved
+     * @return bool True if KYC is approved
      */
     public function handle(Contact $contact): bool
     {

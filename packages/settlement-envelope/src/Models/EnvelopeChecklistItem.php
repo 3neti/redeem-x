@@ -94,8 +94,9 @@ class EnvelopeChecklistItem extends Model
         if ($this->kind === ChecklistItemKind::DOCUMENT) {
             $attachment = $this->getLatestAttachment();
 
-            if (!$attachment) {
+            if (! $attachment) {
                 $this->update(['status' => ChecklistItemStatus::MISSING]);
+
                 return;
             }
 

@@ -8,10 +8,10 @@ uses(RefreshDatabase::class);
 
 it('persists the SMS record then continues', function () {
     // Arrange
-    $mw      = new StoreSMS();
+    $mw = new StoreSMS;
     $message = 'HELLO STORE';
-    $from    = '09171234567';
-    $to      = '22560537';
+    $from = '09171234567';
+    $to = '22560537';
 
     // Act: run the middleware and capture the return from the "next" layer
     $returned = $mw->handle(
@@ -27,7 +27,7 @@ it('persists the SMS record then continues', function () {
     // Assert: SMS was persisted with the correct attributes
     $this->assertDatabaseHas('sms', [
         'message' => $message,
-        'from'    => $from,
-        'to'      => $to,
+        'from' => $from,
+        'to' => $to,
     ]);
 });

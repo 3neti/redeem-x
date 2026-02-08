@@ -5,7 +5,7 @@ use LBHurtado\OmniChannel\Services\OmniChannelService;
 use LBHurtado\OmniChannel\Tests\Models\User;
 
 it('can send sms', function () {
-//    dd(config('omnichannel'));
+    //    dd(config('omnichannel'));
     app(OmniChannelService::class)->send('09173011987', 'Test SMS');
 })->skip();
 

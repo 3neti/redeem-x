@@ -1,12 +1,10 @@
 <?php
 
-use Illuminate\Notifications\Notification;
-use LBHurtado\OmniChannel\Services\OmniChannelService;
-use LBHurtado\OmniChannel\Notifications\AdhocNotification;
-use LBHurtado\OmniChannel\Notifications\OmniChannelSmsMessage;
-use LBHurtado\OmniChannel\Notifications\OmniChannelSmsChannel;
-use Propaganistas\LaravelPhone\PhoneNumber;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
+use LBHurtado\OmniChannel\Notifications\AdhocNotification;
+use LBHurtado\OmniChannel\Notifications\OmniChannelSmsChannel;
+use LBHurtado\OmniChannel\Services\OmniChannelService;
 
 beforeEach(function () {
     // Spy on the service so we can assert send() calls
@@ -19,8 +17,10 @@ beforeEach(function () {
 
 it('sends an adhoc notification via omnichannel', function () {
     // A notifiable that returns a PH mobile
-    $user = new class {
+    $user = new class
+    {
         use Notifiable;
+
         public function routeNotificationFor($channel, $notification = null)
         {
             return '0917-000-1111';
@@ -39,6 +39,7 @@ it('sends an adhoc notification via omnichannel', function () {
             expect($content)->toBe('Test payload');
             // fallback sender from config
             expect($from)->toBe(config('omnichannel.default_sender_id'));
+
             return true;
         });
 });

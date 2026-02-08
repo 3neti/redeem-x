@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Validators;
 
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\MessageBag;
 use LBHurtado\Voucher\Models\Voucher;
@@ -22,51 +21,51 @@ class VoucherRedemptionValidator
 {
     public function __construct(
         protected Voucher $voucher,
-        protected MessageBag $errors = new MessageBag()
+        protected MessageBag $errors = new MessageBag
     ) {}
 
     /**
      * Validate that the voucher can be redeemed (not expired, not already redeemed, etc.).
      *
-     * @return bool  True if voucher is valid for redemption
+     * @return bool True if voucher is valid for redemption
      */
     public function validateVoucherStatus(): bool
     {
         // Check if already redeemed
         if ($this->voucher->isRedeemed()) {
             $this->errors->add('code', 'This voucher has already been redeemed.');
-            
+
             Log::warning('[VoucherRedemptionValidator] Voucher already redeemed.', [
                 'voucher_code' => $this->voucher->code,
             ]);
-            
+
             return false;
         }
-        
+
         // Check if expired
         if ($this->voucher->isExpired()) {
             $this->errors->add('code', 'This voucher has expired.');
-            
+
             Log::warning('[VoucherRedemptionValidator] Voucher expired.', [
                 'voucher_code' => $this->voucher->code,
                 'expires_at' => $this->voucher->expires_at,
             ]);
-            
+
             return false;
         }
-        
+
         // Check if not yet active
         if ($this->voucher->starts_at && $this->voucher->starts_at->isFuture()) {
             $this->errors->add('code', 'This voucher is not yet active.');
-            
+
             Log::warning('[VoucherRedemptionValidator] Voucher not yet active.', [
                 'voucher_code' => $this->voucher->code,
                 'starts_at' => $this->voucher->starts_at,
             ]);
-            
+
             return false;
         }
-        
+
         return true;
     }
 
@@ -74,7 +73,7 @@ class VoucherRedemptionValidator
      * Validate that the provided mobile matches the voucher's expected recipient.
      *
      * @param  string|null  $mobile  Mobile number to validate
-     * @return bool  True if valid or no validation required
+     * @return bool True if valid or no validation required
      */
     public function validateMobile(?string $mobile): bool
     {
@@ -130,7 +129,7 @@ class VoucherRedemptionValidator
      * Checks: cash entity (hashed), instructions, or metadata (plain text).
      *
      * @param  string|null  $secret  Secret to validate
-     * @return bool  True if valid or no secret required
+     * @return bool True if valid or no secret required
      */
     public function validateSecret(?string $secret): bool
     {
@@ -138,11 +137,11 @@ class VoucherRedemptionValidator
         $hasCashSecret = $this->voucher->cash?->secret !== null;
         $instructionsSecret = $this->voucher->instructions->cash->validation->secret ?? null;
         $metadataSecret = $this->voucher->metadata['secret'] ?? null;
-        
+
         $hasAnySecret = $hasCashSecret || $instructionsSecret || $metadataSecret;
 
         // No validation required if secret not configured in voucher
-        if (!$hasAnySecret) {
+        if (! $hasAnySecret) {
             Log::info('[VoucherRedemptionValidator] No secret configured; skipping validation.', [
                 'voucher_code' => $this->voucher->code,
             ]);
@@ -194,8 +193,6 @@ class VoucherRedemptionValidator
 
     /**
      * Get all validation errors.
-     *
-     * @return MessageBag
      */
     public function errors(): MessageBag
     {
@@ -204,8 +201,6 @@ class VoucherRedemptionValidator
 
     /**
      * Check if there are any validation errors.
-     *
-     * @return bool
      */
     public function fails(): bool
     {
@@ -214,8 +209,6 @@ class VoucherRedemptionValidator
 
     /**
      * Check if validation passed.
-     *
-     * @return bool
      */
     public function passes(): bool
     {

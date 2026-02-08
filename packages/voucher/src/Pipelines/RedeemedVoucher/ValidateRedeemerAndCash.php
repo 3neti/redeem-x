@@ -2,18 +2,17 @@
 
 namespace LBHurtado\Voucher\Pipelines\RedeemedVoucher;
 
-use LBHurtado\Contact\Models\Contact;
+use Closure;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Cash\Models\Cash;
-use Closure;
+use LBHurtado\Contact\Models\Contact;
 
 class ValidateRedeemerAndCash
 {
     /**
      * Ensure the voucher has both a Contact redeemer and a Cash entity.
      *
-     * @param  mixed   $voucher
-     * @param  Closure $next
+     * @param  mixed  $voucher
      * @return mixed
      */
     public function handle($voucher, Closure $next)
@@ -23,6 +22,7 @@ class ValidateRedeemerAndCash
             Log::warning('[ValidateRedeemerAndCash] No redeemer Contact on voucher', [
                 'voucher' => $voucher->code,
             ]);
+
             // stop the pipeline
             return null;
         }
@@ -32,6 +32,7 @@ class ValidateRedeemerAndCash
             Log::warning('[ValidateRedeemerAndCash] No Cash entity on voucher', [
                 'voucher' => $voucher->code,
             ]);
+
             // stop the pipeline
             return null;
         }

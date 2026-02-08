@@ -38,6 +38,7 @@ class EnvelopeManagementController extends Controller
         $drivers = collect($driverList)->map(function ($item) {
             try {
                 $driver = $this->driverService->load($item['id'], $item['version']);
+
                 return [
                     'id' => $driver->id,
                     'version' => $driver->version,
@@ -63,10 +64,6 @@ class EnvelopeManagementController extends Controller
      * Create an envelope for an existing voucher.
      *
      * POST /api/v1/vouchers/{code}/envelope
-     *
-     * @param Request $request
-     * @param Voucher $voucher
-     * @return JsonResponse
      */
     public function createEnvelope(Request $request, Voucher $voucher): JsonResponse
     {
@@ -91,7 +88,7 @@ class EnvelopeManagementController extends Controller
             $this->driverService->load($validated['driver_id'], $validated['driver_version']);
         } catch (\LBHurtado\SettlementEnvelope\Exceptions\DriverNotFoundException $e) {
             return response()->json([
-                'message' => 'Driver not found: ' . $validated['driver_id'] . '@' . $validated['driver_version'],
+                'message' => 'Driver not found: '.$validated['driver_id'].'@'.$validated['driver_version'],
             ], 404);
         }
 

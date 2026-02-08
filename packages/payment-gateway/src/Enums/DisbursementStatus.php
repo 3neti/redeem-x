@@ -4,9 +4,9 @@ namespace LBHurtado\PaymentGateway\Enums;
 
 /**
  * Generic disbursement status enum
- * 
+ *
  * Normalizes gateway-specific statuses into a common set of states.
- * 
+ *
  * NetBank statuses:
  * - Pending: Payout received, debited from source
  * - ForSettlement: Forwarded to ACH, sent to receiving institution
@@ -21,17 +21,17 @@ enum DisbursementStatus: string
     case FAILED = 'failed';             // Permanent failure (Rejected in NetBank)
     case CANCELLED = 'cancelled';       // User/admin cancelled
     case REFUNDED = 'refunded';         // Money returned
-    
+
     /**
      * Map gateway-specific status to generic status
      *
-     * @param string $gateway Gateway name (netbank, icash, paypal, stripe, etc.)
-     * @param string $status Gateway-specific status string
+     * @param  string  $gateway  Gateway name (netbank, icash, paypal, stripe, etc.)
+     * @param  string  $status  Gateway-specific status string
      * @return self Normalized status
      */
     public static function fromGateway(string $gateway, string $status): self
     {
-        return match(strtolower($gateway)) {
+        return match (strtolower($gateway)) {
             'netbank' => self::fromNetbank($status),
             'icash' => self::fromICash($status),
             'paypal' => self::fromPayPal($status),
@@ -40,16 +40,16 @@ enum DisbursementStatus: string
             default => self::fromGeneric($status),
         };
     }
-    
+
     /**
      * Map NetBank-specific statuses
-     * 
+     *
      * NetBank API Documentation:
      * https://virtual.netbank.ph/docs#operation/Disburse-To-Account_RetrieveAccount-To-AccountTransactionDetails
      */
     private static function fromNetbank(string $status): self
     {
-        return match(strtoupper(str_replace(' ', '', $status))) {
+        return match (strtoupper(str_replace(' ', '', $status))) {
             'PENDING' => self::PENDING,
             'FORSETTLEMENT' => self::PROCESSING,  // Forwarded to ACH
             'SETTLED' => self::COMPLETED,         // Credited to target account
@@ -57,7 +57,7 @@ enum DisbursementStatus: string
             default => self::PENDING,
         };
     }
-    
+
     /**
      * Map iCash-specific statuses
      */
@@ -66,13 +66,13 @@ enum DisbursementStatus: string
         // TODO: Map iCash statuses when available
         return self::fromGeneric($status);
     }
-    
+
     /**
      * Map PayPal-specific statuses
      */
     private static function fromPayPal(string $status): self
     {
-        return match(strtoupper($status)) {
+        return match (strtoupper($status)) {
             'PENDING', 'CREATED' => self::PENDING,
             'SUCCESS', 'COMPLETED' => self::COMPLETED,
             'FAILED', 'DENIED' => self::FAILED,
@@ -81,13 +81,13 @@ enum DisbursementStatus: string
             default => self::PENDING,
         };
     }
-    
+
     /**
      * Map Stripe-specific statuses
      */
     private static function fromStripe(string $status): self
     {
-        return match(strtolower($status)) {
+        return match (strtolower($status)) {
             'pending' => self::PENDING,
             'in_transit' => self::PROCESSING,
             'paid' => self::COMPLETED,
@@ -96,27 +96,27 @@ enum DisbursementStatus: string
             default => self::PENDING,
         };
     }
-    
+
     /**
      * Map GCash-specific statuses
      */
     private static function fromGCash(string $status): self
     {
         // GCash statuses similar to e-wallet patterns
-        return match(strtoupper($status)) {
+        return match (strtoupper($status)) {
             'PENDING' => self::PENDING,
             'SUCCESS', 'COMPLETED' => self::COMPLETED,
             'FAILED', 'ERROR' => self::FAILED,
             default => self::PENDING,
         };
     }
-    
+
     /**
      * Map generic status strings
      */
     private static function fromGeneric(string $status): self
     {
-        return match(strtolower($status)) {
+        return match (strtolower($status)) {
             'pending' => self::PENDING,
             'processing', 'in_transit', 'forsettlement' => self::PROCESSING,
             'completed', 'success', 'settled' => self::COMPLETED,
@@ -126,11 +126,9 @@ enum DisbursementStatus: string
             default => self::PENDING,
         };
     }
-    
+
     /**
      * Check if status is final (no more updates expected)
-     *
-     * @return bool
      */
     public function isFinal(): bool
     {
@@ -141,11 +139,9 @@ enum DisbursementStatus: string
             self::REFUNDED,
         ]);
     }
-    
+
     /**
      * Check if status is pending or in progress
-     *
-     * @return bool
      */
     public function isPending(): bool
     {
@@ -154,15 +150,13 @@ enum DisbursementStatus: string
             self::PROCESSING,
         ]);
     }
-    
+
     /**
      * Get badge variant for UI display
-     *
-     * @return string
      */
     public function getBadgeVariant(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'secondary',
             self::PROCESSING => 'default',
             self::COMPLETED => 'success',
@@ -171,15 +165,13 @@ enum DisbursementStatus: string
             self::REFUNDED => 'default',
         };
     }
-    
+
     /**
      * Get display label for UI
-     *
-     * @return string
      */
     public function getLabel(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'Pending',
             self::PROCESSING => 'Processing',
             self::COMPLETED => 'Completed',

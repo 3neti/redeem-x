@@ -30,7 +30,7 @@ class TestSmsCommand extends Command
     public function handle(): int
     {
         $mobile = $this->argument('mobile');
-        $message = $this->argument('message') ?? 'Test message from Redeem-X at ' . now()->toDateTimeString();
+        $message = $this->argument('message') ?? 'Test message from Redeem-X at '.now()->toDateTimeString();
         $sender = $this->option('sender') ?? env('ENGAGESPARK_SENDER_ID', 'cashless');
 
         $this->info("📱 Sending SMS to {$mobile} from {$sender}...");
@@ -48,9 +48,9 @@ class TestSmsCommand extends Command
 
             return self::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('❌ Failed to send SMS: ' . $e->getMessage());
+            $this->error('❌ Failed to send SMS: '.$e->getMessage());
             $this->newLine();
-            
+
             if ($this->output->isVerbose()) {
                 $this->line('Stack trace:');
                 $this->line($e->getTraceAsString());

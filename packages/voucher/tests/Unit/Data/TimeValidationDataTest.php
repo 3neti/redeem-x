@@ -1,6 +1,5 @@
 <?php
 
-use Carbon\Carbon;
 use LBHurtado\Voucher\Data\TimeValidationData;
 use LBHurtado\Voucher\Data\TimeWindowData;
 

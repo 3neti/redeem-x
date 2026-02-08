@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\Voucher\Data\VoucherTimingData;
 use Carbon\Carbon;
+use LBHurtado\Voucher\Data\VoucherTimingData;
 
 test('can create with all fields', function () {
     $data = VoucherTimingData::from([
@@ -97,7 +97,7 @@ test('with click creates new instance with click timestamp', function () {
 
 test('with start preserves existing data and adds start timestamp', function () {
     $original = VoucherTimingData::from(['clicked_at' => '2025-01-15T10:00:00Z']);
-    
+
     $modified = $original->withStart();
 
     expect($modified->clicked_at)->toBe('2025-01-15T10:00:00Z')
@@ -108,12 +108,12 @@ test('with start preserves existing data and adds start timestamp', function () 
 test('with submit preserves data adds submit and calculates duration', function () {
     // Set a fixed start time
     $startTime = now()->subMinutes(2);
-    
+
     $original = VoucherTimingData::from([
         'clicked_at' => $startTime->subSeconds(5)->toIso8601String(),
         'started_at' => $startTime->toIso8601String(),
     ]);
-    
+
     $modified = $original->withSubmit();
 
     expect($modified->clicked_at)->toBe($original->clicked_at)

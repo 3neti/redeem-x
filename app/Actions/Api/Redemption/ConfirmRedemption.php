@@ -10,11 +10,11 @@ use App\Services\InputFieldMapper;
 use App\Services\VoucherRedemptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
-use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
 use LBHurtado\Voucher\Exceptions\RedemptionException;
-use Propaganistas\LaravelPhone\PhoneNumber;
+use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Propaganistas\LaravelPhone\PhoneNumber;
 
 class ConfirmRedemption
 {
@@ -32,21 +32,23 @@ class ConfirmRedemption
             $inputs = request()->input('inputs', []);
 
             // Validate required fields
-            if (!$voucherCode || !$mobile) {
+            if (! $voucherCode || ! $mobile) {
                 Log::warning('[ConfirmRedemption] Missing required fields', [
                     'voucher' => $voucherCode,
                     'mobile' => $mobile,
                 ]);
+
                 return ApiResponse::error('Voucher code and mobile number are required', 400);
             }
 
             // Find voucher
             $voucher = Voucher::where('code', $voucherCode)->first();
 
-            if (!$voucher) {
+            if (! $voucher) {
                 Log::warning('[ConfirmRedemption] Voucher not found', [
                     'voucher' => $voucherCode,
                 ]);
+
                 return ApiResponse::error('Voucher not found', 404);
             }
 
@@ -55,6 +57,7 @@ class ConfirmRedemption
                 Log::warning('[ConfirmRedemption] Voucher already redeemed', [
                     'voucher' => $voucherCode,
                 ]);
+
                 return ApiResponse::error('This voucher has already been redeemed', 422);
             }
 
@@ -63,13 +66,14 @@ class ConfirmRedemption
                 Log::warning('[ConfirmRedemption] Voucher expired', [
                     'voucher' => $voucherCode,
                 ]);
+
                 return ApiResponse::error('This voucher has expired', 422);
             }
 
             // Apply centralized field name mappings
             $fieldMapper = app(InputFieldMapper::class);
             $inputs = $fieldMapper->map($inputs);
-            
+
             // Prepare bank account data
             $bankAccount = [
                 'bank_code' => $bankCode,
@@ -84,16 +88,16 @@ class ConfirmRedemption
             try {
                 // Create PhoneNumber instance
                 $phoneNumber = new PhoneNumber($mobile, $country);
-                
+
                 // Validate using Unified Validation Gateway
-                $service = new VoucherRedemptionService();
+                $service = new VoucherRedemptionService;
                 $context = $service->resolveContextFromArray([
                     'mobile' => $mobile,
                     'secret' => request()->input('secret'),
                     'inputs' => $inputs,
                     'bank_account' => $bankAccount,
                 ]);
-                
+
                 $service->validateRedemption($voucher, $context);
 
                 // Process redemption (uses transaction)
@@ -150,7 +154,7 @@ class ConfirmRedemption
                     ]);
                 }
 
-                return ApiResponse::error('Failed to process redemption: ' . $e->getMessage(), 422);
+                return ApiResponse::error('Failed to process redemption: '.$e->getMessage(), 422);
             }
         } catch (\Throwable $e) {
             Log::error('[ConfirmRedemption] Unexpected error', [

@@ -1,16 +1,16 @@
 <?php
 
-use LBHurtado\Voucher\Listeners\HandleGeneratedVouchers;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use LBHurtado\Voucher\Events\VouchersGenerated;
-use LBHurtado\Voucher\Enums\VoucherInputField;
-use Illuminate\Contracts\Auth\Authenticatable;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use FrittenKeeZ\Vouchers\Models\Voucher;
-use LBHurtado\Voucher\Tests\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use LBHurtado\Cash\Models\Cash;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Events\VouchersGenerated;
+use LBHurtado\Voucher\Listeners\HandleGeneratedVouchers;
+use LBHurtado\Voucher\Tests\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -28,7 +28,7 @@ beforeEach(function () {
 
 dataset('voucher_instructions', function () {
     return [
-        [ fn() => VoucherInstructionsData::from([
+        [fn () => VoucherInstructionsData::from([
             'cash' => [
                 'amount' => 2000,
                 'currency' => 'USD',
@@ -59,7 +59,7 @@ dataset('voucher_instructions', function () {
             'prefix' => 'TEST',
             'mask' => '******',
             'ttl' => 'PT24H', // ISO8601 duration string (24 hours)
-        ])]
+        ])],
     ];
 });
 
@@ -80,7 +80,7 @@ it('handles generated vouchers and creates associated cash records', function (V
     $event = new VouchersGenerated($collection);
 
     // Handle the event with the listener
-    $listener = new HandleGeneratedVouchers();
+    $listener = new HandleGeneratedVouchers;
     $listener->handle($event);
     expect($collection->first()->owner)->toBeInstanceOf(Authenticatable::class);
     // Assert: Check that Cash records were created
@@ -92,13 +92,12 @@ it('handles generated vouchers and creates associated cash records', function (V
         // Ensure the Cash record exists and contains the correct data
         expect($cash)->not->toBeNull()
             ->and($cash->amount->getAmount()->toFloat())->toBe($instructions->cash->amount)
-            ->and($cash->currency)->toBe($instructions->cash->currency)
-        ;
+            ->and($cash->currency)->toBe($instructions->cash->currency);
     }
 
     // Assert: Ensure that vouchers are marked as processed
     foreach ($vouchers as $voucher) {
-//        $voucher->refresh();
+        //        $voucher->refresh();
         expect($voucher->processed)->toBeTrue();
     }
 })->with('voucher_instructions');
@@ -122,7 +121,7 @@ it('does not process vouchers that are already marked as processed', function (V
     $event = new VouchersGenerated(collect([$voucher]));
 
     // Handle the event with the listener
-    $listener = new HandleGeneratedVouchers();
+    $listener = new HandleGeneratedVouchers;
     $listener->handle($event);
 
     // Assert: Ensure no Cash record was created
@@ -133,8 +132,7 @@ it('assigns the authenticated user as the owner of the vouchers', function (Vouc
     $generateVouchersAction = app(LBHurtado\Voucher\Actions\GenerateVouchers::class);
     $vouchers = $generateVouchersAction->handle($instructions);
     // Assert: Confirm Vouchers have the correct owner
-    foreach ($vouchers as $voucher){
+    foreach ($vouchers as $voucher) {
         expect($voucher->owner->is(auth()->user()))->toBeTrue();
     }
 })->with('voucher_instructions');
-

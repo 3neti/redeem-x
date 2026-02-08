@@ -19,13 +19,13 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
-        
+
         // Get available features (only if user is super-admin)
         $availableFeatures = [];
         if ($user->hasRole('super-admin')) {
             $availableFeatures = $this->getAvailableFeatures($user);
         }
-        
+
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
             'available_features' => $availableFeatures,
@@ -33,7 +33,7 @@ class ProfileController extends Controller
             'return_to' => $request->query('return_to'),
         ]);
     }
-    
+
     /**
      * Get list of available features with their current status.
      */
@@ -53,10 +53,11 @@ class ProfileController extends Controller
                 'locked' => false, // Can be toggled
             ],
         ];
-        
+
         // Add current status for each feature
         return collect($features)->map(function ($feature) use ($user) {
             $feature['active'] = Feature::for($user)->active($feature['key']);
+
             return $feature;
         })->toArray();
     }
@@ -73,14 +74,14 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
-        
+
         // Update basic profile
         $user->update(['name' => $validated['name']]);
-        
+
         // Update channels (mobile and webhook)
         $user->mobile = $validated['mobile'];
-        
-        if (!empty($validated['webhook'])) {
+
+        if (! empty($validated['webhook'])) {
             $user->webhook = $validated['webhook'];
         } else {
             // Delete webhook if empty
@@ -100,43 +101,43 @@ class ProfileController extends Controller
             'message' => 'Profile updated successfully.',
         ]);
     }
-    
+
     /**
      * Toggle a feature flag for the current user.
      */
     public function toggleFeature(Request $request): RedirectResponse
     {
         $user = $request->user();
-        
+
         // Only super-admins can manage feature flags
-        if (!$user->hasRole('super-admin')) {
+        if (! $user->hasRole('super-admin')) {
             abort(403, 'Only super-admins can manage feature flags.');
         }
-        
+
         $validated = $request->validate([
             'feature' => ['required', 'string'],
             'enabled' => ['required', 'boolean'],
         ]);
-        
+
         // Check if feature is locked (can't be manually toggled)
         $availableFeatures = $this->getAvailableFeatures($user);
         $feature = collect($availableFeatures)->firstWhere('key', $validated['feature']);
-        
-        if (!$feature) {
+
+        if (! $feature) {
             return back()->withErrors(['feature' => 'Invalid feature.']);
         }
-        
+
         if ($feature['locked']) {
             return back()->withErrors(['feature' => 'This feature is locked and cannot be manually toggled.']);
         }
-        
+
         // Toggle feature
         if ($validated['enabled']) {
             Feature::for($user)->activate($validated['feature']);
         } else {
             Feature::for($user)->deactivate($validated['feature']);
         }
-        
+
         return back()->with('status', 'feature-toggled');
     }
 

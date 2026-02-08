@@ -22,7 +22,7 @@ describe('List Transactions API', function () {
         // Create redeemed vouchers
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 5);
         foreach ($vouchers as $voucher) {
-            $voucher->update(["redeemed_at" => now()]);
+            $voucher->update(['redeemed_at' => now()]);
         }
 
         $response = $this->getJson('/api/v1/transactions');
@@ -60,7 +60,7 @@ describe('List Transactions API', function () {
         $newVoucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)[0];
         $newVoucher->update(['redeemed_at' => now()]);
 
-        $response = $this->getJson('/api/v1/transactions?date_from=' . now()->toDateString());
+        $response = $this->getJson('/api/v1/transactions?date_from='.now()->toDateString());
 
         $response
             ->assertOk()
@@ -70,7 +70,7 @@ describe('List Transactions API', function () {
     it('filters transactions by search term', function () {
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3);
         foreach ($vouchers as $voucher) {
-            $voucher->update(["redeemed_at" => now()]);
+            $voucher->update(['redeemed_at' => now()]);
         }
 
         $searchCode = substr($vouchers[0]->code, 0, 5);
@@ -119,7 +119,7 @@ describe('Transaction Statistics API', function () {
         // Create redeemed vouchers
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3);
         foreach ($vouchers as $voucher) {
-            $voucher->update(["redeemed_at" => now()]);
+            $voucher->update(['redeemed_at' => now()]);
         }
 
         $response = $this->getJson('/api/v1/transactions/stats');
@@ -149,10 +149,10 @@ describe('Transaction Statistics API', function () {
 
         $newVouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 2);
         foreach ($newVouchers as $voucher) {
-            $voucher->update(["redeemed_at" => now()]);
+            $voucher->update(['redeemed_at' => now()]);
         }
 
-        $response = $this->getJson('/api/v1/transactions/stats?date_from=' . now()->toDateString());
+        $response = $this->getJson('/api/v1/transactions/stats?date_from='.now()->toDateString());
 
         $response
             ->assertOk()
@@ -181,7 +181,7 @@ describe('Transaction Statistics API', function () {
 describe('Show Transaction API', function () {
     it('returns transaction details', function () {
         $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)[0];
-        $voucher->update(["redeemed_at" => now()]);
+        $voucher->update(['redeemed_at' => now()]);
 
         $response = $this->getJson("/api/v1/transactions/{$voucher->code}");
 
@@ -221,7 +221,7 @@ describe('Export Transactions API', function () {
     it('exports transactions as CSV', function () {
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3);
         foreach ($vouchers as $voucher) {
-            $voucher->update(["redeemed_at" => now()]);
+            $voucher->update(['redeemed_at' => now()]);
         }
 
         $response = $this->getJson('/api/v1/transactions/export?format=csv');
@@ -234,7 +234,7 @@ describe('Export Transactions API', function () {
     it('exports transactions with default CSV format', function () {
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 2);
         foreach ($vouchers as $voucher) {
-            $voucher->update(["redeemed_at" => now()]);
+            $voucher->update(['redeemed_at' => now()]);
         }
 
         $response = $this->getJson('/api/v1/transactions/export');
@@ -251,7 +251,7 @@ describe('Export Transactions API', function () {
         $newVoucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)[0];
         $newVoucher->update(['redeemed_at' => now()]);
 
-        $response = $this->getJson('/api/v1/transactions/export?date_from=' . now()->toDateString());
+        $response = $this->getJson('/api/v1/transactions/export?date_from='.now()->toDateString());
 
         $response
             ->assertOk()
@@ -270,7 +270,7 @@ describe('Export Transactions API', function () {
 describe('Refresh Disbursement Status API', function () {
     it('returns 400 when transaction has no disbursement data', function () {
         $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)[0];
-        $voucher->update(["redeemed_at" => now()]);
+        $voucher->update(['redeemed_at' => now()]);
 
         $response = $this->postJson("/api/v1/transactions/{$voucher->code}/refresh-status");
 

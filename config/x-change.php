@@ -1,6 +1,5 @@
 <?php
 
-use Carbon\CarbonInterval;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 
 return [
@@ -44,7 +43,7 @@ return [
                     VoucherInputField::ADDRESS,
                     VoucherInputField::LOCATION,
                     VoucherInputField::REFERENCE_CODE,
-                    VoucherInputField::OTP
+                    VoucherInputField::OTP,
                 ],
                 'validation' => [
                     'name' => 'required|string',
@@ -107,10 +106,10 @@ return [
             'label' => 'Transaction Fee',
             'description' => 'Amount of cash the user will receive',
         ],
-//        'cash.currency' => [
-//            'price' => 110,
-//            'description' => 'Currency of the cash disbursement',
-//        ],
+        //        'cash.currency' => [
+        //            'price' => 110,
+        //            'description' => 'Currency of the cash disbursement',
+        //        ],
         // Simple validation rules (no modern replacement)
         'cash.validation.secret' => [
             'price' => 120,
@@ -207,7 +206,7 @@ return [
 
     'otp' => [
         'label' => env('OTP_LABEL', 'x-change'),
-        'period' => env('OTP_PERIOD', 10 * 60), //10 minutes
+        'period' => env('OTP_PERIOD', 10 * 60), // 10 minutes
         'digits' => env('OTP_DIGITS', 4),
     ],
 ];

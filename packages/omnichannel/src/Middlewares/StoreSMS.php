@@ -2,8 +2,8 @@
 
 namespace LBHurtado\OmniChannel\Middlewares;
 
-use LBHurtado\OmniChannel\Models\SMS;
 use Closure;
+use LBHurtado\OmniChannel\Models\SMS;
 
 class StoreSMS implements SMSMiddlewareInterface
 {

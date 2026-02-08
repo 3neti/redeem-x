@@ -10,7 +10,6 @@ use LBHurtado\Contact\Data\ContactData;
 use LBHurtado\Contact\Models\Contact;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Spatie\LaravelData\DataCollection;
 
 /**
  * List contacts via API.

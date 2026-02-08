@@ -26,7 +26,7 @@ use Omnipay\Common\Message\AbstractRequest;
 class CheckBalanceRequest extends AbstractRequest
 {
     use HasOAuth2;
-    
+
     /**
      * Get the account number
      */
@@ -34,7 +34,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->getParameter('accountNumber');
     }
-    
+
     /**
      * Set the account number
      */
@@ -42,7 +42,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->setParameter('accountNumber', $value);
     }
-    
+
     /**
      * Get the balance endpoint
      */
@@ -50,7 +50,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->getParameter('balanceEndpoint');
     }
-    
+
     /**
      * Set the balance endpoint
      */
@@ -58,7 +58,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->setParameter('balanceEndpoint', $value);
     }
-    
+
     /**
      * Validate the request
      *
@@ -68,13 +68,14 @@ class CheckBalanceRequest extends AbstractRequest
     {
         // Validate account number is provided
         $this->validate('accountNumber');
+
         return [];
     }
-    
+
     /**
      * Send the request with authentication
      *
-     * @param mixed $data
+     * @param  mixed  $data
      * @return CheckBalanceResponse
      */
     public function sendData($data)
@@ -82,7 +83,7 @@ class CheckBalanceRequest extends AbstractRequest
         try {
             $endpoint = $this->getEndpoint();
             $token = $this->getAccessToken();
-            
+
             // Simple GET request - balance is for the authenticated account
             $httpResponse = $this->httpClient->request(
                 'GET',
@@ -93,25 +94,25 @@ class CheckBalanceRequest extends AbstractRequest
                     'Accept' => 'application/json',
                 ]
             );
-            
+
             $responseBody = $httpResponse->getBody()->getContents();
             $responseData = json_decode($responseBody, true);
-            
+
             return $this->response = new CheckBalanceResponse($this, $responseData);
-            
+
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('[CheckBalanceRequest] Request failed', [
                 'endpoint' => $this->getEndpoint(),
                 'error' => $e->getMessage(),
             ]);
-            
+
             return $this->response = new CheckBalanceResponse($this, [
                 'status' => 'error',
                 'message' => $e->getMessage(),
             ]);
         }
     }
-    
+
     /**
      * Get the API endpoint for balance check
      * Uses Account Details API: GET /accounts/{account_number}
@@ -120,9 +121,10 @@ class CheckBalanceRequest extends AbstractRequest
     {
         $baseUrl = $this->getBalanceEndpoint();
         $accountNumber = $this->getAccountNumber();
-        return rtrim($baseUrl, '/') . '/' . $accountNumber;
+
+        return rtrim($baseUrl, '/').'/'.$accountNumber;
     }
-    
+
     /**
      * Get Client ID for OAuth2 (required by HasOAuth2 trait)
      */
@@ -130,7 +132,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->getParameter('clientId');
     }
-    
+
     /**
      * Set Client ID
      */
@@ -138,7 +140,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->setParameter('clientId', $value);
     }
-    
+
     /**
      * Get Client Secret for OAuth2 (required by HasOAuth2 trait)
      */
@@ -146,7 +148,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->getParameter('clientSecret');
     }
-    
+
     /**
      * Set Client Secret
      */
@@ -154,7 +156,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->setParameter('clientSecret', $value);
     }
-    
+
     /**
      * Get Token Endpoint for OAuth2 (required by HasOAuth2 trait)
      */
@@ -162,7 +164,7 @@ class CheckBalanceRequest extends AbstractRequest
     {
         return $this->getParameter('tokenEndpoint');
     }
-    
+
     /**
      * Set Token Endpoint
      */

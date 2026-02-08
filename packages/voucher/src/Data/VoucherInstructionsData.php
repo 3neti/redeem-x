@@ -2,79 +2,79 @@
 
 namespace LBHurtado\Voucher\Data;
 
-use LBHurtado\Voucher\Data\Transformers\TtlToStringTransformer;
-use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
+use Carbon\CarbonInterval;
+use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\Casts\CarbonIntervalCast;
 use LBHurtado\Voucher\Data\Traits\HasSafeDefaults;
+use LBHurtado\Voucher\Data\Transformers\TtlToStringTransformer;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Rules\ValidISODuration;
 use Propaganistas\LaravelPhone\Rules\Phone;
-use Illuminate\Support\Number;
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
-use Carbon\CarbonInterval;
-use LBHurtado\Voucher\Data\VoucherMetadataData;
 
 class VoucherInstructionsData extends Data
 {
     use HasSafeDefaults;
 
     public function __construct(
-        public CashInstructionData           $cash,
-        public InputFieldsData               $inputs,
-        public FeedbackInstructionData       $feedback,
-        public RiderInstructionData          $rider,
-        public ?int                          $count,            // Number of vouchers to generate
-        public ?string                       $prefix,           // Prefix for voucher codes
-        public ?string                       $mask,             // Mask for voucher codes
+        public CashInstructionData $cash,
+        public InputFieldsData $inputs,
+        public FeedbackInstructionData $feedback,
+        public RiderInstructionData $rider,
+        public ?int $count,            // Number of vouchers to generate
+        public ?string $prefix,           // Prefix for voucher codes
+        public ?string $mask,             // Mask for voucher codes
         #[WithTransformer(TtlToStringTransformer::class)]
         #[WithCast(CarbonIntervalCast::class)]
-        public CarbonInterval|null           $ttl,              // Expiry time (TTL)
-        public ?ValidationInstructionData    $validation = null, // Validation instructions
-        public ?VoucherMetadataData          $metadata = null,   // System metadata (version, copyright, licenses, issuer, redemption URLs)
-        public ?VoucherType                  $voucher_type = null, // Settlement voucher type (REDEEMABLE, PAYABLE, SETTLEMENT)
-        public ?float                        $target_amount = null, // Target amount for PAYABLE/SETTLEMENT vouchers
-        public ?array                        $rules = null,         // Settlement-specific rules (min_payment, max_payment, allow_overpayment, etc.)
-    ){
+        public ?CarbonInterval $ttl,              // Expiry time (TTL)
+        public ?ValidationInstructionData $validation = null, // Validation instructions
+        public ?VoucherMetadataData $metadata = null,   // System metadata (version, copyright, licenses, issuer, redemption URLs)
+        public ?VoucherType $voucher_type = null, // Settlement voucher type (REDEEMABLE, PAYABLE, SETTLEMENT)
+        public ?float $target_amount = null, // Target amount for PAYABLE/SETTLEMENT vouchers
+        public ?array $rules = null,         // Settlement-specific rules (min_payment, max_payment, allow_overpayment, etc.)
+    ) {
         $this->applyRulesAndDefaults();
-//        $this->ttl = $ttl ?: CarbonInterval::hours(config('instructions.ttl'));
+        //        $this->ttl = $ttl ?: CarbonInterval::hours(config('instructions.ttl'));
     }
 
     public static function rules(): array
     {
         return [
-            'cash.amount'     => 'required|numeric|min:0',
-            'cash.currency'   => 'required|string|size:3',
+            'cash.amount' => 'required|numeric|min:0',
+            'cash.currency' => 'required|string|size:3',
 
-            'cash.validation.secret'   => 'nullable|string',
-            'cash.validation.mobile'   => ['nullable', (new Phone)->country('PH')->type('mobile')],
-            'cash.validation.payable'  => 'nullable|string',
-            'cash.validation.country'  => 'nullable|string|size:2',
+            'cash.validation.secret' => 'nullable|string',
+            'cash.validation.mobile' => ['nullable', (new Phone)->country('PH')->type('mobile')],
+            'cash.validation.payable' => 'nullable|string',
+            'cash.validation.country' => 'nullable|string|size:2',
             'cash.validation.location' => 'nullable|string',
-            'cash.validation.radius'   => 'nullable|string',
-            'cash.settlement_rail'     => 'nullable|string|in:INSTAPAY,PESONET',
-            'cash.fee_strategy'        => 'nullable|string|in:absorb,include,add',
+            'cash.validation.radius' => 'nullable|string',
+            'cash.settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
+            'cash.fee_strategy' => 'nullable|string|in:absorb,include,add',
 
             'inputs' => ['nullable', 'array'],
             'inputs.fields' => ['nullable', 'array'],
-            'inputs.fields.*' => ['nullable', 'string', 'in:' . implode(',', VoucherInputField::values())],
-            'feedback.mobile'   => ['nullable', (new Phone)->country('PH')->type('mobile')],
-            'feedback.email'    => 'nullable|email',
-            'feedback.webhook'  => 'nullable|url',
+            'inputs.fields.*' => ['nullable', 'string', 'in:'.implode(',', VoucherInputField::values())],
+            'feedback.mobile' => ['nullable', (new Phone)->country('PH')->type('mobile')],
+            'feedback.email' => 'nullable|email',
+            'feedback.webhook' => 'nullable|url',
 
             'rider.message' => 'nullable|string|min:1',
-            'rider.url'     => 'nullable|url',
+            'rider.url' => 'nullable|url',
             'rider.redirect_timeout' => 'nullable|integer|min:0|max:300',
             'rider.splash' => 'nullable|string|max:51200',
             'rider.splash_timeout' => 'nullable|integer|min:0|max:60',
 
-            'count'  => 'required|integer|min:1',
+            'count' => 'required|integer|min:1',
             'prefix' => 'nullable|string|min:1',
-            'mask'   => [
+            'mask' => [
                 'nullable',
                 'string',
                 function ($attribute, $value, $fail) {
-                    if (!preg_match("/^[\*\-]+$/", $value)) {
+                    if (! preg_match("/^[\*\-]+$/", $value)) {
                         $fail('The :attribute may only contain asterisks (*) and hyphens (-).');
                     }
 
@@ -89,8 +89,8 @@ class VoucherInstructionsData extends Data
                     }
                 },
             ],
-            'ttl' => ['nullable', new ValidISODuration()],
-            'starts_at'  => 'nullable|date',
+            'ttl' => ['nullable', new ValidISODuration],
+            'starts_at' => 'nullable|date',
             'expires_at' => 'nullable|date|after_or_equal:starts_at',
 
             // Settlement voucher fields
@@ -131,25 +131,25 @@ class VoucherInstructionsData extends Data
                 'settlement_rail' => $validated['cash']['settlement_rail'] ?? null,
                 'fee_strategy' => $validated['cash']['fee_strategy'] ?? 'absorb',
                 'validation' => [
-                    'secret'   => $validated['cash']['validation']['secret'] ?? null,
-                    'mobile'   => $validated['cash']['validation']['mobile'] ?? null,
-                    'payable'  => $validated['cash']['validation']['payable'] ?? null,
-                    'country'  => $validated['cash']['validation']['country'] ?? null,
+                    'secret' => $validated['cash']['validation']['secret'] ?? null,
+                    'mobile' => $validated['cash']['validation']['mobile'] ?? null,
+                    'payable' => $validated['cash']['validation']['payable'] ?? null,
+                    'country' => $validated['cash']['validation']['country'] ?? null,
                     'location' => $validated['cash']['validation']['location'] ?? null,
-                    'radius'   => $validated['cash']['validation']['radius'] ?? null,
+                    'radius' => $validated['cash']['validation']['radius'] ?? null,
                 ],
             ],
             'inputs' => [
                 'fields' => $validated['inputs']['fields'] ?? null,
             ],
             'feedback' => [
-                'email'   => $validated['feedback']['email'] ?? null,
-                'mobile'  => $validated['feedback']['mobile'] ?? null,
+                'email' => $validated['feedback']['email'] ?? null,
+                'mobile' => $validated['feedback']['mobile'] ?? null,
                 'webhook' => $validated['feedback']['webhook'] ?? null,
             ],
             'rider' => [
                 'message' => $validated['rider']['message'] ?? null,
-                'url'     => $validated['rider']['url'] ?? null,
+                'url' => $validated['rider']['url'] ?? null,
                 'redirect_timeout' => $validated['rider']['redirect_timeout'] ?? null,
                 'splash' => $validated['rider']['splash'] ?? null,
                 'splash_timeout' => $validated['rider']['splash_timeout'] ?? null,
@@ -172,11 +172,11 @@ class VoucherInstructionsData extends Data
                     'track_duration' => $validated['validation']['time']['track_duration'] ?? true,
                 ] : null,
             ] : null,
-            'count'      => $validated['count'],
-            'prefix'     => $validated['prefix'] ?? '',
-            'mask'       => $validated['mask'] ?? '',
-            'ttl'        => $validated['ttl'] ?? null,
-            'starts_at'  => $validated['starts_at'] ?? null,
+            'count' => $validated['count'],
+            'prefix' => $validated['prefix'] ?? '',
+            'mask' => $validated['mask'] ?? '',
+            'ttl' => $validated['ttl'] ?? null,
+            'starts_at' => $validated['starts_at'] ?? null,
             'expires_at' => $validated['expires_at'] ?? null,
             'voucher_type' => isset($validated['voucher_type']) ? VoucherType::from($validated['voucher_type']) : null,
             'target_amount' => $validated['target_amount'] ?? null,
@@ -242,19 +242,19 @@ class VoucherInstructionsData extends Data
                 ['required', 'string', 'min:3', 'regex:/\*/'],
                 config('instructions.mask'),
             ],
-//            'ttl' => [
-//                // nullable ISO-8601 duration format:
-//                ['required', 'string',
-//                    // this regex loosely matches e.g. P1DT2H30M or PT12H
-//                    'regex:/^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?$/'
-//                ],
-//                // default to 12 hours (or pull from config('instructions.ttl','PT12H'))
-//                CarbonInterval::hours(config('instructions.ttl', 12)),
-//            ],
+            //            'ttl' => [
+            //                // nullable ISO-8601 duration format:
+            //                ['required', 'string',
+            //                    // this regex loosely matches e.g. P1DT2H30M or PT12H
+            //                    'regex:/^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?$/'
+            //                ],
+            //                // default to 12 hours (or pull from config('instructions.ttl','PT12H'))
+            //                CarbonInterval::hours(config('instructions.ttl', 12)),
+            //            ],
         ];
     }
 
-    //TODO: move to a helper class (e.g., ArrayCleaner::clean())
+    // TODO: move to a helper class (e.g., ArrayCleaner::clean())
     public function toCleanArray(): array
     {
         $array = $this->toArray();
@@ -267,10 +267,11 @@ class VoucherInstructionsData extends Data
         return collect($array)
             ->map(function ($value, $key) use ($parentKey) {
                 $currentKey = $parentKey ? "{$parentKey}.{$key}" : $key;
-                
+
                 if (is_array($value)) {
                     // Recursively clean nested arrays
                     $cleaned = self::cleanArray($value, $currentKey);
+
                     return $cleaned;
                 }
 
@@ -279,16 +280,15 @@ class VoucherInstructionsData extends Data
             })
             ->filter(function ($value, $key) use ($parentKey) {
                 $currentKey = $parentKey ? "{$parentKey}.{$key}" : $key;
-                
+
                 // NEVER filter out rider fields - keep all of them even if null
                 if ($parentKey === 'rider' || $currentKey === 'rider') {
                     return true;
                 }
-                
+
                 // Filter out only nulls and empty strings — keep empty arrays
-                return !(is_null($value) || (is_string($value) && trim($value) === ''));
+                return ! (is_null($value) || (is_string($value) && trim($value) === ''));
             })
             ->all();
     }
 }
-

@@ -1,12 +1,9 @@
 <?php
 
+use Illuminate\Support\Str;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisburseInputData;
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisbursePayloadData;
 use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisburseResponseData;
 use LBHurtado\PaymentGateway\Tests\Models\AnotherUser;
-use Illuminate\Support\Str;
-use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 beforeEach(function () {
     $this->gatewayMock = mock(PaymentGatewayInterface::class);
@@ -19,7 +16,7 @@ it('returns a JSON response for disbursement requests via XHR', function () {
     $user->wallet;
 
     $payload = [
-        'reference' => 'REF-' . Str::random(5),
+        'reference' => 'REF-'.Str::random(5),
         'amount' => 100,
         'account_number' => '09171234567',
         'bank' => 'ALKBPHM2XXX',
@@ -56,7 +53,7 @@ it('redirects with event data when called from Vue (Inertia)', function () {
     $user->wallet;
 
     $payload = [
-        'reference' => 'REF-' . Str::random(5),
+        'reference' => 'REF-'.Str::random(5),
         'amount' => 100,
         'account_number' => '09171234567',
         'bank' => 'ALKBPHM2XXX',
@@ -93,7 +90,7 @@ it('redirects for standard form posts', function () {
     $user->wallet;
 
     $payload = [
-        'reference' => 'REF-' . Str::random(5),
+        'reference' => 'REF-'.Str::random(5),
         'amount' => 100,
         'account_number' => '09171234567',
         'bank' => 'ALKBPHM2XXX',

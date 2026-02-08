@@ -22,7 +22,7 @@ class ListWalletTransactions
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'search' => ['nullable', 'string', 'max:255'],
         ]);
-        
+
         $user = $request->user();
         $perPage = min($request->integer('per_page', 20), 100);
         $type = $request->input('type');
@@ -50,11 +50,11 @@ class ListWalletTransactions
 
         // Search by metadata fields or UUID
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('uuid', 'like', "%{$search}%")
-                  ->orWhere('meta->sender_name', 'like', "%{$search}%")
-                  ->orWhere('meta->sender_identifier', 'like', "%{$search}%")
-                  ->orWhere('meta->voucher_code', 'like', "%{$search}%");
+                    ->orWhere('meta->sender_name', 'like', "%{$search}%")
+                    ->orWhere('meta->sender_identifier', 'like', "%{$search}%")
+                    ->orWhere('meta->voucher_code', 'like', "%{$search}%");
             });
         }
 

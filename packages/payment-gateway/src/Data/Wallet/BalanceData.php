@@ -13,7 +13,7 @@ class BalanceData extends Data
         public ?string $retrieved_at = null,
         public array $meta = [],
     ) {}
-    
+
     /**
      * Convert amount to major units (e.g., centavos to pesos)
      */
@@ -21,7 +21,7 @@ class BalanceData extends Data
     {
         return $this->amount / 100;
     }
-    
+
     /**
      * Get formatted balance string
      */
@@ -29,9 +29,10 @@ class BalanceData extends Data
     {
         return number_format($this->toMajor(), 2);
     }
-    
+
     /**
      * Legacy compatibility: get balance as float
+     *
      * @deprecated Use toMajor() instead
      */
     public function getBalance(): float

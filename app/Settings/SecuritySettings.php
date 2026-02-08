@@ -8,10 +8,12 @@ class SecuritySettings extends Settings
 {
     // IP Whitelisting
     public bool $ip_whitelist_enabled;
+
     public array $ip_whitelist;
 
     // Request Signing (HMAC-SHA256)
     public bool $signature_enabled;
+
     public ?string $signature_secret;
 
     // Rate Limiting

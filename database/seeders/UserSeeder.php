@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
         );
 
         // Assign super-admin role (ensure RolePermissionSeeder has run first)
-        if (!$admin->hasRole('super-admin')) {
+        if (! $admin->hasRole('super-admin')) {
             $admin->assignRole('super-admin');
         }
 
@@ -53,7 +53,7 @@ class UserSeeder extends Seeder
         }
 
         // Assign super-admin role (ensure RolePermissionSeeder has run first)
-        if (!$user->hasRole('super-admin')) {
+        if (! $user->hasRole('super-admin')) {
             $user->assignRole('super-admin');
         }
 
@@ -62,7 +62,7 @@ class UserSeeder extends Seeder
         $settlementEnabledFor = array_filter(
             array_map('trim', explode(',', env('SETTLEMENT_VOUCHERS_ENABLED_FOR', '')))
         );
-        
+
         if (in_array($user->email, $settlementEnabledFor)) {
             Feature::for($user)->activate('settlement-vouchers');
             $this->command->info("  ✓ Activated 'settlement-vouchers' for {$user->email}");

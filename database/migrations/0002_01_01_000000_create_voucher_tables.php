@@ -37,8 +37,7 @@ return new class extends Migration
                 ->foreign('voucher_id')
                 ->references('id')
                 ->on(Config::table('vouchers'))
-                ->onDelete('cascade')
-            ;
+                ->onDelete('cascade');
         });
 
         Schema::create(Config::table('entities'), function (Blueprint $table) {
@@ -54,8 +53,7 @@ return new class extends Migration
                 ->foreign('voucher_id')
                 ->references('id')
                 ->on(Config::table('vouchers'))
-                ->onDelete('cascade')
-            ;
+                ->onDelete('cascade');
         });
     }
 

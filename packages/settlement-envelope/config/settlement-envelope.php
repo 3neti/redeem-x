@@ -4,15 +4,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Driver Directory
+    | Driver Storage Disk
     |--------------------------------------------------------------------------
     |
-    | Path to the directory containing YAML driver definitions.
-    | Drivers define schema, checklist, permissions, and gates for envelopes.
+    | The filesystem disk used for storing envelope driver YAML files.
+    | Configure this disk in config/filesystems.php.
     |
     */
 
-    'driver_directory' => env('ENVELOPE_DRIVER_DIRECTORY', config_path('envelope-drivers')),
+    'driver_disk' => env('ENVELOPE_DRIVER_DISK', 'envelope-drivers'),
 
     /*
     |--------------------------------------------------------------------------

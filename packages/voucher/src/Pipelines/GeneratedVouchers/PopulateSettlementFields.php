@@ -10,7 +10,7 @@ use LBHurtado\Voucher\Enums\VoucherType;
 
 /**
  * Pipeline Stage: Populate Settlement Fields
- * 
+ *
  * Reads voucher_type, target_amount, and rules from instructions
  * and populates the corresponding database columns for settlement vouchers.
  */
@@ -28,46 +28,47 @@ class PopulateSettlementFields
 
         foreach ($vouchers as $voucher) {
             $instructions = $voucher->instructions;
-            
+
             // Check if voucher has settlement fields in instructions
-            if (!isset($instructions->voucher_type) || $instructions->voucher_type === null) {
+            if (! isset($instructions->voucher_type) || $instructions->voucher_type === null) {
                 // Default to REDEEMABLE if not specified
                 $voucher->forceFill([
                     'voucher_type' => VoucherType::REDEEMABLE,
                     'state' => VoucherState::ACTIVE,
                 ])->save();
-                
+
                 if (self::DEBUG) {
                     Log::debug('[PopulateSettlementFields] Defaulted to REDEEMABLE', [
                         'code' => $voucher->code,
                     ]);
                 }
-                
+
                 continue;
             }
-            
+
             // Parse voucher type from instructions (might already be an enum)
-            $voucherType = $instructions->voucher_type instanceof VoucherType 
-                ? $instructions->voucher_type 
+            $voucherType = $instructions->voucher_type instanceof VoucherType
+                ? $instructions->voucher_type
                 : VoucherType::tryFrom($instructions->voucher_type);
-            
-            if (!$voucherType) {
+
+            if (! $voucherType) {
                 Log::warning('[PopulateSettlementFields] Invalid voucher_type in instructions', [
                     'code' => $voucher->code,
                     'voucher_type' => is_object($instructions->voucher_type) ? get_class($instructions->voucher_type) : $instructions->voucher_type,
                 ]);
+
                 continue;
             }
-            
+
             // Determine initial state
             $state = VoucherState::ACTIVE;
-            
+
             // Build update data
             $updateData = [
                 'voucher_type' => $voucherType,
                 'state' => $state,
             ];
-            
+
             // Add target_amount for payable/settlement types
             if (in_array($voucherType, [VoucherType::PAYABLE, VoucherType::SETTLEMENT])) {
                 if (isset($instructions->target_amount) && $instructions->target_amount > 0) {
@@ -79,15 +80,15 @@ class PopulateSettlementFields
                     ]);
                 }
             }
-            
+
             // Add rules if present
-            if (isset($instructions->rules) && !empty($instructions->rules)) {
+            if (isset($instructions->rules) && ! empty($instructions->rules)) {
                 $updateData['rules'] = $instructions->rules;
             }
-            
+
             // Update voucher (use forceFill to bypass mass assignment protection)
             $voucher->forceFill($updateData)->save();
-            
+
             if (self::DEBUG) {
                 Log::debug('[PopulateSettlementFields] Updated voucher', [
                     'code' => $voucher->code,

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Actions\Api\Vouchers;
 
 use App\Http\Responses\ApiResponse;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\LaravelData\DataCollection;
-use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -27,7 +27,7 @@ class QueryVouchers
 
     /**
      * Query vouchers with advanced filters
-     * 
+     *
      * Search vouchers using external metadata, status, and validation status filters.
      */
     public function asController(ActionRequest $request): JsonResponse

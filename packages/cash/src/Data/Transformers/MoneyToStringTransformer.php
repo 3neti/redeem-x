@@ -2,10 +2,10 @@
 
 namespace LBHurtado\Cash\Data\Transformers;
 
+use Brick\Money\Money;
+use Spatie\LaravelData\Support\DataProperty;
 use Spatie\LaravelData\Support\Transformation\TransformationContext;
 use Spatie\LaravelData\Transformers\Transformer;
-use Spatie\LaravelData\Support\DataProperty;
-use Brick\Money\Money;
 
 class MoneyToStringTransformer implements Transformer
 {

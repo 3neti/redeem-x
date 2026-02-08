@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Transactions;
 
-use Illuminate\Http\Request;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\MoneyIssuer\Support\BankRegistry;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
+use Illuminate\Http\Request;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
+use LBHurtado\Voucher\Models\Voucher;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Export Transactions to CSV
  *
  * Download transaction history as a CSV file for accounting, auditing, and reporting.
- * 
+ *
  * Generates a comprehensive CSV export of all redeemed vouchers with complete disbursement details.
  * Perfect for importing into accounting software, Excel analysis, or external reporting systems.
- * 
+ *
  * **CSV Columns Include:**
  * - Voucher Code - Unique voucher identifier
  * - Amount & Currency - Disbursement amount in PHP
@@ -29,12 +29,12 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Operation ID - Gateway transaction reference
  * - Transaction UUID - Internal transaction identifier
  * - Timestamps - Redeemed, disbursed, created dates
- * 
+ *
  * **File Format:**
  * - Standard CSV format (RFC 4180 compliant)
  * - UTF-8 encoding
  * - Filename: `transactions-YYYY-MM-DD-HHMMSS.csv`
- * 
+ *
  * **Use Cases:**
  * - Monthly financial reconciliation
  * - Tax reporting and compliance
@@ -42,6 +42,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Data analysis in Excel/Google Sheets
  *
  * @group Transactions
+ *
  * @authenticated
  */
 #[Group('Transactions')]
@@ -102,7 +103,7 @@ class ExportTransactions
         }
 
         $transactions = $query->get();
-        $filename = 'transactions-' . now()->format('Y-m-d-His') . '.csv';
+        $filename = 'transactions-'.now()->format('Y-m-d-His').'.csv';
 
         $bankRegistry = app(BankRegistry::class);
 
@@ -132,7 +133,7 @@ class ExportTransactions
                 $disbursement = $transaction->metadata['disbursement'] ?? null;
 
                 // Get bank name from registry if disbursement exists
-                $bankName = $disbursement 
+                $bankName = $disbursement
                     ? $bankRegistry->getBankName($disbursement['bank'] ?? '')
                     : 'N/A';
 

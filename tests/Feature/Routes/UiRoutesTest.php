@@ -3,12 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\User;
-use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Actions\RedeemVoucher;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Tests\Helpers\VoucherTestHelper;
 
 uses(RefreshDatabase::class);
@@ -23,7 +20,7 @@ beforeEach(function () {
 
 test('welcome page route exists', function () {
     $response = $this->get('/');
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page->component('Welcome'));
 });
@@ -34,7 +31,7 @@ test('welcome page route exists', function () {
 
 test('redemption start page route exists', function () {
     $response = $this->get('/redeem');
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page->component('redeem/Start'));
 });
@@ -42,9 +39,9 @@ test('redemption start page route exists', function () {
 test('wallet page route exists and requires voucher code', function () {
     $this->user->depositFloat(1000);
     $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
-    
+
     $response = $this->get("/redeem/{$voucher->code}/wallet");
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('redeem/Wallet')
@@ -54,14 +51,14 @@ test('wallet page route exists and requires voucher code', function () {
 
 test('wallet page returns 404 for invalid voucher code', function () {
     $response = $this->get('/redeem/INVALID/wallet');
-    
+
     $response->assertNotFound();
 });
 
 test('success page route exists and requires voucher code', function () {
     $this->user->depositFloat(1000);
     $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1)->first();
-    
+
     // Redeem the voucher
     $contact = Contact::factory()->create([
         'mobile' => '09171234567',
@@ -69,16 +66,16 @@ test('success page route exists and requires voucher code', function () {
         'bank_account' => 'GXCHPHM2XXX:09171234567',
     ]);
     RedeemVoucher::run($contact, $voucher->code);
-    
+
     $response = $this->get("/redeem/{$voucher->code}/success");
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page->component('redeem/Success'));
 });
 
 test('success page without voucher code returns 404', function () {
     $response = $this->get('/redeem/success');
-    
+
     $response->assertNotFound();
 });
 
@@ -90,7 +87,7 @@ test('dashboard route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/dashboard');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/dashboard');
@@ -106,7 +103,7 @@ test('vouchers index route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/vouchers');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/vouchers');
@@ -118,7 +115,7 @@ test('generate vouchers route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/vouchers/generate');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/vouchers/generate');
@@ -128,10 +125,10 @@ test('generate vouchers route exists and requires auth', function () {
 
 test('generate vouchers success route exists', function () {
     $this->actingAs($this->user);
-    
+
     // Route is /vouchers/generate/success/{count}
     $response = $this->get('/vouchers/generate/success/5');
-    
+
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('vouchers/generate/Success')
@@ -147,7 +144,7 @@ test('transactions index route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/transactions');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/transactions');
@@ -163,7 +160,7 @@ test('contacts index route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/contacts');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/contacts');
@@ -173,15 +170,15 @@ test('contacts index route exists and requires auth', function () {
 
 test('contact show route exists and requires auth', function () {
     $contact = Contact::factory()->create();
-    
+
     // Unauthenticated
     $response = $this->get("/contacts/{$contact->id}");
     $response->assertRedirect('/login');
-    
+
     // Authenticated - Contact show page may not exist yet, so just check route works
     $this->actingAs($this->user);
     $response = $this->get("/contacts/{$contact->id}");
-    
+
     // Page renders (may be 404 or show page)
     $this->assertTrue(in_array($response->status(), [200, 404]));
 })->skip('Contact show page not implemented yet');
@@ -194,7 +191,7 @@ test('settings profile route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/settings/profile');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/settings/profile');
@@ -206,7 +203,7 @@ test('settings wallet route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/settings/wallet');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/settings/wallet');
@@ -218,7 +215,7 @@ test('settings appearance route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/settings/appearance');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/settings/appearance');
@@ -230,7 +227,7 @@ test('settings preferences route exists and requires auth', function () {
     // Unauthenticated
     $response = $this->get('/settings/preferences');
     $response->assertRedirect('/login');
-    
+
     // Authenticated
     $this->actingAs($this->user);
     $response = $this->get('/settings/preferences');
@@ -244,14 +241,14 @@ test('settings preferences route exists and requires auth', function () {
 
 test('non-existent routes return 404', function () {
     $response = $this->get('/this-route-does-not-exist');
-    
+
     $response->assertNotFound();
 });
 
 test('invalid voucher show route returns 404', function () {
     $this->actingAs($this->user);
-    
+
     $response = $this->get('/vouchers/INVALID');
-    
+
     $response->assertNotFound();
 });

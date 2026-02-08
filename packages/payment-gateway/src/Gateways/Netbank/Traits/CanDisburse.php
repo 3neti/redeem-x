@@ -2,32 +2,24 @@
 
 namespace LBHurtado\PaymentGateway\Gateways\Netbank\Traits;
 
-use LBHurtado\PaymentGateway\Data\Disburse\{
-    DisburseInputData,
-    DisburseResponseData
-};
-use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisbursePayloadData;
-use LBHurtado\Wallet\Events\DisbursementConfirmed;
-use LBHurtado\Wallet\Actions\TopupWalletAction;
-use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Interfaces\Wallet;
-use Illuminate\Support\Facades\{
-    Http,
-    Log,
-    DB
-};
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Arr;
+use Bavix\Wallet\Models\Transaction;
 use Brick\Money\Money;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
+use LBHurtado\PaymentGateway\Data\Netbank\Disburse\DisbursePayloadData;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
+use LBHurtado\Wallet\Events\DisbursementConfirmed;
 
 trait CanDisburse
 {
     /**
      * Attempt to disburse funds.
-     *
-     * @param Wallet $wallet
-     * @param DisburseInputData|array $validated
-     * @return DisburseResponseData|bool
      */
     public function disburse(Wallet $wallet, DisburseInputData|array $validated): DisburseResponseData|bool
     {
@@ -35,16 +27,16 @@ trait CanDisburse
             ? $validated->toArray()
             : $validated;
 
-        $amount  = Arr::get($data, 'amount');
+        $amount = Arr::get($data, 'amount');
         $currency = config('disbursement.currency', 'PHP');
-        $credits  = Money::of($amount, $currency);
+        $credits = Money::of($amount, $currency);
 
         DB::beginTransaction();
 
         try {
             // Transfer funds from system wallet to user wallet
             $transfer = TopupWalletAction::run($wallet, $amount);
-            
+
             // Get the deposit transaction (user receiving)
             $transaction = $transfer->deposit;
 
@@ -55,20 +47,21 @@ trait CanDisburse
             // Send to bank
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->getAccessToken(),
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
             ])->post(config('disbursement.server.end-point'), $payload);
 
             if (! $response->successful()) {
                 Log::warning('[Netbank] Disbursement failed', ['body' => $response->body()]);
                 DB::rollBack();
+
                 return false;
             }
 
             // Persist operationId and commit
             $transaction->meta = [
                 'operationId' => $response->json('transaction_id'),
-                'user_id'     => $wallet->getKey(),
-                'payload'     => $payload,
+                'user_id' => $wallet->getKey(),
+                'payload' => $payload,
             ];
             $transaction->save();
 
@@ -82,35 +75,31 @@ trait CanDisburse
         } catch (\Throwable $e) {
             Log::error('[Netbank] Disbursement error', ['error' => $e->getMessage()]);
             DB::rollBack();
+
             return false;
         }
     }
 
     /**
      * Retrieve the validation rules for disbursement input.
-     *
-     * @return array
      */
     protected function rules(): array
     {
-        $min  = config('disbursement.min');
-        $max  = config('disbursement.max');
+        $min = config('disbursement.min');
+        $max = config('disbursement.max');
         $rails = config('disbursement.settlement_rails', []);
 
         return [
-            'reference'      => ['required', 'string', 'min:2', 'unique:references,code'],
-            'bank'           => ['required', 'string'],
+            'reference' => ['required', 'string', 'min:2', 'unique:references,code'],
+            'bank' => ['required', 'string'],
             'account_number' => ['required', 'string'],
-            'via'            => ['required', 'string', Rule::in($rails)],
-            'amount'         => ['required', 'integer', 'min:'.$min, 'max:'.$max],
+            'via' => ['required', 'string', Rule::in($rails)],
+            'amount' => ['required', 'integer', 'min:'.$min, 'max:'.$max],
         ];
     }
 
     /**
      * Confirm a previously‐reserved disbursement once the bank calls back.
-     *
-     * @param string $operationId
-     * @return bool
      */
     public function confirmDisbursement(string $operationId): bool
     {
@@ -123,48 +112,51 @@ trait CanDisburse
             DisbursementConfirmed::dispatch($transaction);
 
             Log::info("[Netbank] Disbursement confirmed for operation {$operationId}");
+
             return true;
         } catch (\Throwable $e) {
             Log::error('[Netbank] Confirm disbursement failed', ['error' => $e->getMessage()]);
+
             return false;
         }
     }
-    
+
     /**
      * Check the status of a disbursement transaction.
      *
-     * @param string $transactionId Gateway transaction ID
+     * @param  string  $transactionId  Gateway transaction ID
      * @return array{status: string, raw: array}
      */
     public function checkDisbursementStatus(string $transactionId): array
     {
         try {
             $endpoint = config('disbursement.server.status-endpoint');
-            
+
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Authorization' => 'Bearer '.$this->getAccessToken(),
                 'Content-Type' => 'application/json',
-            ])->get($endpoint . '/' . $transactionId);
-            
-            if (!$response->successful()) {
+            ])->get($endpoint.'/'.$transactionId);
+
+            if (! $response->successful()) {
                 Log::warning('[Netbank] Status check failed', [
                     'transaction_id' => $transactionId,
                     'status_code' => $response->status(),
-                    'response' => $response->body()
+                    'response' => $response->body(),
                 ]);
+
                 return ['status' => 'pending', 'raw' => []];
             }
-            
+
             $data = $response->json();
             $rawStatus = $data['status'] ?? 'Pending';
             $normalized = \LBHurtado\PaymentGateway\Enums\DisbursementStatus::fromGateway('netbank', $rawStatus);
-            
+
             Log::info('[Netbank] Status checked', [
                 'transaction_id' => $transactionId,
                 'raw_status' => $rawStatus,
                 'normalized_status' => $normalized->value,
             ]);
-            
+
             return [
                 'status' => $normalized->value,
                 'raw' => $data,
@@ -172,8 +164,9 @@ trait CanDisburse
         } catch (\Throwable $e) {
             Log::error('[Netbank] Status check error', [
                 'transaction_id' => $transactionId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return ['status' => 'pending', 'raw' => []];
         }
     }

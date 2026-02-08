@@ -5,12 +5,11 @@ namespace App\Http\Controllers\Webhooks;
 use App\Http\Controllers\Controller;
 use App\Models\TopUp;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use LBHurtado\PaymentGateway\Exceptions\TopUpException;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\Voucher\Enums\VoucherState;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Pennant\Feature;
+use LBHurtado\Voucher\Enums\VoucherState;
+use LBHurtado\Voucher\Models\Voucher;
 
 class NetBankWebhookController extends Controller
 {
@@ -35,7 +34,7 @@ class NetBankWebhookController extends Controller
 
             // Detect payment type: voucher or top-up
             $referenceNo = $validated['reference_no'];
-            $isVoucherPayment = !str_starts_with($referenceNo, 'TOPUP-');
+            $isVoucherPayment = ! str_starts_with($referenceNo, 'TOPUP-');
 
             if ($isVoucherPayment && Feature::active('settlement-vouchers')) {
                 return $this->handleVoucherPayment($validated);
@@ -44,7 +43,7 @@ class NetBankWebhookController extends Controller
             // Handle top-up payment
             $topUp = TopUp::where('reference_no', $referenceNo)->first();
 
-            if (!$topUp) {
+            if (! $topUp) {
                 Log::warning('[NetBank Webhook] Top-up not found', [
                     'reference_no' => $referenceNo,
                 ]);
@@ -117,7 +116,7 @@ class NetBankWebhookController extends Controller
     protected function handleVoucherPayment(array $validated)
     {
         $voucherCode = $validated['reference_no'];
-        
+
         Log::info('[NetBank Webhook] Voucher payment notification received', [
             'voucher_code' => $voucherCode,
             'payment_id' => $validated['payment_id'],
@@ -128,7 +127,7 @@ class NetBankWebhookController extends Controller
         // Find voucher
         $voucher = Voucher::where('code', $voucherCode)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             Log::warning('[NetBank Webhook] Voucher not found', [
                 'voucher_code' => $voucherCode,
             ]);
@@ -139,7 +138,7 @@ class NetBankWebhookController extends Controller
         }
 
         // Check if voucher can accept payments
-        if (!$voucher->canAcceptPayment()) {
+        if (! $voucher->canAcceptPayment()) {
             Log::warning('[NetBank Webhook] Voucher cannot accept payments', [
                 'voucher_code' => $voucherCode,
                 'type' => $voucher->voucher_type->value,
@@ -235,7 +234,7 @@ class NetBankWebhookController extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('[NetBank Webhook] Voucher payment credit failed', [
                 'voucher_code' => $voucherCode,
                 'error' => $e->getMessage(),

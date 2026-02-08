@@ -49,15 +49,15 @@ return [
     */
 
     'models' => [
-        'entity'   => FrittenKeeZ\Vouchers\Models\VoucherEntity::class,
+        'entity' => FrittenKeeZ\Vouchers\Models\VoucherEntity::class,
         'redeemer' => FrittenKeeZ\Vouchers\Models\Redeemer::class,
-        'voucher'  => LBHurtado\Voucher\Models\Voucher::class,
+        'voucher' => LBHurtado\Voucher\Models\Voucher::class,
     ],
 
     'tables' => [
-        'entities'  => 'voucher_entity',
+        'entities' => 'voucher_entity',
         'redeemers' => 'redeemers',
-        'vouchers'  => 'vouchers',
+        'vouchers' => 'vouchers',
     ],
 
     /*

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('last_transaction_at')->nullable();
             $table->json('metadata')->nullable(); // Store per-transaction details (institution, operation_id, etc.)
             $table->timestamps();
-            
+
             $table->unique(['contact_id', 'user_id', 'relationship_type']);
             $table->index(['user_id', 'relationship_type']);
             $table->index('last_transaction_at');

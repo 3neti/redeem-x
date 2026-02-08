@@ -46,7 +46,7 @@ return [
     'queue' => [
         'default_connection' => env('NOTIFICATION_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database')),
         'default_queue' => env('NOTIFICATION_QUEUE', 'default'),
-        
+
         // Priority queues for different notification types
         'queues' => [
             // High priority: Critical alerts that require immediate attention
@@ -54,13 +54,13 @@ return [
                 'disbursement_failed',
                 'low_balance_alert',
             ],
-            
+
             // Normal priority: User-facing notifications
             'normal' => [
                 'payment_confirmation',
                 'voucher_redeemed',
             ],
-            
+
             // Low priority: Informational notifications
             'low' => [
                 'vouchers_generated',
@@ -82,7 +82,7 @@ return [
 
     'database_logging' => [
         'enabled' => env('NOTIFICATION_DATABASE_LOGGING', true),
-        
+
         // Always log notifications sent to these model types
         'always_log_for' => [
             'App\\Models\\User',
@@ -90,7 +90,7 @@ return [
             'App\\Models\\PaymentRequest',
             'PaymentRequest',
         ],
-        
+
         // Never log notifications sent to these types
         'never_log_for' => [
             'Illuminate\\Notifications\\AnonymousNotifiable',

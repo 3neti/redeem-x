@@ -76,7 +76,7 @@ test('voucher instructions can include rail selection', function () {
 });
 
 test('rail selection validates enum values', function () {
-    expect(fn() => CashInstructionData::from([
+    expect(fn () => CashInstructionData::from([
         'amount' => 100,
         'currency' => 'PHP',
         'settlement_rail' => 'INVALID_RAIL',

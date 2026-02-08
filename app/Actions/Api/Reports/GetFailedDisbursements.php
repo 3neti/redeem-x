@@ -4,35 +4,35 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Reports;
 
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
  * Get Failed Disbursements Report
  *
  * Retrieve only failed disbursement attempts for troubleshooting and recovery operations.
- * 
+ *
  * This specialized endpoint filters for failed disbursements, essential for operational
  * teams to identify and resolve payment issues quickly. Includes detailed error information
  * to diagnose root causes.
- * 
+ *
  * **Use Cases:**
  * - Daily failed disbursement review
  * - Customer support escalations
  * - Gateway performance monitoring
  * - Identifying systematic issues (e.g., bank downtime)
  * - Planning retry strategies
- * 
+ *
  * **Error Categories:**
  * - **timeout** - Gateway did not respond in time
  * - **gateway_error** - Payment gateway returned error
  * - **insufficient_funds** - User account has insufficient balance
  * - **invalid_account** - Recipient account invalid/closed
  * - **bank_rejected** - Receiving bank rejected transaction
- * 
+ *
  * **Data Includes:**
  * - All disbursement attempt details
  * - Specific error type and message
@@ -40,6 +40,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Request/response payloads for analysis
  *
  * @group Reports
+ *
  * @authenticated
  */
 #[Group('Reports')]
@@ -71,7 +72,7 @@ class GetFailedDisbursements
             ->failed()
             ->whereBetween('attempted_at', [
                 $request->input('from_date'),
-                $request->input('to_date') . ' 23:59:59',
+                $request->input('to_date').' 23:59:59',
             ])
             ->orderByDesc('attempted_at');
 
@@ -96,7 +97,7 @@ class GetFailedDisbursements
             ->failed()
             ->whereBetween('attempted_at', [
                 $request->input('from_date'),
-                $request->input('to_date') . ' 23:59:59',
+                $request->input('to_date').' 23:59:59',
             ])
             ->selectRaw('error_type, COUNT(*) as count')
             ->groupBy('error_type')

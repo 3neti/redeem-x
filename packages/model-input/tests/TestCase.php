@@ -3,8 +3,8 @@
 namespace LBHurtado\ModelInput\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use LBHurtado\ModelInput\Tests\Models\User;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -23,7 +23,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app)
     {
         return [
-        \LBHurtado\ModelInput\ModelInputServiceProvider::class,
+            \LBHurtado\ModelInput\ModelInputServiceProvider::class,
         ];
     }
 
@@ -35,9 +35,9 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('auth.defaults.guard', 'web');
 
         // Run the migration from the local package
-        $userMigration = include __DIR__ . '/../database/migrations/test/0001_01_01_000000_create_users_table.php';
+        $userMigration = include __DIR__.'/../database/migrations/test/0001_01_01_000000_create_users_table.php';
         $userMigration->up();
-        $channelMigration = include __DIR__ . '/../database/migrations/2024_08_02_000000_create_inputs_table.php';
+        $channelMigration = include __DIR__.'/../database/migrations/2024_08_02_000000_create_inputs_table.php';
         $channelMigration->up();
     }
 
@@ -61,7 +61,7 @@ abstract class TestCase extends BaseTestCase
     {
         $this->app['config']->set(
             'model-input',
-            require __DIR__ . '/../config/model-input.php'
+            require __DIR__.'/../config/model-input.php'
         );
     }
 }

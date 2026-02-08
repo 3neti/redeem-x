@@ -7,7 +7,6 @@ namespace App\Actions\Api\Deposits;
 use App\Data\DepositTransactionData;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Collection;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\LaravelData\DataCollection;
@@ -32,28 +31,34 @@ class ListDeposits
 
         // Collect all deposit transactions
         $deposits = collect();
-        
+
         // 1. Get wallet top-up transactions (deposit type with positive amount)
         $walletTransactions = $user->walletTransactions()
             ->where('type', 'deposit')
             ->where('amount', '>', 0)
             ->latest()
             ->get();
-        
+
         foreach ($walletTransactions as $tx) {
             // Apply date filters
-            if ($dateFrom && $tx->created_at < $dateFrom) continue;
-            if ($dateTo && $tx->created_at > $dateTo) continue;
-            
+            if ($dateFrom && $tx->created_at < $dateFrom) {
+                continue;
+            }
+            if ($dateTo && $tx->created_at > $dateTo) {
+                continue;
+            }
+
             // Apply institution filter if provided
             $txInstitution = $tx->meta['gateway'] ?? null;
-            if ($institution && $txInstitution !== $institution) continue;
-            
+            if ($institution && $txInstitution !== $institution) {
+                continue;
+            }
+
             // Extract enhanced metadata (sender info, payment method)
             $senderName = $tx->meta['sender_name'] ?? 'Wallet Top-Up';
             $senderIdentifier = $tx->meta['sender_identifier'] ?? null;
             $paymentMethod = $tx->meta['payment_method'] ?? null;
-            
+
             $deposits->push([
                 'type' => 'wallet_top_up',
                 'sender' => null,
@@ -75,7 +80,7 @@ class ListDeposits
                 'timestamp' => $tx->created_at->toIso8601String(),
             ]);
         }
-        
+
         // 2. Get QR deposits from external senders
         $sendersQuery = $user->senders();
 
@@ -96,14 +101,14 @@ class ListDeposits
         }
 
         $senders = $sendersQuery->get();
-        
+
         foreach ($senders as $sender) {
             $pivot = $sender->pivot;
-            $metadata = is_string($pivot->metadata) 
-                ? json_decode($pivot->metadata, true) 
+            $metadata = is_string($pivot->metadata)
+                ? json_decode($pivot->metadata, true)
                 : ($pivot->metadata ?? []);
 
-            if (!is_array($metadata)) {
+            if (! is_array($metadata)) {
                 continue;
             }
 
@@ -134,7 +139,7 @@ class ListDeposits
         $currentPage = max(1, $request->integer('page', 1));
         $lastPage = max(1, (int) ceil($total / $perPage));
         $currentPage = min($currentPage, $lastPage);
-        
+
         $offset = ($currentPage - 1) * $perPage;
         $paginatedDeposits = $deposits->slice($offset, $perPage)->values();
 
@@ -146,7 +151,7 @@ class ListDeposits
                 $senderName = $item['metadata']['sender_name'] ?? 'Wallet Top-Up';
                 $senderIdentifier = $item['metadata']['sender_identifier'] ?? null;
                 $paymentMethod = $item['metadata']['payment_method'] ?? null;
-                
+
                 return DepositTransactionData::from([
                     'sender_id' => null,
                     'sender_name' => $senderName,
@@ -162,7 +167,7 @@ class ListDeposits
                     'timestamp' => $item['metadata']['timestamp'],
                 ]);
             }
-            
+
             // QR deposit from sender
             return DepositTransactionData::fromMetadata($item['sender'], $item['metadata']);
         });

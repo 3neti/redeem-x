@@ -2,8 +2,8 @@
 
 namespace LBHurtado\PaymentGateway\Pipelines\ResolvePayable;
 
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 use Closure;
+use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
 
 class ThrowIfUnresolved
 {

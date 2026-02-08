@@ -1,9 +1,9 @@
 <?php
 
-use LBHurtado\Voucher\Data\ValidationInstructionData;
 use LBHurtado\Voucher\Data\LocationValidationData;
 use LBHurtado\Voucher\Data\TimeValidationData;
 use LBHurtado\Voucher\Data\TimeWindowData;
+use LBHurtado\Voucher\Data\ValidationInstructionData;
 
 it('creates ValidationInstructionData with all fields', function () {
     $location = LocationValidationData::from([

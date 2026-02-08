@@ -10,8 +10,6 @@ interface RedemptionSpecificationInterface
      * Check if the redemption context satisfies this specification.
      *
      * @param  object  $voucher  Voucher with instructions property
-     * @param  RedemptionContext  $context
-     * @return bool
      */
     public function passes(object $voucher, RedemptionContext $context): bool;
 }

@@ -41,7 +41,7 @@ class CheckAccountBalancesCommand extends Command
             return self::FAILURE;
         }
 
-        $this->info('Checking balances for ' . count($accounts) . ' account(s)...');
+        $this->info('Checking balances for '.count($accounts).' account(s)...');
         $this->newLine();
 
         $bar = $this->output->createProgressBar(count($accounts));
@@ -67,7 +67,7 @@ class CheckAccountBalancesCommand extends Command
                     'account' => $account,
                     'balance' => 'N/A',
                     'available' => 'N/A',
-                    'status' => '✗ Failed: ' . $e->getMessage(),
+                    'status' => '✗ Failed: '.$e->getMessage(),
                 ];
             }
 
@@ -112,6 +112,7 @@ class CheckAccountBalancesCommand extends Command
             if (empty($accounts)) {
                 // If no accounts in DB, use configured default
                 $defaultAccount = $this->getDefaultAccount();
+
                 return $defaultAccount ? [$defaultAccount] : [];
             }
 
@@ -120,6 +121,7 @@ class CheckAccountBalancesCommand extends Command
 
         // Default: check configured primary account
         $defaultAccount = $this->getDefaultAccount();
+
         return $defaultAccount ? [$defaultAccount] : [];
     }
 

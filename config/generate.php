@@ -12,7 +12,7 @@ return [
     */
 
     'ui_version' => env('GENERATE_UI_VERSION', 'v2'), // 'legacy' or 'v2'
-    
+
     'feature_flags' => [
         'progressive_disclosure' => env('GENERATE_UI_V2_ENABLED', true),
     ],

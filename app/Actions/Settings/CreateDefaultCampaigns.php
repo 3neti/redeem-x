@@ -19,7 +19,7 @@ class CreateDefaultCampaigns
         Campaign::create([
             'user_id' => $user->id,
             'name' => 'Quick Cash',
-            'slug' => Str::slug('quick-cash-' . $user->id),
+            'slug' => Str::slug('quick-cash-'.$user->id),
             'status' => 'active',
             'description' => 'Instant cash voucher - no verification required',
             'instructions' => VoucherInstructionsData::from([
@@ -57,7 +57,7 @@ class CreateDefaultCampaigns
         Campaign::create([
             'user_id' => $user->id,
             'name' => 'Petty Cash',
-            'slug' => Str::slug('petty-cash-' . $user->id),
+            'slug' => Str::slug('petty-cash-'.$user->id),
             'status' => 'active',
             'description' => 'Track redemption location and get email notifications',
             'instructions' => VoucherInstructionsData::from([
@@ -95,7 +95,7 @@ class CreateDefaultCampaigns
         Campaign::create([
             'user_id' => $user->id,
             'name' => 'Cash Gift',
-            'slug' => Str::slug('cash-gift-' . $user->id),
+            'slug' => Str::slug('cash-gift-'.$user->id),
             'status' => 'active',
             'description' => 'Verified cash gift with signature capture and dual notifications',
             'instructions' => VoucherInstructionsData::from([

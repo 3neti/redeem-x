@@ -3,28 +3,29 @@
 namespace App\Actions\Api\Wallet;
 
 use App\Data\Api\Wallet\TopUpData;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\Request;
 use LBHurtado\PaymentGateway\Exceptions\TopUpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\PathParameter;
 
 /**
  * Get Top-Up Status
  *
  * Check the current payment status of a specific wallet top-up transaction by reference number.
- * 
+ *
  * Use this endpoint to:
  * - Poll for payment completion after redirecting user to payment gateway
  * - Verify if a pending payment has been completed
  * - Retrieve payment details for customer support or reconciliation
- * 
+ *
  * **Recommended Polling Strategy:**
  * - Poll every 3-5 seconds while user is on callback/status page
  * - Stop polling once status changes from PENDING to PAID/FAILED/EXPIRED
  * - Set a maximum polling duration (e.g., 30 minutes)
  *
  * @group Wallet
+ *
  * @authenticated
  */
 #[Group('Wallet')]
@@ -32,9 +33,9 @@ class GetTopUpStatus
 {
     /**
      * Get top-up status
-     * 
+     *
      * Retrieve the current payment status and details of a specific top-up transaction.
-     * 
+     *
      * **Response includes:**
      * - `reference_no`: Transaction reference number
      * - `amount`: Top-up amount
@@ -46,7 +47,7 @@ class GetTopUpStatus
      * - `paid_at`: Payment completion timestamp (null if not paid)
      * - `expires_at`: Payment link expiration
      * - `error_message`: Error details if status is FAILED
-     * 
+     *
      * **Common Use Cases:**
      * - Callback page: Poll this endpoint after user returns from payment gateway
      * - Status page: Display real-time payment status to user

@@ -4,15 +4,14 @@ namespace App\Notifications;
 
 use App\Models\AccountBalance;
 use App\Models\BalanceAlert;
-use App\Notifications\BaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
  * Low Balance Alert Notification
- * 
+ *
  * Alerts administrators when account balance falls below threshold.
  * Used by BalanceService when monitoring gateway balances.
- * 
+ *
  * Migration to BaseNotification:
  * - Extends BaseNotification for standardized behavior
  * - Uses config/notifications.php for channel configuration
@@ -70,30 +69,30 @@ class LowBalanceAlert extends BaseNotification
     {
         // Build context for template processing
         $context = $this->buildMailContext();
-        
+
         // Get localized templates
         $subject = $this->getLocalizedTemplate('notifications.low_balance_alert.email.subject', $context);
         $greeting = $this->getLocalizedTemplate('notifications.low_balance_alert.email.greeting', $context);
         $body = $this->getLocalizedTemplate('notifications.low_balance_alert.email.body', $context);
         $footer = $this->getLocalizedTemplate('notifications.low_balance_alert.email.footer', $context);
-        
+
         // Get detail lines
         $details = __('notifications.low_balance_alert.email.details');
-        
+
         $mail = (new MailMessage)
             ->error()
             ->subject($subject)
             ->greeting($greeting)
             ->line($body);
-        
+
         // Add detail lines
         foreach ($details as $key => $template) {
-            $line = $this->getLocalizedTemplate('notifications.low_balance_alert.email.details.' . $key, $context);
+            $line = $this->getLocalizedTemplate('notifications.low_balance_alert.email.details.'.$key, $context);
             $mail->line($line);
         }
-        
+
         $mail->line($footer);
-        
+
         return $mail;
     }
 

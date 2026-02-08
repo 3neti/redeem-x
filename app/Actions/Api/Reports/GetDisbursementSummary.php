@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Reports;
 
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
  * Get Disbursement Summary Statistics
  *
  * Retrieve aggregated statistics and KPIs for disbursement performance over a date range.
- * 
+ *
  * **Summary Metrics Include:**
  * - Total attempts, success count, failed count
  * - Total amounts (overall, success, failed)
@@ -22,7 +22,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Breakdown by settlement rail (INSTAPAY vs PESONET)
  * - Breakdown by gateway
  * - Average processing time
- * 
+ *
  * **Use Cases:**
  * - Dashboard KPI widgets
  * - Executive reports
@@ -31,6 +31,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Settlement forecasting
  *
  * @group Reports
+ *
  * @authenticated
  */
 #[Group('Reports')]
@@ -52,7 +53,7 @@ class GetDisbursementSummary
 
         $dateRange = [
             $request->input('from_date'),
-            $request->input('to_date') . ' 23:59:59',
+            $request->input('to_date').' 23:59:59',
         ];
 
         $query = DisbursementAttempt::query()->whereBetween('attempted_at', $dateRange);
@@ -60,11 +61,11 @@ class GetDisbursementSummary
         $totalCount = $query->count();
         $successCount = (clone $query)->success()->count();
         $failedCount = (clone $query)->failed()->count();
-        
+
         $totalAmount = $query->sum('amount');
         $successAmount = (clone $query)->success()->sum('amount');
         $failedAmount = (clone $query)->failed()->sum('amount');
-        
+
         $successRate = $totalCount > 0 ? round(($successCount / $totalCount) * 100, 2) : 0;
 
         // Breakdown by rail

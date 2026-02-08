@@ -3,7 +3,7 @@
 
 /**
  * Test script for /disburse endpoint
- * 
+ *
  * Tests the complete flow:
  * 1. Create test voucher with instructions
  * 2. Start disburse flow
@@ -19,10 +19,10 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Actions\Voucher\GenerateVouchers;
 use App\Models\User;
-use LBHurtado\FormFlowManager\Services\{DriverService, FormFlowService};
-use LBHurtado\Voucher\Data\{VoucherInstructionsData, CashInstructionData, CashValidationRulesData, InputFieldData};
+use LBHurtado\FormFlowManager\Services\DriverService;
+use LBHurtado\FormFlowManager\Services\FormFlowService;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\PaymentGateway\Enums\SettlementRail;
 
 echo "═══════════════════════════════════════════════════════\n";
 echo "   DISBURSE ENDPOINT TEST\n";
@@ -64,7 +64,7 @@ $voucher = GenerateVouchers::run($user, $instructions)->first();
 
 echo "✓ Voucher created: {$voucher->code}\n";
 echo "  Amount: {$voucher->formatted_amount}\n";
-echo "  Inputs: " . count($instructions->inputs) . " fields\n";
+echo '  Inputs: '.count($instructions->inputs)." fields\n";
 echo "  URL: http://redeem-x.test/disburse?code={$voucher->code}\n\n";
 
 // Step 2: Test DriverService transformation
@@ -74,15 +74,15 @@ $flowInstructions = $driverService->transform($voucher);
 
 echo "✓ Transformation successful\n";
 echo "  Reference ID: {$flowInstructions->reference_id}\n";
-echo "  Steps generated: " . count($flowInstructions->steps) . "\n";
+echo '  Steps generated: '.count($flowInstructions->steps)."\n";
 
 foreach ($flowInstructions->steps as $index => $step) {
-    echo "    Step " . ($index + 1) . ": {$step->handler}";
+    echo '    Step '.($index + 1).": {$step->handler}";
     if (isset($step->config['title'])) {
         echo " - {$step->config['title']}";
     }
     echo "\n";
-    
+
     if ($step->handler === 'form' && isset($step->config['fields'])) {
         foreach ($step->config['fields'] as $field) {
             echo "      - {$field['name']} ({$field['type']})\n";
@@ -117,7 +117,7 @@ $testData = [
 // Submit step data
 foreach ($flowInstructions->steps as $index => $step) {
     $stepNumber = $index + 1;
-    
+
     if ($step->handler === 'form') {
         $stepData = [];
         foreach ($step->config['fields'] as $field) {
@@ -125,7 +125,7 @@ foreach ($flowInstructions->steps as $index => $step) {
                 $stepData[$field['name']] = $testData[$field['name']];
             }
         }
-        
+
         $formFlowService->submitStep($state['flow_id'], $stepNumber, $stepData);
         echo "  ✓ Step {$stepNumber} ({$step->handler}) submitted\n";
     }
@@ -139,7 +139,7 @@ echo "✓ Data collected:\n";
 foreach ($finalState['collected_data'] as $stepNum => $data) {
     echo "  Step {$stepNum}:\n";
     foreach ($data as $key => $value) {
-        $display = is_string($value) ? (strlen($value) > 50 ? substr($value, 0, 50) . '...' : $value) : json_encode($value);
+        $display = is_string($value) ? (strlen($value) > 50 ? substr($value, 0, 50).'...' : $value) : json_encode($value);
         echo "    - {$key}: {$display}\n";
     }
 }
@@ -149,7 +149,7 @@ echo "\n";
 echo "Step 6: Checking completion eligibility...\n";
 if ($finalState['status'] === 'complete') {
     echo "✓ Flow is ready to complete\n";
-    echo "  Completed steps: " . count($finalState['completed_steps']) . "/" . count($flowInstructions->steps) . "\n";
+    echo '  Completed steps: '.count($finalState['completed_steps']).'/'.count($flowInstructions->steps)."\n";
 } else {
     echo "✗ Flow not complete yet\n";
     echo "  Status: {$finalState['status']}\n";
@@ -165,7 +165,7 @@ echo "✓ Voucher generation: PASSED\n";
 echo "✓ Driver transformation: PASSED\n";
 echo "✓ Form flow start: PASSED\n";
 echo "✓ Data collection: PASSED\n";
-echo "✓ Flow completion: " . ($finalState['status'] === 'complete' ? 'PASSED' : 'PENDING') . "\n";
+echo '✓ Flow completion: '.($finalState['status'] === 'complete' ? 'PASSED' : 'PENDING')."\n";
 echo "\n";
 echo "Next steps:\n";
 echo "1. Visit: http://redeem-x.test/disburse?code={$voucher->code}\n";

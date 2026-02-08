@@ -2,16 +2,14 @@
 
 namespace LBHurtado\PaymentGateway\Omnipay\Netbank\Message;
 
-use Omnipay\Common\Message\AbstractRequest;
-use LBHurtado\PaymentGateway\Omnipay\Netbank\Traits\{
-    HasOAuth2,
-    ValidatesSettlementRail,
-    AppliesKycWorkaround
-};
+use Illuminate\Support\Facades\Log;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
+use LBHurtado\PaymentGateway\Omnipay\Netbank\Traits\AppliesKycWorkaround;
+use LBHurtado\PaymentGateway\Omnipay\Netbank\Traits\HasOAuth2;
+use LBHurtado\PaymentGateway\Omnipay\Netbank\Traits\ValidatesSettlementRail;
 use Omnipay\Common\Http\Exception\NetworkException;
 use Omnipay\Common\Http\Exception\RequestException;
-use Illuminate\Support\Facades\Log;
+use Omnipay\Common\Message\AbstractRequest;
 
 /**
  * NetBank Disburse Request
@@ -21,10 +19,10 @@ use Illuminate\Support\Facades\Log;
  */
 class DisburseRequest extends AbstractRequest
 {
+    use AppliesKycWorkaround;
     use HasOAuth2;
     use ValidatesSettlementRail;
-    use AppliesKycWorkaround;
-    
+
     public function getData(): array
     {
         // Validate required parameters
@@ -35,17 +33,17 @@ class DisburseRequest extends AbstractRequest
             'reference',
             'via'
         );
-        
+
         // Parse rail enum
         $rail = SettlementRail::from($this->getVia());
-        
+
         // Validate settlement rail
         $this->validateSettlementRail(
             $this->getBankCode(),
             $rail,
             $this->getAmount()
         );
-        
+
         // Build NetBank API payload matching x-change package structure
         $payload = [
             'reference_id' => $this->getReference(),
@@ -67,49 +65,49 @@ class DisburseRequest extends AbstractRequest
                 'customer_id' => $this->getSenderCustomerId() ?? config('omnipay.gateways.netbank.options.senderCustomerId'),
             ],
         ];
-        
+
         // Apply KYC workaround (inject random address to both sender and recipient)
         // NetBank requires address for both parties
         $this->applyKycWorkaround($payload, 'sender');
         $this->applyKycWorkaround($payload, 'recipient');
-        
+
         // Add optional remarks field (for GCash memo smoke test)
         if ($remarks = $this->getRemarks()) {
             $payload['remarks'] = $remarks;
         }
-        
+
         // Add optional additional sender info (camelCase per NetBank API docs)
         if ($additionalSenderInfo = $this->getAdditionalSenderInfo()) {
             $payload['additionalSenderInfo'] = $additionalSenderInfo;
         }
-        
+
         return $payload;
     }
-    
+
     public function sendData($data): DisburseResponse
     {
         try {
             // Get OAuth token
             $token = $this->getAccessToken();
-            
+
             // Make HTTP request
             $httpResponse = $this->httpClient->request(
                 'POST',
                 $this->getEndpoint(),
                 [
-                    'Authorization' => 'Bearer ' . $token,
+                    'Authorization' => 'Bearer '.$token,
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                 ],
                 json_encode($data)
             );
-            
+
             // Parse response
             $body = $httpResponse->getBody()->getContents();
             $responseData = json_decode($body, true);
-            
+
             return $this->response = new DisburseResponse($this, $responseData);
-            
+
         } catch (NetworkException $e) {
             // Network errors: timeouts, connection failures, DNS issues
             Log::error('[DisburseRequest] Network error during disbursement', [
@@ -118,7 +116,7 @@ class DisburseRequest extends AbstractRequest
                 'amount' => $data['amount']['num'] ?? null,
                 'type' => 'network_timeout',
             ]);
-            
+
             return $this->response = new DisburseResponse($this, [
                 'success' => false,
                 'message' => 'Network timeout or connection failure',
@@ -126,7 +124,7 @@ class DisburseRequest extends AbstractRequest
                 'error_type' => 'network_timeout',
                 'error_details' => $e->getMessage(),
             ]);
-            
+
         } catch (RequestException $e) {
             // Request errors: malformed requests, client/server errors
             Log::error('[DisburseRequest] Request error during disbursement', [
@@ -135,7 +133,7 @@ class DisburseRequest extends AbstractRequest
                 'amount' => $data['amount']['num'] ?? null,
                 'type' => 'request_error',
             ]);
-            
+
             return $this->response = new DisburseResponse($this, [
                 'success' => false,
                 'message' => 'Invalid request or server error',
@@ -143,7 +141,7 @@ class DisburseRequest extends AbstractRequest
                 'error_type' => 'request_error',
                 'error_details' => $e->getMessage(),
             ]);
-            
+
         } catch (\Exception $e) {
             // Catch-all for unexpected errors
             Log::error('[DisburseRequest] Unexpected error during disbursement', [
@@ -152,7 +150,7 @@ class DisburseRequest extends AbstractRequest
                 'amount' => $data['amount']['num'] ?? null,
                 'type' => 'unknown_error',
             ]);
-            
+
             return $this->response = new DisburseResponse($this, [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -161,69 +159,69 @@ class DisburseRequest extends AbstractRequest
             ]);
         }
     }
-    
+
     protected function getEndpoint(): string
     {
         return $this->getApiEndpoint();
     }
-    
+
     // Parameter getters/setters
-    
+
     public function getAmount()
     {
         return $this->getParameter('amount');
     }
-    
+
     public function setAmount($value)
     {
         return $this->setParameter('amount', $value);
     }
-    
+
     public function getAccountNumber()
     {
         return $this->getParameter('accountNumber');
     }
-    
+
     public function setAccountNumber($value)
     {
         return $this->setParameter('accountNumber', $value);
     }
-    
+
     public function getBankCode()
     {
         return $this->getParameter('bankCode');
     }
-    
+
     public function setBankCode($value)
     {
         return $this->setParameter('bankCode', $value);
     }
-    
+
     public function getReference()
     {
         return $this->getParameter('reference');
     }
-    
+
     public function setReference($value)
     {
         return $this->setParameter('reference', $value);
     }
-    
+
     public function getVia()
     {
         return $this->getParameter('via');
     }
-    
+
     public function setVia($value)
     {
         return $this->setParameter('via', $value);
     }
-    
+
     public function getCurrency()
     {
         return $this->getParameter('currency');
     }
-    
+
     public function setCurrency($value)
     {
         return $this->setParameter('currency', $value);
@@ -269,75 +267,75 @@ class DisburseRequest extends AbstractRequest
     {
         return $this->setParameter('senderName', $value);
     }
-    
+
     // Gateway parameter access (for traits)
-    
+
     protected function getApiEndpoint(): string
     {
         return $this->getParameter('apiEndpoint');
     }
-    
+
     public function setApiEndpoint($value)
     {
         return $this->setParameter('apiEndpoint', $value);
     }
-    
+
     protected function getClientId(): string
     {
         return $this->getParameter('clientId');
     }
-    
+
     public function setClientId($value)
     {
         return $this->setParameter('clientId', $value);
     }
-    
+
     protected function getClientSecret(): string
     {
         return $this->getParameter('clientSecret');
     }
-    
+
     public function setClientSecret($value)
     {
         return $this->setParameter('clientSecret', $value);
     }
-    
+
     protected function getTokenEndpoint(): string
     {
         return $this->getParameter('tokenEndpoint');
     }
-    
+
     public function setTokenEndpoint($value)
     {
         return $this->setParameter('tokenEndpoint', $value);
     }
-    
+
     public function getRails()
     {
         return $this->getParameter('rails');
     }
-    
+
     public function setRails($value)
     {
         return $this->setParameter('rails', $value);
     }
-    
+
     // Remarks field (for GCash memo smoke test)
     public function getRemarks()
     {
         return $this->getParameter('remarks');
     }
-    
+
     public function setRemarks($value)
     {
         return $this->setParameter('remarks', $value);
     }
-    
+
     public function getAdditionalSenderInfo()
     {
         return $this->getParameter('additionalSenderInfo');
     }
-    
+
     public function setAdditionalSenderInfo($value)
     {
         return $this->setParameter('additionalSenderInfo', $value);

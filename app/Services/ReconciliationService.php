@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AccountBalance;
 use App\Models\User;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\Log;
@@ -11,7 +10,7 @@ use LBHurtado\Wallet\Services\SystemUserResolverService;
 class ReconciliationService
 {
     private const DEBUG = false;
-    
+
     public function __construct(
         protected BalanceService $balanceService,
         protected SystemUserResolverService $systemUserResolver
@@ -19,11 +18,11 @@ class ReconciliationService
 
     /**
      * Get total system balance (all user wallets, excluding system wallet).
-     * 
+     *
      * The system wallet holds the master balance. User wallets are funded
      * via transfers from the system wallet. This method returns the sum of
      * all user wallets only, which should always be <= bank balance.
-     * 
+     *
      * @return int Balance in centavos
      */
     public function getTotalSystemBalance(): int
@@ -51,8 +50,8 @@ class ReconciliationService
 
     /**
      * Get current bank balance.
-     * 
-     * @param string|null $accountNumber Account number (uses default if null)
+     *
+     * @param  string|null  $accountNumber  Account number (uses default if null)
      * @return int Balance in centavos
      */
     public function getBankBalance(?string $accountNumber = null): int
@@ -66,8 +65,8 @@ class ReconciliationService
 
     /**
      * Get buffer amount based on configuration.
-     * 
-     * @param int $bankBalance Bank balance in centavos
+     *
+     * @param  int  $bankBalance  Bank balance in centavos
      * @return int Buffer amount in centavos
      */
     public function getBuffer(int $bankBalance): int
@@ -79,13 +78,14 @@ class ReconciliationService
 
         // Otherwise use percentage
         $bufferPercent = config('balance.reconciliation.buffer', 10);
+
         return (int) ($bankBalance * ($bufferPercent / 100));
     }
 
     /**
      * Calculate available amount for voucher generation.
-     * 
-     * @param int $bankBalance Bank balance in centavos
+     *
+     * @param  int  $bankBalance  Bank balance in centavos
      * @return int Available amount in centavos
      */
     public function getAvailableAmount(int $bankBalance): int
@@ -98,13 +98,13 @@ class ReconciliationService
 
     /**
      * Get comprehensive reconciliation status.
-     * 
-     * @param string|null $accountNumber Account number (uses default if null)
+     *
+     * @param  string|null  $accountNumber  Account number (uses default if null)
      * @return array Reconciliation status data
      */
     public function getReconciliationStatus(?string $accountNumber = null): array
     {
-        if (!config('balance.reconciliation.enabled', true)) {
+        if (! config('balance.reconciliation.enabled', true)) {
             return [
                 'enabled' => false,
                 'status' => 'disabled',
@@ -165,28 +165,30 @@ class ReconciliationService
 
     /**
      * Check if voucher generation should be blocked.
-     * 
-     * @param int $requestedAmount Amount to generate in centavos
-     * @param string|null $accountNumber Account number
+     *
+     * @param  int  $requestedAmount  Amount to generate in centavos
+     * @param  string|null  $accountNumber  Account number
      * @return bool True if should block
      */
     public function shouldBlockGeneration(int $requestedAmount, ?string $accountNumber = null): bool
     {
-        if (!config('balance.reconciliation.enabled', true)) {
+        if (! config('balance.reconciliation.enabled', true)) {
             return false;
         }
 
         if (config('balance.reconciliation.override', false)) {
             Log::warning('[ReconciliationService] Override active - generation allowed');
+
             return false;
         }
 
         if (config('balance.reconciliation.allow_overgeneration', false)) {
             Log::warning('[ReconciliationService] Overgeneration allowed by config');
+
             return false;
         }
 
-        if (!config('balance.reconciliation.block_generation', true)) {
+        if (! config('balance.reconciliation.block_generation', true)) {
             return false;
         }
 
@@ -197,8 +199,6 @@ class ReconciliationService
 
     /**
      * Get default account number from config.
-     * 
-     * @return string|null
      */
     protected function getDefaultAccountNumber(): ?string
     {
@@ -210,9 +210,8 @@ class ReconciliationService
 
     /**
      * Get formatted generation limit message.
-     * 
-     * @param string|null $accountNumber Account number
-     * @return string
+     *
+     * @param  string|null  $accountNumber  Account number
      */
     public function getGenerationLimitMessage(?string $accountNumber = null): string
     {

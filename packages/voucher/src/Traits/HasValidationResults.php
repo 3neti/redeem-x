@@ -2,13 +2,13 @@
 
 namespace LBHurtado\Voucher\Traits;
 
-use LBHurtado\Voucher\Data\ValidationResultsData;
 use LBHurtado\Voucher\Data\LocationValidationResultData;
 use LBHurtado\Voucher\Data\TimeValidationResultData;
+use LBHurtado\Voucher\Data\ValidationResultsData;
 
 /**
  * Trait for managing validation results on vouchers
- * 
+ *
  * Stores validation outcomes (location, time) in voucher metadata
  * after redemption validation checks are performed.
  */
@@ -21,7 +21,7 @@ trait HasValidationResults
     {
         $metadata = $this->metadata['validation_results'] ?? null;
 
-        if (!$metadata) {
+        if (! $metadata) {
             return null;
         }
 
@@ -48,7 +48,7 @@ trait HasValidationResults
         ?TimeValidationResultData $time = null
     ): self {
         $results = ValidationResultsData::fromValidations($location, $time);
-        
+
         return $this->setValidationResults($results);
     }
 
@@ -75,7 +75,7 @@ trait HasValidationResults
      */
     public function failedValidation(): bool
     {
-        return !$this->passedValidation();
+        return ! $this->passedValidation();
     }
 
     /**

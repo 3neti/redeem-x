@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 
 class DocsController extends Controller
 {
     private const DOCS_PATH = 'docs';
-    
+
     private const AVAILABLE_DOCS = [
         'bank-integration' => [
             'title' => 'Bank Integration Guide',
@@ -43,14 +42,14 @@ class DocsController extends Controller
 
     public function show(string $slug)
     {
-        if (!isset(self::AVAILABLE_DOCS[$slug])) {
+        if (! isset(self::AVAILABLE_DOCS[$slug])) {
             abort(404, 'Documentation not found');
         }
 
         $doc = self::AVAILABLE_DOCS[$slug];
-        $filePath = base_path(self::DOCS_PATH . '/' . $doc['file']);
+        $filePath = base_path(self::DOCS_PATH.'/'.$doc['file']);
 
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             abort(404, 'Documentation file not found');
         }
 

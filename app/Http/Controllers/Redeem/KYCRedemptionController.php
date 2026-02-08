@@ -35,7 +35,7 @@ class KYCRedemptionController extends Controller
         $mobile = $request->query('mobile') ?? Session::get("redeem.{$voucher->code}.mobile");
         $country = $request->query('country') ?? Session::get("redeem.{$voucher->code}.country", 'PH');
 
-        if (!$mobile) {
+        if (! $mobile) {
             Log::error('[KYCRedemptionController] No mobile provided', [
                 'voucher' => $voucher->code,
                 'has_request_mobile' => $request->has('mobile'),
@@ -110,7 +110,7 @@ class KYCRedemptionController extends Controller
         $mobile = Session::get("redeem.{$voucher->code}.mobile");
         $country = Session::get("redeem.{$voucher->code}.country", 'PH');
 
-        if (!$mobile) {
+        if (! $mobile) {
             Log::error('[KYCRedemptionController] No mobile in session on callback', [
                 'voucher' => $voucher->code,
             ]);
@@ -171,6 +171,7 @@ class KYCRedemptionController extends Controller
             'kyc_status' => 'processing',
             'kyc_submitted_at' => now(),
         ]);
+
         // Render status page (with polling)
         return Inertia::render('redeem/KYCStatus', [
             'voucher_code' => $voucher->code,
@@ -190,7 +191,7 @@ class KYCRedemptionController extends Controller
         $mobile = Session::get("redeem.{$voucher->code}.mobile");
         $country = Session::get("redeem.{$voucher->code}.country", 'PH');
 
-        if (!$mobile) {
+        if (! $mobile) {
             return response()->json([
                 'status' => null,
                 'error' => 'Session expired',

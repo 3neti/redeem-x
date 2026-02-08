@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Models\{TopUp, User};
+use App\Models\TopUp;
+use App\Models\User;
 use Bavix\Wallet\Models\Transaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use LBHurtado\PaymentGateway\Exceptions\TopUpException;
 
 uses(RefreshDatabase::class);
 
@@ -15,7 +15,7 @@ beforeEach(function () {
         'name' => 'Test User',
         'email' => 'test@example.com',
     ]);
-    
+
     // Set mobile via HasChannels trait
     $this->user->setChannel('mobile', '09171234567');
 });
@@ -26,7 +26,7 @@ beforeEach(function () {
 
 test('authenticated user can get wallet balance', function () {
     Sanctum::actingAs($this->user, ['*']);
-    
+
     // Deposit some money (Bavix Wallet stores in cents)
     $this->user->deposit(10000); // ₱100.00
 
@@ -72,7 +72,7 @@ test('unauthenticated user cannot access wallet balance', function () {
 
 test('authenticated user can initiate top-up', function () {
     Sanctum::actingAs($this->user, ['*']);
-    
+
     // Mock the payment gateway
     config(['payment-gateway.top_up.use_fake' => true]);
 
@@ -98,7 +98,7 @@ test('authenticated user can initiate top-up', function () {
     expect($response->json('data.amount'))->toBe(500);
     expect($response->json('data.gateway'))->toBe('netbank');
     expect($response->json('data.institution_code'))->toBe('GCASH');
-    
+
     // Verify top-up record created
     $this->assertDatabaseHas('top_ups', [
         'user_id' => $this->user->id,
@@ -177,13 +177,13 @@ test('authenticated user can list all top-ups', function () {
         'amount' => 100.00,
         'payment_status' => 'PAID',
     ]);
-    
+
     TopUp::factory()->create([
         'user_id' => $this->user->id,
         'amount' => 200.00,
         'payment_status' => 'PENDING',
     ]);
-    
+
     TopUp::factory()->create([
         'user_id' => $this->user->id,
         'amount' => 300.00,
@@ -231,7 +231,7 @@ test('user can filter top-ups by status', function () {
 
     $response->assertOk();
     expect($response->json('meta.count'))->toBe(2);
-    
+
     $statuses = collect($response->json('data'))->pluck('payment_status')->unique();
     expect($statuses->toArray())->toBe(['PENDING']);
 });
@@ -246,7 +246,7 @@ test('invalid status filter returns error', function () {
 
 test('top-up list only shows user own records', function () {
     Sanctum::actingAs($this->user, ['*']);
-    
+
     $otherUser = User::factory()->create();
 
     TopUp::factory()->create(['user_id' => $this->user->id]);
@@ -266,7 +266,7 @@ test('top-ups are listed in descending order by creation date', function () {
         'user_id' => $this->user->id,
         'created_at' => now()->subDays(2),
     ]);
-    
+
     $newest = TopUp::factory()->create([
         'user_id' => $this->user->id,
         'created_at' => now(),
@@ -321,7 +321,7 @@ test('cannot get top-up status for non-existent reference', function () {
 
 test('cannot get top-up status for another user top-up', function () {
     Sanctum::actingAs($this->user, ['*']);
-    
+
     $otherUser = User::factory()->create();
     TopUp::factory()->create([
         'user_id' => $otherUser->id,
@@ -381,7 +381,7 @@ test('user can filter transactions by type', function () {
 
     $response->assertOk();
     expect($response->json('meta.count'))->toBe(2);
-    
+
     $types = collect($response->json('data'))->pluck('type')->unique();
     expect($types->toArray())->toBe(['deposit']);
 });
@@ -411,7 +411,7 @@ test('transactions are listed in descending order', function () {
 
 test('transactions only show user own records', function () {
     Sanctum::actingAs($this->user, ['*']);
-    
+
     $otherUser = User::factory()->create();
 
     $this->user->deposit(1000);
@@ -440,7 +440,7 @@ test('wallet endpoints respect rate limiting', function () {
     // Attempt 61 requests (limit is 60 per minute)
     for ($i = 0; $i < 61; $i++) {
         $response = $this->getJson('/api/v1/wallet/balance');
-        
+
         if ($i < 60) {
             $response->assertOk();
         } else {

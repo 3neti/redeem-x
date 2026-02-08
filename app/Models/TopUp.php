@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LBHurtado\PaymentGateway\Contracts\TopUpInterface;
 
 class TopUp extends Model implements TopUpInterface
 {
     use HasFactory;
+
     protected $fillable = [
         'user_id',
         'gateway',

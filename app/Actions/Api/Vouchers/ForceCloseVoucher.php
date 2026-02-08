@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Enums\VoucherState;
 use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Models\Voucher;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
  * Force Close Voucher
  *
  * Manually close a settlement/payable voucher before reaching full payment.
  * Useful for partial fulfillment scenarios or ending payment collection early.
- * 
+ *
  * @group Vouchers
+ *
  * @authenticated
  */
 #[Group('Vouchers')]
@@ -27,7 +28,7 @@ class ForceCloseVoucher
 {
     /**
      * Force close a voucher
-     * 
+     *
      * Change voucher state to CLOSED. Only ACTIVE or LOCKED settlement/payable vouchers can be force-closed.
      * Cannot close redeemable vouchers (use cancel instead).
      */
@@ -47,7 +48,7 @@ class ForceCloseVoucher
         // Find voucher
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return response()->json([
                 'success' => false,
                 'message' => 'Voucher not found',
@@ -71,7 +72,7 @@ class ForceCloseVoucher
         }
 
         // Validate current state
-        if (!in_array($voucher->state, [VoucherState::ACTIVE, VoucherState::LOCKED])) {
+        if (! in_array($voucher->state, [VoucherState::ACTIVE, VoucherState::LOCKED])) {
             return response()->json([
                 'success' => false,
                 'message' => "Cannot force close voucher. Current state: {$voucher->state->value}. Only ACTIVE or LOCKED vouchers can be closed.",
@@ -90,7 +91,7 @@ class ForceCloseVoucher
         $oldState = $voucher->state;
         $paidTotal = $voucher->getPaidTotal();
         $targetAmount = $voucher->target_amount;
-        
+
         $voucher->update([
             'state' => VoucherState::CLOSED,
             'closed_at' => now(),

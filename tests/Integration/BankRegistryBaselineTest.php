@@ -7,7 +7,6 @@ use LBHurtado\MoneyIssuer\Support\BankRegistry;
  * These tests capture the known-good state BEFORE banks.json rationalization.
  * All these tests MUST pass before proceeding with refactoring.
  */
-
 it('baseline: payment-gateway can load banks', function () {
     $registry = app(BankRegistry::class);
     expect($registry->all())->toBeArray()->toHaveCount(146);

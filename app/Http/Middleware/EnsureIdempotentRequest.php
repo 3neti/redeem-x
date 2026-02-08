@@ -21,7 +21,7 @@ class EnsureIdempotentRequest
     public function handle(Request $request, Closure $next): Response
     {
         // Only enforce idempotency on state-changing methods
-        if (!in_array($request->method(), ['POST', 'PUT', 'PATCH'])) {
+        if (! in_array($request->method(), ['POST', 'PUT', 'PATCH'])) {
             return $next($request);
         }
 
@@ -32,8 +32,8 @@ class EnsureIdempotentRequest
             return response()->json([
                 'message' => 'Idempotency-Key header is required for this request.',
                 'errors' => [
-                    'idempotency_key' => ['The Idempotency-Key header must be provided.']
-                ]
+                    'idempotency_key' => ['The Idempotency-Key header must be provided.'],
+                ],
             ], 400);
         }
 
@@ -42,8 +42,8 @@ class EnsureIdempotentRequest
             return response()->json([
                 'message' => 'Invalid Idempotency-Key format.',
                 'errors' => [
-                    'idempotency_key' => ['The Idempotency-Key must be between 16 and 255 characters.']
-                ]
+                    'idempotency_key' => ['The Idempotency-Key must be between 16 and 255 characters.'],
+                ],
             ], 400);
         }
 
@@ -53,7 +53,7 @@ class EnsureIdempotentRequest
 
         // Check if this request was already processed
         $cachedResponse = Cache::get($cacheKey);
-        
+
         if ($cachedResponse !== null) {
             // Return the cached response
             return response()->json(

@@ -3,8 +3,8 @@
 return [
     'models' => [
         'voucher' => [
-            'class'  => \LBHurtado\Voucher\Models\Voucher::class,
+            'class' => \LBHurtado\Voucher\Models\Voucher::class,
             'field' => 'code',
-        ]
-    ]
+        ],
+    ],
 ];

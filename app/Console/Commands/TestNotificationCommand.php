@@ -3,13 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Notifications\SendFeedbacksNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Actions\RedeemVoucher;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use App\Notifications\SendFeedbacksNotification;
 
 class TestNotificationCommand extends Command
 {
@@ -40,21 +40,22 @@ class TestNotificationCommand extends Command
     {
         $this->info('🧪 Testing Notification System');
         $this->newLine();
-        
+
         // Temporarily disable disbursement for testing
         config(['voucher-pipeline.post-redemption' => array_filter(
             config('voucher-pipeline.post-redemption'),
-            fn($class) => !str_contains($class, 'DisburseCash')
+            fn ($class) => ! str_contains($class, 'DisburseCash')
         )]);
         $this->line('💼 Disbursement temporarily disabled for testing');
         $this->newLine();
 
         // Check if ordinary user exists
         $ordinaryUser = User::where('email', 'lester@hurtado.ph')->first();
-        
-        if (!$ordinaryUser) {
+
+        if (! $ordinaryUser) {
             $this->error('❌ Ordinary user not found (lester@hurtado.ph)');
             $this->warn('Please run: php artisan db:seed --class=UserSeeder');
+
             return self::FAILURE;
         }
 
@@ -72,10 +73,10 @@ class TestNotificationCommand extends Command
 
         // Step 1: Create instructions
         $this->info('📝 Creating voucher instructions...');
-        
+
         $email = $this->option('email') ?: $ordinaryUser->email;
         $sms = $this->option('sms');
-        
+
         $feedback = array_filter([
             'email' => $email,
             'mobile' => $sms,
@@ -92,7 +93,7 @@ class TestNotificationCommand extends Command
         if ($this->option('with-selfie')) {
             $inputFields[] = 'selfie';
         }
-        
+
         $instructions = VoucherInstructionsData::from([
             'cash' => [
                 'amount' => 1, // Minimal amount for testing
@@ -112,8 +113,8 @@ class TestNotificationCommand extends Command
             'ttl' => 'PT24H',
         ]);
 
-        $this->line("   Amount: ₱1.00");
-        $this->line("   Input fields: " . (empty($inputFields) ? 'None' : implode(', ', $inputFields)));
+        $this->line('   Amount: ₱1.00');
+        $this->line('   Input fields: '.(empty($inputFields) ? 'None' : implode(', ', $inputFields)));
         $this->line("   Feedback email: {$email}");
         if ($sms) {
             $this->line("   Feedback SMS: {$sms}");
@@ -122,19 +123,19 @@ class TestNotificationCommand extends Command
         // Step 2: Generate voucher
         $this->newLine();
         $this->info('🎫 Generating voucher...');
-        
+
         $generateAction = app(GenerateVouchers::class);
         $vouchers = $generateAction->handle($instructions, $ordinaryUser);
         $voucher = $vouchers->first();
-        
+
         $this->line("   Code: {$voucher->code}");
         $this->line("   Owner: {$voucher->owner->name}");
-        
+
         // Wait for cash entity to be created by queue (HandleGeneratedVouchers listener)
-        if (!$this->option('fake')) {
+        if (! $this->option('fake')) {
             $this->newLine();
             $this->info('⏳ Waiting for cash entity to be created by queue worker...');
-            
+
             $attempts = 0;
             $maxAttempts = 10; // 10 seconds max
             while ($attempts < $maxAttempts) {
@@ -146,10 +147,11 @@ class TestNotificationCommand extends Command
                 sleep(1);
                 $attempts++;
             }
-            
+
             if ($voucher->cash === null) {
                 $this->error('❌ Timeout: Cash entity not created after 10 seconds');
                 $this->warn('Make sure queue worker is running: php artisan queue:work');
+
                 return self::FAILURE;
             }
         }
@@ -157,33 +159,33 @@ class TestNotificationCommand extends Command
         // Step 3: Create contact and redeem
         $this->newLine();
         $this->info('👤 Creating contact...');
-        
+
         $contact = Contact::factory()->create([
             'mobile' => '09178251991',
             'name' => 'Test Redeemer',
         ]);
-        
+
         $this->line("   Mobile: {$contact->mobile}");
         $this->line("   Name: {$contact->name}");
-        
+
         // Step 3.5: Add test inputs BEFORE redemption (so they're included in notifications)
-        if (!empty($inputFields)) {
+        if (! empty($inputFields)) {
             $this->newLine();
             $this->info('📎 Adding test inputs to voucher...');
-            
+
             if ($this->option('with-location')) {
                 $location = file_get_contents(base_path('tests/Fixtures/test-location.json'));
                 $voucher->location = $location;
                 $voucher->save();
                 $this->line('   ✓ Location data added');
             }
-            
+
             if ($this->option('with-signature')) {
                 $signature = trim(file_get_contents(base_path('tests/Fixtures/test-signature.txt')));
                 $voucher->forceSetInput('signature', $signature);
                 $this->line('   ✓ Signature image added');
             }
-            
+
             if ($this->option('with-selfie')) {
                 $selfie = trim(file_get_contents(base_path('tests/Fixtures/test-selfie.txt')));
                 $voucher->forceSetInput('selfie', $selfie);
@@ -194,10 +196,10 @@ class TestNotificationCommand extends Command
         // Step 4: Redeem voucher (this will trigger notifications with the inputs above)
         $this->newLine();
         $this->info('💰 Redeeming voucher...');
-        
+
         $redeemAction = app(RedeemVoucher::class);
         $redeemAction->handle($contact, $voucher->code);
-        
+
         $voucher->refresh();
         $this->line("   Status: {$voucher->status}");
         $this->line("   Redeemed at: {$voucher->redeemed_at}");
@@ -206,20 +208,20 @@ class TestNotificationCommand extends Command
         $this->newLine();
         if ($this->option('fake')) {
             $this->info('📬 Previewing notification content...');
-            
+
             // Create notification to preview
             $notification = new SendFeedbacksNotification($voucher->code);
             $notifiable = (object) $feedback;
-            
+
             // Preview email content
             $mailData = $notification->toMail($notifiable);
             $this->line("   Email subject: {$mailData->subject}");
-            $this->line("   Email body: " . substr($mailData->introLines[0], 0, 100) . '...');
-            
+            $this->line('   Email body: '.substr($mailData->introLines[0], 0, 100).'...');
+
             // Preview SMS content
             $smsData = $notification->toEngageSpark($notifiable);
-            $this->line("   SMS message: " . substr($smsData->content, 0, 100));
-            
+            $this->line('   SMS message: '.substr($smsData->content, 0, 100));
+
             $this->info('✅ Notifications would be sent (fake mode - not actually sent)');
         } else {
             $this->info('✅ Notifications sent!');
@@ -242,8 +244,8 @@ class TestNotificationCommand extends Command
             }
         } else {
             $this->warn('⚠️  Skipping cleanup - voucher needs to be processed by queue worker');
-            $this->line('   Voucher ID: ' . $voucher->id);
-            $this->line('   Contact ID: ' . $contact->id);
+            $this->line('   Voucher ID: '.$voucher->id);
+            $this->line('   Contact ID: '.$contact->id);
             $this->line('   Run queue worker to complete cash minting: php artisan queue:work');
         }
 

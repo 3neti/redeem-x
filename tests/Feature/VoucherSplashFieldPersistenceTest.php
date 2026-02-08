@@ -2,10 +2,9 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use LBHurtado\Voucher\Data\RiderInstructionData;
+use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 
 uses(RefreshDatabase::class);
 
@@ -48,7 +47,7 @@ it('persists splash fields when creating voucher directly via action', function 
 
     // Retrieve fresh from database
     $voucher->refresh();
-    
+
     dump('Saved instructions:', $voucher->instructions->toArray());
     dump('Rider data:', $voucher->instructions->rider->toArray());
 
@@ -89,17 +88,17 @@ it('persists splash fields through VoucherInstructionsData hydration cycle', fun
 
     // Step 1: Create DTO from array
     $dto = VoucherInstructionsData::from($originalData);
-    
+
     dump('Step 1 - DTO created:', $dto->rider->toArray());
 
     // Step 2: Convert to array (simulate serialization)
     $serialized = $dto->toArray();
-    
+
     dump('Step 2 - Serialized:', $serialized['rider']);
 
     // Step 3: Recreate from array (simulate deserialization)
     $hydrated = VoucherInstructionsData::from($serialized);
-    
+
     dump('Step 3 - Hydrated:', $hydrated->rider->toArray());
 
     // Step 4: Generate voucher

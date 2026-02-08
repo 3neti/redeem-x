@@ -28,7 +28,7 @@ use Propaganistas\LaravelPhone\PhoneNumber;
 class ProcessRedemption
 {
     use AsAction;
-    
+
     private const DEBUG = false;
 
     /**
@@ -38,7 +38,7 @@ class ProcessRedemption
      * @param  PhoneNumber  $phoneNumber  Redeemer's phone number
      * @param  array  $inputs  Collected inputs from redemption flow
      * @param  array  $bankAccount  Bank account details ['bank_code' => string, 'account_number' => string]
-     * @return bool  True if successful
+     * @return bool True if successful
      *
      * @throws \Throwable
      */
@@ -56,13 +56,13 @@ class ProcessRedemption
         ]);
 
         // Check if voucher has been processed (cash entity created)
-        if (!$voucher->processed) {
+        if (! $voucher->processed) {
             Log::warning('[ProcessRedemption] Voucher not yet processed', [
                 'voucher' => $voucher->code,
                 'created_at' => $voucher->created_at,
                 'processed_on' => $voucher->processed_on,
             ]);
-            
+
             throw new VoucherNotProcessedException(
                 'This voucher is still being prepared. Please wait a moment and try again.'
             );
@@ -71,13 +71,13 @@ class ProcessRedemption
         return DB::transaction(function () use ($voucher, $phoneNumber, $inputs, $bankAccount) {
             // Track redemption submission timing
             $voucher->trackRedemptionSubmit();
-            
+
             // Step 1: Get or create contact (needed for KYC validation)
             $contact = Contact::fromPhoneNumber($phoneNumber);
-            
+
             // Step 2: Validate KYC if required
             $this->validateKYC($voucher, $contact);
-            
+
             // Note: Time and Location validation are handled by the Unified Validation Gateway:
             // - TimeLimitSpecification (duration limit validation)
             // - TimeWindowSpecification (time-of-day window validation)
@@ -116,39 +116,37 @@ class ProcessRedemption
     /**
      * Validate KYC if KYC input field is required.
      *
-     * @param  Voucher  $voucher
-     * @param  Contact  $contact
-     * @return void
      *
-     * @throws \RuntimeException  If KYC is required but not approved
+     * @throws \RuntimeException If KYC is required but not approved
      */
     protected function validateKYC(Voucher $voucher, Contact $contact): void
     {
         // Check if KYC is required
         $kycRequired = in_array('kyc', $voucher->instructions->inputs->fields ?? []);
-        
-        if (!$kycRequired) {
+
+        if (! $kycRequired) {
             if (self::DEBUG) {
                 Log::debug('[ProcessRedemption] KYC not required', [
                     'voucher' => $voucher->code,
                 ]);
             }
+
             return;
         }
-        
+
         // Validate contact has approved KYC
-        if (!$contact->isKycApproved()) {
+        if (! $contact->isKycApproved()) {
             Log::warning('[ProcessRedemption] KYC validation failed', [
                 'voucher' => $voucher->code,
                 'contact_id' => $contact->id,
                 'kyc_status' => $contact->kyc_status,
             ]);
-            
+
             throw new \RuntimeException(
                 'Identity verification required. Please complete KYC before redeeming.'
             );
         }
-        
+
         Log::info('[ProcessRedemption] KYC validation passed', [
             'voucher' => $voucher->code,
             'contact_id' => $contact->id,
@@ -164,7 +162,6 @@ class ProcessRedemption
      *
      * @param  array  $inputs  User inputs
      * @param  array  $bankAccount  Bank account details
-     * @return array
      */
     protected function prepareMetadata(array $inputs, array $bankAccount): array
     {

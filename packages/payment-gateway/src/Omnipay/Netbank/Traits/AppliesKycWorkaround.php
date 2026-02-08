@@ -21,7 +21,7 @@ trait AppliesKycWorkaround
     protected function generateRandomAddress(): array
     {
         // Check if randomization is enabled
-        if (!config('omnipay.kyc.randomize_address', true)) {
+        if (! config('omnipay.kyc.randomize_address', true)) {
             return [
                 'address1' => 'N/A',
                 'city' => 'Manila',
@@ -29,22 +29,22 @@ trait AppliesKycWorkaround
                 'postal_code' => '1000',
             ];
         }
-        
+
         // Use Address helper to generate random address from zip codes
         return Address::generate();
     }
-    
+
     /**
      * Apply KYC workaround by injecting address into payload
      *
-     * @param array $payload The request payload (passed by reference)
-     * @param string $recipientKey The key path where address should be injected
+     * @param  array  $payload  The request payload (passed by reference)
+     * @param  string  $recipientKey  The key path where address should be injected
      */
     protected function applyKycWorkaround(array &$payload, string $recipientKey = 'recipient'): void
     {
         // Generate random address
         $address = $this->generateRandomAddress();
-        
+
         // Inject into payload at the specified key
         if (isset($payload[$recipientKey])) {
             $payload[$recipientKey]['address'] = $address;
@@ -53,7 +53,7 @@ trait AppliesKycWorkaround
                 'address' => $address,
             ];
         }
-        
+
         // Log for debugging (in test mode only)
         if ($this->getParameter('testMode')) {
             logger()->info('[KYC Workaround] Generated address', [
@@ -62,11 +62,9 @@ trait AppliesKycWorkaround
             ]);
         }
     }
-    
+
     /**
      * Check if KYC workaround is enabled
-     *
-     * @return bool
      */
     protected function isKycWorkaroundEnabled(): bool
     {

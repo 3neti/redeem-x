@@ -12,7 +12,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Get authenticated user information with current token abilities.
- * 
+ *
  * Endpoint: GET /api/v1/auth/me
  */
 class GetAuthenticatedUser
@@ -25,7 +25,7 @@ class GetAuthenticatedUser
     public function asController(ActionRequest $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Get current token abilities if authenticated via token
         $tokenAbilities = $user->currentAccessToken()?->abilities ?? null;
 

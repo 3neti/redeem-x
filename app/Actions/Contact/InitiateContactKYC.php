@@ -11,7 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Initiate KYC verification for a contact.
- * 
+ *
  * Generates a HyperVerge onboarding link and stores it in the contact record.
  * The contact can then be redirected to this URL to complete KYC verification.
  */
@@ -21,15 +21,15 @@ class InitiateContactKYC
 
     /**
      * Generate HyperVerge onboarding link for contact.
-     * 
+     *
      * @param  Contact  $contact  The contact to initiate KYC for
      * @param  Voucher  $voucher  The voucher being redeemed (for redirect URL)
-     * @return Contact  The updated contact with onboarding URL
+     * @return Contact The updated contact with onboarding URL
      */
     public function handle(Contact $contact, Voucher $voucher): Contact
     {
         // Generate unique transaction ID
-        $transactionId = "contact_{$contact->id}_" . now()->timestamp;
+        $transactionId = "contact_{$contact->id}_".now()->timestamp;
 
         // Build redirect URL for callback
         $redirectUrl = route('redeem.kyc.callback', [

@@ -5,15 +5,15 @@ use LBHurtado\MoneyIssuer\Tests\Models\User;
 it('has fillable properties', function () {
     $moneyIssuer = User::factory()->make();
 
-    expect($moneyIssuer->getFillable())->toBe(['name', 'email', 'password',]);
+    expect($moneyIssuer->getFillable())->toBe(['name', 'email', 'password']);
 });
 
 it('has a factory', function () {
-   $user = User::factory()->create();
-   expect($user)->toBeInstanceOf(User::class);
+    $user = User::factory()->create();
+    expect($user)->toBeInstanceOf(User::class);
 });
 
-it('is authenticable', function (){
+it('is authenticable', function () {
     $user = auth()->user();
     expect($user)->toBeInstanceOf(User::class);
 });

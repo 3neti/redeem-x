@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Balances;
 use App\Http\Controllers\Controller;
 use App\Services\BalanceService;
 use App\Services\ReconciliationService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,7 +12,7 @@ class BalanceController extends Controller
 {
     /**
      * Display the balance monitoring page.
-     * 
+     *
      * Access control:
      * - Admin role required (configurable via BALANCE_VIEW_ROLE)
      * - Can be disabled via BALANCE_VIEW_ENABLED=false
@@ -22,7 +20,7 @@ class BalanceController extends Controller
     public function index(BalanceService $service, ReconciliationService $reconciliation): Response
     {
         // Check if balance viewing is enabled
-        if (!config('balance.view_enabled', true)) {
+        if (! config('balance.view_enabled', true)) {
             abort(403, 'Balance viewing is currently disabled.');
         }
 
@@ -30,12 +28,12 @@ class BalanceController extends Controller
         // This controller method assumes user has already been authorized
         $user = auth()->user();
 
-        $accountNumber = config('balance.default_account') 
+        $accountNumber = config('balance.default_account')
             ?? config('payment-gateway.default_account')
             ?? config('omnipay.test_account')
             ?? config('disbursement.account_number');
 
-        if (!$accountNumber) {
+        if (! $accountNumber) {
             abort(500, 'No default account configured. Set BALANCE_DEFAULT_ACCOUNT in .env');
         }
 
@@ -47,7 +45,7 @@ class BalanceController extends Controller
         $alerts = $balance ? $balance->alerts : collect();
 
         // Map history to include formatted attributes
-        $historyData = $history->map(fn($entry) => [
+        $historyData = $history->map(fn ($entry) => [
             'balance' => $entry->balance,
             'available_balance' => $entry->available_balance,
             'currency' => $entry->currency,
@@ -57,7 +55,7 @@ class BalanceController extends Controller
         ]);
 
         // Map trend to include formatted attributes
-        $trendData = $trend->map(fn($entry) => [
+        $trendData = $trend->map(fn ($entry) => [
             'balance' => $entry->balance,
             'available_balance' => $entry->available_balance,
             'currency' => $entry->currency,

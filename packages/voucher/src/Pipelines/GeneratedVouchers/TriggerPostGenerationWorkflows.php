@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class TriggerPostGenerationWorkflows
 {
     private const DEBUG = false;
-    
+
     public function handle($vouchers, Closure $next)
     {
         // @todo Trigger downstream tasks like syncing to external systems or scheduling dispatch

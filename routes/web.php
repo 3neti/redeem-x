@@ -24,6 +24,7 @@ Route::get('/vouchers/inspect', function () {
         // Preserve code in query and redirect to redeem start
         return redirect()->route('redeem.start', ['code' => $code]);
     }
+
     return redirect()->route('redeem.start');
 })->name('vouchers.inspect');
 
@@ -69,7 +70,7 @@ Route::middleware([
     Route::get('/portal', [\App\Http\Controllers\PortalController::class, 'show'])
         ->middleware(['requires.mobile', 'requires.balance'])
         ->name('portal');
-    
+
     Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
         ->name('dashboard');
 
@@ -80,13 +81,13 @@ Route::middleware([
         Route::get('export', [\App\Http\Controllers\Transactions\TransactionController::class, 'export'])
             ->name('export');
     });
-    
+
     // Reports routes
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Reports\ReportsController::class, 'index'])
             ->name('index');
     });
-    
+
     // Contact management routes
     Route::prefix('contacts')->name('contacts.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Contacts\ContactController::class, 'index'])
@@ -94,22 +95,22 @@ Route::middleware([
         Route::get('{contact}', [\App\Http\Controllers\Contacts\ContactController::class, 'show'])
             ->name('show');
     });
-    
+
     // Voucher management routes
     Route::prefix('vouchers')->name('vouchers.')->group(function () {
         Route::get('/', [App\Http\Controllers\Vouchers\VoucherController::class, 'index'])
             ->name('index');
-        
+
         // Voucher generation routes (must be before {voucher} catch-all)
         // Note: Form submits to API endpoint (POST /api/v1/vouchers), not these routes
         Route::get('generate', function () {
             $useV2 = config('generate.feature_flags.progressive_disclosure', false);
-            
+
             // Check user preference override
             $savedMode = 'simple'; // Default
             if (auth()->check()) {
                 $user = auth()->user();
-                
+
                 // Debug: Log user preferences
                 \Log::info('[Generate Route] User authenticated', [
                     'user_id' => $user->id,
@@ -117,15 +118,15 @@ Route::middleware([
                     'ui_preferences' => $user->ui_preferences,
                     'ui_preferences_type' => gettype($user->ui_preferences),
                 ]);
-                
+
                 $userPreference = $user->ui_preferences['voucher_generate_ui_version'] ?? null;
                 if ($userPreference === 'legacy') {
                     $useV2 = false;
                 }
-                
+
                 // Read saved Simple/Advanced mode preference
                 $savedMode = $user->ui_preferences['voucher_generate_mode'] ?? 'simple';
-                
+
                 \Log::info('[Generate Route] Mode preference read', [
                     'saved_mode' => $savedMode,
                     'has_key' => isset($user->ui_preferences['voucher_generate_mode']),
@@ -134,23 +135,24 @@ Route::middleware([
             } else {
                 \Log::info('[Generate Route] User not authenticated, using default mode');
             }
-            
+
             $component = $useV2 ? 'vouchers/generate/CreateV2' : 'vouchers/generate/Create';
-            
+
             \Log::info('[Generate Route] Rendering component', [
                 'component' => $component,
                 'saved_mode' => $savedMode,
             ]);
-            
+
             // Load envelope drivers for envelope configuration card
             $envelopeDrivers = [];
             try {
                 $driverService = app(\LBHurtado\SettlementEnvelope\Services\DriverService::class);
                 $driverList = $driverService->list();
                 \Log::info('[Generate Route] Envelope drivers found', ['count' => count($driverList)]);
-            $envelopeDrivers = collect($driverList)->map(function ($item) use ($driverService) {
+                $envelopeDrivers = collect($driverList)->map(function ($item) use ($driverService) {
                     try {
                         $driver = $driverService->load($item['id'], $item['version']);
+
                         return [
                             'id' => $driver->id,
                             'version' => $driver->version,
@@ -165,6 +167,7 @@ Route::middleware([
                         ];
                     } catch (\Exception $e) {
                         \Log::warning('[Generate Route] Failed to load driver', ['driver' => $item, 'error' => $e->getMessage()]);
+
                         return null;
                     }
                 })->filter()->values()->all();
@@ -172,7 +175,7 @@ Route::middleware([
             } catch (\Exception $e) {
                 \Log::error('[Generate Route] DriverService error', ['error' => $e->getMessage()]);
             }
-            
+
             return Inertia::render($component, [
                 'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),
                 'config' => config('generate'),
@@ -181,13 +184,13 @@ Route::middleware([
                 'envelope_drivers' => $envelopeDrivers,
             ]);
         })->middleware(['requires.mobile', 'requires.balance'])->name('generate.create');
-        
+
         // Legacy UI route (always uses Create.vue)
         Route::get('generate/legacy', fn () => Inertia::render('vouchers/generate/Create', [
             'input_field_options' => \LBHurtado\Voucher\Enums\VoucherInputField::options(),
             'config' => config('generate'),
         ]))->name('generate.legacy');
-        
+
         Route::get('generate/success/{count}', function (int $count) {
             $vouchers = auth()->user()
                 ->vouchers()
@@ -200,7 +203,7 @@ Route::middleware([
             }
 
             return Inertia::render('vouchers/generate/Success', [
-                'vouchers' => $vouchers->map(function($voucher) {
+                'vouchers' => $vouchers->map(function ($voucher) {
                     return [
                         'id' => $voucher->id,
                         'code' => $voucher->code,
@@ -211,43 +214,43 @@ Route::middleware([
                         'created_at' => $voucher->created_at->toIso8601String(),
                     ];
                 }),
-                'batch_id' => 'batch-' . now()->timestamp,
+                'batch_id' => 'batch-'.now()->timestamp,
                 'count' => $vouchers->count(),
-                'total_value' => $vouchers->sum(function($v) {
+                'total_value' => $vouchers->sum(function ($v) {
                     return $v->instructions->cash->amount ?? 0;
                 }),
             ]);
         })->name('generate.success');
-        
+
         // Bulk voucher generation (SPA - no controller needed)
         Route::get('generate/bulk', fn () => Inertia::render('vouchers/generate/BulkCreate'))
             ->middleware(['requires.mobile', 'requires.balance'])
             ->name('generate.bulk');
-        
+
         // Show specific voucher (must be last - catches everything)
         Route::get('{voucher}', [App\Http\Controllers\Vouchers\VoucherController::class, 'show'])
             ->name('show');
     });
-    
+
     // Wallet routes
     Route::prefix('wallet')->name('wallet.')->group(function () {
         // Dashboard
         Route::get('/', [\App\Http\Controllers\Wallet\WalletController::class, 'index'])
             ->name('index');
-        
+
         // QR Load (renamed from 'load')
         Route::get('qr', \App\Http\Controllers\Wallet\QrController::class)
             ->name('qr');
-        
+
         // Backward compatibility redirect
         Route::redirect('load', 'qr', 301);
-        
+
         Route::get('balance', \App\Http\Controllers\Wallet\CheckBalanceController::class)
             ->name('balance');
         Route::get('add-funds', \LBHurtado\PaymentGateway\Http\Controllers\GenerateController::class)
             ->name('add-funds');
     });
-    
+
     // Top-Up routes (bank-based external money)
     Route::prefix('topup')->name('topup.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Wallet\TopUpController::class, 'index'])
@@ -261,19 +264,19 @@ Route::middleware([
         Route::get('status/{referenceNo}', [\App\Http\Controllers\Wallet\TopUpController::class, 'status'])
             ->name('status');
     });
-    
+
     // Payment routes (voucher-based internal transfers)
     Route::prefix('pay')->name('pay.')->group(function () {
         Route::post('voucher', [\App\Http\Controllers\Payment\PaymentController::class, 'voucher'])
             ->middleware('throttle:5,1')
             ->name('voucher');
     });
-    
+
     // Balance monitoring routes (admin only, configurable via .env)
     Route::get('balances', [\App\Http\Controllers\Balances\BalanceController::class, 'index'])
         ->middleware(['admin.override', 'permission:view balance'])
         ->name('balances.index');
-    
+
     // Admin routes (requires super-admin role)
     Route::prefix('admin')
         ->name('admin.')
@@ -289,9 +292,9 @@ Route::middleware([
                     Route::get('{item}/edit', [\App\Http\Controllers\Admin\PricingController::class, 'edit'])
                         ->name('edit');
                     Route::patch('{item}', [\App\Http\Controllers\Admin\PricingController::class, 'update'])
-                    ->name('update');
+                        ->name('update');
                 });
-            
+
             // Global voucher preferences (default settings for all users)
             Route::prefix('preferences')
                 ->name('preferences.')
@@ -314,6 +317,7 @@ if (app()->environment('local')) {
         $user = \App\Models\User::where('email', $email)->firstOrFail();
         \Illuminate\Support\Facades\Auth::login($user);
         session()->regenerate(); // Important for session to persist
+
         return redirect('/dashboard');
     })->name('dev.login');
 }

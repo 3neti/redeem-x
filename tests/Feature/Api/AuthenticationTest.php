@@ -13,7 +13,7 @@ beforeEach(function () {
         'name' => 'Test User',
         'email' => 'test@example.com',
     ]);
-    
+
     // Set mobile via HasChannels trait
     $this->user->setChannel('mobile', '09171234567');
 });
@@ -215,10 +215,10 @@ test('user only sees their own tokens', function () {
     $response = $this->getJson('/api/v1/auth/tokens');
 
     $response->assertOk();
-    
+
     // Should see 1 token: one from createToken (Sanctum::actingAs doesn't persist)
     expect($response->json('data.total'))->toBe(1);
-    
+
     // Verify "Other User Token" is not in the list
     $tokenNames = collect($response->json('data.tokens'))->pluck('name');
     expect($tokenNames)->not()->toContain('Other User Token');
@@ -345,8 +345,8 @@ test('all auth endpoints return consistent meta structure', function () {
     ];
 
     foreach ($endpoints as $endpoint) {
-        $response = $this->{$endpoint['method'] . 'Json'}($endpoint['uri']);
-        
+        $response = $this->{$endpoint['method'].'Json'}($endpoint['uri']);
+
         $response->assertOk()
             ->assertJsonStructure([
                 'meta' => [
@@ -368,11 +368,11 @@ test('token with specific abilities can only access allowed endpoints', function
     $token = $this->user->createToken('Limited Token', ['voucher:list']);
 
     // Make request with the limited token
-    $response = $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+    $response = $this->withHeader('Authorization', 'Bearer '.$token->plainTextToken)
         ->getJson('/api/v1/auth/me');
 
     $response->assertOk();
-    
+
     // Verify current_token_abilities shows the limited abilities
     expect($response->json('data.user.current_token_abilities'))->toBe(['voucher:list']);
 });
@@ -387,6 +387,6 @@ test('auth endpoints are rate limited', function () {
     // Note: Rate limit is 60 req/min, so we won't hit it in tests
     // Just verify the endpoints work normally
     $response = $this->getJson('/api/v1/auth/me');
-    
+
     $response->assertOk();
 });

@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * Authenticated user data transfer object.
- * 
+ *
  * Represents the authenticated user with basic profile information.
  */
 class UserData extends Data

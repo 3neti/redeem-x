@@ -12,7 +12,7 @@ test('wallet package is loaded and autoloaded', function () {
 
 test('user has wallet traits', function () {
     $user = User::factory()->create();
-    
+
     expect(method_exists($user, 'wallet'))->toBeTrue()
         ->and(method_exists($user, 'wallets'))->toBeTrue()
         ->and(method_exists($user, 'getWalletByType'))->toBeTrue()
@@ -21,9 +21,9 @@ test('user has wallet traits', function () {
 
 test('user can get default wallet', function () {
     $user = User::factory()->create();
-    
+
     $wallet = $user->wallet;
-    
+
     expect($wallet)->toBeInstanceOf(Wallet::class)
         ->and($wallet->holder_id)->toBe($user->id)
         ->and($wallet->holder_type)->toBe(User::class);
@@ -31,14 +31,14 @@ test('user can get default wallet', function () {
 
 test('user can have multiple wallets', function () {
     $user = User::factory()->create();
-    
+
     // Get default wallet
     $defaultWallet = $user->wallet;
-    
+
     // Create a typed wallet (will create new if default has no slug)
     $bonusWallet = $user->getOrCreateWalletByType('reward');
     $savingsWallet = $user->getOrCreateWalletByType('savings');
-    
+
     // Verify we have multiple distinct wallets
     expect($user->wallets()->count())->toBeGreaterThanOrEqual(2)
         ->and($bonusWallet->slug)->toBe('reward')
@@ -47,13 +47,13 @@ test('user can have multiple wallets', function () {
 
 test('user can get or create wallet by type', function () {
     $user = User::factory()->create();
-    
+
     $wallet = $user->getOrCreateWalletByType('bonus');
-    
+
     expect($wallet)->toBeInstanceOf(Wallet::class)
         ->and($wallet->slug)->toBe('bonus')
         ->and($wallet->name)->toBe('Bonus Wallet');
-    
+
     // Should return same wallet on second call
     $sameWallet = $user->getOrCreateWalletByType('bonus');
     expect($sameWallet->id)->toBe($wallet->id);
@@ -62,34 +62,34 @@ test('user can get or create wallet by type', function () {
 test('user can deposit to wallet', function () {
     $user = User::factory()->create();
     $wallet = $user->wallet;
-    
+
     $transaction = $wallet->deposit(100);
     $wallet->refresh();
-    
-    expect((int)$wallet->balance)->toBe(100)
-        ->and((int)$transaction->amount)->toBe(100);
+
+    expect((int) $wallet->balance)->toBe(100)
+        ->and((int) $transaction->amount)->toBe(100);
 });
 
 test('user can withdraw from wallet', function () {
     $user = User::factory()->create();
     $wallet = $user->wallet;
-    
+
     $wallet->deposit(200);
     $transaction = $wallet->withdraw(50);
     $wallet->refresh();
-    
-    expect((int)$wallet->balance)->toBe(150)
-        ->and(abs((int)$transaction->amount))->toBe(50); // Withdrawals are negative
+
+    expect((int) $wallet->balance)->toBe(150)
+        ->and(abs((int) $transaction->amount))->toBe(50); // Withdrawals are negative
 });
 
 test('user can check wallet balance', function () {
     $user = User::factory()->create();
     $wallet = $user->wallet;
-    
+
     $wallet->deposit(500);
     $wallet->refresh();
-    
-    expect((int)$wallet->balance)->toBe(500)
+
+    expect((int) $wallet->balance)->toBe(500)
         ->and($wallet->balanceInt)->toBe(500);
 });
 

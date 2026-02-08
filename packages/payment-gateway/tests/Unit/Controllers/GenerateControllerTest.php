@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use Brick\Money\Money;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
 // Shared mock for the payment gateway
 beforeEach(function () {
@@ -17,8 +17,7 @@ it('can generate a QR code', function () {
     // ACt
     $this->gatewayMock
         ->shouldReceive('generate')
-        ->withArgs(fn ($acct, $amt) =>
-            $acct === $account &&
+        ->withArgs(fn ($acct, $amt) => $acct === $account &&
             $amt instanceof \Brick\Money\Money &&
             $amt->isEqualTo(\Brick\Money\Money::of($amount, 'PHP'))
         )
@@ -49,8 +48,7 @@ it('returns a JSON response for JSON requests', function () {
     $this->gatewayMock
         ->shouldReceive('generate')
         ->once()
-        ->withArgs(fn ($acct, $amt) =>
-            $acct === $account &&
+        ->withArgs(fn ($acct, $amt) => $acct === $account &&
             $amt instanceof Money &&
             $amt->isEqualTo(Money::of($amount, 'PHP'))
         )
@@ -82,8 +80,7 @@ it('redirects with event data when called from Vue', function () {
     $this->gatewayMock
         ->shouldReceive('generate')
         ->once()
-        ->withArgs(fn ($acct, $amt) =>
-            $acct === $account &&
+        ->withArgs(fn ($acct, $amt) => $acct === $account &&
             $amt instanceof Money &&
             $amt->isEqualTo(Money::of($amount, 'PHP'))
         )
@@ -115,8 +112,7 @@ it('redirects without event data for non-ajax requests', function () {
     $this->gatewayMock
         ->shouldReceive('generate')
         ->once()
-        ->withArgs(fn ($acct, $amt) =>
-            $acct === $account &&
+        ->withArgs(fn ($acct, $amt) => $acct === $account &&
             $amt instanceof Money &&
             $amt->isEqualTo(Money::of($amount, 'PHP'))
         )
@@ -144,4 +140,3 @@ it('fails validation for invalid input', function () {
         ->assertStatus(422)
         ->assertJsonValidationErrors(['account', 'amount']);
 });
-

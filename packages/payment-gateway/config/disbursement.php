@@ -13,14 +13,14 @@ return [
         'alias' => env('NETBANK_CLIENT_ALIAS', ''),
     ],
     'source' => [
-        'account_number' => env('NETBANK_SOURCE_ACCOUNT_NUMBER',''),
+        'account_number' => env('NETBANK_SOURCE_ACCOUNT_NUMBER', ''),
         'sender' => [
-            'customer_id' => env('NETBANK_SENDER_CUSTOMER_ID',''),
+            'customer_id' => env('NETBANK_SENDER_CUSTOMER_ID', ''),
             'address' => [
-                "address1" => env('NETBANK_SENDER_ADDRESS_ADDRESS1'),
-                "city" => env('NETBANK_SENDER_ADDRESS_CITY'),
-                "country" => env('NETBANK_SENDER_ADDRESS_COUNTRY', 'PH'),
-                "postal_code" => env('NETBANK_SENDER_ADDRESS_POSTAL_CODE'),
+                'address1' => env('NETBANK_SENDER_ADDRESS_ADDRESS1'),
+                'city' => env('NETBANK_SENDER_ADDRESS_CITY'),
+                'country' => env('NETBANK_SENDER_ADDRESS_COUNTRY', 'PH'),
+                'postal_code' => env('NETBANK_SENDER_ADDRESS_POSTAL_CODE'),
             ],
         ],
     ],
@@ -30,8 +30,8 @@ return [
         'min' => env('MINIMUM_VARIANCE', 0),
         'max' => env('MAXIMUM_VARIANCE', 0),
     ],
-    'threshold_balance' => env('THRESHOLD_BALANCE', 2), //major
-    'settlement_rails' =>   explode(',', env('SETTLEMENT_RAILS', 'INSTAPAY,PESONET')),
+    'threshold_balance' => env('THRESHOLD_BALANCE', 2), // major
+    'settlement_rails' => explode(',', env('SETTLEMENT_RAILS', 'INSTAPAY,PESONET')),
     'user' => [
         'system' => [
             'name' => env('SYSTEM_NAME', 'RLI DevOps'),
@@ -41,7 +41,7 @@ return [
             'password_confirmation' => env('SYSTEM_PASSWORD', '#Password1'),
         ],
         'transaction_fee' => 15 * 100,
-        'merchant_discount_rate' => 1.5/100,
+        'merchant_discount_rate' => 1.5 / 100,
         'tf' => 15 * 100,
         'mdr' => 1,
     ],
@@ -53,9 +53,9 @@ return [
     ],
     'merchant' => [
         'default' => [
-            'city' => env('DEFAULT_MERCHANT_CITY', 'Manila')
+            'city' => env('DEFAULT_MERCHANT_CITY', 'Manila'),
         ],
-        'max_count' => env('MAX_MERCHANT_COUNT', 9)
+        'max_count' => env('MAX_MERCHANT_COUNT', 9),
     ],
     'bank' => [
         'default' => [

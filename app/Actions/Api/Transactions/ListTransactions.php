@@ -5,30 +5,30 @@ declare(strict_types=1);
 namespace App\Actions\Api\Transactions;
 
 use App\Http\Responses\ApiResponse;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Spatie\LaravelData\DataCollection;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
  * List Voucher Redemption Transactions
  *
  * Retrieve paginated history of all redeemed vouchers with disbursement details.
- * 
+ *
  * This endpoint shows completed voucher redemptions with their disbursement status,
  * bank information, settlement rail, and amounts. Essential for transaction monitoring,
  * reconciliation, and financial reporting.
- * 
+ *
  * **Transaction Data Includes:**
  * - Voucher code and redemption timestamp
  * - Disbursement amount, bank, and account
  * - Settlement rail (INSTAPAY/PESONET)
  * - Disbursement status (success, pending, failed)
  * - Operation IDs for bank reconciliation
- * 
+ *
  * **Use Cases:**
  * - Transaction history dashboard
  * - Financial reconciliation with bank statements
@@ -36,6 +36,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Auditing and compliance reporting
  *
  * @group Transactions
+ *
  * @authenticated
  */
 #[Group('Transactions')]
@@ -64,7 +65,7 @@ class ListTransactions
             'rail' => ['nullable', 'string', 'in:INSTAPAY,PESONET'],
             'status' => ['nullable', 'string', 'max:50'],
         ]);
-        
+
         $user = $request->user();
         $perPage = min($request->integer('per_page', 20), 100);
         $dateFrom = $request->input('date_from');
@@ -109,24 +110,25 @@ class ListTransactions
 
         // Get current page from request
         $currentPage = $request->integer('page', 1);
-        
+
         // Fetch all matching vouchers (we'll filter and paginate in PHP)
         // NOTE: We can't use whereJson comparison for redemption_type due to PostgreSQL
         // compatibility issues with parameter binding. Filter in PHP instead.
         $allVouchers = $query->get();
-        
+
         // Filter out voucher_payment redemptions in PHP
         $filteredVouchers = $allVouchers->filter(function ($voucher) {
             $redemptionType = $voucher->metadata['redemption_type'] ?? null;
+
             return $redemptionType !== 'voucher_payment';
         });
-        
+
         // Calculate pagination manually
         $total = $filteredVouchers->count();
         $lastPage = max(1, (int) ceil($total / $perPage));
         $offset = ($currentPage - 1) * $perPage;
         $paginatedVouchers = $filteredVouchers->slice($offset, $perPage)->values();
-        
+
         // Calculate from/to indices
         $from = $total > 0 ? $offset + 1 : null;
         $to = $total > 0 ? min($offset + $perPage, $total) : null;

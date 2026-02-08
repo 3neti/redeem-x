@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Voucher\Enums\VoucherState;
 use LBHurtado\Voucher\Models\Voucher;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
  * Lock Voucher
  *
  * Temporarily suspend a voucher to prevent both payments and redemptions.
  * Useful for fraud prevention, dispute resolution, or investigation.
- * 
+ *
  * @group Vouchers
+ *
  * @authenticated
  */
 #[Group('Vouchers')]
@@ -26,7 +27,7 @@ class LockVoucher
 {
     /**
      * Lock a voucher
-     * 
+     *
      * Change voucher state to LOCKED. Only vouchers in ACTIVE state can be locked.
      * Locked vouchers cannot accept payments or be redeemed.
      */
@@ -46,7 +47,7 @@ class LockVoucher
         // Find voucher
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return response()->json([
                 'success' => false,
                 'message' => 'Voucher not found',

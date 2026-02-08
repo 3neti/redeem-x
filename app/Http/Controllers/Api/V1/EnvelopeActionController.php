@@ -37,14 +37,14 @@ class EnvelopeActionController extends Controller
     {
         $envelope = $this->getEnvelope($voucher);
 
-        if (!$envelope->status->canLock()) {
+        if (! $envelope->status->canLock()) {
             return response()->json([
                 'message' => 'Cannot lock envelope in current state',
                 'status' => $envelope->status->value,
             ], 422);
         }
 
-        if (!$envelope->isSettleable()) {
+        if (! $envelope->isSettleable()) {
             return response()->json([
                 'message' => 'Envelope is not settleable - check gates and requirements',
             ], 422);
@@ -95,7 +95,7 @@ class EnvelopeActionController extends Controller
 
         $envelope = $this->getEnvelope($voucher);
 
-        if (!$envelope->status->canCancel()) {
+        if (! $envelope->status->canCancel()) {
             return response()->json([
                 'message' => 'Cannot cancel envelope in current state',
                 'status' => $envelope->status->value,
@@ -123,7 +123,7 @@ class EnvelopeActionController extends Controller
 
         $envelope = $this->getEnvelope($voucher);
 
-        if (!$envelope->status->canReopen()) {
+        if (! $envelope->status->canReopen()) {
             return response()->json([
                 'message' => 'Can only reopen a locked envelope',
                 'status' => $envelope->status->value,
@@ -213,7 +213,7 @@ class EnvelopeActionController extends Controller
 
         $envelope = $this->getEnvelope($voucher);
 
-        if (!$envelope->status->canEdit()) {
+        if (! $envelope->status->canEdit()) {
             return response()->json([
                 'message' => 'Cannot modify signals in current state',
                 'status' => $envelope->status->value,
@@ -244,7 +244,7 @@ class EnvelopeActionController extends Controller
 
         $envelope = $this->getEnvelope($voucher);
 
-        if (!$envelope->status->canEdit()) {
+        if (! $envelope->status->canEdit()) {
             return response()->json([
                 'message' => 'Cannot upload attachments in current state',
                 'status' => $envelope->status->value,
@@ -287,7 +287,7 @@ class EnvelopeActionController extends Controller
 
         $envelope = $this->getEnvelope($voucher);
 
-        if (!$envelope->status->canEdit()) {
+        if (! $envelope->status->canEdit()) {
             return response()->json([
                 'message' => 'Cannot modify payload in current state',
                 'status' => $envelope->status->value,
@@ -316,7 +316,7 @@ class EnvelopeActionController extends Controller
     {
         $envelope = $voucher->envelope;
 
-        if (!$envelope) {
+        if (! $envelope) {
             abort(404, 'Voucher does not have an envelope');
         }
 

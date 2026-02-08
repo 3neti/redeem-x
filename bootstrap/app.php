@@ -22,9 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')->group(base_path('routes/pay.php'));
             Route::middleware('web')->group(base_path('routes/auth.php'));
             Route::middleware('web')->group(base_path('routes/settings.php'));
-            
+
             // Test routes for KYC (only in non-production)
-            if (!app()->environment('production')) {
+            if (! app()->environment('production')) {
                 Route::middleware('web')->group(base_path('routes/test-kyc.php'));
             }
         },
@@ -75,7 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'user_id' => auth()->id(),
                 'ip' => $request->ip(),
             ]);
-            
+
             // Return clean JSON response for API/AJAX requests
             if ($request->expectsJson() || $request->wantsJson()) {
                 return response()->json([
@@ -83,13 +83,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     'type' => 'invalid_settlement_rail',
                 ], 422);
             }
-            
+
             // For web requests, redirect back with error message
             return redirect()->back()->withErrors([
                 'settlement_rail' => $e->getMessage(),
             ]);
         });
-        
+
         // Handle HTTP client exceptions (API failures) in form flows
         $exceptions->render(function (\Illuminate\Http\Client\RequestException $e, $request) {
             // Log the actual error for debugging
@@ -99,10 +99,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 'url' => $request->url(),
                 'ip' => $request->ip(),
             ]);
-            
+
             // Show user-friendly message without exposing details
             $userMessage = 'We\'re experiencing technical difficulties. Please try again later or contact support.';
-            
+
             // Return clean error response
             if ($request->expectsJson() || $request->wantsJson()) {
                 return response()->json([
@@ -110,7 +110,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     'type' => 'service_unavailable',
                 ], 503);
             }
-            
+
             // For web requests (Inertia), return error page
             return \Inertia\Inertia::render('errors/ServiceUnavailable', [
                 'message' => $userMessage,

@@ -35,10 +35,10 @@ describe('Complete User Journey - E2E Integration Test', function () {
 
         // ===== STEP 2: Wallet Management =====
         // Ensure wallet exists
-        if (!$user->wallet) {
+        if (! $user->wallet) {
             $user->createWallet(['name' => 'Default Wallet']);
         }
-        
+
         // Check initial balance (should be 0)
         $balanceResponse = $this->getJson('/api/v1/wallet/balance');
         $balanceResponse
@@ -80,7 +80,7 @@ describe('Complete User Journey - E2E Integration Test', function () {
         // ===== STEP 4: Voucher Generation =====
         // Generate vouchers
         $vouchers = \Tests\Helpers\VoucherTestHelper::createVouchersWithInstructions($user, 5, 'TEST');
-        
+
         expect($vouchers)->toHaveCount(5);
         expect($vouchers[0]->code)->toStartWith('TEST');
 
@@ -92,7 +92,7 @@ describe('Complete User Journey - E2E Integration Test', function () {
 
         // ===== STEP 5: Voucher Details =====
         $voucher = $vouchers[0];
-        
+
         // QR generation tested separately in QrCodeTest.php
         // Skipping here to keep E2E flow clean
 
@@ -229,9 +229,9 @@ describe('Complete User Journey - E2E Integration Test', function () {
 
         // Generate vouchers
         $vouchers = \Tests\Helpers\VoucherTestHelper::createVouchersWithInstructions($user, 10);
-        
+
         // Mark some as redeemed
-        $vouchers->take(3)->each(fn($v) => $v->update(['redeemed_at' => now()]));
+        $vouchers->take(3)->each(fn ($v) => $v->update(['redeemed_at' => now()]));
 
         // Verify stats consistency
         $statsResponse = $this->getJson('/api/v1/transactions/stats');
@@ -242,7 +242,7 @@ describe('Complete User Journey - E2E Integration Test', function () {
         // Verify dashboard consistency
         $dashboardResponse = $this->getJson('/api/v1/dashboard/stats');
         $dashboardResponse->assertOk();
-        
+
         // Dashboard may not track exact counts, just verify it returns data
         expect($dashboardResponse->json('data.stats'))->toBeArray();
     });

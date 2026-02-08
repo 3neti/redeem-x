@@ -9,17 +9,17 @@ class CashServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/cash.php',
+            __DIR__.'/../config/cash.php',
             'cash'
         );
     }
 
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         $this->publishes([
-            __DIR__ . '/../config/cash.php' => config_path('cash.php'),
+            __DIR__.'/../config/cash.php' => config_path('cash.php'),
         ], 'config');
     }
 }

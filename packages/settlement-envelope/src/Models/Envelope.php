@@ -5,8 +5,8 @@ namespace LBHurtado\SettlementEnvelope\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use LBHurtado\SettlementEnvelope\Enums\EnvelopeStatus;
 use LBHurtado\SettlementEnvelope\Enums\ChecklistItemStatus;
+use LBHurtado\SettlementEnvelope\Enums\EnvelopeStatus;
 use LBHurtado\SettlementEnvelope\Events\EnvelopeCreated;
 use LBHurtado\SettlementEnvelope\Events\GateChanged;
 use Spatie\LaravelData\WithData;
@@ -149,9 +149,10 @@ class Envelope extends Model
     public function getSignalBool(string $key): bool
     {
         $signal = $this->signals()->where('key', $key)->first();
-        if (!$signal) {
+        if (! $signal) {
             return false;
         }
+
         return filter_var($signal->value, FILTER_VALIDATE_BOOLEAN);
     }
 
@@ -177,6 +178,7 @@ class Envelope extends Model
     public function isChecklistComplete(): bool
     {
         $status = $this->getChecklistStatus();
+
         return $status['required_count'] === $status['required_completed'];
     }
 

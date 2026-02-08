@@ -5,14 +5,14 @@ namespace LBHurtado\ModelInput\Support;
 use LBHurtado\ModelInput\Enums\InputType;
 use RuntimeException;
 
-//TODO: refactor this to Voucher package instead of here in ModelInput package
-//TODO: use VoucherInputField instead of InputType
+// TODO: refactor this to Voucher package instead of here in ModelInput package
+// TODO: use VoucherInputField instead of InputType
 class InputRuleBuilder
 {
     /**
      * Build validation rules from an array of input field names.
      *
-     * @param array<string> $fields
+     * @param  array<string>  $fields
      * @return array<string, array>
      */
     public static function fromFields(array $fields): array
@@ -33,7 +33,7 @@ class InputRuleBuilder
     /**
      * Build validation rules from a collection or DTO that has a `toArray()` method.
      *
-     * @param iterable<string>|object $source
+     * @param  iterable<string>|object  $source
      * @return array<string, array>
      */
     public static function from($source): array

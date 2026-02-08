@@ -28,31 +28,31 @@ class GetBalances
         // Get system user
         $systemEmail = env('SYSTEM_USER_ID');
         $systemUser = User::where('email', $systemEmail)->first();
-        
+
         // Get instruction items with wallets
         $instructionItems = InstructionItem::whereHas('wallet')
             ->with('wallet')
             ->get()
-            ->map(fn($item) => [
+            ->map(fn ($item) => [
                 'index' => $item->index,
                 'name' => $item->name,
                 'balance' => $item->balanceFloatNum,
                 'currency' => $item->currency,
                 'wallet_id' => $item->wallet->id,
             ]);
-        
+
         // Get cash entities with wallets (escrow wallets)
         $cashWallets = Cash::whereHas('wallet')
             ->with('wallet')
             ->get()
-            ->map(fn($cash) => [
+            ->map(fn ($cash) => [
                 'index' => 'cash.amount',
                 'name' => 'Amount',
                 'balance' => $cash->balanceFloatNum,
                 'currency' => $cash->currency,
                 'wallet_id' => $cash->wallet->id,
             ]);
-        
+
         // Sum all cash wallets into a single product
         $cashProduct = null;
         if ($cashWallets->isNotEmpty()) {
@@ -64,13 +64,13 @@ class GetBalances
                 'wallet_id' => $cashWallets->first()['wallet_id'],
             ];
         }
-        
+
         // Merge products
         $products = $instructionItems;
         if ($cashProduct) {
             $products = $products->prepend($cashProduct);
         }
-        
+
         return ApiResponse::success([
             'system' => [
                 'email' => $systemEmail,

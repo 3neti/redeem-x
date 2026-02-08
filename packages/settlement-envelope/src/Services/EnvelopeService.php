@@ -5,12 +5,10 @@ namespace LBHurtado\SettlementEnvelope\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use LBHurtado\SettlementEnvelope\Data\DriverData;
 use LBHurtado\SettlementEnvelope\Enums\ChecklistItemKind;
 use LBHurtado\SettlementEnvelope\Enums\ChecklistItemStatus;
 use LBHurtado\SettlementEnvelope\Enums\EnvelopeStatus;
-use LBHurtado\SettlementEnvelope\Enums\ReviewMode;
 use LBHurtado\SettlementEnvelope\Events\AttachmentReviewed;
 use LBHurtado\SettlementEnvelope\Events\AttachmentUploaded;
 use LBHurtado\SettlementEnvelope\Events\PayloadUpdated;
@@ -96,7 +94,7 @@ class EnvelopeService
      */
     public function updatePayload(Envelope $envelope, array $patch, ?Model $actor = null): Envelope
     {
-        if (!$envelope->canEdit()) {
+        if (! $envelope->canEdit()) {
             throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} is not editable");
         }
 
@@ -147,14 +145,14 @@ class EnvelopeService
         ?Model $actor = null,
         ?array $metadata = null
     ): EnvelopeAttachment {
-        if (!$envelope->canEdit()) {
+        if (! $envelope->canEdit()) {
             throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} is not editable");
         }
 
         $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
         $docTypeConfig = $driver->getDocumentType($docType);
 
-        if (!$docTypeConfig) {
+        if (! $docTypeConfig) {
             throw new DocumentTypeNotAllowedException("Document type {$docType} is not allowed for this envelope");
         }
 
@@ -219,7 +217,7 @@ class EnvelopeService
     ): void {
         $envelope = $attachment->envelope;
 
-        if (!$envelope->canEdit()) {
+        if (! $envelope->canEdit()) {
             throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} is not editable");
         }
 
@@ -302,7 +300,7 @@ class EnvelopeService
     public function activate(Envelope $envelope, ?Model $actor = null): Envelope
     {
         if ($envelope->status !== EnvelopeStatus::DRAFT) {
-            throw new EnvelopeNotEditableException("Only draft envelopes can be activated");
+            throw new EnvelopeNotEditableException('Only draft envelopes can be activated');
         }
 
         $envelope->update(['status' => EnvelopeStatus::ACTIVE]);
@@ -323,19 +321,19 @@ class EnvelopeService
     public function lock(Envelope $envelope, ?Model $actor = null): Envelope
     {
         // Must be in READY_TO_SETTLE state to lock
-        if (!$envelope->status->canLock()) {
+        if (! $envelope->status->canLock()) {
             throw new EnvelopeNotSettleableException(
                 "Envelope {$envelope->reference_code} must be in READY_TO_SETTLE state to lock (current: {$envelope->status->value})"
             );
         }
 
         // Double-check settleable gate
-        if (!$envelope->isSettleable()) {
+        if (! $envelope->isSettleable()) {
             throw new EnvelopeNotSettleableException("Envelope {$envelope->reference_code} is not settleable");
         }
 
         $oldStatus = $envelope->status;
-        
+
         $envelope->update([
             'status' => EnvelopeStatus::LOCKED,
             'locked_at' => now(),
@@ -355,8 +353,8 @@ class EnvelopeService
      */
     public function settle(Envelope $envelope, ?Model $actor = null): Envelope
     {
-        if (!$envelope->canSettle()) {
-            throw new EnvelopeNotSettleableException("Envelope must be locked before settling");
+        if (! $envelope->canSettle()) {
+            throw new EnvelopeNotSettleableException('Envelope must be locked before settling');
         }
 
         $envelope->update([
@@ -374,12 +372,12 @@ class EnvelopeService
      */
     public function cancel(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
     {
-        if (!$envelope->status->canCancel()) {
+        if (! $envelope->status->canCancel()) {
             throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} cannot be cancelled in current state");
         }
 
         $oldStatus = $envelope->status;
-        
+
         $envelope->update([
             'status' => EnvelopeStatus::CANCELLED,
             'cancelled_at' => now(),
@@ -400,7 +398,7 @@ class EnvelopeService
      */
     public function reject(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
     {
-        if (!$envelope->status->canReject()) {
+        if (! $envelope->status->canReject()) {
             throw new EnvelopeNotEditableException("Envelope {$envelope->reference_code} cannot be rejected in current state");
         }
 
@@ -409,7 +407,7 @@ class EnvelopeService
         }
 
         $oldStatus = $envelope->status;
-        
+
         $envelope->update([
             'status' => EnvelopeStatus::REJECTED,
         ]);
@@ -429,8 +427,8 @@ class EnvelopeService
      */
     public function reopen(Envelope $envelope, ?Model $actor = null, ?string $reason = null): Envelope
     {
-        if (!$envelope->status->canReopen()) {
-            throw new EnvelopeNotEditableException("Only locked envelopes can be reopened");
+        if (! $envelope->status->canReopen()) {
+            throw new EnvelopeNotEditableException('Only locked envelopes can be reopened');
         }
 
         if (empty($reason)) {
@@ -438,7 +436,7 @@ class EnvelopeService
         }
 
         $oldStatus = $envelope->status;
-        
+
         $envelope->update([
             'status' => EnvelopeStatus::REOPENED,
             'locked_at' => null, // Clear lock timestamp
@@ -475,6 +473,7 @@ class EnvelopeService
     public function computeGates(Envelope $envelope): array
     {
         $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
+
         return $this->gateEvaluator->evaluate($envelope, $driver);
     }
 
@@ -547,9 +546,9 @@ class EnvelopeService
 
         $gates = $this->computeGates($envelope);
         $envelope->updateGatesCache($gates);
-        
+
         // Auto-advance state based on computed flags (unless skipped)
-        if (!$skipAutoAdvance) {
+        if (! $skipAutoAdvance) {
             $this->autoAdvanceState($envelope, $gates);
         }
     }
@@ -563,26 +562,26 @@ class EnvelopeService
     {
         $maxIterations = 10; // Safety limit to prevent infinite loops
         $iterations = 0;
-        
+
         while ($iterations < $maxIterations) {
             $currentStatus = $envelope->status;
             $newStatus = $this->computeNextState($envelope, $gates);
-            
-            if (!$newStatus || $newStatus === $currentStatus) {
+
+            if (! $newStatus || $newStatus === $currentStatus) {
                 // No more transitions - stable state reached
                 break;
             }
-            
+
             $envelope->update(['status' => $newStatus]);
             $envelope->refresh(); // Refresh to get updated status for next iteration
-            
+
             $this->audit($envelope, EnvelopeAuditLog::ACTION_STATUS_CHANGE, null, 'system', [
                 'status' => $currentStatus->value,
             ], [
                 'status' => $newStatus->value,
                 'reason' => 'auto_transition',
             ]);
-            
+
             $iterations++;
         }
     }
@@ -594,75 +593,75 @@ class EnvelopeService
     protected function computeNextState(Envelope $envelope, array $gates): ?EnvelopeStatus
     {
         $current = $envelope->status;
-        
+
         // Compute flags directly from envelope data (not from gates which are driver-specific)
         // Force refresh to get latest checklist/signal states
         $envelope->load(['checklistItems', 'signals']);
-        
+
         $requiredItems = $envelope->checklistItems->where('required', true);
         $requiredCount = $requiredItems->count();
-        
+
         // required_present: all required items have status != missing
         $requiredPresentCount = $requiredItems
             ->filter(fn ($item) => $item->status->value !== 'missing')
             ->count();
         $requiredPresent = $requiredCount === 0 || $requiredPresentCount === $requiredCount;
-        
+
         // required_accepted: all required items have status = accepted
         $requiredAcceptedCount = $requiredItems
             ->filter(fn ($item) => $item->status->value === 'accepted')
             ->count();
         $requiredAccepted = $requiredCount === 0 || $requiredAcceptedCount === $requiredCount;
-        
+
         // settleable gate from driver evaluation
         $settleable = $gates['settleable'] ?? false;
-        
+
         // DRAFT → IN_PROGRESS: First mutation occurs
         if ($current === EnvelopeStatus::DRAFT) {
-            $hasPayload = !empty($envelope->payload);
+            $hasPayload = ! empty($envelope->payload);
             $hasAttachments = $envelope->attachments()->exists();
-            
+
             if ($hasPayload || $hasAttachments) {
                 return EnvelopeStatus::IN_PROGRESS;
             }
         }
-        
+
         // IN_PROGRESS → READY_FOR_REVIEW: All required items present
         if (in_array($current, [EnvelopeStatus::IN_PROGRESS, EnvelopeStatus::ACTIVE])) {
             if ($requiredPresent) {
                 return EnvelopeStatus::READY_FOR_REVIEW;
             }
         }
-        
+
         // READY_FOR_REVIEW → IN_PROGRESS: Required item becomes missing
         if ($current === EnvelopeStatus::READY_FOR_REVIEW) {
-            if (!$requiredPresent) {
+            if (! $requiredPresent) {
                 return EnvelopeStatus::IN_PROGRESS;
             }
-            
+
             // READY_FOR_REVIEW → READY_TO_SETTLE: All gates pass
             if ($requiredAccepted && $settleable) {
                 return EnvelopeStatus::READY_TO_SETTLE;
             }
         }
-        
+
         // REOPENED → IN_PROGRESS: When corrections begin
         if ($current === EnvelopeStatus::REOPENED) {
             return EnvelopeStatus::IN_PROGRESS;
         }
-        
+
         // Note: READY_TO_SETTLE → LOCKED is NOT automatic
         // It requires explicit lock() call (two-phase settlement)
-        
+
         return null;
     }
 
     protected function validateFile(UploadedFile $file, $docTypeConfig): void
     {
         // Check mime type
-        if (!in_array($file->getMimeType(), $docTypeConfig->allowed_mimes)) {
+        if (! in_array($file->getMimeType(), $docTypeConfig->allowed_mimes)) {
             throw new DocumentTypeNotAllowedException(
-                "File type {$file->getMimeType()} is not allowed. Allowed types: " . implode(', ', $docTypeConfig->allowed_mimes)
+                "File type {$file->getMimeType()} is not allowed. Allowed types: ".implode(', ', $docTypeConfig->allowed_mimes)
             );
         }
 
@@ -684,7 +683,7 @@ class EnvelopeService
         mixed $after = null,
         ?array $metadata = null
     ): void {
-        if (!config('settlement-envelope.audit.enabled', true)) {
+        if (! config('settlement-envelope.audit.enabled', true)) {
             return;
         }
 

@@ -6,10 +6,10 @@ namespace App\Actions\Api\Dashboard;
 
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
+use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
 
 /**
  * Get dashboard statistics via API.
@@ -41,7 +41,7 @@ class GetDashboardStats
 
         // Disbursement Success Rate
         $disbursementStats = $this->getDisbursementStats();
-        
+
         // Settlement Voucher Stats
         $settlementStats = $this->getSettlementStats($user);
 
@@ -61,7 +61,7 @@ class GetDashboardStats
     private function getVoucherStats($user): array
     {
         $totalVouchers = $user->vouchers()->count();
-        
+
         $activeVouchers = $user->vouchers()
             ->whereNull('redeemed_at')
             ->where(function ($q) {
@@ -193,29 +193,29 @@ class GetDashboardStats
             'failed' => $failed,
         ];
     }
-    
+
     private function getSettlementStats($user): array
     {
         // Total payable/settlement vouchers
         $settlementVouchers = $user->vouchers()
             ->whereIn('voucher_type', ['payable', 'settlement'])
             ->get();
-        
+
         $totalPayable = $settlementVouchers->where('voucher_type', 'payable')->count();
         $totalSettlement = $settlementVouchers->where('voucher_type', 'settlement')->count();
-        
+
         // Active vs Closed
         $activeCount = $settlementVouchers->where('state', 'active')->count();
         $closedCount = $settlementVouchers->where('state', 'closed')->count();
-        
+
         // Total amount collected via payments
         $totalCollected = $settlementVouchers->sum(function ($voucher) {
             return $voucher->getPaidTotal();
         });
-        
+
         // Total target amount
         $totalTarget = $settlementVouchers->sum('target_amount');
-        
+
         return [
             'total_payable' => $totalPayable,
             'total_settlement' => $totalSettlement,

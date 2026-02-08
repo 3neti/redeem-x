@@ -4,9 +4,8 @@ namespace LBHurtado\SettlementEnvelope\Services;
 
 use LBHurtado\SettlementEnvelope\Data\DriverData;
 use LBHurtado\SettlementEnvelope\Data\GateDefinitionData;
-use LBHurtado\SettlementEnvelope\Models\Envelope;
 use LBHurtado\SettlementEnvelope\Enums\ChecklistItemStatus;
-use LBHurtado\SettlementEnvelope\Enums\ChecklistItemKind;
+use LBHurtado\SettlementEnvelope\Models\Envelope;
 
 class GateEvaluator
 {
@@ -60,7 +59,7 @@ class GateEvaluator
     protected function buildPayloadContext(Envelope $envelope): array
     {
         // Basic payload validity - check if payload exists and is non-empty
-        $hasPayload = !empty($envelope->payload);
+        $hasPayload = ! empty($envelope->payload);
 
         return [
             'valid' => $hasPayload,
@@ -74,12 +73,12 @@ class GateEvaluator
 
         $requiredItems = $items->where('required', true);
         $requiredCount = $requiredItems->count();
-        
+
         // Count required items that are NOT missing (uploaded, needs_review, accepted, rejected)
         $requiredPresentCount = $requiredItems
             ->where('status', '!=', ChecklistItemStatus::MISSING)
             ->count();
-        
+
         // Count required items that are accepted
         $requiredAcceptedCount = $requiredItems
             ->where('status', ChecklistItemStatus::ACCEPTED)
@@ -88,15 +87,15 @@ class GateEvaluator
         return [
             'total' => $items->count(),
             'required_count' => $requiredCount,
-            
+
             // NEW: For IN_PROGRESS → READY_FOR_REVIEW transition
             // True when all required items have status != missing
             'required_present' => $requiredCount > 0 ? $requiredPresentCount === $requiredCount : true,
-            
+
             // For READY_FOR_REVIEW → READY_TO_SETTLE transition
             // True when all required items have status = accepted
             'required_accepted' => $requiredCount > 0 ? $requiredAcceptedCount === $requiredCount : true,
-            
+
             // Legacy compatibility
             'all_accepted' => $items->where('status', ChecklistItemStatus::ACCEPTED)->count() === $items->count(),
             'has_rejected' => $items->where('status', ChecklistItemStatus::REJECTED)->count() > 0,
@@ -116,9 +115,9 @@ class GateEvaluator
         // Initialize all defined signals with defaults
         foreach ($driver->signals as $signalDef) {
             $signals[$signalDef->key] = $signalDef->default;
-            
+
             // Track required signals that are false (blocking)
-            if ($signalDef->required && !$signalDef->default) {
+            if ($signalDef->required && ! $signalDef->default) {
                 $blockingSignals[] = $signalDef->key;
             }
         }
@@ -127,10 +126,10 @@ class GateEvaluator
         foreach ($envelope->signals as $signal) {
             $value = $signal->getBoolValue();
             $signals[$signal->key] = $value;
-            
+
             // Remove from blocking if now true
             if ($value) {
-                $blockingSignals = array_filter($blockingSignals, fn($k) => $k !== $signal->key);
+                $blockingSignals = array_filter($blockingSignals, fn ($k) => $k !== $signal->key);
             }
         }
 
@@ -159,18 +158,20 @@ class GateEvaluator
 
         // Handle negation
         if (str_starts_with($expression, '!')) {
-            return !$this->evaluateExpression(substr($expression, 1), $context);
+            return ! $this->evaluateExpression(substr($expression, 1), $context);
         }
 
         // Handle AND (&&)
         if (str_contains($expression, '&&')) {
             $parts = array_map('trim', explode('&&', $expression, 2));
+
             return $this->evaluateExpression($parts[0], $context) && $this->evaluateExpression($parts[1], $context);
         }
 
         // Handle OR (||)
         if (str_contains($expression, '||')) {
             $parts = array_map('trim', explode('||', $expression, 2));
+
             return $this->evaluateExpression($parts[0], $context) || $this->evaluateExpression($parts[1], $context);
         }
 
@@ -179,6 +180,7 @@ class GateEvaluator
             $parts = array_map('trim', explode('==', $expression, 2));
             $left = $this->resolveValue($parts[0], $context);
             $right = $this->resolveValue($parts[1], $context);
+
             return $left == $right;
         }
 
@@ -187,6 +189,7 @@ class GateEvaluator
             $parts = array_map('trim', explode('!=', $expression, 2));
             $left = $this->resolveValue($parts[0], $context);
             $right = $this->resolveValue($parts[1], $context);
+
             return $left != $right;
         }
 
@@ -225,7 +228,7 @@ class GateEvaluator
         $current = $context;
 
         foreach ($parts as $part) {
-            if (!is_array($current) || !array_key_exists($part, $current)) {
+            if (! is_array($current) || ! array_key_exists($part, $current)) {
                 return null;
             }
             $current = $current[$part];

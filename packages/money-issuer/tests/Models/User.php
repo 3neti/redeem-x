@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace LBHurtado\MoneyIssuer\Tests\Models;
 
-use LBHurtado\MoneyIssuer\Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use LBHurtado\MoneyIssuer\Database\Factories\UserFactory;
 
 class User extends Authenticatable
 {

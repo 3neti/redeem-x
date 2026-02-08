@@ -21,10 +21,10 @@ class DeleteBankAccount
     public function asController(ActionRequest $request, string $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $removed = $user->removeBankAccount($id);
-        
-        if (!$removed) {
+
+        if (! $removed) {
             return ApiResponse::notFound('Bank account not found.');
         }
 

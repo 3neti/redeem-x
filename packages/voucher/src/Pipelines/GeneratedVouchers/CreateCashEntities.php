@@ -2,14 +2,14 @@
 
 namespace LBHurtado\Voucher\Pipelines\GeneratedVouchers;
 
-use LBHurtado\Voucher\Services\MintCash;
-use Illuminate\Support\Facades\Log;
 use Closure;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\Voucher\Services\MintCash;
 
 class CreateCashEntities
 {
     private const DEBUG = false;
-    
+
     public function handle($vouchers, Closure $next)
     {
         if (self::DEBUG) {

@@ -16,8 +16,8 @@ class RecipientAccountNumberData extends Data
      * Parse a recipient account number by removing the configured alias prefix
      * and returning the remaining part as a reference code.
      *
-     * @param string $recipientAccountNumber Full account string including alias prefix
-     * @return self
+     * @param  string  $recipientAccountNumber  Full account string including alias prefix
+     *
      * @throws \InvalidArgumentException if alias not found at start
      */
     public static function fromRecipientAccountNumber(string $recipientAccountNumber): self
@@ -37,7 +37,7 @@ class RecipientAccountNumberData extends Data
         // Strip the alias prefix; the remainder is the reference code
         $referenceCode = substr($recipientAccountNumber, strlen($alias));
 
-//        if ($referenceCode === '' || !ctype_digit($referenceCode)) {
+        //        if ($referenceCode === '' || !ctype_digit($referenceCode)) {
         if (empty($referenceCode)) {
             throw new InvalidArgumentException(
                 "Invalid reference code extracted from account number: '{$referenceCode}'"

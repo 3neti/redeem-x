@@ -4,13 +4,13 @@ namespace LBHurtado\Wallet\Events;
 
 use Bavix\Wallet\Internal\Events\BalanceUpdatedEventInterface;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Queue\SerializesModels;
 use Bavix\Wallet\Models\Wallet;
 use DateTimeImmutable;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Event broadcast when a wallet balance is updated.
@@ -22,8 +22,8 @@ final class BalanceUpdated implements BalanceUpdatedEventInterface, ShouldBroadc
     /**
      * Create a new event instance.
      *
-     * @param Wallet           $wallet    The wallet whose balance was updated.
-     * @param DateTimeImmutable $updatedAt The timestamp of the balance update.
+     * @param  Wallet  $wallet  The wallet whose balance was updated.
+     * @param  DateTimeImmutable  $updatedAt  The timestamp of the balance update.
      */
     public function __construct(
         private Wallet $wallet,
@@ -88,14 +88,12 @@ final class BalanceUpdated implements BalanceUpdatedEventInterface, ShouldBroadc
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('App.Models.User.' . $this->wallet->holder->id),
+            new PrivateChannel('App.Models.User.'.$this->wallet->holder->id),
         ];
     }
 
     /**
      * Get the event name to broadcast as.
-     *
-     * @return string
      */
     public function broadcastAs(): string
     {
@@ -106,6 +104,7 @@ final class BalanceUpdated implements BalanceUpdatedEventInterface, ShouldBroadc
      * Get the data to broadcast with the event.
      *
      * @return array<string, mixed>
+     *
      * @throws ExceptionInterface
      */
     public function broadcastWith(): array
@@ -113,10 +112,10 @@ final class BalanceUpdated implements BalanceUpdatedEventInterface, ShouldBroadc
         $this->wallet->refreshBalance();
 
         return [
-            'walletId'     => $this->getWalletId(),
+            'walletId' => $this->getWalletId(),
             'balanceFloat' => $this->getBalanceFloat(),
-            'updatedAt'    => $this->getUpdatedAt()->format('Y-m-d H:i:s'),
-            'message'      => 'Balance updated.',
+            'updatedAt' => $this->getUpdatedAt()->format('Y-m-d H:i:s'),
+            'message' => 'Balance updated.',
         ];
     }
 }

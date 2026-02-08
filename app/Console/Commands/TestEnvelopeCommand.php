@@ -43,8 +43,11 @@ class TestEnvelopeCommand extends Command
     protected $description = 'Test settlement envelope lifecycle with a voucher (v1.1 - CI-safe, actor-aware)';
 
     private EnvelopeService $envelopeService;
+
     private ?User $actor = null;
+
     private ?Voucher $voucher = null;
+
     private ?Envelope $envelope = null;
 
     public function handle(EnvelopeService $envelopeService): int
@@ -63,8 +66,9 @@ class TestEnvelopeCommand extends Command
 
         $userEmail = $this->option('user');
         $this->actor = User::where('email', $userEmail)->first();
-        if (!$this->actor) {
+        if (! $this->actor) {
             $this->error("User not found: {$userEmail}");
+
             return self::FAILURE;
         }
         Auth::login($this->actor);
@@ -79,8 +83,9 @@ class TestEnvelopeCommand extends Command
         $voucherCode = $this->option('voucher');
         if ($voucherCode) {
             $this->voucher = Voucher::where('code', $voucherCode)->first();
-            if (!$this->voucher) {
+            if (! $this->voucher) {
                 $this->error("Voucher not found: {$voucherCode}");
+
                 return self::FAILURE;
             }
             $this->step("Using existing voucher: {$this->voucher->code}");
@@ -126,6 +131,7 @@ class TestEnvelopeCommand extends Command
             $this->detail("Payload version: {$this->envelope->payload_version}");
         } catch (\Exception $e) {
             $this->error("✗ Failed: {$e->getMessage()}");
+
             return self::FAILURE;
         }
 
@@ -199,7 +205,7 @@ class TestEnvelopeCommand extends Command
             foreach ($this->envelope->payloadVersions as $version) {
                 $this->line("  v{$version->version} [{$version->created_at->format('H:i:s')}]");
                 if ($version->patch) {
-                    $this->detail("Patch: " . json_encode($version->patch));
+                    $this->detail('Patch: '.json_encode($version->patch));
                 }
             }
             $this->newLine();
@@ -230,10 +236,11 @@ class TestEnvelopeCommand extends Command
             ]);
             $this->step("Payload updated (v{$this->envelope->payload_version})");
             if ($this->option('detailed')) {
-                $this->detail("Payload: " . json_encode($this->envelope->payload));
+                $this->detail('Payload: '.json_encode($this->envelope->payload));
             }
         } catch (\Exception $e) {
             $this->error("✗ Payload update failed: {$e->getMessage()}");
+
             return;
         }
 
@@ -242,7 +249,7 @@ class TestEnvelopeCommand extends Command
             try {
                 $attachment = $this->uploadTestDocument();
                 $this->step("Document uploaded: {$attachment->original_filename}");
-                $this->detail("Type: {$attachment->doc_type}, Size: " . number_format($attachment->size) . " bytes");
+                $this->detail("Type: {$attachment->doc_type}, Size: ".number_format($attachment->size).' bytes');
                 $this->detail("Review status: {$attachment->review_status}");
 
                 // Auto-review if explicitly requested
@@ -266,9 +273,9 @@ class TestEnvelopeCommand extends Command
                     'environment' => app()->environment(),
                     'notes' => 'Automated test run',
                 ]);
-                $this->step("Context updated");
+                $this->step('Context updated');
                 if ($this->option('detailed')) {
-                    $this->detail("Context: " . json_encode($this->envelope->context));
+                    $this->detail('Context: '.json_encode($this->envelope->context));
                 }
             } catch (\Exception $e) {
                 $this->warn("⚠ Context update failed: {$e->getMessage()}");
@@ -286,9 +293,10 @@ class TestEnvelopeCommand extends Command
         try {
             $this->envelopeService->setSignal($this->envelope, 'approved', true);
             $this->envelope->refresh();
-            $this->step("Signal set: approved = true");
+            $this->step('Signal set: approved = true');
         } catch (\Exception $e) {
             $this->error("✗ Signal set failed: {$e->getMessage()}");
+
             return;
         }
 
@@ -318,7 +326,7 @@ class TestEnvelopeCommand extends Command
         $gates = $this->envelopeService->computeGates($this->envelope);
         foreach ($gates as $gate => $value) {
             $icon = $value ? '✓' : '✗';
-            $this->line("  {$icon} {$gate}: " . ($value ? 'true' : 'false'));
+            $this->line("  {$icon} {$gate}: ".($value ? 'true' : 'false'));
         }
         $this->newLine();
     }
@@ -335,9 +343,10 @@ class TestEnvelopeCommand extends Command
 
         $this->envelope->refresh();
 
-        if (!$this->envelope->status->canLock()) {
+        if (! $this->envelope->status->canLock()) {
             $this->warn("✗ Cannot lock: current state is {$this->envelope->status->value}");
             $this->showBlockers();
+
             return;
         }
 
@@ -358,9 +367,10 @@ class TestEnvelopeCommand extends Command
         $this->envelope->refresh();
 
         // Check if settleable
-        if (!$this->envelope->isSettleable()) {
-            $this->warn("✗ Envelope not settleable");
+        if (! $this->envelope->isSettleable()) {
+            $this->warn('✗ Envelope not settleable');
             $this->showBlockers();
+
             return;
         }
 
@@ -368,10 +378,11 @@ class TestEnvelopeCommand extends Command
         if ($this->envelope->status === EnvelopeStatus::READY_TO_SETTLE) {
             try {
                 $this->envelope = $this->envelopeService->lock($this->envelope, $this->actor);
-                $this->step("Locked: ready_to_settle → locked");
+                $this->step('Locked: ready_to_settle → locked');
                 $this->detail("Locked at: {$this->envelope->locked_at}");
             } catch (\Exception $e) {
                 $this->warn("⚠ Lock failed: {$e->getMessage()}");
+
                 return;
             }
         }
@@ -382,7 +393,7 @@ class TestEnvelopeCommand extends Command
         if ($this->envelope->status === EnvelopeStatus::LOCKED) {
             try {
                 $this->envelope = $this->envelopeService->settle($this->envelope, $this->actor);
-                $this->step("Settled: locked → settled");
+                $this->step('Settled: locked → settled');
                 $this->detail("Settled at: {$this->envelope->settled_at}");
             } catch (\Exception $e) {
                 $this->warn("⚠ Settlement failed: {$e->getMessage()}");
@@ -402,33 +413,33 @@ class TestEnvelopeCommand extends Command
         $this->envelope->refresh();
         $required = $this->envelope->checklistItems->where('required', true);
 
-        $missing = $required->filter(fn($item) => $item->status->value === 'missing');
-        $pending = $required->filter(fn($item) => in_array($item->status->value, ['uploaded', 'needs_review', 'pending']));
-        $rejected = $required->filter(fn($item) => $item->status->value === 'rejected');
+        $missing = $required->filter(fn ($item) => $item->status->value === 'missing');
+        $pending = $required->filter(fn ($item) => in_array($item->status->value, ['uploaded', 'needs_review', 'pending']));
+        $rejected = $required->filter(fn ($item) => $item->status->value === 'rejected');
 
         if ($missing->count()) {
-            $this->detail("Missing: " . $missing->pluck('label')->join(', '));
+            $this->detail('Missing: '.$missing->pluck('label')->join(', '));
         }
 
         if ($pending->count()) {
-            $this->detail("Pending review: " . $pending->pluck('label')->join(', '));
+            $this->detail('Pending review: '.$pending->pluck('label')->join(', '));
         }
 
         if ($rejected->count()) {
-            $this->detail("Rejected: " . $rejected->pluck('label')->join(', '));
+            $this->detail('Rejected: '.$rejected->pluck('label')->join(', '));
         }
 
         // Check signals
-        $falseSignals = $this->envelope->signals->filter(fn($s) => $s->value !== 'true');
+        $falseSignals = $this->envelope->signals->filter(fn ($s) => $s->value !== 'true');
         if ($falseSignals->count()) {
-            $this->detail("Signals false: " . $falseSignals->pluck('key')->join(', '));
+            $this->detail('Signals false: '.$falseSignals->pluck('key')->join(', '));
         }
 
         // Gates summary
         $gates = $this->envelopeService->computeGates($this->envelope);
-        $failingGates = collect($gates)->filter(fn($v) => !$v)->keys();
+        $failingGates = collect($gates)->filter(fn ($v) => ! $v)->keys();
         if ($failingGates->count()) {
-            $this->detail("Failing gates: " . $failingGates->join(', '));
+            $this->detail('Failing gates: '.$failingGates->join(', '));
         }
         $this->newLine();
     }
@@ -476,7 +487,7 @@ class TestEnvelopeCommand extends Command
 
     private function phase(string $title): void
     {
-        $this->info("─── {$title} " . str_repeat('─', 55 - strlen($title)));
+        $this->info("─── {$title} ".str_repeat('─', 55 - strlen($title)));
     }
 
     private function step(string $message): void
@@ -493,19 +504,31 @@ class TestEnvelopeCommand extends Command
     {
         $options = [];
         $options[] = "scenario={$this->option('scenario')}";
-        if ($this->option('upload-doc')) $options[] = 'upload-doc';
-        if ($this->option('auto-review')) $options[] = 'auto-review';
-        if ($this->option('with-context')) $options[] = 'with-context';
-        if ($this->option('auto-settle')) $options[] = 'auto-settle';
-        if ($this->option('doc-path')) $options[] = "doc-path={$this->option('doc-path')}";
-        if ($this->option('detailed')) $options[] = 'detailed';
+        if ($this->option('upload-doc')) {
+            $options[] = 'upload-doc';
+        }
+        if ($this->option('auto-review')) {
+            $options[] = 'auto-review';
+        }
+        if ($this->option('with-context')) {
+            $options[] = 'with-context';
+        }
+        if ($this->option('auto-settle')) {
+            $options[] = 'auto-settle';
+        }
+        if ($this->option('doc-path')) {
+            $options[] = "doc-path={$this->option('doc-path')}";
+        }
+        if ($this->option('detailed')) {
+            $options[] = 'detailed';
+        }
 
-        $this->detail("Options: " . implode(', ', $options));
+        $this->detail('Options: '.implode(', ', $options));
     }
 
     private function showChecklist($envelope): void
     {
-        $this->line("  Checklist:");
+        $this->line('  Checklist:');
         foreach ($envelope->checklistItems as $item) {
             $icon = match ($item->status->value) {
                 'accepted' => '<fg=green>✓</>',
@@ -531,22 +554,22 @@ class TestEnvelopeCommand extends Command
     {
         $states = [
             'draft' => 'DRAFT',
-            'in_progress' => 'IN_PROGRESS', 
+            'in_progress' => 'IN_PROGRESS',
             'ready_for_review' => 'READY_FOR_REVIEW',
             'ready_to_settle' => 'READY_TO_SETTLE',
             'locked' => 'LOCKED',
             'settled' => 'SETTLED',
         ];
-        
+
         $current = $envelope->status->value;
         $stateKeys = array_keys($states);
         $currentIndex = array_search($current, $stateKeys);
-        
-        $this->line("  State Flow:");
+
+        $this->line('  State Flow:');
         $line = '    ';
         foreach ($states as $key => $label) {
             $index = array_search($key, $stateKeys);
-            
+
             if ($key === $current) {
                 $line .= "<fg=green;options=bold>[{$label}]</> ";
             } elseif ($currentIndex !== false && $index < $currentIndex) {
@@ -575,7 +598,7 @@ class TestEnvelopeCommand extends Command
 
         // Option 1: Use provided file path (for real file testing)
         if ($docPath = $this->option('doc-path')) {
-            if (!file_exists($docPath)) {
+            if (! file_exists($docPath)) {
                 throw new \Exception("Provided doc-path does not exist: {$docPath}");
             }
             $file = new UploadedFile(
@@ -585,6 +608,7 @@ class TestEnvelopeCommand extends Command
                 null,
                 true // test mode
             );
+
             return $this->envelopeService->uploadAttachment(
                 $this->envelope,
                 $docType,

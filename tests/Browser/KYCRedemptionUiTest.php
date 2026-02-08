@@ -12,7 +12,7 @@ use Tests\Helpers\VoucherTestHelper;
 
 /**
  * Browser tests for KYC redemption UI flow.
- * 
+ *
  * These tests ensure the frontend properly handles KYC input field
  * and doesn't treat it as a regular text input.
  */
@@ -22,7 +22,7 @@ class KYCRedemptionUiTest extends DuskTestCase
 
     /**
      * Test that KYC field does NOT appear as text input on Inputs page.
-     * 
+     *
      * This test would have caught the bug where KYC was shown as a text field
      * instead of being handled on the Finalize page.
      */

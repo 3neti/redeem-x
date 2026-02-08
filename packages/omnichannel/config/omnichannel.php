@@ -8,6 +8,6 @@ return [
         'auto_replies' => [
             'HELP' => \LBHurtado\OmniChannel\Handlers\AutoReplies\HelpAutoReply::class,
             'PING' => \LBHurtado\OmniChannel\Handlers\AutoReplies\PingAutoReply::class,
-        ]
+        ],
     ],
 ];

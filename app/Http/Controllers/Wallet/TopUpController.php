@@ -12,15 +12,15 @@ use LBHurtado\PaymentGateway\Exceptions\TopUpException;
 class TopUpController extends Controller
 {
     private const DEBUG = false;
-    
+
     /**
      * Display top-up page.
      */
     public function index(Request $request)
     {
         $user = auth()->user();
-        
-        $recentTopUps = $user->getTopUps()->take(5)->map(fn($topUp) => [
+
+        $recentTopUps = $user->getTopUps()->take(5)->map(fn ($topUp) => [
             'reference_no' => $topUp->reference_no,
             'amount' => $topUp->amount,
             'status' => $topUp->payment_status,
@@ -28,8 +28,8 @@ class TopUpController extends Controller
             'institution_code' => $topUp->institution_code,
             'created_at' => $topUp->created_at->toIso8601String(),
         ]);
-        
-        $pendingTopUps = $user->getPendingTopUps()->map(fn($topUp) => [
+
+        $pendingTopUps = $user->getPendingTopUps()->map(fn ($topUp) => [
             'reference_no' => $topUp->reference_no,
             'amount' => $topUp->amount,
             'status' => $topUp->payment_status,
@@ -37,7 +37,7 @@ class TopUpController extends Controller
             'institution_code' => $topUp->institution_code,
             'created_at' => $topUp->created_at->toIso8601String(),
         ]);
-        
+
         return Inertia::render('wallet/TopUp', [
             'balance' => $user->balanceFloat,
             'recentTopUps' => $recentTopUps,
@@ -61,7 +61,7 @@ class TopUpController extends Controller
 
         try {
             $user = auth()->user();
-            
+
             $result = $user->initiateTopUp(
                 amount: (float) $validated['amount'],
                 gateway: $validated['gateway'],
@@ -75,17 +75,17 @@ class TopUpController extends Controller
                     'amount' => $result->amount,
                 ]);
             }
-            
+
             // Auto-confirm in fake mode if configured
             $useFake = config('payment-gateway.netbank.direct_checkout.use_fake', false);
             $autoConfirm = config('payment-gateway.top_up.auto_confirm_fake', false);
-            
+
             if ($useFake && $autoConfirm) {
                 $topUp = TopUp::where('reference_no', $result->reference_no)->first();
-                if ($topUp && !$topUp->isPaid()) {
-                    $topUp->markAsPaid('FAKE-AUTO-' . now()->timestamp);
+                if ($topUp && ! $topUp->isPaid()) {
+                    $topUp->markAsPaid('FAKE-AUTO-'.now()->timestamp);
                     $user->creditWalletFromTopUp($topUp, auth()->user());
-                    
+
                     if (self::DEBUG) {
                         Log::info('[TopUp] Auto-confirmed (fake mode)', [
                             'reference_no' => $topUp->reference_no,
@@ -119,15 +119,15 @@ class TopUpController extends Controller
     public function callback(Request $request)
     {
         $referenceNo = $request->query('reference_no');
-        
-        if (!$referenceNo) {
+
+        if (! $referenceNo) {
             return redirect()->route('topup.index')
                 ->with('error', 'Invalid callback');
         }
 
         try {
             $topUp = TopUp::where('reference_no', $referenceNo)->firstOrFail();
-            
+
             return Inertia::render('wallet/TopUpCallback', [
                 'topUp' => [
                     'reference_no' => $topUp->reference_no,
@@ -156,7 +156,7 @@ class TopUpController extends Controller
     {
         try {
             $topUp = TopUp::where('reference_no', $referenceNo)->firstOrFail();
-            
+
             return response()->json([
                 'status' => $topUp->payment_status,
                 'paid_at' => $topUp->paid_at?->toIso8601String(),

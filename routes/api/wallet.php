@@ -1,12 +1,10 @@
 <?php
 
-use App\Actions\Api\Wallet\{
-    GetBalance,
-    InitiateTopUp,
-    ListTopUps,
-    GetTopUpStatus,
-    ListTransactions
-};
+use App\Actions\Api\Wallet\GetBalance;
+use App\Actions\Api\Wallet\GetTopUpStatus;
+use App\Actions\Api\Wallet\InitiateTopUp;
+use App\Actions\Api\Wallet\ListTopUps;
+use App\Actions\Api\Wallet\ListTransactions;
 use Illuminate\Support\Facades\Route;
 
 /*

@@ -28,41 +28,42 @@ class ResetUserAuth extends Command
     public function handle()
     {
         $email = $this->argument('email');
-        
+
         $user = User::where('email', $email)->first();
-        
-        if (!$user) {
+
+        if (! $user) {
             $this->error("User not found: {$email}");
+
             return 1;
         }
-        
+
         // Clear permission cache
         $this->info('🔄 Clearing permission cache...');
         $this->call('permission:cache-reset');
-        
+
         // Clear all sessions (forces re-authentication)
         $this->info('🔄 Clearing all sessions...');
         \DB::table('sessions')->delete();
         $this->comment('   All users will be logged out');
-        
+
         // Clear application cache
         $this->info('🔄 Clearing application cache...');
         $this->call('cache:clear');
-        
+
         // Clear all Pennant feature flags for this user
         $this->info('🔄 Clearing feature flags...');
         Feature::for($user)->forget('advanced-pricing-mode');
         Feature::for($user)->forget('beta-features');
-        
+
         // Recalculate feature flags
         $advancedMode = Feature::for($user)->active('advanced-pricing-mode');
         $betaFeatures = Feature::for($user)->active('beta-features');
-        
+
         // Display current state
         $this->newLine();
         $this->info("✅ Authorization state reset for {$email}");
         $this->newLine();
-        
+
         $this->table(
             ['Property', 'Value'],
             [
@@ -72,10 +73,10 @@ class ResetUserAuth extends Command
                 ['Beta Features', $betaFeatures ? '✓ Enabled' : '✗ Disabled'],
             ]
         );
-        
+
         $this->newLine();
         $this->comment('💡 Tip: Hard refresh your browser (Cmd+Shift+R) to see changes');
-        
+
         return 0;
     }
 }

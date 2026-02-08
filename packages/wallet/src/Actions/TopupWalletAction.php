@@ -2,9 +2,9 @@
 
 namespace LBHurtado\Wallet\Actions;
 
+use Bavix\Wallet\Interfaces\Wallet;
 use LBHurtado\Wallet\Services\SystemUserResolverService;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Bavix\Wallet\Interfaces\Wallet;
 
 class TopupWalletAction
 {
@@ -14,6 +14,6 @@ class TopupWalletAction
     {
         $system = app(SystemUserResolverService::class)->resolve();
 
-        return  $system->transferFloat($user, $amount);
+        return $system->transferFloat($user, $amount);
     }
 }

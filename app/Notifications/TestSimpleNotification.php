@@ -2,15 +2,14 @@
 
 namespace App\Notifications;
 
-use App\Notifications\BaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 use LBHurtado\EngageSpark\EngageSparkMessage;
 
 /**
  * Simple test notification to debug SMS/Email delivery
- * 
+ *
  * NOT queued - runs synchronously for immediate feedback
- * 
+ *
  * PROOF OF CONCEPT for BaseNotification migration pattern:
  * - Extends BaseNotification (gets via() with config-driven channel resolution)
  * - Implements required interface methods (getNotificationType, getNotificationData, getAuditMetadata)
@@ -55,7 +54,7 @@ class TestSimpleNotification extends BaseNotification
 
     /**
      * Determine if this notification should be queued
-     * 
+     *
      * Override BaseNotification - test notifications run synchronously
      */
     public function shouldQueue(object $notifiable): bool
@@ -68,7 +67,7 @@ class TestSimpleNotification extends BaseNotification
      */
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
-        return (new EngageSparkMessage())->content("TEST SMS: {$this->message}");
+        return (new EngageSparkMessage)->content("TEST SMS: {$this->message}");
     }
 
     /**

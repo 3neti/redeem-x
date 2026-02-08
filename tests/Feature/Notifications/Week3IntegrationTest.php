@@ -8,7 +8,6 @@ use App\Notifications\DisbursementFailedNotification;
 use App\Notifications\LowBalanceAlert;
 use App\Notifications\PaymentConfirmationNotification;
 use Illuminate\Support\Facades\Notification;
-use LBHurtado\Voucher\Models\Voucher;
 
 describe('Week 3 Notifications Integration', function () {
     beforeEach(function () {
@@ -20,7 +19,7 @@ describe('Week 3 Notifications Integration', function () {
     describe('DisbursementFailedNotification', function () {
         it('extends BaseNotification and follows standardized structure', function () {
             $voucher = $this->user->vouchers()->create([
-                'code' => 'TEST-DISB-' . substr(md5(time()), 0, 6),
+                'code' => 'TEST-DISB-'.substr(md5(time()), 0, 6),
                 'instructions' => json_encode(['cash' => ['amount' => 100]]),
             ]);
 
@@ -45,7 +44,7 @@ describe('Week 3 Notifications Integration', function () {
 
         it('uses correct channels from config', function () {
             $voucher = $this->user->vouchers()->create([
-                'code' => 'TEST-CHAN-' . substr(md5(time()), 0, 6),
+                'code' => 'TEST-CHAN-'.substr(md5(time()), 0, 6),
                 'instructions' => json_encode(['cash' => ['amount' => 100]]),
             ]);
 

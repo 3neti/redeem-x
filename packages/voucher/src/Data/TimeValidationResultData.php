@@ -6,13 +6,13 @@ use Spatie\LaravelData\Data;
 
 /**
  * Result of time-based validation checks
- * 
+ *
  * Contains outcomes of time window and duration validation.
- * 
- * @property bool $within_window       - Whether redemption is within allowed time window
- * @property bool $within_duration     - Whether redemption completed within time limit
- * @property int  $duration_seconds    - Actual duration taken
- * @property bool $should_block        - Whether to block redemption due to time violation
+ *
+ * @property bool $within_window - Whether redemption is within allowed time window
+ * @property bool $within_duration - Whether redemption completed within time limit
+ * @property int $duration_seconds - Actual duration taken
+ * @property bool $should_block - Whether to block redemption due to time violation
  */
 class TimeValidationResultData extends Data
 {
@@ -36,7 +36,7 @@ class TimeValidationResultData extends Data
      */
     public function failed(): bool
     {
-        return !$this->passed();
+        return ! $this->passed();
     }
 
     /**

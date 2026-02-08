@@ -8,34 +8,33 @@ use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
 use LBHurtado\Voucher\Models\Voucher;
-use Illuminate\Support\Facades\DB;
 
 class ReportsController extends Controller
 {
     public function index(Request $request): Response
     {
         $reportType = $request->input('type', 'disbursements');
-        
+
         // Default to last 30 days
         $fromDate = $request->input('from_date', now()->subDays(30)->format('Y-m-d'));
         $toDate = $request->input('to_date', now()->format('Y-m-d'));
         $status = $request->input('status');
         $rail = $request->input('rail');
-        
+
         if ($reportType === 'settlements') {
             return $this->getSettlementReport($request, $fromDate, $toDate, $status);
         }
-        
+
         return $this->getDisbursementReport($request, $fromDate, $toDate, $status, $rail);
     }
-    
+
     private function getDisbursementReport(Request $request, string $fromDate, string $toDate, ?string $status, ?string $rail): Response
     {
 
         $query = DisbursementAttempt::query()
             ->whereBetween('attempted_at', [
                 $fromDate,
-                $toDate . ' 23:59:59',
+                $toDate.' 23:59:59',
             ])
             ->orderByDesc('attempted_at');
 
@@ -52,7 +51,7 @@ class ReportsController extends Controller
 
         // Calculate summary stats
         $summaryQuery = DisbursementAttempt::query()
-            ->whereBetween('attempted_at', [$fromDate, $toDate . ' 23:59:59']);
+            ->whereBetween('attempted_at', [$fromDate, $toDate.' 23:59:59']);
 
         if ($status) {
             $summaryQuery->where('status', $status);
@@ -88,7 +87,7 @@ class ReportsController extends Controller
             ],
         ]);
     }
-    
+
     private function getSettlementReport(Request $request, string $fromDate, string $toDate, ?string $status): Response
     {
         $query = Voucher::query()
@@ -97,15 +96,15 @@ class ReportsController extends Controller
             ->whereIn('voucher_type', ['payable', 'settlement'])
             ->whereBetween('created_at', [
                 $fromDate,
-                $toDate . ' 23:59:59',
+                $toDate.' 23:59:59',
             ])
             ->orderByDesc('created_at');
-        
+
         // Apply status filter
         if ($status) {
             $query->where('state', $status);
         }
-        
+
         $settlements = $query->paginate(20)->through(function ($voucher) {
             return [
                 'id' => $voucher->id,
@@ -121,26 +120,26 @@ class ReportsController extends Controller
                 'closed_at' => $voucher->closed_at?->toIso8601String(),
             ];
         });
-        
+
         // Calculate summary stats
         $summaryQuery = Voucher::query()
             ->where('owner_type', get_class(auth()->user()))
             ->where('owner_id', auth()->id())
             ->whereIn('voucher_type', ['payable', 'settlement'])
-            ->whereBetween('created_at', [$fromDate, $toDate . ' 23:59:59']);
-        
+            ->whereBetween('created_at', [$fromDate, $toDate.' 23:59:59']);
+
         if ($status) {
             $summaryQuery->where('state', $status);
         }
-        
+
         $allVouchers = $summaryQuery->get();
         $totalCount = $allVouchers->count();
         $activeCount = $allVouchers->where('state', 'active')->count();
         $closedCount = $allVouchers->where('state', 'closed')->count();
         $totalTarget = $allVouchers->sum('target_amount');
-        $totalCollected = $allVouchers->sum(fn($v) => $v->getPaidTotal());
+        $totalCollected = $allVouchers->sum(fn ($v) => $v->getPaidTotal());
         $collectionRate = $totalTarget > 0 ? round(($totalCollected / $totalTarget) * 100, 2) : 0;
-        
+
         return Inertia::render('reports/Index', [
             'report_type' => 'settlements',
             'settlements' => $settlements,

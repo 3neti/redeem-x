@@ -3,8 +3,8 @@
 namespace LBHurtado\Wallet\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use LBHurtado\Wallet\Tests\Models\User;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -16,8 +16,8 @@ abstract class TestCase extends BaseTestCase
             fn (string $modelName) => 'LBHurtado\\Wallet\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
         // Set the base path for the package
-        if (!defined('TESTING_PACKAGE_PATH')) {
-            define('TESTING_PACKAGE_PATH', __DIR__ . '/../resources/documents');
+        if (! defined('TESTING_PACKAGE_PATH')) {
+            define('TESTING_PACKAGE_PATH', __DIR__.'/../resources/documents');
         }
         $this->loadEnvironment();
 
@@ -53,16 +53,16 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('auth.defaults.guard', 'web');
 
         // Run the migration from the local package
-        $userMigration = include __DIR__ . '/../database/migrations/0001_01_01_000000_create_users_table.php';
+        $userMigration = include __DIR__.'/../database/migrations/0001_01_01_000000_create_users_table.php';
         $userMigration->up();
 
         // Dynamically include and run all migrations from vendor/bavix/laravel-wallet/database
-//        $migrationPath = base_path('vendor/bavix/laravel-wallet/database/migrations');
-        $migrationPath = __DIR__ . '/../vendor/bavix/laravel-wallet/database';
+        //        $migrationPath = base_path('vendor/bavix/laravel-wallet/database/migrations');
+        $migrationPath = __DIR__.'/../vendor/bavix/laravel-wallet/database';
 
         foreach (scandir($migrationPath) as $migrationFile) {
             if (pathinfo($migrationFile, PATHINFO_EXTENSION) === 'php') {
-                $migration = include($migrationPath . '/' . $migrationFile);
+                $migration = include $migrationPath.'/'.$migrationFile;
                 $migration->up();
             }
         }
@@ -90,7 +90,7 @@ abstract class TestCase extends BaseTestCase
     {
         $this->app['config']->set(
             'wallet',
-            require __DIR__ . '/../config/wallet.php'
+            require __DIR__.'/../config/wallet.php'
         );
     }
 
@@ -101,7 +101,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function loadEnvironment()
     {
-        $path =__DIR__ . '/../.env';
+        $path = __DIR__.'/../.env';
 
         if (file_exists($path)) {
             \Dotenv\Dotenv::createImmutable(dirname($path), '.env')->load();

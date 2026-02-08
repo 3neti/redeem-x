@@ -14,30 +14,30 @@ class FeedbackInstructionData extends Data
         public ?string $email = null,
         public ?string $mobile = null,
         public ?string $webhook = null,
-    ) { $this->applyRulesAndDefaults(); }
+    ) {
+        $this->applyRulesAndDefaults();
+    }
 
     protected function rulesAndDefaults(): array
     {
         return [
             'email' => [
                 ['required', 'email'],
-                config('instructions.feedback.email')
+                config('instructions.feedback.email'),
             ],
             'mobile' => [
                 ['required', (new \Propaganistas\LaravelPhone\Rules\Phone)->country('PH')->type('mobile')],
-                config('instructions.feedback.mobile')
+                config('instructions.feedback.mobile'),
             ],
             'webhook' => [
                 ['required', 'url'],
-                config('instructions.feedback.webhook')
-            ]
+                config('instructions.feedback.webhook'),
+            ],
         ];
     }
 
     /**
      * Define validation rules for the data.
-     *
-     * @return array
      */
     public static function rules(): array
     {
@@ -51,7 +51,6 @@ class FeedbackInstructionData extends Data
     /**
      * Create an instance of FeedbackInstructionData from a comma-delimited input string.
      *
-     * @param string $text
      * @return static
      */
     public static function fromText(string $text): self
@@ -74,18 +73,21 @@ class FeedbackInstructionData extends Data
 
         foreach ($items as $item) {
             // If already resolved, skip further processing
-            if (!$email && filter_var($item, FILTER_VALIDATE_EMAIL)) {
+            if (! $email && filter_var($item, FILTER_VALIDATE_EMAIL)) {
                 $email = $item;
+
                 continue;
             }
 
-            if (!$webhook && filter_var($item, FILTER_VALIDATE_URL)) {
+            if (! $webhook && filter_var($item, FILTER_VALIDATE_URL)) {
                 $webhook = $item;
+
                 continue;
             }
 
-            if (!$mobile && self::isValidMobile($item)) {
+            if (! $mobile && self::isValidMobile($item)) {
                 $mobile = $item;
+
                 continue;
             }
         }
@@ -99,9 +101,6 @@ class FeedbackInstructionData extends Data
 
     /**
      * Validate if the given string is a valid mobile number.
-     *
-     * @param string $mobile
-     * @return bool
      */
     protected static function isValidMobile(string $mobile): bool
     {
@@ -113,7 +112,7 @@ class FeedbackInstructionData extends Data
 
             $validation = $validator->make($data, $rules);
 
-            return !$validation->fails();
+            return ! $validation->fails();
         } catch (\Exception $e) {
             return false; // Return false if validation fails unexpectedly
         }
@@ -133,6 +132,4 @@ class FeedbackInstructionData extends Data
     {
         return config('instructions.feedback.webhook');
     }
-
-
 }

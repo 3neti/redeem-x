@@ -20,8 +20,9 @@ describe('SecretSpecification', function () {
                 )
             )
         );
-        
-        $voucher = new class($instructions) {
+
+        $voucher = new class($instructions)
+        {
             public function __construct(public VoucherInstructionsData $instructions) {}
         };
 
@@ -30,7 +31,7 @@ describe('SecretSpecification', function () {
             secret: 'ABC123'
         );
 
-        $specification = new SecretSpecification();
+        $specification = new SecretSpecification;
 
         expect($specification->passes($voucher, $context))->toBeTrue();
     });
@@ -49,8 +50,9 @@ describe('SecretSpecification', function () {
                 )
             )
         );
-        
-        $voucher = new class($instructions) {
+
+        $voucher = new class($instructions)
+        {
             public function __construct(public VoucherInstructionsData $instructions) {}
         };
 
@@ -59,7 +61,7 @@ describe('SecretSpecification', function () {
             secret: 'WRONG'
         );
 
-        $specification = new SecretSpecification();
+        $specification = new SecretSpecification;
 
         expect($specification->passes($voucher, $context))->toBeFalse();
     });
@@ -78,8 +80,9 @@ describe('SecretSpecification', function () {
                 )
             )
         );
-        
-        $voucher = new class($instructions) {
+
+        $voucher = new class($instructions)
+        {
             public function __construct(public VoucherInstructionsData $instructions) {}
         };
 
@@ -88,7 +91,7 @@ describe('SecretSpecification', function () {
             secret: null
         );
 
-        $specification = new SecretSpecification();
+        $specification = new SecretSpecification;
 
         expect($specification->passes($voucher, $context))->toBeFalse();
     });
@@ -107,8 +110,9 @@ describe('SecretSpecification', function () {
                 )
             )
         );
-        
-        $voucher = new class($instructions) {
+
+        $voucher = new class($instructions)
+        {
             public function __construct(public VoucherInstructionsData $instructions) {}
         };
 
@@ -117,7 +121,7 @@ describe('SecretSpecification', function () {
             secret: null
         );
 
-        $specification = new SecretSpecification();
+        $specification = new SecretSpecification;
 
         expect($specification->passes($voucher, $context))->toBeTrue();
     });

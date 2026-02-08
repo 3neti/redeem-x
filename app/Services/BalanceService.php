@@ -6,7 +6,6 @@ use App\Models\AccountBalance;
 use App\Models\BalanceAlert;
 use App\Models\BalanceHistory;
 use App\Notifications\LowBalanceAlert;
-use Brick\Money\Money;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +15,7 @@ use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 class BalanceService
 {
     private const DEBUG = false;
-    
+
     public function __construct(
         protected PaymentGatewayInterface $gateway
     ) {}
@@ -218,7 +217,7 @@ class BalanceService
     {
         $balance = $this->getCurrentBalance($accountNumber);
 
-        if (!$balance) {
+        if (! $balance) {
             return false;
         }
 

@@ -2,10 +2,10 @@
 
 namespace LBHurtado\OmniChannel\Http\Controllers;
 
-use LBHurtado\OmniChannel\Services\SMSRouterService;
-use LBHurtado\OmniChannel\Events\SMSArrived;
-use LBHurtado\OmniChannel\Data\SMSData;
 use Illuminate\Http\Request;
+use LBHurtado\OmniChannel\Data\SMSData;
+use LBHurtado\OmniChannel\Events\SMSArrived;
+use LBHurtado\OmniChannel\Services\SMSRouterService;
 
 class SMSController
 {

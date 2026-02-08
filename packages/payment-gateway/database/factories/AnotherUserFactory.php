@@ -2,16 +2,17 @@
 
 namespace LBHurtado\PaymentGateway\Database\Factories;
 
-use LBHurtado\PaymentGateway\Tests\Models\AnotherUser;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use LBHurtado\PaymentGateway\Tests\Models\AnotherUser;
 
 class AnotherUserFactory extends Factory
 {
-
     protected $model = AnotherUser::class;
+
     protected static ?string $password;
+
     public function definition(): array
     {
         return [

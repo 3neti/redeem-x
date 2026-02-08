@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Console\Command;
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use LBHurtado\PaymentGateway\Enums\SettlementRail;
 
 class GenerateTestVouchers extends Command
 {
@@ -18,14 +18,15 @@ class GenerateTestVouchers extends Command
     public function handle()
     {
         $user = User::first();
-        
-        if (!$user) {
+
+        if (! $user) {
             $this->error('No users found. Please create a user first.');
+
             return 1;
         }
 
         $scenario = $this->option('scenario');
-        
+
         if ($scenario) {
             $voucher = $this->generateScenario($scenario, $user);
             if ($voucher) {
@@ -54,7 +55,7 @@ class GenerateTestVouchers extends Command
         ];
 
         $vouchers = [];
-        
+
         foreach ($scenarios as $key => $description) {
             $voucher = $this->generateScenario($key, $user);
             if ($voucher) {
@@ -67,7 +68,7 @@ class GenerateTestVouchers extends Command
         $this->info('═══════════════════════════════════════════════════════');
         $this->info('   QUICK REFERENCE');
         $this->info('═══════════════════════════════════════════════════════');
-        
+
         foreach ($vouchers as $key => $voucher) {
             $this->line(sprintf(
                 '<fg=cyan>%-12s</> <fg=yellow>%s</> <fg=gray>→</> <fg=green>http://redeem-x.test/disburse?code=%s</>',
@@ -126,6 +127,7 @@ class GenerateTestVouchers extends Command
 
             default:
                 $this->error("Unknown scenario: {$scenario}");
+
                 return null;
         }
 
@@ -150,14 +152,14 @@ class GenerateTestVouchers extends Command
         $this->info("✓ {$scenarioNames[$scenario]}");
         $this->line("  Code: <fg=yellow>{$voucher->code}</>");
         $this->line("  Amount: <fg=green>{$voucher->formatted_amount}</>");
-        
+
         $fields = $voucher->instructions->inputs->fields ?? [];
         if (is_array($fields) && count($fields) > 0) {
             // Convert enums to strings
-            $fieldNames = array_map(fn($f) => is_object($f) ? $f->value : $f, $fields);
-            $this->line("  Inputs: <fg=cyan>" . implode(', ', $fieldNames) . "</>");
+            $fieldNames = array_map(fn ($f) => is_object($f) ? $f->value : $f, $fields);
+            $this->line('  Inputs: <fg=cyan>'.implode(', ', $fieldNames).'</>');
         }
-        
+
         $this->line("  URL: <fg=blue>http://redeem-x.test/disburse?code={$voucher->code}</>");
         $this->newLine();
     }

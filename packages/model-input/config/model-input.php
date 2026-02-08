@@ -5,7 +5,7 @@ return [
         'email' => ['required', 'email'],
         'mobile' => ['required', 'phone:PH,mobile'], // String format instead of object for serialization
         'signature' => ['required', 'string', 'min:8'],
-        'bank_account' => ['required', 'string', 'min:8'], //TODO: increase the min
+        'bank_account' => ['required', 'string', 'min:8'], // TODO: increase the min
         'name' => ['required', 'string', 'min:2', 'max:255'],
         'address' => ['required', 'string', 'min:10', 'max:255'],
         'birth_date' => ['required', 'date', 'before_or_equal:today'],

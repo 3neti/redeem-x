@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Reports;
 
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
  * Get Settlement Report by Rail
  *
  * Retrieve disbursements grouped by settlement rail (INSTAPAY/PESONET) for bank settlement reconciliation.
- * 
+ *
  * Banks settle transactions separately per rail with different timelines:
  * - **INSTAPAY**: Real-time settlement, same-day cutoff times
  * - **PESONET**: Next business day settlement, batch processing
- * 
+ *
  * This report format matches bank settlement reports for easy reconciliation.
- * 
+ *
  * **Report Structure:**
  * - Grouped by settlement rail
  * - Further grouped by status within each rail
  * - Transaction count and total amount per group
  * - Individual transaction details for matching
- * 
+ *
  * **Use Cases:**
  * - Daily settlement reconciliation with banks
  * - Rail-specific financial reporting
@@ -35,6 +35,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - SLA compliance per rail (INSTAPAY vs PESONET)
  *
  * @group Reports
+ *
  * @authenticated
  */
 #[Group('Reports')]
@@ -58,7 +59,7 @@ class GetSettlementReport
 
         $dateRange = [
             $request->input('from_date'),
-            $request->input('to_date') . ' 23:59:59',
+            $request->input('to_date').' 23:59:59',
         ];
 
         $query = DisbursementAttempt::query()
@@ -75,7 +76,7 @@ class GetSettlementReport
         // Group by rail, then by status
         $byRail = $disbursements->groupBy('settlement_rail')->map(function ($railGroup) {
             $byStatus = $railGroup->groupBy('status');
-            
+
             return [
                 'totals' => [
                     'count' => $railGroup->count(),

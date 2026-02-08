@@ -9,11 +9,11 @@ class RequestSignatureService
     /**
      * Generate HMAC-SHA256 signature for a request.
      *
-     * @param string $method HTTP method (GET, POST, etc.)
-     * @param string $uri Request URI (e.g., /api/v1/vouchers)
-     * @param string $body Request body (raw JSON string)
-     * @param int $timestamp Unix timestamp
-     * @param string $secret Signing secret
+     * @param  string  $method  HTTP method (GET, POST, etc.)
+     * @param  string  $uri  Request URI (e.g., /api/v1/vouchers)
+     * @param  string  $body  Request body (raw JSON string)
+     * @param  int  $timestamp  Unix timestamp
+     * @param  string  $secret  Signing secret
      * @return string HMAC-SHA256 signature
      */
     public function generateSignature(
@@ -38,22 +38,21 @@ class RequestSignatureService
     /**
      * Verify request signature.
      *
-     * @param Request $request
-     * @param string $secret Signing secret
-     * @param int $tolerance Maximum age of request in seconds (default: 300s = 5 min)
+     * @param  string  $secret  Signing secret
+     * @param  int  $tolerance  Maximum age of request in seconds (default: 300s = 5 min)
      * @return array ['valid' => bool, 'error' => string|null]
      */
     public function verifySignature(Request $request, string $secret, int $tolerance = 300): array
     {
         // Get signature from header
         $providedSignature = $request->header('X-Signature');
-        if (!$providedSignature) {
+        if (! $providedSignature) {
             return ['valid' => false, 'error' => 'missing_signature'];
         }
 
         // Get timestamp from header
         $timestamp = $request->header('X-Timestamp');
-        if (!$timestamp || !is_numeric($timestamp)) {
+        if (! $timestamp || ! is_numeric($timestamp)) {
             return ['valid' => false, 'error' => 'missing_timestamp'];
         }
 
@@ -76,14 +75,14 @@ class RequestSignatureService
 
         $expectedSignature = $this->generateSignature(
             $method,
-            '/' . $uri, // Ensure leading slash
+            '/'.$uri, // Ensure leading slash
             $body,
             (int) $timestamp,
             $secret
         );
 
         // Compare signatures (timing-safe comparison)
-        if (!hash_equals($expectedSignature, $providedSignature)) {
+        if (! hash_equals($expectedSignature, $providedSignature)) {
             return ['valid' => false, 'error' => 'invalid_signature'];
         }
 

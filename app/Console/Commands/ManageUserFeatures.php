@@ -25,8 +25,9 @@ class ManageUserFeatures extends Command
         // Find user
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("User not found: {$email}");
+
             return self::FAILURE;
         }
 
@@ -35,6 +36,7 @@ class ManageUserFeatures extends Command
             $isActive = Feature::for($user)->active($featureName);
             $status = $isActive ? '<fg=green>ENABLED</>' : '<fg=red>DISABLED</>';
             $this->info("Feature '{$featureName}' for {$email}: {$status}");
+
             return self::SUCCESS;
         }
 
@@ -42,14 +44,14 @@ class ManageUserFeatures extends Command
         if ($this->option('enable')) {
             Feature::for($user)->activate($featureName);
             $this->info("✓ Enabled '{$featureName}' for {$email}");
-            
+
             // Verify
             if (Feature::for($user)->active($featureName)) {
-                $this->line("  Verified: Feature is now active");
+                $this->line('  Verified: Feature is now active');
             } else {
-                $this->warn("  Warning: Feature may not be active due to default resolver");
+                $this->warn('  Warning: Feature may not be active due to default resolver');
             }
-            
+
             return self::SUCCESS;
         }
 
@@ -57,19 +59,20 @@ class ManageUserFeatures extends Command
         if ($this->option('disable')) {
             Feature::for($user)->deactivate($featureName);
             $this->info("✓ Disabled '{$featureName}' for {$email}");
-            
+
             // Verify
-            if (!Feature::for($user)->active($featureName)) {
-                $this->line("  Verified: Feature is now inactive");
+            if (! Feature::for($user)->active($featureName)) {
+                $this->line('  Verified: Feature is now inactive');
             } else {
-                $this->warn("  Warning: Feature is still active due to environment/role defaults");
-                $this->line("  Check AppServiceProvider feature definition for defaults");
+                $this->warn('  Warning: Feature is still active due to environment/role defaults');
+                $this->line('  Check AppServiceProvider feature definition for defaults');
             }
-            
+
             return self::SUCCESS;
         }
 
         $this->error('Please specify --enable, --disable, or --status');
+
         return self::FAILURE;
     }
 }

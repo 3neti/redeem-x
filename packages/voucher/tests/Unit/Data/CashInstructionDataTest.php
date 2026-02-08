@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\Voucher\Data\CashValidationRulesData;
 use LBHurtado\Voucher\Data\CashInstructionData;
+use LBHurtado\Voucher\Data\CashValidationRulesData;
 
 it('validates and serializes cash instruction data', function () {
     $data = CashInstructionData::from([

@@ -29,7 +29,7 @@ use Omnipay\Common\Message\AbstractRequest;
 class GenerateQrRequest extends AbstractRequest
 {
     use HasOAuth2;
-    
+
     /**
      * Get the account number
      */
@@ -37,7 +37,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('accountNumber');
     }
-    
+
     /**
      * Set the account number
      */
@@ -45,7 +45,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('accountNumber', $value);
     }
-    
+
     /**
      * Get the reference
      */
@@ -53,7 +53,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('reference');
     }
-    
+
     /**
      * Set the reference
      */
@@ -61,7 +61,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('reference', $value);
     }
-    
+
     /**
      * Get the amount (optional - for fixed amount QR codes)
      */
@@ -69,7 +69,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('amount');
     }
-    
+
     /**
      * Set the amount (optional - for fixed amount QR codes)
      */
@@ -77,7 +77,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('amount', $value);
     }
-    
+
     /**
      * Get the currency
      */
@@ -85,7 +85,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('currency');
     }
-    
+
     /**
      * Set the currency
      */
@@ -93,7 +93,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('currency', $value);
     }
-    
+
     /**
      * Get the QR endpoint
      */
@@ -101,7 +101,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('qrEndpoint');
     }
-    
+
     /**
      * Set the QR endpoint
      */
@@ -109,7 +109,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('qrEndpoint', $value);
     }
-    
+
     /**
      * Validate the request
      *
@@ -118,43 +118,43 @@ class GenerateQrRequest extends AbstractRequest
     public function getData()
     {
         $this->validate('accountNumber');
-        
+
         $amount = $this->getAmount();
         $clientAlias = $this->getClientAlias() ?? config('omnipay.gateways.netbank.options.clientAlias');
-        
+
         // Build payload matching x-change structure
         $data = [
             'merchant_name' => $this->getMerchantName() ?? config('app.name', 'Merchant'),
             'merchant_city' => $this->getMerchantCity() ?? 'Manila',
             'qr_type' => $amount ? 'Dynamic' : 'Static', // Dynamic if amount specified, Static otherwise
             'qr_transaction_type' => 'P2M', // Person-to-Merchant
-            'destination_account' => $clientAlias . $this->getAccountNumber(), // Format: alias + account
+            'destination_account' => $clientAlias.$this->getAccountNumber(), // Format: alias + account
             'resolution' => 480,
             'amount' => [
                 'cur' => $this->getCurrency() ?? 'PHP',
                 'num' => $amount ? (string) $amount : '', // Empty string for static QR
             ],
         ];
-        
+
         return $data;
     }
-    
+
     /**
      * Send the request with authentication
      *
-     * @param mixed $data
+     * @param  mixed  $data
      * @return GenerateQrResponse
      */
     public function sendData($data)
     {
         try {
             $token = $this->getAccessToken();
-            
+
             logger()->info('[GenerateQR] Sending request', [
                 'endpoint' => $this->getEndpoint(),
                 'payload' => $data,
             ]);
-            
+
             $httpResponse = $this->httpClient->request(
                 'POST',
                 $this->getEndpoint(),
@@ -165,20 +165,20 @@ class GenerateQrRequest extends AbstractRequest
                 ],
                 json_encode($data)
             );
-            
+
             $body = $httpResponse->getBody()->getContents();
             logger()->info('[GenerateQR] Response received', ['body' => $body]);
-            
+
             $responseData = json_decode($body, true);
-            
+
             return $this->response = new GenerateQrResponse($this, $responseData);
-            
+
         } catch (\Exception $e) {
             logger()->error('[GenerateQR] Exception', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return $this->response = new GenerateQrResponse($this, [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -186,7 +186,7 @@ class GenerateQrRequest extends AbstractRequest
             ]);
         }
     }
-    
+
     /**
      * Get the API endpoint for QR generation
      */
@@ -195,7 +195,7 @@ class GenerateQrRequest extends AbstractRequest
         // Use the qrEndpoint directly from config
         return $this->getQrEndpoint();
     }
-    
+
     /**
      * Get Client ID for OAuth2 (required by HasOAuth2 trait)
      */
@@ -203,7 +203,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('clientId');
     }
-    
+
     /**
      * Set Client ID
      */
@@ -211,7 +211,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('clientId', $value);
     }
-    
+
     /**
      * Get Client Secret for OAuth2 (required by HasOAuth2 trait)
      */
@@ -219,7 +219,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('clientSecret');
     }
-    
+
     /**
      * Set Client Secret
      */
@@ -227,7 +227,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('clientSecret', $value);
     }
-    
+
     /**
      * Get Token Endpoint for OAuth2 (required by HasOAuth2 trait)
      */
@@ -235,7 +235,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('tokenEndpoint');
     }
-    
+
     /**
      * Set Token Endpoint
      */
@@ -243,7 +243,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('tokenEndpoint', $value);
     }
-    
+
     /**
      * Get Client Alias
      */
@@ -251,7 +251,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('clientAlias');
     }
-    
+
     /**
      * Set Client Alias
      */
@@ -259,7 +259,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('clientAlias', $value);
     }
-    
+
     /**
      * Get Merchant Name
      */
@@ -267,7 +267,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('merchantName');
     }
-    
+
     /**
      * Set Merchant Name
      */
@@ -275,7 +275,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->setParameter('merchantName', $value);
     }
-    
+
     /**
      * Get Merchant City
      */
@@ -283,7 +283,7 @@ class GenerateQrRequest extends AbstractRequest
     {
         return $this->getParameter('merchantCity');
     }
-    
+
     /**
      * Set Merchant City
      */

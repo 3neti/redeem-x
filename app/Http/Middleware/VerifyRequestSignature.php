@@ -26,7 +26,7 @@ class VerifyRequestSignature
         $settings = app(SecuritySettings::class);
 
         // Skip if signature verification is disabled globally
-        if (!$settings->signature_enabled || !$settings->signature_secret) {
+        if (! $settings->signature_enabled || ! $settings->signature_secret) {
             return $next($request);
         }
 
@@ -40,7 +40,7 @@ class VerifyRequestSignature
             $tolerance
         );
 
-        if (!$result['valid']) {
+        if (! $result['valid']) {
             // Log signature verification failure
             Log::warning('[SignatureVerification] Request signature validation failed', [
                 'user_id' => $request->user()?->id,

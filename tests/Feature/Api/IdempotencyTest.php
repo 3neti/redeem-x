@@ -9,7 +9,7 @@ use LBHurtado\Voucher\Models\Voucher;
 beforeEach(function () {
     $this->user = User::factory()->create();
     Sanctum::actingAs($this->user);
-    
+
     // Give user sufficient balance for testing
     $this->user->deposit(1000000); // ₱10,000 in centavos
 });
@@ -108,7 +108,7 @@ test('it returns cached response for duplicate voucher generation', function () 
 
     // Should return exact same vouchers
     expect($voucherCodes1)->toBe($voucherCodes2);
-    
+
     // Should only have created 2 vouchers total, not 4
     expect(Voucher::count())->toBe(2);
 });
@@ -174,7 +174,7 @@ test('it caches idempotent responses for 24 hours', function () {
 
 test('it scopes idempotency by user', function () {
     $idempotencyKey = (string) Str::uuid();
-    
+
     // User 1 creates voucher
     $response1 = $this->postJson('/api/v1/vouchers', [
         'amount' => 100,
@@ -237,7 +237,7 @@ test('it only caches successful responses', function () {
     ]);
 
     $response2->assertStatus(201); // Should succeed now
-    
+
     // Now it should be cached
     expect(Cache::has($cacheKey))->toBeTrue();
 });

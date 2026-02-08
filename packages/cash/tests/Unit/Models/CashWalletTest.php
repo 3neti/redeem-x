@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use LBHurtado\Cash\Tests\Models\User;
 use LBHurtado\Cash\Models\Cash;
+use LBHurtado\Cash\Tests\Models\User;
 
 uses(RefreshDatabase::class);
 
@@ -20,5 +20,3 @@ it('has a wallet and can be purchased', function () {
     expect((float) $cash->balanceFloat)->toBe(1_500.0);
     expect((float) $user->wallet->balanceFloat)->toBe(500.0);
 });
-
-

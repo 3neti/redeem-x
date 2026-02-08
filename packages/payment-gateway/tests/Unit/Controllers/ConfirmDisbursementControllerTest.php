@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\Response;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
 beforeEach(function () {
     // Mock the gateway and bind it in the IoC container

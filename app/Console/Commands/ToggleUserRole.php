@@ -28,24 +28,25 @@ class ToggleUserRole extends Command
     {
         $email = $this->argument('email');
         $role = $this->argument('role');
-        
+
         $user = User::where('email', $email)->first();
-        
-        if (!$user) {
+
+        if (! $user) {
             $this->error("User not found: {$email}");
+
             return 1;
         }
-        
+
         if ($user->hasRole($role)) {
             $user->removeRole($role);
             $this->info("✅ Removed '{$role}' role from {$email}");
-            $this->line("Current roles: " . ($user->roles->pluck('name')->join(', ') ?: '(none)'));
+            $this->line('Current roles: '.($user->roles->pluck('name')->join(', ') ?: '(none)'));
         } else {
             $user->assignRole($role);
             $this->info("✅ Added '{$role}' role to {$email}");
-            $this->line("Current roles: " . $user->roles->pluck('name')->join(', '));
+            $this->line('Current roles: '.$user->roles->pluck('name')->join(', '));
         }
-        
+
         return 0;
     }
 }

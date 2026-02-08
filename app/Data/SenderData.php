@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use Illuminate\Support\Carbon;
 use LBHurtado\Contact\Models\Contact;
-use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;
-use Illuminate\Support\Carbon;
 
 /**
  * Sender contact with transaction statistics.
- * 
+ *
  * Represents a contact who has sent money to the user,
  * including cumulative stats and payment method history.
  */
@@ -59,7 +60,7 @@ class SenderData extends Data
             transaction_count: (int) ($pivot?->transaction_count ?? 0),
             institutions_used: $institutionsUsed,
             latest_institution: $latestInstitution,
-            latest_institution_name: $latestInstitution 
+            latest_institution_name: $latestInstitution
                 ? Contact::institutionName($latestInstitution)
                 : null,
             first_transaction_at: $pivot?->first_transaction_at,

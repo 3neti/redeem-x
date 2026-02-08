@@ -7,7 +7,6 @@ use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use LBHurtado\Contact\Models\Contact;
-use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -17,7 +16,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Event::fake();
-    
+
     config(['contact.default.country' => 'PH']);
     config(['contact.default.bank_code' => 'GXCHPHM2XXX']);
 
@@ -165,7 +164,7 @@ test('returns cannot redeem for already redeemed voucher', function () {
         'country' => 'PH',
         'bank_account' => 'GXCHPHM2XXX:09171234567',
     ]);
-    
+
     \LBHurtado\Voucher\Actions\RedeemVoucher::run($contact, $voucher->code);
 
     $response = $this->postJson('/api/v1/redeem/validate', [
@@ -465,4 +464,3 @@ test('can redeem with bank account details', function () {
             ],
         ]);
 });
-

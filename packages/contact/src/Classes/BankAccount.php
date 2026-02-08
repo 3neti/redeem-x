@@ -2,8 +2,8 @@
 
 namespace LBHurtado\Contact\Classes;
 
-use InvalidArgumentException;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class BankAccount
 {
@@ -24,7 +24,7 @@ class BankAccount
 
     public function getBankAccount(): string
     {
-        return $this->bank_code . ':' . $this->account_number;
+        return $this->bank_code.':'.$this->account_number;
     }
 
     public function __toString(): string
@@ -38,7 +38,7 @@ class BankAccount
 
         // only one “:” guaranteed, extra colons remain part of the account_number
         if (! Str::contains($raw, ':')) {
-            throw new InvalidArgumentException("Bank account must be in the format code:account");
+            throw new InvalidArgumentException('Bank account must be in the format code:account');
         }
 
         [$code, $acct] = explode(':', $raw, 2);
@@ -47,7 +47,7 @@ class BankAccount
         $acct = trim($acct);
 
         if ($code === '' || $acct === '') {
-            throw new InvalidArgumentException("Bank code and account number cannot be empty");
+            throw new InvalidArgumentException('Bank code and account number cannot be empty');
         }
 
         return new static($code, $acct);

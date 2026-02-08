@@ -1,29 +1,29 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Pennant\Feature;
 use LBHurtado\Cash\Models\Cash;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\Voucher\Enums\VoucherType;
-use LBHurtado\Voucher\Enums\VoucherState;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Data\CashInstructionData;
 use LBHurtado\Voucher\Data\CashValidationRulesData;
-use LBHurtado\Voucher\Data\InputFieldsData;
 use LBHurtado\Voucher\Data\FeedbackInstructionData;
+use LBHurtado\Voucher\Data\InputFieldsData;
 use LBHurtado\Voucher\Data\RiderInstructionData;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Enums\VoucherState;
+use LBHurtado\Voucher\Enums\VoucherType;
+use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Enable settlement vouchers feature flag for all tests
     Feature::activate('settlement-vouchers');
-    
+
     $this->user = User::factory()->create();
     $this->actingAs($this->user);
-    
+
     // Give user sufficient balance for generating vouchers
     $this->user->depositFloat(1000000); // ₱10,000
 });
@@ -31,21 +31,21 @@ beforeEach(function () {
 describe('Voucher Domain Guards', function () {
     it('allows payments on PAYABLE vouchers', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
+
         expect($voucher->canAcceptPayment())->toBeTrue()
             ->and($voucher->canRedeem())->toBeFalse();
     });
 
     it('allows redemption on REDEEMABLE vouchers', function () {
         $voucher = createSettlementVoucher(VoucherType::REDEEMABLE, 1000.00);
-        
+
         expect($voucher->canRedeem())->toBeTrue()
             ->and($voucher->canAcceptPayment())->toBeFalse();
     });
 
     it('allows both payments and redemption on SETTLEMENT vouchers', function () {
         $voucher = createSettlementVoucher(VoucherType::SETTLEMENT, 10000.00);
-        
+
         expect($voucher->canAcceptPayment())->toBeTrue()
             ->and($voucher->canRedeem())->toBeTrue();
     });
@@ -56,7 +56,7 @@ describe('Voucher Domain Guards', function () {
         $voucher->closed_at = now();
         $voucher->save();
         $voucher->refresh();
-        
+
         expect($voucher->canAcceptPayment())->toBeFalse();
     });
 
@@ -66,7 +66,7 @@ describe('Voucher Domain Guards', function () {
         $voucher->locked_at = now();
         $voucher->save();
         $voucher->refresh();
-        
+
         expect($voucher->canAcceptPayment())->toBeFalse();
     });
 
@@ -75,7 +75,7 @@ describe('Voucher Domain Guards', function () {
         $voucher->expires_at = now()->subDay();
         $voucher->save();
         $voucher->refresh();
-        
+
         expect($voucher->canAcceptPayment())->toBeFalse();
     });
 });
@@ -83,42 +83,42 @@ describe('Voucher Domain Guards', function () {
 describe('Payment Tracking', function () {
     it('tracks paid total from wallet transactions', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
+
         // Simulate two payments
         $voucher->cash->wallet->deposit(50000, ['flow' => 'pay', 'payment_id' => 'PAY-1']); // ₱500
         $voucher->cash->wallet->deposit(100000, ['flow' => 'pay', 'payment_id' => 'PAY-2']); // ₱1000
-        
+
         $voucher->refresh();
-        
+
         expect($voucher->getPaidTotal())->toBe(1500.00)
             ->and($voucher->getRemaining())->toBe(0.00);
     });
 
     it('calculates remaining amount correctly', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
+
         $voucher->cash->wallet->deposit(50000, ['flow' => 'pay', 'payment_id' => 'PAY-1']); // ₱500
-        
+
         $voucher->refresh();
-        
+
         expect($voucher->getPaidTotal())->toBe(500.00)
             ->and($voucher->getRemaining())->toBe(1000.00);
     });
 
     it('tracks redeemed total separately from paid total', function () {
         $voucher = createSettlementVoucher(VoucherType::SETTLEMENT, 10000.00);
-        
+
         // Pre-fund for initial disbursement
         $voucher->cash->wallet->deposit(1000000, ['flow' => 'fund', 'type' => 'initial_fund']);
-        
+
         // Simulate payment from borrower
         $voucher->cash->wallet->deposit(200000, ['flow' => 'pay', 'payment_id' => 'PAY-1']); // ₱2000
-        
+
         // Simulate redemption
         $voucher->cash->wallet->withdraw(500000, ['flow' => 'redeem', 'voucher_code' => $voucher->code]); // ₱5000
-        
+
         $voucher->refresh();
-        
+
         expect($voucher->getPaidTotal())->toBe(2000.00)
             ->and($voucher->getRedeemedTotal())->toBe(5000.00);
     });
@@ -127,7 +127,7 @@ describe('Payment Tracking', function () {
 describe('Webhook Payment Processing', function () {
     it('accepts valid voucher payment webhook', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
+
         $response = $this->postJson('/webhooks/netbank/payment', [
             'reference_no' => $voucher->code,
             'payment_id' => 'NB-12345',
@@ -137,7 +137,7 @@ describe('Webhook Payment Processing', function () {
                 'currency' => 'PHP',
             ],
         ]);
-        
+
         $response->assertOk()
             ->assertJson([
                 'message' => 'Voucher payment processed successfully',
@@ -146,14 +146,14 @@ describe('Webhook Payment Processing', function () {
                 'remaining' => 1000.00,
                 'auto_closed' => false,
             ]);
-        
+
         $voucher->refresh();
         expect($voucher->getPaidTotal())->toBe(500.00);
     })->skip('Webhook routes not available in test environment');
 
     it('auto-closes voucher when fully paid', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
+
         $this->postJson('/webhooks/netbank/payment', [
             'reference_no' => $voucher->code,
             'payment_id' => 'NB-12345',
@@ -163,7 +163,7 @@ describe('Webhook Payment Processing', function () {
                 'currency' => 'PHP',
             ],
         ]);
-        
+
         $voucher->refresh();
         expect($voucher->state)->toBe(VoucherState::CLOSED)
             ->and($voucher->closed_at)->not->toBeNull();
@@ -171,7 +171,7 @@ describe('Webhook Payment Processing', function () {
 
     it('prevents duplicate payment processing', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
+
         $payload = [
             'reference_no' => $voucher->code,
             'payment_id' => 'NB-12345',
@@ -181,23 +181,23 @@ describe('Webhook Payment Processing', function () {
                 'currency' => 'PHP',
             ],
         ];
-        
+
         // First payment
         $this->postJson('/webhooks/netbank/payment', $payload)->assertOk();
-        
+
         // Duplicate payment
         $response = $this->postJson('/webhooks/netbank/payment', $payload);
-        
+
         $response->assertOk()
             ->assertJson(['message' => 'Payment already processed']);
-        
+
         $voucher->refresh();
         expect($voucher->getPaidTotal())->toBe(500.00); // Not doubled
     })->skip('Webhook routes not available in test environment');
 
     it('rejects payment on non-payable voucher', function () {
         $voucher = createSettlementVoucher(VoucherType::REDEEMABLE, 1000.00);
-        
+
         $response = $this->postJson('/webhooks/netbank/payment', [
             'reference_no' => $voucher->code,
             'payment_id' => 'NB-12345',
@@ -207,7 +207,7 @@ describe('Webhook Payment Processing', function () {
                 'currency' => 'PHP',
             ],
         ]);
-        
+
         $response->assertStatus(422)
             ->assertJson(['error' => 'Voucher cannot accept payments']);
     })->skip('Webhook routes not available in test environment');
@@ -218,7 +218,7 @@ describe('Webhook Payment Processing', function () {
         $voucher->closed_at = now();
         $voucher->save();
         $voucher->refresh();
-        
+
         $response = $this->postJson('/webhooks/netbank/payment', [
             'reference_no' => $voucher->code,
             'payment_id' => 'NB-12345',
@@ -228,7 +228,7 @@ describe('Webhook Payment Processing', function () {
                 'currency' => 'PHP',
             ],
         ]);
-        
+
         $response->assertStatus(422)
             ->assertJson(['error' => 'Voucher cannot accept payments']);
     })->skip('Webhook routes not available in test environment');
@@ -237,23 +237,23 @@ describe('Webhook Payment Processing', function () {
 describe('Pay Page', function () {
     it('returns 404 when feature flag is disabled', function () {
         Feature::deactivate('settlement-vouchers');
-        
+
         $response = $this->get('/pay');
-        
+
         $response->assertNotFound();
     });
 
     it('shows pay page when feature flag is enabled', function () {
         $response = $this->get('/pay');
-        
+
         $response->assertOk();
     })->skip('Pay routes not available in test environment');
 
     it('returns voucher quote for valid code', function () {
         $voucher = createSettlementVoucher(VoucherType::PAYABLE, 1500.00);
-        
-        $response = $this->postJson("/pay/quote", ['code' => $voucher->code]);
-        
+
+        $response = $this->postJson('/pay/quote', ['code' => $voucher->code]);
+
         $response->assertOk()
             ->assertJsonStructure([
                 'voucher_code',
@@ -265,9 +265,9 @@ describe('Pay Page', function () {
 
     it('rejects quote for non-payable voucher', function () {
         $voucher = createSettlementVoucher(VoucherType::REDEEMABLE, 1000.00);
-        
-        $response = $this->postJson("/pay/quote", ['code' => $voucher->code]);
-        
+
+        $response = $this->postJson('/pay/quote', ['code' => $voucher->code]);
+
         $response->assertStatus(403)
             ->assertJson(['error' => 'This voucher cannot accept payments']);
     })->skip('Pay routes not available in test environment');
@@ -315,16 +315,16 @@ function createSettlementVoucher(VoucherType $type, float $targetAmount): Vouche
         target_amount: $targetAmount,
         rules: null
     );
-    
+
     // Generate voucher using the action (this creates cash entity automatically)
     $vouchers = GenerateVouchers::run($instructions);
     $voucher = $vouchers->first();
-    
+
     // Set settlement-specific fields directly
     $voucher->voucher_type = $type;
     $voucher->state = VoucherState::ACTIVE;
     $voucher->target_amount = $targetAmount;
     $voucher->save();
-    
+
     return $voucher->fresh();
 }

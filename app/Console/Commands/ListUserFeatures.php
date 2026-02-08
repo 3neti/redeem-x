@@ -19,8 +19,9 @@ class ListUserFeatures extends Command
         // Find user
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("User not found: {$email}");
+
             return self::FAILURE;
         }
 
@@ -38,7 +39,7 @@ class ListUserFeatures extends Command
         foreach ($features as $featureKey => $featureName) {
             $isActive = Feature::for($user)->active($featureKey);
             $status = $isActive ? '<fg=green>✓ ENABLED</>' : '<fg=red>✗ DISABLED</>';
-            
+
             $rows[] = [$featureName, $featureKey, $status];
         }
 
@@ -48,7 +49,7 @@ class ListUserFeatures extends Command
         );
 
         $this->newLine();
-        $this->line("To manage features, use:");
+        $this->line('To manage features, use:');
         $this->line("  <fg=yellow>php artisan feature:manage {feature-key} {$email} --enable</>");
         $this->line("  <fg=yellow>php artisan feature:manage {feature-key} {$email} --disable</>");
 

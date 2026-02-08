@@ -26,9 +26,10 @@ class SuccessRedirectController extends Controller
 
         // Fetch voucher by code (no state validation - allow redeemed vouchers)
         $voucher = Voucher::where('code', $code)->first();
-        
-        if (!$voucher) {
+
+        if (! $voucher) {
             Log::warning("[SuccessRedirectController] Voucher not found: {$code}");
+
             return redirect()->route('redeem.start')
                 ->withErrors(['error' => 'Invalid voucher code.']);
         }
@@ -37,6 +38,7 @@ class SuccessRedirectController extends Controller
 
         if ($redirectUrl) {
             Log::info("[SuccessRedirectController] Redirecting to rider URL: {$redirectUrl}");
+
             return inertia()->location($redirectUrl);
         }
 

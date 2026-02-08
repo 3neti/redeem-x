@@ -1,10 +1,10 @@
 <?php
 
-use LBHurtado\Voucher\Data\ExternalMetadataData;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use LBHurtado\Voucher\Actions\GenerateVouchers;
+use LBHurtado\Voucher\Data\ExternalMetadataData;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
 
@@ -19,6 +19,7 @@ beforeEach(function () {
 function createTestVoucherForMetadata()
 {
     $instructions = VoucherInstructionsData::generateFromScratch();
+
     return GenerateVouchers::run($instructions)->first();
 }
 

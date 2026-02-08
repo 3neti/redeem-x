@@ -1,10 +1,10 @@
 <?php
 
-use LBHurtado\PaymentGateway\Http\Controllers\ConfirmDisbursementController;
+use Illuminate\Support\Facades\Route;
 use LBHurtado\PaymentGateway\Http\Controllers\ConfirmDepositController;
+use LBHurtado\PaymentGateway\Http\Controllers\ConfirmDisbursementController;
 use LBHurtado\PaymentGateway\Http\Controllers\DisburseController;
 use LBHurtado\PaymentGateway\Http\Controllers\GenerateController;
-use Illuminate\Support\Facades\Route;
 
 Route::post('confirm-deposit', ConfirmDepositController::class)
     ->name('confirm-deposit');

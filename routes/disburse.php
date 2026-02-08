@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Disburse\{DisburseController, DisburseSuccessRedirectController};
+use App\Http\Controllers\Disburse\DisburseController;
+use App\Http\Controllers\Disburse\DisburseSuccessRedirectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,22 +26,22 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('disburse')->name('disburse.')->group(function () {
     // Start: Enter voucher code
     Route::get('/', [DisburseController::class, 'start'])->name('start');
-    
+
     // Callback after flow completion (does not redeem)
     Route::post('/{voucher:code}/complete', [DisburseController::class, 'complete'])->name('complete');
-    
+
     // Redeem voucher after user confirmation
     // Note: Idempotency not enforced on web route (browser prevents double-submit)
     // API equivalent should use idempotency middleware
     Route::post('/{voucher:code}/redeem', [DisburseController::class, 'redeem'])
         ->name('redeem');
-    
+
     // Cancel callback
     Route::get('/cancel', [DisburseController::class, 'cancel'])->name('cancel');
-    
+
     // Success page
     Route::get('/{voucher:code}/success', [DisburseController::class, 'success'])->name('success');
-    
+
     // Redirect to external URL (rider URL)
     Route::get('/{code}/redirect', DisburseSuccessRedirectController::class)->name('redirect');
 });

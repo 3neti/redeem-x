@@ -4,15 +4,16 @@ namespace App\Actions\Api\Wallet;
 
 use App\Data\Api\Wallet\BalanceData;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Http\Request;
 
 /**
  * @group Wallet
+ *
  * @authenticated
  *
  * Get wallet balance.
- * 
+ *
  * Retrieve the authenticated user's current wallet balance with detailed breakdown.
  * Returns available balance, pending transactions, and total balance in PHP currency.
  */

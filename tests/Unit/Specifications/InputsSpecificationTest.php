@@ -7,42 +7,52 @@ use LBHurtado\Voucher\Specifications\InputsSpecification;
 describe('InputsSpecification', function () {
     it('returns true when no input fields are required', function () {
         // Mock voucher with no required inputs
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [];
                         };
                     }
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: []
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeTrue();
     });
 
     it('returns true when all required input fields are present', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [
                                 VoucherInputField::EMAIL,
                                 VoucherInputField::NAME,
@@ -52,7 +62,7 @@ describe('InputsSpecification', function () {
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: [
@@ -60,22 +70,27 @@ describe('InputsSpecification', function () {
                 'name' => 'John Doe',
             ]
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeTrue();
     });
 
     it('returns false when required input field is missing', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [
                                 VoucherInputField::EMAIL,
                                 VoucherInputField::NAME,
@@ -85,7 +100,7 @@ describe('InputsSpecification', function () {
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: [
@@ -93,80 +108,95 @@ describe('InputsSpecification', function () {
                 // Missing 'name'
             ]
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeFalse();
     });
 
     it('returns false when required input field is empty string', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [VoucherInputField::EMAIL];
                         };
                     }
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: [
                 'email' => '',  // Empty string
             ]
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeFalse();
     });
 
     it('returns false when required input field is null', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [VoucherInputField::EMAIL];
                         };
                     }
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: [
                 'email' => null,  // Null value
             ]
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeFalse();
     });
 
     it('skips special fields like kyc and location', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [
                                 VoucherInputField::KYC,
                                 VoucherInputField::LOCATION,
@@ -176,27 +206,32 @@ describe('InputsSpecification', function () {
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: []  // Empty - should pass because kyc/location are special
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeTrue();
     });
 
     it('returns list of missing fields', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [
                                 VoucherInputField::EMAIL,
                                 VoucherInputField::NAME,
@@ -207,7 +242,7 @@ describe('InputsSpecification', function () {
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: [
@@ -215,10 +250,10 @@ describe('InputsSpecification', function () {
                 // Missing 'name' and 'birth_date'
             ]
         );
-        
-        $specification = new InputsSpecification();
+
+        $specification = new InputsSpecification;
         $missing = $specification->getMissingFields($voucher, $context);
-        
+
         expect($missing)->toBeArray()
             ->and($missing)->toHaveCount(2)
             ->and($missing)->toContain('name')
@@ -226,15 +261,20 @@ describe('InputsSpecification', function () {
     });
 
     it('handles mixed regular and special fields correctly', function () {
-        $voucher = new class {
+        $voucher = new class
+        {
             public object $instructions;
-            
-            public function __construct() {
-                $this->instructions = new class {
+
+            public function __construct()
+            {
+                $this->instructions = new class
+                {
                     public object $inputs;
-                    
-                    public function __construct() {
-                        $this->inputs = new class {
+
+                    public function __construct()
+                    {
+                        $this->inputs = new class
+                        {
                             public array $fields = [
                                 VoucherInputField::EMAIL,
                                 VoucherInputField::KYC,  // Special
@@ -245,7 +285,7 @@ describe('InputsSpecification', function () {
                 };
             }
         };
-        
+
         $context = new RedemptionContext(
             mobile: '+639171234567',
             inputs: [
@@ -254,9 +294,9 @@ describe('InputsSpecification', function () {
                 // KYC not needed here (handled by KycSpecification)
             ]
         );
-        
-        $specification = new InputsSpecification();
-        
+
+        $specification = new InputsSpecification;
+
         expect($specification->passes($voucher, $context))->toBeTrue();
     });
 });

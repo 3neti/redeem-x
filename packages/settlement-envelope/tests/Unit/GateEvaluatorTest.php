@@ -3,7 +3,7 @@
 use LBHurtado\SettlementEnvelope\Services\GateEvaluator;
 
 beforeEach(function () {
-    $this->evaluator = new GateEvaluator();
+    $this->evaluator = new GateEvaluator;
 });
 
 // Helper to access protected method
@@ -12,6 +12,7 @@ function evaluate(GateEvaluator $evaluator, string $expression, array $context):
     $reflection = new ReflectionClass($evaluator);
     $method = $reflection->getMethod('evaluateExpression');
     $method->setAccessible(true);
+
     return $method->invoke($evaluator, $expression, $context);
 }
 
@@ -20,6 +21,7 @@ function resolveRef(GateEvaluator $evaluator, string $reference, array $context)
     $reflection = new ReflectionClass($evaluator);
     $method = $reflection->getMethod('resolveValue');
     $method->setAccessible(true);
+
     return $method->invoke($evaluator, $reference, $context);
 }
 

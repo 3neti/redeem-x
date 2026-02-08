@@ -2,19 +2,19 @@
 
 namespace LBHurtado\Voucher\Data;
 
-use Spatie\LaravelData\Data;
 use Carbon\Carbon;
+use Spatie\LaravelData\Data;
 
 /**
  * Voucher timing data for tracking lifecycle events
- * 
+ *
  * Tracks when voucher was clicked, redemption started, and submitted
  * to enable duration tracking and speed-based scoring.
- * 
- * @property ?string $clicked_at        - ISO-8601 timestamp when voucher link was clicked
- * @property ?string $started_at        - ISO-8601 timestamp when redemption wizard opened
- * @property ?string $submitted_at      - ISO-8601 timestamp when redemption was submitted
- * @property ?int    $duration_seconds  - Time taken from start to submit (in seconds)
+ *
+ * @property ?string $clicked_at - ISO-8601 timestamp when voucher link was clicked
+ * @property ?string $started_at - ISO-8601 timestamp when redemption wizard opened
+ * @property ?string $submitted_at - ISO-8601 timestamp when redemption was submitted
+ * @property ?int $duration_seconds - Time taken from start to submit (in seconds)
  */
 class VoucherTimingData extends Data
 {
@@ -65,7 +65,7 @@ class VoucherTimingData extends Data
      */
     public function calculateDuration(): ?int
     {
-        if (!$this->started_at || !$this->submitted_at) {
+        if (! $this->started_at || ! $this->submitted_at) {
             return null;
         }
 
@@ -126,7 +126,7 @@ class VoucherTimingData extends Data
     public function withSubmit(): self
     {
         $submitted_at = now()->toIso8601String();
-        
+
         $new = new self(
             clicked_at: $this->clicked_at,
             started_at: $this->started_at,

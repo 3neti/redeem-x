@@ -6,7 +6,7 @@ return [
         'timeout' => env('GATEWAY_HTTP_TIMEOUT', 15), // Request timeout in seconds (must be < PHP max_execution_time)
         'connect_timeout' => env('GATEWAY_HTTP_CONNECT_TIMEOUT', 5), // Connection timeout in seconds
     ],
-    
+
     'gateways' => [
         'netbank' => [
             'class' => \LBHurtado\PaymentGateway\Omnipay\Netbank\Gateway::class,
@@ -27,7 +27,7 @@ return [
                 'sourceAccountNumber' => env('NETBANK_SOURCE_ACCOUNT_NUMBER'),
                 'senderCustomerId' => env('NETBANK_SENDER_CUSTOMER_ID'),
                 'clientAlias' => env('NETBANK_CLIENT_ALIAS'),
-                
+
                 // Rail-specific configuration
                 'rails' => [
                     'INSTAPAY' => [
@@ -52,7 +52,7 @@ return [
                 'apiSecret' => env('ICASH_API_SECRET'),
                 'apiEndpoint' => env('ICASH_API_ENDPOINT'),
                 'testMode' => env('ICASH_TEST_MODE', false),
-                
+
                 'rails' => [
                     'INSTAPAY' => [
                         'enabled' => env('ICASH_INSTAPAY_ENABLED', true),
@@ -63,18 +63,18 @@ return [
             ],
         ],
     ],
-    
+
     'default' => env('PAYMENT_GATEWAY', 'netbank'),
-    
+
     // Feature flag for gradual rollout
     'use_omnipay' => env('USE_OMNIPAY', false),
-    
+
     // KYC workaround settings
     'kyc' => [
         'randomize_address' => env('GATEWAY_RANDOMIZE_ADDRESS', true),
         'address_provider' => \LBHurtado\PaymentGateway\Support\Address::class,
     ],
-    
+
     // Bank registry
     'banks' => [
         'json_path' => env('BANKS_JSON_PATH', 'banks.json'),

@@ -6,15 +6,15 @@ use Spatie\LaravelData\Data;
 
 /**
  * External system metadata for voucher tracking
- * 
+ *
  * Provides flexible structure for external systems (games, loyalty programs, etc.)
  * to attach their own metadata to vouchers.
- * 
- * @property ?string $external_id     - External system's unique identifier
- * @property ?string $external_type   - Type/category of external entity
- * @property ?string $reference_id    - Reference to external record
- * @property ?string $user_id         - External user/player/member ID
- * @property ?array  $custom          - Additional custom fields
+ *
+ * @property ?string $external_id - External system's unique identifier
+ * @property ?string $external_type - Type/category of external entity
+ * @property ?string $reference_id - Reference to external record
+ * @property ?string $user_id - External user/player/member ID
+ * @property ?array $custom - Additional custom fields
  */
 class ExternalMetadataData extends Data
 {

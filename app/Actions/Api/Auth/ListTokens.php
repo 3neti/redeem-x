@@ -13,7 +13,7 @@ use Spatie\LaravelData\DataCollection;
 
 /**
  * List all API tokens for the authenticated user.
- * 
+ *
  * Endpoint: GET /api/v1/auth/tokens
  */
 class ListTokens
@@ -32,7 +32,7 @@ class ListTokens
 
         $tokenData = new DataCollection(
             TokenData::class,
-            $tokens->map(fn($token) => TokenData::fromToken($token))
+            $tokens->map(fn ($token) => TokenData::fromToken($token))
         );
 
         return ApiResponse::success([

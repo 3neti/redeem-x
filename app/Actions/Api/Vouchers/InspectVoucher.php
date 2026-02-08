@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use Dedoc\Scramble\Attributes\Group;
 use FrittenKeeZ\Vouchers\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Number;
-use Lorisleiva\Actions\Concerns\AsAction;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
-use Dedoc\Scramble\Attributes\Group;
+use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * @group Vouchers
  *
  * Inspect voucher metadata ("x-ray" endpoint).
- * 
+ *
  * Public endpoint (no auth) that returns voucher metadata and instructions for transparency.
  * Useful for users to verify voucher origin, issuer, licenses, redemption options, and requirements.
  */
@@ -30,7 +30,7 @@ class InspectVoucher
         // Find voucher by code
         $voucher = Voucher::where('code', $code)->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return response()->json([
                 'success' => false,
                 'message' => 'Voucher not found',
@@ -75,7 +75,7 @@ class InspectVoucher
         $previewScope = 'full';
         $previewMessage = null;
         if (is_array($metadata)) {
-            $previewEnabled = array_key_exists('preview_enabled', $metadata) ? (bool)$metadata['preview_enabled'] : true;
+            $previewEnabled = array_key_exists('preview_enabled', $metadata) ? (bool) $metadata['preview_enabled'] : true;
             $previewScope = $metadata['preview_scope'] ?? 'full';
             $previewMessage = $metadata['preview_message'] ?? null;
         }
@@ -124,11 +124,11 @@ class InspectVoucher
 
         // Check if this is a B2B voucher (has payable restriction)
         // B2B vouchers ONLY validate vendor alias, skip all other validations
-        $isB2B = !empty($instructions->cash->validation->payable);
+        $isB2B = ! empty($instructions->cash->validation->payable);
 
         // Get required inputs with labels (skip for B2B vouchers)
         $requiredInputs = [];
-        if (!$isB2B && $instructions->inputs && $instructions->inputs->fields) {
+        if (! $isB2B && $instructions->inputs && $instructions->inputs->fields) {
             foreach ($instructions->inputs->fields as $field) {
                 $requiredInputs[] = [
                     'value' => $field->value,
@@ -149,13 +149,13 @@ class InspectVoucher
 
         // Add validation info (mask sensitive data)
         $response['validation'] = [
-            'has_secret' => !empty($instructions->cash->validation->secret),
-            'is_assigned' => !empty($instructions->cash->validation->mobile),
+            'has_secret' => ! empty($instructions->cash->validation->secret),
+            'is_assigned' => ! empty($instructions->cash->validation->mobile),
             'assigned_mobile_masked' => $this->maskMobile($instructions->cash->validation->mobile),
         ];
 
         // Add location validation if present AND not B2B
-        if ($instructions->validation?->location && !$isB2B) {
+        if ($instructions->validation?->location && ! $isB2B) {
             $location = $instructions->validation->location;
             $response['location_validation'] = [
                 'required' => $location->required,
@@ -168,7 +168,7 @@ class InspectVoucher
         }
 
         // Add time validation if present AND not B2B
-        if ($instructions->validation?->time && !$isB2B) {
+        if ($instructions->validation?->time && ! $isB2B) {
             $time = $instructions->validation->time;
             $response['time_validation'] = [
                 'window' => $time->window ? [
@@ -182,7 +182,7 @@ class InspectVoucher
         }
 
         // Add payable validation if present (B2B voucher)
-        if (!empty($instructions->cash->validation->payable)) {
+        if (! empty($instructions->cash->validation->payable)) {
             $response['payable_validation'] = [
                 'vendor_alias' => $instructions->cash->validation->payable,
                 'description' => $this->formatPayableDescription($instructions->cash->validation->payable),
@@ -225,6 +225,7 @@ class InspectVoucher
 
         // Ensure amount/currency are removed
         unset($filtered['amount'], $filtered['currency'], $filtered['formatted_amount']);
+
         return $filtered;
     }
 
@@ -255,7 +256,7 @@ class InspectVoucher
      */
     private function maskMobile(?string $mobile): ?string
     {
-        if (!$mobile) {
+        if (! $mobile) {
             return null;
         }
 
@@ -270,7 +271,7 @@ class InspectVoucher
         $lastTwo = substr($mobile, -2); // 67
         $middleLength = $length - 5; // Length of middle part to mask
 
-        return $countryCode . str_repeat('X', $middleLength) . $lastTwo;
+        return $countryCode.str_repeat('X', $middleLength).$lastTwo;
     }
 
     /**
@@ -279,6 +280,7 @@ class InspectVoucher
     private function formatLocationDescription($location): string
     {
         $action = $location->on_failure === 'block' ? 'Required' : 'Warning only';
+
         return "Must be within {$location->radius_meters}m of coordinates ({$location->target_lat}, {$location->target_lng}). {$action}.";
     }
 
@@ -297,7 +299,7 @@ class InspectVoucher
             $descriptions[] = "Must complete within {$time->limit_minutes} minutes of starting";
         }
 
-        return implode('. ', $descriptions) . '.';
+        return implode('. ', $descriptions).'.';
     }
 
     /**
@@ -330,7 +332,7 @@ class InspectVoucher
 
     /**
      * Inspect voucher metadata and instructions
-     * 
+     *
      * Public endpoint that reveals voucher origin, issuer, requirements, and redemption options.
      * Useful for transparency and verification before redemption.
      */

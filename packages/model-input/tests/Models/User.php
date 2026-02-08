@@ -4,28 +4,27 @@ declare(strict_types=1);
 
 namespace LBHurtado\ModelInput\Tests\Models;
 
-use LBHurtado\ModelInput\Database\Factories\UserFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use LBHurtado\ModelInput\Contracts\InputInterface;
-use LBHurtado\ModelInput\Traits\HasInputs;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use LBHurtado\ModelInput\Enums\InputType;
+use LBHurtado\ModelInput\Contracts\InputInterface;
+use LBHurtado\ModelInput\Database\Factories\UserFactory;
+use LBHurtado\ModelInput\Traits\HasInputs;
 
 /**
  * Class User.
  *
- * @property int        $id
- * @property string     $name
- * @property string     $email
- * @property Merchant   $merchant
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property Merchant $merchant
  *
  * @method int getKey()
  */
 class User extends Authenticatable implements InputInterface
 {
-    use HasInputs;
     use HasFactory;
+    use HasInputs;
     use Notifiable;
 
     /**
@@ -37,7 +36,7 @@ class User extends Authenticatable implements InputInterface
         'name',
         'email',
         'password',
-        'mobile'
+        'mobile',
     ];
 
     /**

@@ -11,7 +11,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Event::fake();
-    
+
     config(['contact.default.country' => 'PH']);
     config(['contact.default.bank_code' => 'GXCHPHM2XXX']);
 
@@ -73,7 +73,7 @@ test('api returns proper pagination', function () {
     $response = $this->getJson('/api/v1/vouchers?per_page=10&page=1');
 
     $response->assertOk();
-    
+
     $data = $response->json('data');
     expect($data['data'])->toHaveCount(10);
     expect($data['pagination']['current_page'])->toBe(1);
@@ -83,7 +83,7 @@ test('api returns proper pagination', function () {
     // Request second page
     $response2 = $this->getJson('/api/v1/vouchers?per_page=10&page=2');
     $response2->assertOk();
-    
+
     $data2 = $response2->json('data');
     expect($data2['data'])->toHaveCount(10);
     expect($data2['pagination']['current_page'])->toBe(2);
@@ -92,7 +92,7 @@ test('api returns proper pagination', function () {
 test('api filters vouchers by status', function () {
     // Create vouchers with different statuses
     $activeVoucher = Vouchers::withOwner($this->user)->create();
-    
+
     $expiredVoucher = Vouchers::withOwner($this->user)
         ->withExpireTimeIn(\Carbon\CarbonInterval::seconds(1))
         ->create();
@@ -112,19 +112,19 @@ test('api filters vouchers by status', function () {
     $response = $this->getJson('/api/v1/vouchers?status=active');
     $response->assertOk();
     $vouchers = collect($response->json('data.data'));
-    expect($vouchers->every(fn($v) => !$v['is_expired'] && !$v['is_redeemed']))->toBeTrue();
+    expect($vouchers->every(fn ($v) => ! $v['is_expired'] && ! $v['is_redeemed']))->toBeTrue();
 
     // Filter for redeemed
     $response = $this->getJson('/api/v1/vouchers?status=redeemed');
     $response->assertOk();
     $vouchers = collect($response->json('data.data'));
-    expect($vouchers->every(fn($v) => $v['is_redeemed']))->toBeTrue();
+    expect($vouchers->every(fn ($v) => $v['is_redeemed']))->toBeTrue();
 
     // Filter for expired
     $response = $this->getJson('/api/v1/vouchers?status=expired');
     $response->assertOk();
     $vouchers = collect($response->json('data.data'));
-    expect($vouchers->every(fn($v) => $v['is_expired'] && !$v['is_redeemed']))->toBeTrue();
+    expect($vouchers->every(fn ($v) => $v['is_expired'] && ! $v['is_redeemed']))->toBeTrue();
 });
 
 test('api searches vouchers by code', function () {

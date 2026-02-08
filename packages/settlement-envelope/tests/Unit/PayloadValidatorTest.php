@@ -3,7 +3,7 @@
 use LBHurtado\SettlementEnvelope\Services\PayloadValidator;
 
 beforeEach(function () {
-    $this->validator = new PayloadValidator();
+    $this->validator = new PayloadValidator;
 });
 
 describe('JSON pointer parsing', function () {
@@ -216,7 +216,7 @@ describe('JSON Schema validation', function () {
         $validPayload = ['name' => 'John', 'age' => 30];
 
         // Should not throw
-        expect(fn() => $this->validator->validate($validPayload, null, $schema))
+        expect(fn () => $this->validator->validate($validPayload, null, $schema))
             ->not->toThrow(Exception::class);
     });
 
@@ -231,7 +231,7 @@ describe('JSON Schema validation', function () {
 
         $invalidPayload = ['age' => 30]; // missing required 'name'
 
-        expect(fn() => $this->validator->validate($invalidPayload, null, $schema))
+        expect(fn () => $this->validator->validate($invalidPayload, null, $schema))
             ->toThrow(\LBHurtado\SettlementEnvelope\Exceptions\PayloadValidationException::class);
     });
 

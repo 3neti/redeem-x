@@ -29,7 +29,7 @@ function makeInstructions(array $overrides = []): VoucherInstructionsData
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    
+
     // Create test pricing items
     InstructionItem::create([
         'name' => 'Cash Amount',
@@ -37,30 +37,30 @@ beforeEach(function () {
         'type' => 'cash',
         'price' => 2000,
     ]);
-    
+
     InstructionItem::create([
         'name' => 'Email',
         'index' => 'feedback.email',
         'type' => 'feedback',
         'price' => 100,
     ]);
-    
+
     InstructionItem::create([
         'name' => 'Mobile',
         'index' => 'feedback.mobile',
         'type' => 'feedback',
         'price' => 180,
     ]);
-    
+
     InstructionItem::create([
         'name' => 'Signature',
         'index' => 'inputs.fields.signature',
         'type' => 'inputs',
         'price' => 280,
     ]);
-    
+
     $this->evaluator = new InstructionCostEvaluator(
-        new InstructionItemRepository()
+        new InstructionItemRepository
     );
 });
 
@@ -68,9 +68,9 @@ test('evaluator charges for non-empty string values', function () {
     $instructions = makeInstructions([
         'feedback' => ['email' => 'test@example.com'],
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     expect($charges)->toHaveCount(2) // cash.amount + feedback.email
         ->and($charges->pluck('item.index')->toArray())
         ->toContain('cash.amount', 'feedback.email');
@@ -80,9 +80,9 @@ test('evaluator does not charge for empty strings', function () {
     $instructions = makeInstructions([
         'feedback' => ['email' => ''],
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     expect($charges->pluck('item.index')->toArray())
         ->not->toContain('feedback.email');
 });
@@ -94,13 +94,13 @@ test('evaluator excludes count field', function () {
         'type' => 'generation',
         'price' => 100,
     ]);
-    
+
     $instructions = makeInstructions([
         'count' => 10,
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     expect($charges->pluck('item.index')->toArray())
         ->not->toContain('count');
 });
@@ -112,13 +112,13 @@ test('evaluator excludes mask field', function () {
         'type' => 'generation',
         'price' => 100,
     ]);
-    
+
     $instructions = makeInstructions([
         'mask' => '****',
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     expect($charges->pluck('item.index')->toArray())
         ->not->toContain('mask');
 });
@@ -127,26 +127,26 @@ test('evaluator returns correct price for each item', function () {
     $instructions = makeInstructions([
         'feedback' => ['email' => 'test@example.com'],
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     $emailCharge = $charges->firstWhere('item.index', 'feedback.email');
-    
+
     expect($emailCharge['price'])->toBe(100);
 });
 
 test('evaluator includes item metadata', function () {
     InstructionItem::where('index', 'feedback.email')
         ->update(['meta' => ['label' => 'Email Address']]);
-    
+
     $instructions = makeInstructions([
         'feedback' => ['email' => 'test@example.com'],
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     $emailCharge = $charges->firstWhere('item.index', 'feedback.email');
-    
+
     expect($emailCharge['label'])->toBe('Email Address');
 });
 
@@ -157,9 +157,9 @@ test('evaluator handles multiple chargeable items', function () {
             'mobile' => '09171234567',
         ],
     ]);
-    
+
     $charges = $this->evaluator->evaluate($this->user, $instructions);
-    
+
     expect($charges)->toHaveCount(3) // cash.amount + email + mobile
         ->and($charges->sum('price'))->toBe(2280); // 2000 + 100 + 180
 });

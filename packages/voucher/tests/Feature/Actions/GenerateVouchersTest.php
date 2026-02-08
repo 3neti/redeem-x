@@ -1,18 +1,18 @@
 <?php
 
-use LBHurtado\Voucher\Data\CashValidationRulesData;
-use LBHurtado\Voucher\Data\FeedbackInstructionData;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use Carbon\CarbonInterval;
+use FrittenKeeZ\Vouchers\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use LBHurtado\Voucher\Data\RiderInstructionData;
+use Illuminate\Support\Facades\Event;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\CashInstructionData;
-use LBHurtado\Voucher\Events\VouchersGenerated;
-use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Data\CashValidationRulesData;
+use LBHurtado\Voucher\Data\FeedbackInstructionData;
 use LBHurtado\Voucher\Data\InputFieldsData;
-use FrittenKeeZ\Vouchers\Models\Voucher;
-use Illuminate\Support\Facades\Event;
-use Carbon\CarbonInterval;
+use LBHurtado\Voucher\Data\RiderInstructionData;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
+use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Events\VouchersGenerated;
 
 uses(RefreshDatabase::class);
 
@@ -62,7 +62,7 @@ it('generates multiple vouchers using default values', function () {
     expect($vouchers->first()->instructions->cash->amount)->toBe(1000.0);
 
     // Assert: Ensure VouchersGenerated event was dispatched
-    Event::assertDispatched(VouchersGenerated::class, function ($event) use ($vouchers) {
+    Event::assertDispatched(VouchersGenerated::class, function ($event) {
         return $event->getVouchers()->count() === 1;
     });
 });
@@ -108,17 +108,17 @@ it('generates vouchers with custom parameters', function () {
         ->and($vouchers->first()->code)->toStartWith('AA')
         ->and($vouchers->first()->code) // Add assertion to test mask
         ->toMatch('/^'
-            . $instructions->prefix // Escape the prefix
-            . config('vouchers.separator') // Add the separator after the prefix
-            . str_replace('*', '.', $instructions->mask) // Replace '*' with '.' and escape everything else
-            . '$/' // Ensure the entire code matches
+            .$instructions->prefix // Escape the prefix
+            .config('vouchers.separator') // Add the separator after the prefix
+            .str_replace('*', '.', $instructions->mask) // Replace '*' with '.' and escape everything else
+            .'$/' // Ensure the entire code matches
         )
         ->and($vouchers->first()->instructions->cash->currency)->toBe('USD');
 
     // Assert: Check metadata
 
     // Assert: Event dispatching
-    Event::assertDispatched(VouchersGenerated::class, function ($event) use ($vouchers) {
+    Event::assertDispatched(VouchersGenerated::class, function ($event) {
         return $event->getVouchers()->count() === 2;
     });
 });

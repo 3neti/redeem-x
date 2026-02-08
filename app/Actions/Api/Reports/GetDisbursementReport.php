@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Reports;
 
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
  * Get Disbursement Report
  *
  * Retrieve comprehensive list of all disbursement attempts with filtering for reconciliation and auditing.
- * 
+ *
  * This endpoint exposes the complete audit trail of disbursement transactions,
  * essential for daily bank reconciliation, financial reporting, and compliance auditing.
- * 
+ *
  * **Use Cases:**
  * - Daily settlement reconciliation with banks
  * - Monthly financial reporting
  * - Audit trail for compliance
  * - Investigating specific disbursement issues
  * - Exporting data for accounting software
- * 
+ *
  * **Data Includes:**
  * - Voucher code and reference IDs
  * - Amount, currency, and recipient details
@@ -32,7 +32,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Disbursement status and timestamps
  * - Gateway transaction IDs for bank matching
  * - Error details for failed attempts
- * 
+ *
  * **Filtering:**
  * - Date range (required for performance)
  * - Status (success/failed/pending)
@@ -41,6 +41,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Error type for troubleshooting
  *
  * @group Reports
+ *
  * @authenticated
  */
 #[Group('Reports')]
@@ -73,7 +74,7 @@ class GetDisbursementReport
         $query = DisbursementAttempt::query()
             ->whereBetween('attempted_at', [
                 $request->input('from_date'),
-                $request->input('to_date') . ' 23:59:59',
+                $request->input('to_date').' 23:59:59',
             ])
             ->orderByDesc('attempted_at');
 

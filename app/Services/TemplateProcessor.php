@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 
 /**
  * Template processor for replacing {{ variable }} placeholders with actual values.
@@ -21,8 +20,9 @@ class TemplateProcessor
      * @param  array  $formatters  Optional custom formatters ['path' => callable]
      * @param  bool  $strict  Whether to throw on missing variables
      * @param  string  $fallback  Fallback value for missing variables
-     * @return string  Processed string
-     * @throws \Exception  If strict mode and variable not found
+     * @return string Processed string
+     *
+     * @throws \Exception If strict mode and variable not found
      */
     public static function process(
         string $template,
@@ -48,7 +48,7 @@ class TemplateProcessor
                 $value = Arr::get($data, $path);
 
                 // If not found and path has no dots, try recursive search
-                if ($value === null && !str_contains($path, '.')) {
+                if ($value === null && ! str_contains($path, '.')) {
                     $value = static::recursiveSearch($data, $path);
                 }
 
@@ -57,6 +57,7 @@ class TemplateProcessor
                     if ($strict) {
                         throw new \Exception("Template variable not found: {$path}");
                     }
+
                     return $fallback;
                 }
 
@@ -75,8 +76,6 @@ class TemplateProcessor
     /**
      * Recursively search for a key in nested arrays/objects.
      *
-     * @param  array  $data
-     * @param  string  $key
      * @return mixed|null
      */
     protected static function recursiveSearch(array $data, string $key): mixed
@@ -101,9 +100,6 @@ class TemplateProcessor
 
     /**
      * Format a value based on its type.
-     *
-     * @param  mixed  $value
-     * @return string
      */
     protected static function formatValue(mixed $value): string
     {
@@ -133,9 +129,6 @@ class TemplateProcessor
 
     /**
      * Check if a template contains any variables.
-     *
-     * @param  string  $template
-     * @return bool
      */
     public static function hasVariables(string $template): bool
     {
@@ -144,22 +137,16 @@ class TemplateProcessor
 
     /**
      * Extract all variable paths from a template.
-     *
-     * @param  string  $template
-     * @return array
      */
     public static function extractVariables(string $template): array
     {
         preg_match_all('/\{\{\s*([\w.]+)\s*\}\}/', $template, $matches);
+
         return $matches[1] ?? [];
     }
 
     /**
      * Validate that all variables in template can be resolved.
-     *
-     * @param  string  $template
-     * @param  array|object  $context
-     * @return bool
      */
     public static function canResolve(string $template, array|object $context): bool
     {

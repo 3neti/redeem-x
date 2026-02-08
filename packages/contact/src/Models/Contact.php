@@ -2,14 +2,15 @@
 
 namespace LBHurtado\Contact\Models;
 
-use LBHurtado\Contact\Traits\{HasAdditionalAttributes, HasMeta};
-use LBHurtado\Contact\Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use LBHurtado\Contact\Traits\HasBankAccount;
-use LBHurtado\Contact\Contracts\Bankable;
-use LBHurtado\Contact\Traits\HasMobile;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use LBHurtado\Contact\Contracts\Bankable;
+use LBHurtado\Contact\Database\Factories\ContactFactory;
+use LBHurtado\Contact\Traits\HasAdditionalAttributes;
+use LBHurtado\Contact\Traits\HasBankAccount;
+use LBHurtado\Contact\Traits\HasMeta;
+use LBHurtado\Contact\Traits\HasMobile;
 use LBHurtado\HyperVerge\Traits\HasFaceVerification;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -17,19 +18,19 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 /**
  * Class Contact.
  *
- * @property int         $id
- * @property string      $mobile
- * @property string      $country
- * @property string      $bank_account
- * @property string      $bank_code
- * @property string      $account_number
- * @property string      $name
+ * @property int $id
+ * @property string $mobile
+ * @property string $country
+ * @property string $bank_account
+ * @property string $bank_code
+ * @property string $account_number
+ * @property string $name
  * @property string|null $kyc_transaction_id
  * @property string|null $kyc_status
  * @property string|null $kyc_onboarding_url
  * @property string|null $kyc_submitted_at
  * @property string|null $kyc_completed_at
- * @property array|null  $kyc_rejection_reasons
+ * @property array|null $kyc_rejection_reasons
  *
  * @method int getKey()
  */
@@ -37,10 +38,10 @@ class Contact extends Model implements Bankable, HasMedia
 {
     use HasAdditionalAttributes;
     use HasBankAccount;
-    use HasFactory;
     use HasFaceVerification;
-    use HasMobile;
+    use HasFactory;
     use HasMeta;
+    use HasMobile;
     use InteractsWithMedia;
 
     protected $fillable = [
@@ -50,7 +51,7 @@ class Contact extends Model implements Bankable, HasMedia
     ];
 
     protected $appends = [
-        'name'
+        'name',
     ];
 
     public static function booted(): void
@@ -64,9 +65,9 @@ class Contact extends Model implements Bankable, HasMedia
                 $defaultCode = config('contact.default.bank_code');
                 $contact->bank_account = "{$defaultCode}:{$contact->mobile}";
             }
-//            $contact->bank_account = ($contact->bank_account
-//                    ?: config('contact.default.bank_code'))
-//                . ':' . $contact->mobile;
+            //            $contact->bank_account = ($contact->bank_account
+            //                    ?: config('contact.default.bank_code'))
+            //                . ':' . $contact->mobile;
         });
     }
 
@@ -110,25 +111,27 @@ class Contact extends Model implements Bankable, HasMedia
      */
     public function needsKyc(): bool
     {
-        return !$this->isKycApproved();
+        return ! $this->isKycApproved();
     }
 
     public function getBankCodeAttribute(): ?string
     {
-        if (!$this->bank_account) {
+        if (! $this->bank_account) {
             return null;
         }
+
         return $this->getBankCode();
     }
 
     public function getAccountNumberAttribute(): ?string
     {
-        if (!$this->bank_account) {
+        if (! $this->bank_account) {
             return null;
         }
+
         return $this->getAccountNumber();
     }
-    
+
     /**
      * Users who received payments from this contact (as sender)
      */
@@ -143,10 +146,10 @@ class Contact extends Model implements Bankable, HasMedia
             'transaction_count',
             'first_transaction_at',
             'last_transaction_at',
-            'metadata'
+            'metadata',
         ])->withTimestamps();
     }
-    
+
     /**
      * Get all institutions this contact has used to send to a specific user
      */
@@ -156,16 +159,16 @@ class Contact extends Model implements Bankable, HasMedia
             ->where('user_id', $user->id)
             ->first()
             ?->pivot;
-        
-        if (!$pivot || !$pivot->metadata) {
+
+        if (! $pivot || ! $pivot->metadata) {
             return [];
         }
-        
+
         // Decode if it's a JSON string
-        $metadata = is_string($pivot->metadata) 
-            ? json_decode($pivot->metadata, true) 
+        $metadata = is_string($pivot->metadata)
+            ? json_decode($pivot->metadata, true)
             : $pivot->metadata;
-        
+
         return collect($metadata)
             ->pluck('institution')
             ->unique()
@@ -173,7 +176,7 @@ class Contact extends Model implements Bankable, HasMedia
             ->values()
             ->toArray();
     }
-    
+
     /**
      * Get the most recent institution used by this contact for a specific user
      */
@@ -183,25 +186,25 @@ class Contact extends Model implements Bankable, HasMedia
             ->where('user_id', $user->id)
             ->first()
             ?->pivot;
-        
-        if (!$pivot || !$pivot->metadata) {
+
+        if (! $pivot || ! $pivot->metadata) {
             return null;
         }
-        
+
         // Decode if it's a JSON string
-        $metadata = is_string($pivot->metadata) 
-            ? json_decode($pivot->metadata, true) 
+        $metadata = is_string($pivot->metadata)
+            ? json_decode($pivot->metadata, true)
             : $pivot->metadata;
-        
+
         return collect($metadata)->last()['institution'] ?? null;
     }
-    
+
     /**
      * Get institution display name from code
      */
     public static function institutionName(string $code): string
     {
-        return match($code) {
+        return match ($code) {
             'GXCHPHM2XXX' => 'GCash',
             'PMYAPHM2XXX' => 'Maya',
             'BOPIPHM2XXX' => 'BPI',
@@ -211,10 +214,10 @@ class Contact extends Model implements Bankable, HasMedia
             default => $code,
         };
     }
-    
+
     /**
      * Find or create contact from webhook sender data
-     * 
+     *
      * Note: Institution code is NOT stored here - it's stored per-transaction
      * in the pivot table metadata to preserve full payment method history.
      */
@@ -223,9 +226,9 @@ class Contact extends Model implements Bankable, HasMedia
         // Normalize mobile to E.164 format
         $mobile = $senderData['accountNumber'];
         if (str_starts_with($mobile, '0')) {
-            $mobile = '63' . substr($mobile, 1);
+            $mobile = '63'.substr($mobile, 1);
         }
-        
+
         return static::updateOrCreate(
             ['mobile' => $mobile],
             [

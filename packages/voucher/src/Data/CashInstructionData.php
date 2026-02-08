@@ -2,12 +2,12 @@
 
 namespace LBHurtado\Voucher\Data;
 
+use Brick\Money\Money;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Data\Traits\HasSafeDefaults;
 use Spatie\LaravelData\Attributes\WithCast;
 use Spatie\LaravelData\Casts\EnumCast;
 use Spatie\LaravelData\Data;
-use Brick\Money\Money;
 
 class CashInstructionData extends Data
 {
@@ -20,27 +20,29 @@ class CashInstructionData extends Data
         #[WithCast(EnumCast::class)]
         public ?SettlementRail $settlement_rail = null,
         public string $fee_strategy = 'absorb',
-    ) { $this->applyRulesAndDefaults(); }
+    ) {
+        $this->applyRulesAndDefaults();
+    }
 
     protected function rulesAndDefaults(): array
     {
         return [
             'amount' => [
                 ['required', 'numeric', 'min:0'],
-                config('instructions.cash.amount')
+                config('instructions.cash.amount'),
             ],
             'currency' => [
                 ['required', 'string', 'size:3'],
-                config('instructions.cash.currency')
+                config('instructions.cash.currency'),
             ],
             'settlement_rail' => [
                 ['nullable'],
-                null
+                null,
             ],
             'fee_strategy' => [
                 ['required', 'string', 'in:absorb,include,add'],
-                'absorb'
-            ]
+                'absorb',
+            ],
         ];
     }
 

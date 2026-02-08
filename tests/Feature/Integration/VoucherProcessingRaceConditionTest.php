@@ -5,20 +5,18 @@ namespace Tests\Feature\Integration;
 use App\Actions\Voucher\ProcessRedemption;
 use App\Exceptions\VoucherNotProcessedException;
 use App\Models\User;
-use Illuminate\Support\Facades\Event;
-use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Models\Voucher;
-use LBHurtado\Voucher\Events\VouchersGenerated;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use LBHurtado\Voucher\Actions\GenerateVouchers;
-use Propaganistas\LaravelPhone\PhoneNumber;
-use Tests\TestCase;
-use Tests\Helpers\VoucherTestHelper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use LBHurtado\Voucher\Events\VouchersGenerated;
+use LBHurtado\Voucher\Models\Voucher;
+use Propaganistas\LaravelPhone\PhoneNumber;
+use Tests\Helpers\VoucherTestHelper;
+use Tests\TestCase;
 
 class VoucherProcessingRaceConditionTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * Test that attempting to redeem unprocessed voucher throws exception.
      */
@@ -26,11 +24,11 @@ class VoucherProcessingRaceConditionTest extends TestCase
     {
         // Prevent queue jobs from running
         Event::fake([VouchersGenerated::class]);
-        
+
         // Create user with funds
         $user = User::factory()->create();
         $user->deposit(10000); // 100 PHP
-        
+
         // Generate voucher (will be unprocessed because events are faked)
         $vouchers = VoucherTestHelper::createVouchersWithInstructions(
             $user,
@@ -47,19 +45,19 @@ class VoucherProcessingRaceConditionTest extends TestCase
                 'rider' => [],
             ]
         );
-        
+
         $voucher = $vouchers->first();
-        
+
         // Ensure voucher is not processed
         $this->assertFalse($voucher->processed, 'Voucher should not be processed');
         $this->assertNull($voucher->processed_on, 'Voucher should not have processed_on timestamp');
-        
+
         // Attempt redemption
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
-        
+
         $this->expectException(VoucherNotProcessedException::class);
         $this->expectExceptionMessage('This voucher is still being prepared');
-        
+
         ProcessRedemption::run($voucher, $phoneNumber, ['name' => 'Test', 'email' => 'test@example.com'], []);
     }
 
@@ -71,7 +69,7 @@ class VoucherProcessingRaceConditionTest extends TestCase
         // Create user with funds
         $user = User::factory()->create();
         $user->deposit(20000); // 200 PHP (extra buffer for fees)
-        
+
         // Generate voucher and run post-generation pipeline
         $vouchers = VoucherTestHelper::createVouchersWithInstructions(
             $user,
@@ -88,33 +86,33 @@ class VoucherProcessingRaceConditionTest extends TestCase
                 'rider' => [],
             ]
         );
-        
+
         $voucher = $vouchers->first();
-        
+
         // Manually run post-generation pipeline to process voucher
         $postGenerationPipeline = config('voucher-pipeline.post-generation');
         app(\Illuminate\Pipeline\Pipeline::class)
             ->send($vouchers)
             ->through($postGenerationPipeline)
             ->thenReturn();
-        
+
         $voucher->refresh();
-        
+
         $this->assertTrue($voucher->processed, 'Voucher should be processed');
         $this->assertNotNull($voucher->cash, 'Voucher should have cash entity');
-        
+
         // Attempt redemption (should succeed)
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
-        
+
         $result = ProcessRedemption::run(
             $voucher,
             $phoneNumber,
             ['name' => 'Test User', 'email' => 'test@example.com'],
             ['bank_code' => 'GXCHPHM2XXX', 'account_number' => '09171234567']
         );
-        
+
         $this->assertTrue($result, 'Redemption should succeed');
-        
+
         // Verify voucher is now redeemed
         $voucher->refresh();
         $this->assertNotNull($voucher->redeemed_at, 'Voucher should be redeemed');
@@ -128,7 +126,7 @@ class VoucherProcessingRaceConditionTest extends TestCase
         // Create user with funds
         $user = User::factory()->create();
         $user->deposit(50000); // 500 PHP for 10 vouchers @ 50 each
-        
+
         // Generate 10 vouchers
         $vouchers = VoucherTestHelper::createVouchersWithInstructions(
             $user,
@@ -145,14 +143,14 @@ class VoucherProcessingRaceConditionTest extends TestCase
                 'rider' => [],
             ]
         );
-        
+
         // Manually run post-generation pipeline
         $postGenerationPipeline = config('voucher-pipeline.post-generation');
         app(\Illuminate\Pipeline\Pipeline::class)
             ->send($vouchers)
             ->through($postGenerationPipeline)
             ->thenReturn();
-        
+
         // Verify all vouchers are processed
         foreach ($vouchers as $voucher) {
             $voucher->refresh();
@@ -167,11 +165,11 @@ class VoucherProcessingRaceConditionTest extends TestCase
     public function test_processing_flag_set_after_cash_creation(): void
     {
         Event::fake([VouchersGenerated::class]);
-        
+
         // Create user with funds
         $user = User::factory()->create();
         $user->deposit(10000);
-        
+
         // Generate voucher
         $vouchers = VoucherTestHelper::createVouchersWithInstructions(
             $user,
@@ -188,23 +186,23 @@ class VoucherProcessingRaceConditionTest extends TestCase
                 'rider' => [],
             ]
         );
-        
+
         $voucher = $vouchers->first();
-        
+
         // Initially not processed
         $this->assertFalse($voucher->processed);
         $this->assertNull($voucher->cash);
-        
+
         // Run post-generation pipeline
         $postGenerationPipeline = config('voucher-pipeline.post-generation');
         app(\Illuminate\Pipeline\Pipeline::class)
             ->send($vouchers)
             ->through($postGenerationPipeline)
             ->thenReturn();
-        
+
         // Refresh and check order
         $voucher->refresh();
-        
+
         // Both should be true now
         $this->assertNotNull($voucher->cash, 'Cash entity should be created first');
         $this->assertTrue($voucher->processed, 'Processed flag should be set after cash creation');
@@ -217,11 +215,11 @@ class VoucherProcessingRaceConditionTest extends TestCase
     public function test_http_confirm_returns_425_for_unprocessed_voucher(): void
     {
         Event::fake([VouchersGenerated::class]);
-        
+
         // Create user with funds
         $user = User::factory()->create();
         $user->deposit(10000);
-        
+
         // Generate voucher (unprocessed)
         $vouchers = VoucherTestHelper::createVouchersWithInstructions(
             $user,
@@ -238,24 +236,24 @@ class VoucherProcessingRaceConditionTest extends TestCase
                 'rider' => [],
             ]
         );
-        
+
         $voucher = $vouchers->first();
-        
+
         // Setup session data
         session([
             "redeem.{$voucher->code}.mobile" => '09171234567',
             "redeem.{$voucher->code}.country" => 'PH',
             "redeem.{$voucher->code}.inputs" => [],
         ]);
-        
+
         // Attempt confirmation via HTTP
         $response = $this->post("/redeem/{$voucher->code}/confirm");
-        
+
         // Should redirect back to finalize with error
         $response->assertRedirect("/redeem/{$voucher->code}/finalize");
         $response->assertSessionHas('error');
         $response->assertSessionHas('voucher_processing', true);
-        
+
         $errorMessage = session('error');
         $this->assertStringContainsString('being prepared', $errorMessage);
     }
@@ -268,7 +266,7 @@ class VoucherProcessingRaceConditionTest extends TestCase
         // Create user with funds
         $user = User::factory()->create();
         $user->deposit(20000); // 200 PHP (extra buffer for fees)
-        
+
         // Generate voucher with very short TTL
         $vouchers = VoucherTestHelper::createVouchersWithInstructions(
             $user,
@@ -286,30 +284,30 @@ class VoucherProcessingRaceConditionTest extends TestCase
                 'ttl' => \Carbon\CarbonInterval::seconds(1), // 1 second TTL
             ]
         );
-        
+
         $voucher = $vouchers->first();
-        
+
         // Process voucher
         $postGenerationPipeline = config('voucher-pipeline.post-generation');
         app(\Illuminate\Pipeline\Pipeline::class)
             ->send($vouchers)
             ->through($postGenerationPipeline)
             ->thenReturn();
-        
+
         $voucher->refresh();
-        
+
         // Manually expire voucher
         $voucher->expires_at = now()->subDay();
         $voucher->save();
-        
+
         $this->assertTrue($voucher->isExpired(), 'Voucher should be expired');
         $this->assertTrue($voucher->processed, 'Voucher should still be processed');
-        
+
         // Attempting redemption should fail (expired validation happens before processed check)
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
-        
+
         $this->expectException(\RuntimeException::class);
-        
+
         ProcessRedemption::run($voucher, $phoneNumber, [], []);
     }
 }

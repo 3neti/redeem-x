@@ -2,16 +2,16 @@
 
 namespace LBHurtado\Voucher\Models;
 
-use LBHurtado\Voucher\Database\Factories\MoneyIssuerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use LBHurtado\Voucher\Database\Factories\MoneyIssuerFactory;
 
 /**
  * Class MoneyIssuer.
  *
- * @property int         $id
- * @property string      $code
- * @property string      $name
+ * @property int $id
+ * @property string $code
+ * @property string $name
  *
  * @method int getKey()
  */
@@ -21,7 +21,7 @@ class MoneyIssuer extends Model
 
     protected $fillable = [
         'code',
-        'name'
+        'name',
     ];
 
     public static function newFactory(): MoneyIssuerFactory

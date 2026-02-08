@@ -26,21 +26,21 @@ it('saves splash fields when generating via API endpoint', function () {
         ]);
 
     $response->assertStatus(201);
-    
+
     $data = $response->json('data');
     expect($data)->toHaveKey('vouchers')
         ->and($data['vouchers'])->toHaveCount(1);
-    
+
     $voucherCode = $data['vouchers'][0]['code'];
     $voucher = Voucher::where('code', $voucherCode)->first();
-    
+
     expect($voucher)->not->toBeNull();
-    
+
     $riderData = $voucher->instructions->rider->toArray();
-    
+
     dump('API - Voucher code:', $voucherCode);
     dump('API - Rider data:', $riderData);
-    
+
     expect($riderData)->toHaveKeys([
         'message',
         'url',
@@ -65,17 +65,17 @@ it('accepts null splash fields via API', function () {
         ]);
 
     $response->assertStatus(201);
-    
+
     $voucherCode = $response->json('data.vouchers.0.code');
     $voucher = Voucher::where('code', $voucherCode)->first();
-    
+
     expect($voucher->instructions->rider->splash)->toBeNull()
         ->and($voucher->instructions->rider->splash_timeout)->toBeNull();
 });
 
 it('validates splash field max length via API', function () {
     $longContent = str_repeat('A', 51201); // Exceeds 51200 limit
-    
+
     $response = $this->actingAs($this->user)
         ->postJson('/api/v1/vouchers', [
             'amount' => 50,
@@ -122,10 +122,10 @@ MD;
         ]);
 
     $response->assertStatus(201);
-    
+
     $voucherCode = $response->json('data.vouchers.0.code');
     $voucher = Voucher::where('code', $voucherCode)->first();
-    
+
     expect($voucher->instructions->rider->splash)->toBe($markdownContent)
         ->and($voucher->instructions->rider->splash_timeout)->toBe(15);
 });

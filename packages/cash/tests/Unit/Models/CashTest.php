@@ -1,9 +1,9 @@
 <?php
 
+use Brick\Money\Money;
 use Illuminate\Database\Eloquent\Casts\ArrayObject;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Cash\Models\Cash;
-use Brick\Money\Money;
 
 uses(RefreshDatabase::class);
 
@@ -23,8 +23,7 @@ it('creates a cash record with meta and reference', function () {
         ->and($cash->currency)->toBe('PHP')
         ->and($cash->meta)->toBeInstanceOf(ArrayObject::class)
         ->and($cash->meta->note)->toBe('Disbursed for transport support')
-        ->and($cash->meta['note'])->toBe('Disbursed for transport support')
-    ;
+        ->and($cash->meta['note'])->toBe('Disbursed for transport support');
 });
 
 it('accepts a Money object and stores it as minor units', function () {
@@ -95,10 +94,10 @@ it('checks if cash is expired', function () {
     expect($cash->expired)->toBeFalse();
 });
 
-//it('cannot be updated', function () {
+// it('cannot be updated', function () {
 //    $cash = Cash::factory()->create(['amount' => 1500, 'currency' => 'PHP']);
 //    $cash->amount = 100;
 //    $cash->save();
 //    $cash->refresh();
 //    expect($cash->amount->getAmount()->toFloat())->toBe(1500.0);
-//});
+// });

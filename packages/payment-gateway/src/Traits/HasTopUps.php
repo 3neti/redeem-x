@@ -2,11 +2,12 @@
 
 namespace LBHurtado\PaymentGateway\Traits;
 
-use LBHurtado\PaymentGateway\Contracts\{PaymentGatewayInterface, TopUpInterface};
-use LBHurtado\PaymentGateway\Data\TopUp\TopUpResultData;
-use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\CollectionRequestData;
-use LBHurtado\PaymentGateway\Exceptions\TopUpException;
 use Illuminate\Support\Str;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Contracts\TopUpInterface;
+use LBHurtado\PaymentGateway\Data\Netbank\DirectCheckout\CollectionRequestData;
+use LBHurtado\PaymentGateway\Data\TopUp\TopUpResultData;
+use LBHurtado\PaymentGateway\Exceptions\TopUpException;
 
 trait HasTopUps
 {
@@ -19,10 +20,10 @@ trait HasTopUps
     /**
      * Initiate a top-up via payment gateway.
      *
-     * @param float $amount Amount to top-up
-     * @param string $gateway Payment gateway (netbank, stripe, etc.)
-     * @param string|null $institutionCode For netbank: GCASH, MAYA, etc.
-     * @return TopUpResultData
+     * @param  float  $amount  Amount to top-up
+     * @param  string  $gateway  Payment gateway (netbank, stripe, etc.)
+     * @param  string|null  $institutionCode  For netbank: GCASH, MAYA, etc.
+     *
      * @throws TopUpException
      */
     public function initiateTopUp(
@@ -33,7 +34,7 @@ trait HasTopUps
         // Validate amount
         $min = config('payment-gateway.top_up.min_amount', 1);
         $max = config('payment-gateway.top_up.max_amount', 50000);
-        
+
         if ($amount < $min || $amount > $max) {
             throw TopUpException::invalidAmount($amount, $min, $max);
         }
@@ -48,14 +49,14 @@ trait HasTopUps
         if ($gateway === 'netbank') {
             $request = CollectionRequestData::from([
                 'reference_no' => $referenceNo,
-                'amount' => (int)($amount * 100), // Convert to cents
+                'amount' => (int) ($amount * 100), // Convert to cents
                 'currency' => 'PHP',
                 'institution_code' => $institutionCode,
             ]);
 
             $response = $gatewayInstance->initiateCollection($request);
 
-            if (!$response) {
+            if (! $response) {
                 throw TopUpException::initiationFailed('Gateway returned null response');
             }
 
@@ -116,7 +117,7 @@ trait HasTopUps
     {
         $topUp = $this->topUps()->where('reference_no', $referenceNo)->first();
 
-        if (!$topUp) {
+        if (! $topUp) {
             throw TopUpException::referenceNotFound($referenceNo);
         }
 
@@ -137,19 +138,18 @@ trait HasTopUps
      * Credit wallet from a paid top-up.
      * Expects model to have wallet functionality (Bavix Wallet).
      *
-     * @param TopUpInterface $topUp
-     * @param mixed|null $initiatedBy User who initiated the top-up (for audit trail)
+     * @param  mixed|null  $initiatedBy  User who initiated the top-up (for audit trail)
      */
     public function creditWalletFromTopUp(TopUpInterface $topUp, $initiatedBy = null): void
     {
-        if (!$topUp->isPaid()) {
+        if (! $topUp->isPaid()) {
             return;
         }
 
         if (method_exists($this, 'deposit')) {
             // Bavix Wallet stores amounts in cents, so multiply by 100
-            $amountInCents = (int)($topUp->getAmount() * 100);
-            
+            $amountInCents = (int) ($topUp->getAmount() * 100);
+
             $metadata = [
                 'type' => 'top_up', // Legacy compatibility
                 'deposit_type' => 'manual_topup',
@@ -157,14 +157,14 @@ trait HasTopUps
                 'reference_no' => $topUp->getReferenceNo(),
                 'gateway' => $topUp->getGateway(),
             ];
-            
+
             // Add admin user info for audit trail
             if ($initiatedBy) {
                 $metadata['sender_id'] = $initiatedBy->id ?? null;
                 $metadata['sender_name'] = $initiatedBy->name ?? 'Unknown';
                 $metadata['sender_identifier'] = $initiatedBy->email ?? 'unknown@system';
             }
-            
+
             $this->deposit($amountInCents, $metadata);
         }
     }
@@ -174,7 +174,7 @@ trait HasTopUps
      */
     protected function generateTopUpReference(): string
     {
-        return 'TOPUP-' . strtoupper(Str::random(10));
+        return 'TOPUP-'.strtoupper(Str::random(10));
     }
 
     /**
@@ -183,6 +183,7 @@ trait HasTopUps
     protected function getPaymentGateway(string $gateway): PaymentGatewayInterface
     {
         $gatewayClass = config('payment-gateway.gateway');
+
         return app($gatewayClass);
     }
 }

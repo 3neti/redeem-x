@@ -161,7 +161,7 @@ describe('Show Contact API', function () {
 describe('Get Contact Vouchers API', function () {
     it('returns contact vouchers', function () {
         $contact = Contact::factory()->create();
-        
+
         // Create vouchers for this contact
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3);
         foreach ($vouchers as $voucher) {

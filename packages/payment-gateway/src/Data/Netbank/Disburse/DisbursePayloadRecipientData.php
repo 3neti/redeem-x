@@ -2,8 +2,8 @@
 
 namespace LBHurtado\PaymentGateway\Data\Netbank\Disburse;
 
-use Spatie\LaravelData\Attributes\MapInputName;
 use LBHurtado\PaymentGateway\Support\Address;
+use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Data;
 
 class DisbursePayloadRecipientData extends Data
@@ -13,9 +13,8 @@ class DisbursePayloadRecipientData extends Data
     public function __construct(
         #[MapInputName('account_number')]
         public string $name
-    ){
+    ) {
         $this->address = Address::generate();
     }
-
 
 }

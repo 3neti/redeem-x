@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use App\Models\User;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use LBHurtado\Voucher\Data\VoucherInstructionsData;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Seed instruction pricing items
     $this->artisan('db:seed', ['--class' => 'InstructionItemSeeder']);
-    
+
     $this->user = User::factory()->create();
 });
 
@@ -38,13 +38,13 @@ it('includes cash.validation.secret charge when secret is provided', function ()
         ->postJson('/api/v1/calculate-charges', $payload);
 
     $response->assertOk();
-    
+
     $data = $response->json();
-    
+
     // Debug output
     dump('Response:', $data);
     dump('Breakdown items:', collect($data['breakdown'] ?? [])->pluck('index')->toArray());
-    
+
     // Should include cash.validation.secret charge (120 centavos = ₱1.20)
     expect($data['breakdown'])
         ->toBeArray()
@@ -75,13 +75,13 @@ it('includes cash.validation.mobile charge when mobile is provided', function ()
         ->postJson('/api/v1/calculate-charges', $payload);
 
     $response->assertOk();
-    
+
     $data = $response->json();
-    
+
     // Debug output
     dump('Response:', $data);
     dump('Breakdown items:', collect($data['breakdown'] ?? [])->pluck('index')->toArray());
-    
+
     // Should include cash.validation.mobile charge (130 centavos = ₱1.30)
     expect($data['breakdown'])
         ->toBeArray()
@@ -112,28 +112,28 @@ it('includes both cash.validation charges when both are provided', function () {
         ->postJson('/api/v1/calculate-charges', $payload);
 
     $response->assertOk();
-    
+
     $data = $response->json();
-    
+
     // Debug output
     dump('Response:', $data);
     dump('Breakdown items:', collect($data['breakdown'] ?? [])->pluck('index')->toArray());
-    
+
     $breakdown = collect($data['breakdown']);
     $indices = $breakdown->pluck('index')->toArray();
-    
+
     // Should include both charges
     expect($indices)
         ->toContain('cash.validation.secret')
         ->toContain('cash.validation.mobile');
-    
+
     // Check total includes both charges (120 + 130 = 250 centavos)
     $secretCharge = $breakdown->firstWhere('index', 'cash.validation.secret');
     $mobileCharge = $breakdown->firstWhere('index', 'cash.validation.mobile');
-    
+
     expect($secretCharge)->not->toBeNull()
         ->and($secretCharge['price'])->toBe(120);
-    
+
     expect($mobileCharge)->not->toBeNull()
         ->and($mobileCharge['price'])->toBe(130);
 });
@@ -159,9 +159,9 @@ it('converts request to VoucherInstructionsData correctly preserving cash.valida
 
     // Test direct Data object creation
     $instructions = VoucherInstructionsData::from($payload);
-    
+
     dump('Instructions cash.validation:', $instructions->cash->validation);
-    
+
     expect($instructions->cash->validation->secret)->toBe('test-secret')
         ->and($instructions->cash->validation->mobile)->toBe('09171234567')
         ->and($instructions->cash->validation->country)->toBe('PH');

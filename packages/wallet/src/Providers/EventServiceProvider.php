@@ -2,8 +2,8 @@
 
 namespace LBHurtado\Wallet\Providers;
 
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Bavix\Wallet\Internal\Events\BalanceUpdatedEvent;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use LBHurtado\Wallet\Listeners\DispatchBalanceUpdatedBroadcast;
 
 class EventServiceProvider extends ServiceProvider

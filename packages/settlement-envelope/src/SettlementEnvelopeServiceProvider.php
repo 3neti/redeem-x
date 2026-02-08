@@ -3,6 +3,7 @@
 namespace LBHurtado\SettlementEnvelope;
 
 use Illuminate\Support\ServiceProvider;
+use LBHurtado\SettlementEnvelope\Console\InstallDriversCommand;
 use LBHurtado\SettlementEnvelope\Services\DriverService;
 use LBHurtado\SettlementEnvelope\Services\EnvelopeService;
 use LBHurtado\SettlementEnvelope\Services\GateEvaluator;
@@ -19,16 +20,16 @@ class SettlementEnvelopeServiceProvider extends ServiceProvider
 
         $this->app->singleton(DriverService::class, function ($app) {
             return new DriverService(
-                config('settlement-envelope.driver_directory')
+                config('settlement-envelope.driver_disk')
             );
         });
 
         $this->app->singleton(PayloadValidator::class, function ($app) {
-            return new PayloadValidator();
+            return new PayloadValidator;
         });
 
         $this->app->singleton(GateEvaluator::class, function ($app) {
-            return new GateEvaluator();
+            return new GateEvaluator;
         });
 
         $this->app->singleton(EnvelopeService::class, function ($app) {
@@ -46,10 +47,12 @@ class SettlementEnvelopeServiceProvider extends ServiceProvider
             __DIR__.'/../config/settlement-envelope.php' => config_path('settlement-envelope.php'),
         ], 'settlement-envelope-config');
 
-        $this->publishes([
-            __DIR__.'/../drivers' => config_path('envelope-drivers'),
-        ], 'settlement-envelope-drivers');
-
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                InstallDriversCommand::class,
+            ]);
+        }
     }
 }

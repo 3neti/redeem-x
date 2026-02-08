@@ -17,23 +17,23 @@ class PreferencesController extends Controller
         ]);
 
         $user = $request->user();
-        
+
         \Log::info('[PreferencesController] Before update', [
             'user_id' => $user->id,
             'requested_mode' => $request->mode,
             'current_preferences' => $user->ui_preferences,
         ]);
-        
+
         $preferences = $user->ui_preferences ?? [];
         $preferences['voucher_generate_mode'] = $request->mode;
-        
+
         $user->update([
             'ui_preferences' => $preferences,
         ]);
-        
+
         // Refresh to get updated value from database
         $user->refresh();
-        
+
         \Log::info('[PreferencesController] After update', [
             'user_id' => $user->id,
             'saved_mode' => $request->mode,

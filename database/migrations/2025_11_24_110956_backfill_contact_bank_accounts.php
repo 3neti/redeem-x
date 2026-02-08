@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
 use LBHurtado\Contact\Models\Contact;
 
 return new class extends Migration

@@ -12,7 +12,9 @@ use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
 
-use function Pest\Laravel\{actingAs, get, post, postJson};
+use function Pest\Laravel\get;
+use function Pest\Laravel\post;
+use function Pest\Laravel\postJson;
 
 beforeEach(function () {
     Notification::fake();
@@ -27,21 +29,21 @@ function createTestVoucher(User $user, array $fields = []): Voucher
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $base['inputs'] = ['fields' => $fields];
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withOwner($user)->create();
-    
+
     // Verify the facade returns the correct model type
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher)->toBeInstanceOf(LBHurtado\Voucher\Models\Voucher::class);
-    
+
     // Mark as processed since queue is faked and HandleGeneratedVouchers won't run
     // In production, this is done by the post-generation pipeline
     $voucher->processed = true;
     $voucher->save();
-    
+
     return $voucher;
 }
 
@@ -58,7 +60,7 @@ test('complete redemption flow with all plugins', function () {
         ->assertInertia(fn ($page) => $page->component('redeem/Wallet'));
 
     // Step 2: Submit wallet info (API endpoint)
-    postJson("/api/v1/redeem/wallet", [
+    postJson('/api/v1/redeem/wallet', [
         'code' => $voucher->code,
         'mobile' => '+639171234567',
         'country' => 'PH',
@@ -68,7 +70,7 @@ test('complete redemption flow with all plugins', function () {
     ])->assertOk();
 
     // Step 3: Submit inputs plugin (API endpoint)
-    postJson("/api/v1/redeem/plugin", [
+    postJson('/api/v1/redeem/plugin', [
         'code' => $voucher->code,
         'plugin' => 'inputs',
         'data' => [
@@ -83,7 +85,7 @@ test('complete redemption flow with all plugins', function () {
     ])->assertOk();
 
     // Step 4: Submit signature plugin (API endpoint)
-    postJson("/api/v1/redeem/plugin", [
+    postJson('/api/v1/redeem/plugin', [
         'code' => $voucher->code,
         'plugin' => 'signature',
         'data' => [
@@ -92,7 +94,7 @@ test('complete redemption flow with all plugins', function () {
     ])->assertOk();
 
     // Step 5: Finalize and confirm (API endpoint)
-    postJson("/api/v1/redeem/confirm", [
+    postJson('/api/v1/redeem/confirm', [
         'code' => $voucher->code,
     ])->assertOk();
 
@@ -124,7 +126,7 @@ test('complete redemption flow with minimal fields', function () {
         ->assertInertia(fn ($page) => $page->component('redeem/Wallet'));
 
     // Step 2: Submit wallet info (API endpoint)
-    postJson("/api/v1/redeem/wallet", [
+    postJson('/api/v1/redeem/wallet', [
         'code' => $voucher->code,
         'mobile' => '09171234567',
         'country' => 'PH',
@@ -134,7 +136,7 @@ test('complete redemption flow with minimal fields', function () {
     ])->assertOk();
 
     // Step 3: Finalize and confirm (API endpoint)
-    postJson("/api/v1/redeem/confirm", [
+    postJson('/api/v1/redeem/confirm', [
         'code' => $voucher->code,
     ])->assertOk();
 
@@ -205,7 +207,7 @@ test('redemption flow prevents double redemption', function () {
     // Given: A voucher already redeemed
     $user = User::factory()->create();
     $voucher = createTestVoucher($user);
-    
+
     // Mark it as redeemed
     $voucher->redeemed_at = now();
     $voucher->save();
@@ -219,18 +221,18 @@ test('redemption flow prevents double redemption', function () {
 test('redemption flow validates expired vouchers', function () {
     // Given: An expired voucher
     $user = User::factory()->create();
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withExpireTimeIn(\Carbon\CarbonInterval::seconds(1))
-    ->withOwner($user)->create();
-    
+        ->withOwner($user)->create();
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
-    
+
     // Wait for expiration
     sleep(2);
 
@@ -247,15 +249,15 @@ test('redemption flow validates expired vouchers', function () {
 test('redemption flow validates wrong secret', function () {
     // Given: A valid voucher
     $user = User::factory()->create();
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'correct_secret',
     ])->withOwner($user)->create();
-    
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
 
     // Attempt with wrong secret
@@ -287,7 +289,7 @@ test('redemption flow validates mobile number format', function () {
     foreach ($validNumbers as $number) {
         post("/redeem/{$voucher->code}/wallet", [
             'mobile' => $number,
-        'country' => 'PH',
+            'country' => 'PH',
             'secret' => 'test-secret',
             'bank_code' => 'GCASH',
             'account_number' => '09171234567',
@@ -359,20 +361,20 @@ test('redemption flow clears session after successful completion', function () {
 
 test('cannot redeem voucher that starts in the future', function () {
     $user = User::factory()->create();
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withOwner($user)
         ->withStartTime(now()->addDays(7))
         ->create();
-    
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher->starts_at->isFuture())->toBeTrue();
-    
+
     // Attempt to start redemption - should fail
     get("/redeem?code={$voucher->code}")
         ->assertRedirect('/redeem')
@@ -381,20 +383,20 @@ test('cannot redeem voucher that starts in the future', function () {
 
 test('cannot redeem expired voucher', function () {
     $user = User::factory()->create();
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withOwner($user)
         ->withExpireTime(now()->subDay()) // Expired yesterday
         ->create();
-    
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher->expires_at->isPast())->toBeTrue();
-    
+
     // Attempt to start redemption - should fail
     get("/redeem?code={$voucher->code}")
         ->assertRedirect('/redeem')
@@ -403,17 +405,17 @@ test('cannot redeem expired voucher', function () {
 
 test('expired voucher returns error when submitting wallet info', function () {
     $user = User::factory()->create();
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withOwner($user)
         ->withExpireTime(now()->subDay())
         ->create();
-    
+
     // Attempt wallet submission on expired voucher
     post("/redeem/{$voucher->code}/wallet", [
         'mobile' => '09171234567',
@@ -426,22 +428,22 @@ test('expired voucher returns error when submitting wallet info', function () {
 
 test('success page displays custom rider message', function () {
     $user = User::factory()->create();
-    
+
     $customMessage = 'Thank you for your redemption! Your payment will be processed within 24 hours.';
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $base['rider'] = [
         'message' => $customMessage,
     ];
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withOwner($user)->create();
-    
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
-    
+
     // Complete redemption
     post("/redeem/{$voucher->code}/wallet", [
         'mobile' => '09171234567',
@@ -450,9 +452,9 @@ test('success page displays custom rider message', function () {
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
     ]);
-    
+
     post("/redeem/{$voucher->code}/confirm");
-    
+
     // Check success page has custom message
     get("/redeem/{$voucher->code}/success")
         ->assertInertia(fn ($page) => $page
@@ -464,24 +466,24 @@ test('success page displays custom rider message', function () {
 
 test('success page redirects to custom rider URL when configured', function () {
     $user = User::factory()->create();
-    
+
     $customUrl = 'https://example.com/custom-thank-you';
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $base['rider'] = [
         'message' => 'Thank you!',
         'url' => $customUrl,
     ];
     $instructions = VoucherInstructionsData::from($base);
-    
+
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
         'secret' => 'test-secret',
     ])->withOwner($user)->create();
-    
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher->instructions->rider->url)->toBe($customUrl);
-    
+
     // Complete redemption
     post("/redeem/{$voucher->code}/wallet", [
         'mobile' => '09171234567',
@@ -490,9 +492,9 @@ test('success page redirects to custom rider URL when configured', function () {
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
     ]);
-    
+
     post("/redeem/{$voucher->code}/confirm");
-    
+
     // Success page should pass redirect URL to frontend
     get("/redeem/{$voucher->code}/success")
         ->assertInertia(fn ($page) => $page
@@ -503,10 +505,10 @@ test('success page redirects to custom rider URL when configured', function () {
 
 test('success page uses default configuration when no rider specified', function () {
     $user = User::factory()->create();
-    
+
     // No rider configuration
     $voucher = createTestVoucher($user);
-    
+
     // Complete redemption
     post("/redeem/{$voucher->code}/wallet", [
         'mobile' => '09171234567',
@@ -515,9 +517,9 @@ test('success page uses default configuration when no rider specified', function
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
     ]);
-    
+
     post("/redeem/{$voucher->code}/confirm");
-    
+
     // Success page should render with default config
     get("/redeem/{$voucher->code}/success")
         ->assertOk()
@@ -529,10 +531,10 @@ test('success page uses default configuration when no rider specified', function
 
 test('voucher with extended expiry remains valid', function () {
     $user = User::factory()->create();
-    
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $instructions = VoucherInstructionsData::from($base);
-    
+
     // Create voucher with 90 days expiry
     $voucher = Vouchers::withMetadata([
         'instructions' => $instructions->toCleanArray(),
@@ -540,12 +542,12 @@ test('voucher with extended expiry remains valid', function () {
     ])->withOwner($user)
         ->withExpireTimeIn(\Carbon\CarbonInterval::days(90))
         ->create();
-    
+
     expect($voucher)->toBeInstanceOf(Voucher::class);
     expect($voucher->expires_at)->not->toBeNull();
     expect($voucher->expires_at->isFuture())->toBeTrue();
     expect(round(abs($voucher->expires_at->diffInDays(now()))))->toBe(90.0);
-    
+
     // Should be able to start redemption
     get("/redeem?code={$voucher->code}")
         ->assertRedirect("/redeem/{$voucher->code}/wallet");

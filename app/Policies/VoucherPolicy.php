@@ -14,10 +14,6 @@ class VoucherPolicy
 {
     /**
      * Determine if the user can view the voucher.
-     *
-     * @param  User  $user
-     * @param  Voucher  $voucher
-     * @return bool
      */
     public function view(User $user, Voucher $voucher): bool
     {
@@ -26,10 +22,6 @@ class VoucherPolicy
 
     /**
      * Determine if the user can update the voucher.
-     *
-     * @param  User  $user
-     * @param  Voucher  $voucher
-     * @return bool
      */
     public function update(User $user, Voucher $voucher): bool
     {
@@ -38,15 +30,11 @@ class VoucherPolicy
 
     /**
      * Determine if the user can delete the voucher.
-     *
-     * @param  User  $user
-     * @param  Voucher  $voucher
-     * @return bool
      */
     public function delete(User $user, Voucher $voucher): bool
     {
-        return $voucher->owner_type === User::class 
-            && $voucher->owner_id === $user->id 
+        return $voucher->owner_type === User::class
+            && $voucher->owner_id === $user->id
             && ! $voucher->isRedeemed();
     }
 }

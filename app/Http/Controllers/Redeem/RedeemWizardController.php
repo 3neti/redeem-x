@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Redeem;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Redeem\{WalletFormRequest, PluginFormRequest};
-use App\Support\{RedeemPluginMap, RedeemPluginSelector};
-use LBHurtado\Voucher\Data\VoucherData;
+use App\Http\Requests\Redeem\PluginFormRequest;
+use App\Http\Requests\Redeem\WalletFormRequest;
+use App\Support\RedeemPluginMap;
+use App\Support\RedeemPluginSelector;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\{Log, Session};
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 
 /**
@@ -30,9 +32,6 @@ class RedeemWizardController extends Controller
 {
     /**
      * Step 1: Collect bank account information.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function wallet(Voucher $voucher): Response
     {
@@ -51,10 +50,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Store wallet/bank account information.
-     *
-     * @param  WalletFormRequest  $request
-     * @param  Voucher  $voucher
-     * @return RedirectResponse
      */
     public function storeWallet(WalletFormRequest $request, Voucher $voucher): RedirectResponse
     {
@@ -104,10 +99,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Show plugin form (dynamic).
-     *
-     * @param  Voucher  $voucher
-     * @param  string  $plugin
-     * @return Response
      */
     public function plugin(Voucher $voucher, string $plugin): Response
     {
@@ -142,11 +133,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Store plugin input data.
-     *
-     * @param  PluginFormRequest  $request
-     * @param  Voucher  $voucher
-     * @param  string  $plugin
-     * @return RedirectResponse
      */
     public function storePlugin(
         PluginFormRequest $request,
@@ -199,9 +185,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Show finalization/review page.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function finalize(Voucher $voucher): Response
     {
@@ -237,10 +220,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Get default values for fields from contact.
-     *
-     * @param  string  $voucherCode
-     * @param  array  $fields
-     * @return array
      */
     protected function getDefaultValues(string $voucherCode, array $fields): array
     {
@@ -272,8 +251,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Get banks list for dropdown.
-     *
-     * @return array
      */
     protected function getBanksList(): array
     {
@@ -294,10 +271,6 @@ class RedeemWizardController extends Controller
 
     /**
      * Format bank account for display.
-     *
-     * @param  string  $bankCode
-     * @param  string  $accountNumber
-     * @return string
      */
     protected function formatBankAccount(string $bankCode, string $accountNumber): string
     {

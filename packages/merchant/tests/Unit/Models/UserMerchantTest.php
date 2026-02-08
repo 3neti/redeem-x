@@ -16,6 +16,6 @@ it('can associate a user with a merchant', function () {
     // Check the pivot table entry directly
     $this->assertDatabaseHas('merchant_user', [
         'user_id' => $user->id,
-        'merchant_id' => $merchant->id
+        'merchant_id' => $merchant->id,
     ]);
 });

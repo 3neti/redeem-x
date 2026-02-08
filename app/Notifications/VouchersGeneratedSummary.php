@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Notifications\BaseNotification;
 use App\Services\InstructionsFormatter;
 use App\Services\TemplateProcessor;
 use App\Services\VoucherShareLinkBuilder;
@@ -16,15 +15,15 @@ use LBHurtado\Voucher\Contracts\VouchersGeneratedNotificationInterface;
 
 /**
  * Vouchers Generated Summary Notification
- * 
+ *
  * Sends SMS notification summarizing generated vouchers.
  * Used by NotifyBatchCreator pipeline stage after voucher generation.
- * 
+ *
  * Message formats:
  * - Single: "1 voucher generated (₱100) - ABCD"
  * - Multiple: "3 vouchers generated (₱100 each) - ABCD, EFGH, IJKL"
  * - Many: "10 vouchers generated (₱100 each) - CODE1, CODE2, CODE3, +7 more"
- * 
+ *
  * Migration to BaseNotification:
  * - Extends BaseNotification for standardized behavior
  * - Uses config/notifications.php for channel configuration
@@ -34,7 +33,6 @@ use LBHurtado\Voucher\Contracts\VouchersGeneratedNotificationInterface;
  */
 class VouchersGeneratedSummary extends BaseNotification implements VouchersGeneratedNotificationInterface
 {
-
     /**
      * Maximum number of voucher codes to show in message before truncating
      */
@@ -67,7 +65,7 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
     {
         $context = $this->buildContext();
         $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
-        
+
         $data = [
             'count' => $context['count'],
             'amount' => $context['amount'],
@@ -76,13 +74,13 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
             'codes' => $this->vouchers->pluck('code')->toArray(),
             'instructions_format' => $format,
         ];
-        
+
         // Include full instructions JSON for database audit
         if ($format !== 'none') {
             $first = $this->vouchers->first();
             $data['instructions_data'] = $first->instructions->toArray();
         }
-        
+
         return $data;
     }
 
@@ -94,7 +92,7 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
         return array_merge(parent::getAuditMetadata(), [
             'voucher_count' => $this->vouchers->count(),
             'first_code' => $this->vouchers->first()?->code,
-            'total_value' => $this->vouchers->sum(fn($v) => $v->instructions->cash->amount ?? 0),
+            'total_value' => $this->vouchers->sum(fn ($v) => $v->instructions->cash->amount ?? 0),
         ]);
     }
 
@@ -105,7 +103,7 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
     {
         $context = $this->buildContext();
         $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
-        
+
         // Choose template based on voucher count and instructions format
         $hasInstructions = $format !== 'none' && isset($context['instructions_formatted']);
         $templateKey = match (true) {
@@ -116,11 +114,11 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
             $hasInstructions => 'notifications.vouchers_generated.sms.many_with_instructions',
             default => 'notifications.vouchers_generated.sms.many',
         };
-        
+
         $template = __($templateKey);
         $message = TemplateProcessor::process($template, $context);
-        
-        return (new EngageSparkMessage())->content($message);
+
+        return (new EngageSparkMessage)->content($message);
     }
 
     /**
@@ -132,22 +130,22 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
         $count = $context['count'];
         $formattedAmount = $context['formatted_amount'];
         $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
-        
+
         // Build code list for email
         $codesList = $this->vouchers->pluck('code')->join(', ');
-        
+
         $mail = (new MailMessage)
-            ->subject("Vouchers Generated: {$count} voucher" . ($count === 1 ? '' : 's'))
+            ->subject("Vouchers Generated: {$count} voucher".($count === 1 ? '' : 's'))
             ->greeting('Hello,')
-            ->line("You have successfully generated **{$count} voucher" . ($count === 1 ? '' : 's') . "** with an amount of **{$formattedAmount}" . ($count === 1 ? '' : ' each') . "**.")
+            ->line("You have successfully generated **{$count} voucher".($count === 1 ? '' : 's')."** with an amount of **{$formattedAmount}".($count === 1 ? '' : ' each').'**.')
             ->line("**Voucher Codes:** {$codesList}");
-        
+
         // Add instructions if configured
         if ($format !== 'none' && isset($context['instructions_formatted'])) {
             $mail->line('');
             $mail->line('**Instructions:**');
             $mail->line('');
-            
+
             if ($format === 'json') {
                 // Use pre-formatted code block for JSON
                 $mail->line('```');
@@ -163,11 +161,11 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
                 }
             }
         }
-        
+
         $mail->line('');
         $mail->line('These vouchers are ready to be redeemed.');
         $mail->line('Thank you for using our service!');
-        
+
         return $mail;
     }
 
@@ -178,18 +176,18 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
     {
         $count = $this->vouchers->count();
         $first = $this->vouchers->first();
-        
+
         // Get amount from first voucher's instructions
         $amount = $first->instructions->cash->amount ?? 0;
         $currency = $first->instructions->cash->currency ?? 'PHP';
-        
+
         // Format amount using Brick Money
         $money = \Brick\Money\Money::of($amount, $currency);
         $formattedAmount = $money->formatTo(Number::defaultLocale());
-        
+
         // Collect voucher codes
         $allCodes = $this->vouchers->pluck('code');
-        
+
         // Build context based on count
         $context = [
             'count' => $count,
@@ -197,7 +195,7 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
             'currency' => $currency,
             'formatted_amount' => $formattedAmount,
         ];
-        
+
         if ($count === 1) {
             // Single voucher
             $context['code'] = $allCodes->first();
@@ -210,7 +208,7 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
             $context['first_codes'] = $firstCodes->join(', ');
             $context['remaining'] = $count - self::MAX_CODES_DISPLAY;
         }
-        
+
         // Add formatted instructions if configured
         $format = config('voucher-notifications.vouchers_generated.instructions_format', 'none');
         if ($format !== 'none') {
@@ -219,16 +217,16 @@ class VouchersGeneratedSummary extends BaseNotification implements VouchersGener
             // Use first voucher's instructions for email (full)
             $context['instructions_formatted'] = InstructionsFormatter::formatForEmail($first->instructions, $format);
         }
-        
+
         // Add shareable links if configured
         $includeShareLinks = config('voucher-notifications.vouchers_generated.include_share_links', true);
         if ($includeShareLinks) {
             $links = VoucherShareLinkBuilder::buildLinks($first);
-            $context['share_links'] = "\n" . VoucherShareLinkBuilder::formatForSms($links);
+            $context['share_links'] = "\n".VoucherShareLinkBuilder::formatForSms($links);
         } else {
             $context['share_links'] = '';
         }
-        
+
         return $context;
     }
 }

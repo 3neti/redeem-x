@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use LBHurtado\Wallet\Actions\TopupWalletAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
 
 class WalletController extends Controller
 {
@@ -17,7 +17,7 @@ class WalletController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
-        
+
         // Get or create default wallet
         $wallet = $user->wallet ?? $user->createWallet([
             'name' => 'Default Wallet',
@@ -50,7 +50,7 @@ class WalletController extends Controller
 
     /**
      * Add funds to the user's wallet.
-     * 
+     *
      * Transfers funds from system wallet to user wallet.
      * This maintains the invariant: system_balance + sum(user_balances) = constant
      */

@@ -6,9 +6,9 @@ namespace App\Actions\Api\BankAccounts;
 
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
-use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 /**
  * Create a new bank account for the authenticated user.
@@ -22,9 +22,9 @@ class CreateBankAccount
     public function asController(ActionRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        
+
         $user = $request->user();
-        
+
         $account = $user->addBankAccount(
             bankCode: $validated['bank_code'],
             accountNumber: $validated['account_number'],
@@ -48,8 +48,8 @@ class CreateBankAccount
                     // Validate bank code using BankRegistry
                     $registry = app(BankRegistry::class);
                     $bankInfo = $registry->find($value);
-                    if (!$bankInfo) {
-                        $fail("Invalid bank code. Please provide a valid BIC/SWIFT code.");
+                    if (! $bankInfo) {
+                        $fail('Invalid bank code. Please provide a valid BIC/SWIFT code.');
                     }
                 },
             ],
@@ -63,10 +63,10 @@ class CreateBankAccount
                     if ($bankCode) {
                         $registry = app(BankRegistry::class);
                         $bankInfo = $registry->find($bankCode);
-                        
+
                         if ($bankInfo && $registry->isEMI($bankCode)) {
                             // Validate Philippine mobile number format
-                            if (!preg_match('/^(09|\+639|639)\d{9}$/', $value)) {
+                            if (! preg_match('/^(09|\+639|639)\d{9}$/', $value)) {
                                 $bankName = $registry->getBankName($bankCode);
                                 $fail("Invalid mobile number format for {$bankName}. Use 09XXXXXXXXX format.");
                             }

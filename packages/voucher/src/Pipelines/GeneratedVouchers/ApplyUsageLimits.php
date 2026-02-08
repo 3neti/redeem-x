@@ -2,13 +2,13 @@
 
 namespace LBHurtado\Voucher\Pipelines\GeneratedVouchers;
 
-use Illuminate\Support\Facades\Log;
 use Closure;
+use Illuminate\Support\Facades\Log;
 
 class ApplyUsageLimits
 {
     private const DEBUG = false;
-    
+
     public function handle($vouchers, Closure $next)
     {
         // @todo Implement global or per-user voucher issuance caps

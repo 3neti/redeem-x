@@ -143,7 +143,7 @@ test('envelope audit log records actions', function () {
 
     // Expects: envelope_created, payload_patch, status_change (auto-advance to IN_PROGRESS)
     expect($envelope->auditLogs)->toHaveCount(3);
-    
+
     $actions = $envelope->auditLogs->pluck('action')->toArray();
     expect($actions)->toContain('envelope_created')
         ->toContain('payload_patch')

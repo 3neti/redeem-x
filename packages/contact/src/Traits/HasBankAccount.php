@@ -2,13 +2,13 @@
 
 namespace LBHurtado\Contact\Traits;
 
-use LBHurtado\Contact\Classes\BankAccount;
 use InvalidArgumentException;
+use LBHurtado\Contact\Classes\BankAccount;
 
 trait HasBankAccount
 {
     /**
-     * @return string  either the bank-code part of `bank_account` or the default config value
+     * @return string either the bank-code part of `bank_account` or the default config value
      */
     public function getBankCode(): string
     {
@@ -20,7 +20,7 @@ trait HasBankAccount
     }
 
     /**
-     * @return string  either the account-number part of `bank_account` or the model's mobile
+     * @return string either the account-number part of `bank_account` or the model's mobile
      */
     public function getAccountNumber(): string
     {

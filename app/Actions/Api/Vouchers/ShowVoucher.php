@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Actions\Api\Vouchers;
 
 use App\Http\Responses\ApiResponse;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use LBHurtado\Contact\Data\ContactData;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -27,7 +27,7 @@ class ShowVoucher
 
     /**
      * Get voucher details
-     * 
+     *
      * Retrieve complete voucher information including redemption status, inputs, and metadata.
      */
     public function asController(ActionRequest $request, Voucher $voucher): JsonResponse
@@ -97,7 +97,7 @@ class ShowVoucher
             // Handle signature/selfie - indicate presence but don't send full data URL
             elseif (in_array($name, ['signature', 'selfie'])) {
                 $formatted[$name] = [
-                    'present' => !empty($value),
+                    'present' => ! empty($value),
                     'size_bytes' => strlen($value),
                     'format' => $this->extractImageFormat($value),
                 ];
@@ -122,5 +122,4 @@ class ShowVoucher
 
         return null;
     }
-
 }

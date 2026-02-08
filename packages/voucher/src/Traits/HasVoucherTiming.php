@@ -6,10 +6,10 @@ use LBHurtado\Voucher\Data\VoucherTimingData;
 
 /**
  * Trait HasVoucherTiming
- * 
+ *
  * Provides timing tracking functionality for Voucher model.
  * Tracks click, start, and submit events to measure redemption duration.
- * 
+ *
  * @property array $metadata
  */
 trait HasVoucherTiming
@@ -19,10 +19,10 @@ trait HasVoucherTiming
      */
     public function getTimingAttribute(): ?VoucherTimingData
     {
-        if (!isset($this->metadata['timing'])) {
+        if (! isset($this->metadata['timing'])) {
             return null;
         }
-        
+
         return VoucherTimingData::from($this->metadata['timing']);
     }
 
@@ -35,12 +35,13 @@ trait HasVoucherTiming
             $metadata = $this->metadata ?? [];
             unset($metadata['timing']);
             $this->metadata = $metadata;
+
             return;
         }
-        
+
         $metadata = $this->metadata ?? [];
-        $metadata['timing'] = $value instanceof VoucherTimingData 
-            ? $value->toArray() 
+        $metadata['timing'] = $value instanceof VoucherTimingData
+            ? $value->toArray()
             : $value;
         $this->metadata = $metadata;
     }
@@ -51,16 +52,16 @@ trait HasVoucherTiming
     public function trackClick(): void
     {
         $timing = $this->timing;
-        
+
         // Don't overwrite existing click
         if ($timing && $timing->clicked_at) {
             return;
         }
-        
-        $this->timing = $timing 
+
+        $this->timing = $timing
             ? $timing->withStart() // Preserve existing data, just add click
             : VoucherTimingData::withClick();
-        
+
         $this->save();
     }
 
@@ -70,7 +71,7 @@ trait HasVoucherTiming
     public function trackRedemptionStart(): void
     {
         $timing = $this->timing ?? VoucherTimingData::from([]);
-        
+
         $this->timing = $timing->withStart();
         $this->save();
     }
@@ -81,7 +82,7 @@ trait HasVoucherTiming
     public function trackRedemptionSubmit(): void
     {
         $timing = $this->timing ?? VoucherTimingData::from([]);
-        
+
         $this->timing = $timing->withSubmit();
         $this->save();
     }

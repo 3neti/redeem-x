@@ -2,8 +2,9 @@
 
 namespace LBHurtado\SettlementEnvelope\Services;
 
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use LBHurtado\SettlementEnvelope\Data\DriverData;
 use LBHurtado\SettlementEnvelope\Exceptions\DriverNotFoundException;
 use LBHurtado\SettlementEnvelope\Exceptions\InvalidDriverException;
@@ -14,9 +15,17 @@ class DriverService
     protected array $loadedDrivers = [];
 
     public function __construct(
-        protected ?string $driverDirectory = null
+        protected ?string $driverDisk = null
     ) {
-        $this->driverDirectory = $driverDirectory ?? config('settlement-envelope.driver_directory');
+        $this->driverDisk = $driverDisk ?? config('settlement-envelope.driver_disk');
+    }
+
+    /**
+     * Get the storage disk instance
+     */
+    protected function disk(): Filesystem
+    {
+        return Storage::disk($this->driverDisk);
     }
 
     /**
@@ -48,46 +57,42 @@ class DriverService
     {
         $path = $this->resolveDriverPath($driverId, $version);
 
-        if (! File::exists($path)) {
+        if (! $this->disk()->exists($path)) {
             throw new DriverNotFoundException("Driver not found: {$driverId}".($version ? "@{$version}" : ''));
         }
 
-        $content = File::get($path);
+        $content = $this->disk()->get($path);
         $data = Yaml::parse($content);
 
         return $this->parseDriver($data, $driverId);
     }
 
     /**
-     * Resolve driver file path
+     * Resolve driver file path (relative to disk root)
      */
     protected function resolveDriverPath(string $driverId, ?string $version = null): string
     {
-        $basePath = $this->driverDirectory;
-
-        // Try versioned path first: drivers/{driverId}/v{version}.yaml
+        // Try versioned path first: {driverId}/v{version}.yaml
         if ($version) {
-            $versionedPath = "{$basePath}/{$driverId}/v{$version}.yaml";
-            if (File::exists($versionedPath)) {
+            $versionedPath = "{$driverId}/v{$version}.yaml";
+            if ($this->disk()->exists($versionedPath)) {
                 return $versionedPath;
             }
         }
 
         // Try latest version in directory
-        $driverDir = "{$basePath}/{$driverId}";
-        if (File::isDirectory($driverDir)) {
-            $files = File::glob("{$driverDir}/v*.yaml");
-            if (! empty($files)) {
-                // Sort and get latest version
-                usort($files, 'version_compare');
+        $files = $this->disk()->files($driverId);
+        $versionFiles = array_filter($files, fn ($f) => preg_match('/v[\d.]+\.yaml$/', $f));
+        if (! empty($versionFiles)) {
+            // Sort and get latest version
+            usort($versionFiles, 'version_compare');
 
-                return end($files);
-            }
+            return end($versionFiles);
         }
 
-        // Try flat file: drivers/{driverId}.yaml
-        $flatPath = "{$basePath}/{$driverId}.yaml";
-        if (File::exists($flatPath)) {
+        // Try flat file: {driverId}.yaml
+        $flatPath = "{$driverId}.yaml";
+        if ($this->disk()->exists($flatPath)) {
             return $flatPath;
         }
 
@@ -167,9 +172,9 @@ class DriverService
 
         // External schema file
         if ($schemaConfig->uri) {
-            $schemaPath = $this->driverDirectory.'/'.$driver->id.'/'.$schemaConfig->uri;
-            if (File::exists($schemaPath)) {
-                return json_decode(File::get($schemaPath), true);
+            $schemaPath = $driver->id.'/'.$schemaConfig->uri;
+            if ($this->disk()->exists($schemaPath)) {
+                return json_decode($this->disk()->get($schemaPath), true);
             }
         }
 
@@ -183,35 +188,33 @@ class DriverService
     {
         $drivers = [];
 
-        if (! File::isDirectory($this->driverDirectory)) {
-            return $drivers;
-        }
-
         // Find all driver directories
-        $directories = File::directories($this->driverDirectory);
-        foreach ($directories as $dir) {
-            $driverId = basename($dir);
-            $files = File::glob("{$dir}/v*.yaml");
+        $directories = $this->disk()->directories();
+        foreach ($directories as $driverId) {
+            $files = $this->disk()->files($driverId);
             foreach ($files as $file) {
-                preg_match('/v(.+)\.yaml$/', basename($file), $matches);
-                $version = $matches[1] ?? '1.0.0';
-                $drivers[] = [
-                    'id' => $driverId,
-                    'version' => $version,
-                    'path' => $file,
-                ];
+                if (preg_match('/v(.+)\.yaml$/', basename($file), $matches)) {
+                    $version = $matches[1];
+                    $drivers[] = [
+                        'id' => $driverId,
+                        'version' => $version,
+                        'path' => $file,
+                    ];
+                }
             }
         }
 
-        // Find flat driver files
-        $files = File::glob("{$this->driverDirectory}/*.yaml");
-        foreach ($files as $file) {
-            $driverId = basename($file, '.yaml');
-            $drivers[] = [
-                'id' => $driverId,
-                'version' => '1.0.0',
-                'path' => $file,
-            ];
+        // Find flat driver files in root
+        $rootFiles = $this->disk()->files();
+        foreach ($rootFiles as $file) {
+            if (str_ends_with($file, '.yaml')) {
+                $driverId = basename($file, '.yaml');
+                $drivers[] = [
+                    'id' => $driverId,
+                    'version' => '1.0.0',
+                    'path' => $file,
+                ];
+            }
         }
 
         return $drivers;
@@ -234,19 +237,13 @@ class DriverService
      */
     public function write(string $driverId, string $version, array $data): string
     {
-        $dirPath = "{$this->driverDirectory}/{$driverId}";
-        $filePath = "{$dirPath}/v{$version}.yaml";
-
-        // Ensure directory exists
-        if (! File::isDirectory($dirPath)) {
-            File::makeDirectory($dirPath, 0755, true);
-        }
+        $filePath = "{$driverId}/v{$version}.yaml";
 
         // Convert to YAML
         $yaml = Yaml::dump($data, 10, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
 
-        // Write file
-        File::put($filePath, $yaml);
+        // Write file (Storage creates directories automatically)
+        $this->disk()->put($filePath, $yaml);
 
         // Clear cache for this driver
         $this->clearCache($driverId);
@@ -260,18 +257,18 @@ class DriverService
      */
     public function delete(string $driverId, string $version): bool
     {
-        $filePath = "{$this->driverDirectory}/{$driverId}/v{$version}.yaml";
+        $filePath = "{$driverId}/v{$version}.yaml";
 
-        if (! File::exists($filePath)) {
+        if (! $this->disk()->exists($filePath)) {
             return false;
         }
 
-        File::delete($filePath);
+        $this->disk()->delete($filePath);
 
         // Remove directory if empty
-        $dirPath = "{$this->driverDirectory}/{$driverId}";
-        if (File::isDirectory($dirPath) && count(File::files($dirPath)) === 0) {
-            File::deleteDirectory($dirPath);
+        $remainingFiles = $this->disk()->files($driverId);
+        if (empty($remainingFiles)) {
+            $this->disk()->deleteDirectory($driverId);
         }
 
         // Clear cache
@@ -286,9 +283,7 @@ class DriverService
      */
     public function exists(string $driverId, string $version): bool
     {
-        $filePath = "{$this->driverDirectory}/{$driverId}/v{$version}.yaml";
-
-        return File::exists($filePath);
+        return $this->disk()->exists("{$driverId}/v{$version}.yaml");
     }
 
     /**

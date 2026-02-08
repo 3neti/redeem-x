@@ -2,19 +2,21 @@
 
 namespace LBHurtado\OmniChannel\Services;
 
-use LBHurtado\OmniChannel\Middlewares\SMSMiddlewareInterface;
 use Closure;
+use LBHurtado\OmniChannel\Middlewares\SMSMiddlewareInterface;
 
 class SMSRouterService
 {
     /**
      * Registered routes for SMS patterns.
+     *
      * @var array<string, mixed>
      */
     protected array $routes = [];
 
     /**
      * Middleware stack for each route.
+     *
      * @var array<string, array>
      */
     protected array $middlewares = [];
@@ -22,17 +24,17 @@ class SMSRouterService
     /**
      * Register an SMS command pattern with its handler and middleware.
      *
-     * @param string $pattern The pattern defining the SMS command structure.
-     * @param mixed $handler The handler (callable or class name).
-     * @param array $middlewares Array of middleware classes.
+     * @param  string  $pattern  The pattern defining the SMS command structure.
+     * @param  mixed  $handler  The handler (callable or class name).
+     * @param  array  $middlewares  Array of middleware classes.
      *
      * @throws \InvalidArgumentException If middleware does not implement the required interface.
      */
     public function register(string $pattern, $handler, array $middlewares = []): void
     {
         foreach ($middlewares as $middleware) {
-            if (!is_subclass_of($middleware, SMSMiddlewareInterface::class)) {
-                throw new \InvalidArgumentException("Middleware must implement SMSMiddlewareInterface.");
+            if (! is_subclass_of($middleware, SMSMiddlewareInterface::class)) {
+                throw new \InvalidArgumentException('Middleware must implement SMSMiddlewareInterface.');
             }
         }
 
@@ -43,9 +45,9 @@ class SMSRouterService
     /**
      * Handle an incoming SMS message.
      *
-     * @param string $message The received SMS message.
-     * @param string $from The sender's phone number.
-     * @param string $to The recipient's phone number.
+     * @param  string  $message  The received SMS message.
+     * @param  string  $from  The sender's phone number.
+     * @param  string  $to  The recipient's phone number.
      * @return \Illuminate\Http\JsonResponse
      */
     public function handle(string $message, string $from, string $to)
@@ -60,10 +62,10 @@ class SMSRouterService
                     // re-run the pattern match
                     preg_match($regex, $msg, $matches);
                     array_shift($matches); // drop the full match
-                    
+
                     // Add original message for flag parsing (always use key '_message')
                     $matches['_message'] = $msg;
-                    
+
                     return $this->executeHandler($handler, $matches, $from, $to);
                 };
 
@@ -73,32 +75,31 @@ class SMSRouterService
 
         return response()->json(['message' => 'Unknown command. Please try again.'], 404);
     }
-//    public function handle(string $message, string $from, string $to)
-//    {
-//        foreach ($this->routes as $pattern => $handler) {
-//            $regex = $this->convertPatternToRegex($pattern);
-//
-//            if (preg_match($regex, $message, $matches)) {
-//                array_shift($matches); // Remove full match
-//
-//                return $this->applyMiddleware($pattern, $message, $from, $to, function ($message, $from, $to) use ($handler, $matches) {
-//                    return $this->executeHandler($handler, $matches, $from, $to);
-//                });
-//            }
-//        }
-//
-//        return response()->json(['message' => 'Unknown command. Please try again.'], 404);
-//    }
+    //    public function handle(string $message, string $from, string $to)
+    //    {
+    //        foreach ($this->routes as $pattern => $handler) {
+    //            $regex = $this->convertPatternToRegex($pattern);
+    //
+    //            if (preg_match($regex, $message, $matches)) {
+    //                array_shift($matches); // Remove full match
+    //
+    //                return $this->applyMiddleware($pattern, $message, $from, $to, function ($message, $from, $to) use ($handler, $matches) {
+    //                    return $this->executeHandler($handler, $matches, $from, $to);
+    //                });
+    //            }
+    //        }
+    //
+    //        return response()->json(['message' => 'Unknown command. Please try again.'], 404);
+    //    }
 
     /**
      * Apply middleware stack for a given route before executing the handler.
      *
-     * @param string $pattern The matched route pattern.
-     * @param string $message The received SMS message.
-     * @param string $from The sender's phone number.
-     * @param string $to The recipient's phone number.
-     * @param Closure $next The next execution step.
-     *
+     * @param  string  $pattern  The matched route pattern.
+     * @param  string  $message  The received SMS message.
+     * @param  string  $from  The sender's phone number.
+     * @param  string  $to  The recipient's phone number.
+     * @param  Closure  $next  The next execution step.
      * @return mixed
      */
     protected function applyMiddleware(string $pattern, string $message, string $from, string $to, Closure $next)
@@ -107,8 +108,9 @@ class SMSRouterService
 
         $pipeline = array_reduce(
             array_reverse($middlewareStack),
-            fn($nextLayer, $middleware) => function ($message, $from, $to) use ($middleware, $nextLayer) {
-                $middlewareInstance = new $middleware();
+            fn ($nextLayer, $middleware) => function ($message, $from, $to) use ($middleware, $nextLayer) {
+                $middlewareInstance = new $middleware;
+
                 return $middlewareInstance->handle($message, $from, $to, $nextLayer);
             },
             $next
@@ -120,10 +122,10 @@ class SMSRouterService
     /**
      * Execute the assigned handler for a matched pattern.
      *
-     * @param mixed $handler The handler (callable or class name).
-     * @param array $values Captured values from the SMS message.
-     * @param string $from Sender's phone number.
-     * @param string $to Recipient's phone number.
+     * @param  mixed  $handler  The handler (callable or class name).
+     * @param  array  $values  Captured values from the SMS message.
+     * @param  string  $from  Sender's phone number.
+     * @param  string  $to  Recipient's phone number.
      * @return mixed
      */
     protected function executeHandler($handler, array $values, string $from, string $to)
@@ -148,7 +150,7 @@ class SMSRouterService
     /**
      * Convert a pattern string into a regex.
      *
-     * @param string $pattern The pattern string.
+     * @param  string  $pattern  The pattern string.
      * @return string The generated regex.
      */
     protected function convertPatternToRegex(string $pattern): string
@@ -156,9 +158,10 @@ class SMSRouterService
         // 31 Mar 2023
         $pattern = preg_replace_callback('/\{(\w+)\}/', function ($matches) {
             $var = $matches[1];
+
             return ($var === 'message' || $var === 'extra')
-                ? '(?P<' . $var . '>.+)' // ✅ capture multi-word trailing values
-                : '(?P<' . $var . '>\S+)';
+                ? '(?P<'.$var.'>.+)' // ✅ capture multi-word trailing values
+                : '(?P<'.$var.'>\S+)';
         }, $pattern);
 
         // Handle optional parameters (including `extra?`) — fix for `extra?`
@@ -168,19 +171,20 @@ class SMSRouterService
                 // Match a leading space followed by a greedy capture
                 return '(?:\s+(?P<extra>.+))?';
             }
-            return '(?:\s+(?P<' . $var . '>\S+))?';
+
+            return '(?:\s+(?P<'.$var.'>\S+))?';
         }, $pattern);
 
-//        // Convert required parameters: {voucher} → (?P<voucher>\S+)
-//        $pattern = preg_replace_callback('/\{(\w+)\}/', function ($matches) {
-//            return ($matches[1] === 'message')
-//                ? '(?P<message>.+)'  // Capture full message with spaces
-//                : '(?P<' . $matches[1] . '>\S+)'; // Default to single-word values
-//        }, $pattern);
-//
-//        // Convert optional parameters: {mobile?} → (?:\s+(?P<mobile>\S+))?
-//        $pattern = preg_replace('/\s*\{(\w+)\?\}/', '(?:\s+(?P<$1>\S+))?', $pattern);
+        //        // Convert required parameters: {voucher} → (?P<voucher>\S+)
+        //        $pattern = preg_replace_callback('/\{(\w+)\}/', function ($matches) {
+        //            return ($matches[1] === 'message')
+        //                ? '(?P<message>.+)'  // Capture full message with spaces
+        //                : '(?P<' . $matches[1] . '>\S+)'; // Default to single-word values
+        //        }, $pattern);
+        //
+        //        // Convert optional parameters: {mobile?} → (?:\s+(?P<mobile>\S+))?
+        //        $pattern = preg_replace('/\s*\{(\w+)\?\}/', '(?:\s+(?P<$1>\S+))?', $pattern);
 
-        return '/^' . trim($pattern) . '$/i';
+        return '/^'.trim($pattern).'$/i';
     }
 }

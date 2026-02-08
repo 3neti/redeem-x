@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use App\Models\InstructionItem;
 use App\Models\User;
 use App\Services\RevenueCollectionService;
-use Illuminate\Console\Command;
 use Brick\Money\Money;
+use Illuminate\Console\Command;
 
 class RevenueCollectCommand extends Command
 {
@@ -38,46 +38,47 @@ class RevenueCollectCommand extends Command
         if ($this->option('stats')) {
             return $this->showStatistics($service);
         }
-        
+
         $preview = $this->option('preview');
         $itemId = $this->option('item');
         $minAmount = $this->option('min') ? (float) $this->option('min') : null;
         $destinationEmail = $this->option('destination');
-        
+
         // Resolve destination override
         $destinationOverride = null;
         if ($destinationEmail) {
             $destinationOverride = User::where('email', $destinationEmail)->first();
-            if (!$destinationOverride) {
+            if (! $destinationOverride) {
                 $this->error("User not found: {$destinationEmail}");
+
                 return 1;
             }
             $this->info("Destination override: {$destinationOverride->name} <{$destinationOverride->email}>");
         }
-        
+
         // Preview mode
         if ($preview) {
             return $this->showPreview($service, $minAmount);
         }
-        
+
         // Collect from specific item
         if ($itemId) {
             return $this->collectFromItem($service, (int) $itemId, $destinationOverride);
         }
-        
+
         // Collect from all
         return $this->collectFromAll($service, $minAmount, $destinationOverride);
     }
-    
+
     /**
      * Show revenue statistics.
      */
     protected function showStatistics(RevenueCollectionService $service): int
     {
         $stats = $service->getStatistics();
-        
+
         $this->info('\n📊 Revenue Statistics\n');
-        
+
         // Pending
         $this->components->twoColumnDetail(
             '<fg=yellow>Pending Revenue</>',
@@ -87,9 +88,9 @@ class RevenueCollectCommand extends Command
             '  Items with balance',
             (string) $stats['pending']['count']
         );
-        
+
         $this->newLine();
-        
+
         // All-time
         $this->components->twoColumnDetail(
             '<fg=green>All-Time Collected</>',
@@ -99,7 +100,7 @@ class RevenueCollectCommand extends Command
             '  Total collections',
             (string) $stats['all_time']['collections_count']
         );
-        
+
         // Last collection
         if ($stats['last_collection']) {
             $this->newLine();
@@ -120,25 +121,26 @@ class RevenueCollectCommand extends Command
                 $stats['last_collection']['collected_at']
             );
         }
-        
+
         return 0;
     }
-    
+
     /**
      * Show preview of pending revenue.
      */
     protected function showPreview(RevenueCollectionService $service, ?float $minAmount): int
     {
         $pending = $service->getPendingRevenue($minAmount);
-        
+
         if ($pending->isEmpty()) {
             $this->info('No revenue to collect.');
+
             return 0;
         }
-        
+
         $this->table(
             ['ID', 'Name', 'Index', 'Balance', 'Destination', 'Type'],
-            $pending->map(fn($p) => [
+            $pending->map(fn ($p) => [
                 $p['id'],
                 $p['name'],
                 $p['index'],
@@ -147,7 +149,7 @@ class RevenueCollectCommand extends Command
                 $p['destination']['is_default'] ? 'Default' : 'Configured',
             ])
         );
-        
+
         $total = $pending->sum('balance');
         $this->newLine();
         $this->components->twoColumnDetail(
@@ -156,10 +158,10 @@ class RevenueCollectCommand extends Command
         );
         $this->newLine();
         $this->info('Run without --preview to collect.');
-        
+
         return 0;
     }
-    
+
     /**
      * Collect from specific InstructionItem.
      */
@@ -169,36 +171,41 @@ class RevenueCollectCommand extends Command
         $destinationOverride
     ): int {
         $item = InstructionItem::find($itemId);
-        if (!$item) {
+        if (! $item) {
             $this->error("InstructionItem #{$itemId} not found.");
+
             return 1;
         }
-        
+
         if ($item->balanceFloat <= 0) {
             $this->warn("InstructionItem '{$item->name}' has no balance to collect.");
+
             return 0;
         }
-        
+
         $destination = $destinationOverride ?? $service->getPendingRevenue()->firstWhere('id', $itemId);
         $destName = $destination['destination']['name'] ?? 'Unknown';
-        
-        if (!$this->confirm("Collect {$item->balanceFloat} PHP from '{$item->name}' to {$destName}?", true)) {
+
+        if (! $this->confirm("Collect {$item->balanceFloat} PHP from '{$item->name}' to {$destName}?", true)) {
             $this->info('Cancelled.');
+
             return 0;
         }
-        
+
         try {
             $collection = $service->collect($item, $destinationOverride);
             $this->components->info(
                 "✓ Collected {$collection->formatted_amount} from {$item->name}"
             );
+
             return 0;
         } catch (\Throwable $e) {
             $this->error("Failed: {$e->getMessage()}");
+
             return 1;
         }
     }
-    
+
     /**
      * Collect from all InstructionItems.
      */
@@ -208,47 +215,50 @@ class RevenueCollectCommand extends Command
         $destinationOverride
     ): int {
         $pending = $service->getPendingRevenue($minAmount);
-        
+
         if ($pending->isEmpty()) {
             $this->info('No revenue to collect.');
+
             return 0;
         }
-        
+
         $total = $pending->sum('balance');
         $count = $pending->count();
-        
+
         $this->table(
             ['Name', 'Balance', 'Destination'],
-            $pending->map(fn($p) => [
+            $pending->map(fn ($p) => [
                 $p['name'],
                 $p['formatted_balance'],
                 $p['destination']['name'],
             ])
         );
-        
+
         $this->newLine();
         $formattedTotal = Money::of($total, 'PHP')->formatTo('en_PH');
-        
-        if (!$this->confirm("Collect {$formattedTotal} from {$count} items?", false)) {
+
+        if (! $this->confirm("Collect {$formattedTotal} from {$count} items?", false)) {
             $this->info('Cancelled.');
+
             return 0;
         }
-        
+
         $this->info('Collecting revenue...');
         $collections = $service->collectAll($minAmount, $destinationOverride);
-        
+
         if ($collections->isEmpty()) {
             $this->warn('No revenue collected.');
+
             return 0;
         }
-        
+
         $totalCollected = $collections->sum('amount') / 100;
         $this->newLine();
         $this->components->info(
-            "✓ Collected " . Money::of($totalCollected, 'PHP')->formatTo('en_PH') . 
+            '✓ Collected '.Money::of($totalCollected, 'PHP')->formatTo('en_PH').
             " from {$collections->count()} items"
         );
-        
+
         return 0;
     }
 }

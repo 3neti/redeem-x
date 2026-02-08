@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 use App\Actions\Voucher\ProcessRedemption;
 use App\Models\User;
-use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
-use LBHurtado\Voucher\Data\LocationValidationData;
-use LBHurtado\Voucher\Data\ValidationInstructionData;
-use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
 use Propaganistas\LaravelPhone\PhoneNumber;
 
@@ -19,11 +15,11 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Disable queues to avoid serialization issues
     Queue::fake();
-    
+
     // Create user with balance
     $this->user = User::factory()->create();
     $this->user->deposit(100000);
-    
+
     // Set user as authenticated for GenerateVouchers
     auth()->setUser($this->user);
 });
@@ -33,7 +29,7 @@ describe('Location Validation - Pass Mode', function () {
         // Create voucher with location validation (warn mode)
         $targetLat = 14.5547;
         $targetLon = 121.0244;
-        
+
         $voucher = createVoucherWithLocationValidation(
             $this->user,
             $targetLat,
@@ -59,11 +55,11 @@ describe('Location Validation - Pass Mode', function () {
         $result = ProcessRedemption::run($voucher, $phoneNumber, $inputs);
 
         expect($result)->toBeTrue();
-        
+
         // Verify voucher is redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeTrue();
-        
+
         // Verify validation results stored
         $validationResults = $voucher->getValidationResults();
         expect($validationResults)->not->toBeNull()
@@ -76,7 +72,7 @@ describe('Location Validation - Pass Mode', function () {
         // Create voucher with location validation (warn mode)
         $targetLat = 14.5547;
         $targetLon = 121.0244;
-        
+
         $voucher = createVoucherWithLocationValidation(
             $this->user,
             $targetLat,
@@ -102,11 +98,11 @@ describe('Location Validation - Pass Mode', function () {
         $result = ProcessRedemption::run($voucher, $phoneNumber, $inputs);
 
         expect($result)->toBeTrue();
-        
+
         // Verify voucher is redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeTrue();
-        
+
         // Verify validation results show failure but no block
         $validationResults = $voucher->getValidationResults();
         expect($validationResults)->not->toBeNull()
@@ -121,7 +117,7 @@ describe('Location Validation - Block Mode', function () {
         // Create voucher with location validation (block mode)
         $targetLat = 14.5547;
         $targetLon = 121.0244;
-        
+
         $voucher = createVoucherWithLocationValidation(
             $this->user,
             $targetLat,
@@ -144,13 +140,13 @@ describe('Location Validation - Block Mode', function () {
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
 
         // Should throw exception
-        expect(fn() => ProcessRedemption::run($voucher, $phoneNumber, $inputs))
+        expect(fn () => ProcessRedemption::run($voucher, $phoneNumber, $inputs))
             ->toThrow(RuntimeException::class, 'You must be within');
-        
+
         // Verify voucher is NOT redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeFalse();
-        
+
         // Note: Validation results are not persisted when transaction rolls back
         // This is expected - the voucher state remains unchanged on blocked redemption
     });
@@ -159,7 +155,7 @@ describe('Location Validation - Block Mode', function () {
         // Create voucher with location validation (block mode)
         $targetLat = 14.5547;
         $targetLon = 121.0244;
-        
+
         $voucher = createVoucherWithLocationValidation(
             $this->user,
             $targetLat,
@@ -185,11 +181,11 @@ describe('Location Validation - Block Mode', function () {
         $result = ProcessRedemption::run($voucher, $phoneNumber, $inputs);
 
         expect($result)->toBeTrue();
-        
+
         // Verify voucher is redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeTrue();
-        
+
         // Verify validation results stored
         $validationResults = $voucher->getValidationResults();
         expect($validationResults)->not->toBeNull()
@@ -211,11 +207,11 @@ describe('Location Validation - No Validation', function () {
         $result = ProcessRedemption::run($voucher, $phoneNumber, $inputs);
 
         expect($result)->toBeTrue();
-        
+
         // Verify voucher is redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeTrue();
-        
+
         // No validation results should be stored
         $validationResults = $voucher->getValidationResults();
         expect($validationResults)->toBeNull();
@@ -238,9 +234,9 @@ describe('Location Validation - Missing Data', function () {
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
 
         // Should throw exception
-        expect(fn() => ProcessRedemption::run($voucher, $phoneNumber, $inputs))
+        expect(fn () => ProcessRedemption::run($voucher, $phoneNumber, $inputs))
             ->toThrow(RuntimeException::class, 'Location data is required');
-        
+
         // Verify voucher is NOT redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeFalse();
@@ -265,9 +261,9 @@ describe('Location Validation - Missing Data', function () {
         $phoneNumber = new PhoneNumber('09171234567', 'PH');
 
         // Should throw exception
-        expect(fn() => ProcessRedemption::run($voucher, $phoneNumber, $inputs))
+        expect(fn () => ProcessRedemption::run($voucher, $phoneNumber, $inputs))
             ->toThrow(RuntimeException::class, 'Invalid location data format');
-        
+
         // Verify voucher is NOT redeemed
         $voucher->refresh();
         expect($voucher->isRedeemed())->toBeFalse();
@@ -279,7 +275,7 @@ describe('Location Validation - Distance Calculation', function () {
         // Create voucher at Manila coordinates
         $targetLat = 14.5995;
         $targetLon = 120.9842;
-        
+
         $voucher = createVoucherWithLocationValidation(
             $this->user,
             $targetLat,
@@ -305,7 +301,7 @@ describe('Location Validation - Distance Calculation', function () {
         // Verify distance is stored correctly
         $voucher->refresh();
         $validationResults = $voucher->getValidationResults();
-        
+
         expect($validationResults->location->distance_meters)
             ->toBeGreaterThan(0)
             ->toBeLessThan(10000); // 10 km in meters

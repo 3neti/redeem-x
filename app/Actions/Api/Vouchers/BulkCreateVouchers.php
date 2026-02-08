@@ -9,6 +9,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
 use App\Models\CampaignVoucher;
 use App\Services\VoucherGenerationGate;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
@@ -18,7 +19,6 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Propaganistas\LaravelPhone\Rules\Phone;
 use Spatie\LaravelData\DataCollection;
-use Dedoc\Scramble\Attributes\Group;
 
 /**
  * @group Vouchers
@@ -34,7 +34,7 @@ class BulkCreateVouchers
 
     /**
      * Bulk create vouchers from campaign
-     * 
+     *
      * Generate multiple vouchers at once using a campaign template with external metadata.
      */
     public function asController(ActionRequest $request): JsonResponse
@@ -43,7 +43,7 @@ class BulkCreateVouchers
         $campaign = Campaign::find($validated['campaign_id']);
 
         // Check if user owns the campaign
-        if (!$campaign || $campaign->user_id !== $request->user()->id) {
+        if (! $campaign || $campaign->user_id !== $request->user()->id) {
             return ApiResponse::forbidden('You do not have permission to use this campaign.');
         }
 
@@ -62,31 +62,31 @@ class BulkCreateVouchers
         $generatedVouchers = [];
         $errors = [];
 
-        DB::transaction(function () use ($campaign, $validated, $request, &$generatedVouchers, &$errors) {
+        DB::transaction(function () use ($campaign, $validated, &$generatedVouchers, &$errors) {
             foreach ($validated['vouchers'] as $index => $voucherData) {
                 try {
                     // Clone campaign instructions and override mobile/count if provided
                     $instructionsArray = $campaign->instructions->toArray();
-                    
-                    if (!empty($voucherData['mobile'])) {
+
+                    if (! empty($voucherData['mobile'])) {
                         $instructionsArray['cash']['validation']['mobile'] = $voucherData['mobile'];
                     }
-                    
+
                     // Set count to 1 for single voucher generation
                     $instructionsArray['count'] = 1;
-                    
+
                     $instructions = VoucherInstructionsData::from($instructionsArray);
 
                     // Generate single voucher
                     $vouchers = GenerateVouchers::run($instructions);
                     $voucher = $vouchers->first();
 
-                    if (!$voucher) {
+                    if (! $voucher) {
                         throw new \Exception('Failed to generate voucher');
                     }
 
                     // Set external metadata if provided
-                    if (!empty($voucherData['external_metadata'])) {
+                    if (! empty($voucherData['external_metadata'])) {
                         $voucher->external_metadata = $voucherData['external_metadata'];
                         $voucher->save();
                     }
@@ -120,7 +120,7 @@ class BulkCreateVouchers
             'currency' => $campaign->instructions->cash->currency ?? 'PHP',
         ];
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             $response['errors'] = $errors;
         }
 

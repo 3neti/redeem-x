@@ -44,12 +44,12 @@ class TestDepositConfirmation extends Command
         // Build the payload matching real NetBank format
         // recipientAccountNumber = alias (91500) + national mobile (09173011987)
         // Example: 91500 + 09173011987 = 9150009173011987
-        $recipientAccountNumber = '91500' . $recipientMobile;
-        
+        $recipientAccountNumber = '91500'.$recipientMobile;
+
         // referenceCode = strip alias + replace leading 0 with 1
         // Example: 09173011987 → 9173011987 → 19173011987
-        $referenceCode = '1' . substr($recipientMobile, 1);
-        
+        $referenceCode = '1'.substr($recipientMobile, 1);
+
         $payload = [
             'merchant_details' => [
                 'merchant_code' => '1',
@@ -58,7 +58,7 @@ class TestDepositConfirmation extends Command
             'recipientAccountNumber' => $recipientAccountNumber,
             'commandId' => rand(100000000, 999999999),
             'operationId' => $operationId,
-            'referenceNumber' => '20250613GXCHPHM2XXXB' . str_pad(rand(1, 999999999), 12, '0', STR_PAD_LEFT),
+            'referenceNumber' => '20250613GXCHPHM2XXXB'.str_pad(rand(1, 999999999), 12, '0', STR_PAD_LEFT),
             'sender' => [
                 'name' => strtoupper($senderName),
                 'accountNumber' => $senderMobile,
@@ -79,7 +79,7 @@ class TestDepositConfirmation extends Command
         $this->table(
             ['Field', 'Value'],
             [
-                ['Amount', '₱' . number_format($amount / 100, 2)],
+                ['Amount', '₱'.number_format($amount / 100, 2)],
                 ['Recipient Mobile', $recipientMobile],
                 ['Recipient Account Number', $payload['recipientAccountNumber']],
                 ['Reference Code', $payload['referenceCode']],
@@ -115,7 +115,7 @@ class TestDepositConfirmation extends Command
                 $this->components->success('✅ Webhook processed successfully (204 No Content)');
             } else {
                 $this->components->error("❌ Unexpected status code: {$statusCode}");
-                
+
                 if ($response->body()) {
                     $this->warn('Response body:');
                     $this->line($response->body());
@@ -130,7 +130,8 @@ class TestDepositConfirmation extends Command
             $this->comment('   tail -f storage/logs/laravel.log | grep "ConfirmDeposit"');
 
         } catch (\Exception $e) {
-            $this->components->error('❌ Request failed: ' . $e->getMessage());
+            $this->components->error('❌ Request failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

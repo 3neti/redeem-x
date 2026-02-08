@@ -5,26 +5,26 @@ declare(strict_types=1);
 namespace App\Actions\Api\Transactions;
 
 use App\Http\Responses\ApiResponse;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\Voucher\Models\Voucher;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\QueryParameter;
 
 /**
  * Get Transaction Statistics
  *
  * Retrieve aggregated statistics and metrics for voucher redemption transactions.
- * 
+ *
  * Provides high-level overview of transaction activity including counts, total amounts,
  * and time-based breakdowns. Essential for dashboards, KPI monitoring, and business intelligence.
- * 
+ *
  * **Statistics Included:**
  * - Total transactions count and amount
  * - Today's transaction count
  * - This month's transaction count
  * - Currency information
- * 
+ *
  * **Use Cases:**
  * - Dashboard widgets and charts
  * - Business performance monitoring
@@ -32,6 +32,7 @@ use Dedoc\Scramble\Attributes\QueryParameter;
  * - Financial reporting summaries
  *
  * @group Transactions
+ *
  * @authenticated
  */
 #[Group('Transactions')]
@@ -50,7 +51,7 @@ class GetTransactionStats
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
-        
+
         $user = $request->user();
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');

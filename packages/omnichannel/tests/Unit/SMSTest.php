@@ -1,6 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Testing\{RefreshDatabase, WithFaker};
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithFaker;
 use LBHurtado\OmniChannel\Models\SMS;
 
 uses(RefreshDatabase::class, WithFaker::class);
@@ -11,6 +12,7 @@ test('sms has attributes', function () {
         expect($sms->from)->toBeString();
         expect($sms->to)->toBeString();
         expect($sms->message)->toBeString();
+    } else {
+        dd($sms);
     }
-    else dd($sms);
 });

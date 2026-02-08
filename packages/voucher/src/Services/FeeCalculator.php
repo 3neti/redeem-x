@@ -2,15 +2,15 @@
 
 namespace LBHurtado\Voucher\Services;
 
+use Illuminate\Support\Facades\Log;
 use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
-use Illuminate\Support\Facades\Log;
 
 class FeeCalculator
 {
     private const DEBUG = false;
-    
+
     public function __construct(
         protected PaymentGatewayInterface $gateway
     ) {}
@@ -18,8 +18,8 @@ class FeeCalculator
     /**
      * Calculate the adjusted amount based on fee strategy.
      *
-     * @param float $originalAmount Original voucher amount in pesos
-     * @param VoucherInstructionsData $instructions Voucher instructions
+     * @param  float  $originalAmount  Original voucher amount in pesos
+     * @param  VoucherInstructionsData  $instructions  Voucher instructions
      * @return array{adjusted_amount: float, fee_amount: int, total_cost: int, strategy: string, rail: string}
      */
     public function calculateAdjustedAmount(
@@ -28,7 +28,7 @@ class FeeCalculator
     ): array {
         $feeStrategy = $instructions->cash->fee_strategy ?? 'absorb';
         $settlementRail = $instructions->cash->settlement_rail;
-        
+
         // Determine rail for fee calculation
         if ($settlementRail === null) {
             // Auto-select based on amount
@@ -36,11 +36,11 @@ class FeeCalculator
         } else {
             $rail = $settlementRail;
         }
-        
+
         // Get fee in centavos
         $feeAmount = $this->gateway->getRailFee($rail);
         $feeInPesos = $feeAmount / 100;
-        
+
         // Calculate adjusted amount based on strategy
         $adjustedAmount = match ($feeStrategy) {
             'include' => $originalAmount - $feeInPesos, // Deduct fee from voucher
@@ -48,7 +48,7 @@ class FeeCalculator
             'absorb' => $originalAmount, // Keep original, issuer pays fee
             default => $originalAmount,
         };
-        
+
         // Ensure adjusted amount is never negative
         if ($adjustedAmount < 0) {
             Log::warning('[FeeCalculator] Adjusted amount would be negative, using 0', [
@@ -58,13 +58,13 @@ class FeeCalculator
             ]);
             $adjustedAmount = 0;
         }
-        
+
         // Calculate total cost (amount + fee if applicable)
         $totalCost = match ($feeStrategy) {
             'add' => ($originalAmount + $feeInPesos) * 100, // Convert to centavos
             default => $originalAmount * 100, // Issuer pays or already included
         };
-        
+
         if (self::DEBUG) {
             Log::debug('[FeeCalculator] Fee calculation complete', [
                 'original_amount' => $originalAmount,
@@ -76,7 +76,7 @@ class FeeCalculator
                 'rail' => $rail->value,
             ]);
         }
-        
+
         return [
             'adjusted_amount' => $adjustedAmount,
             'fee_amount' => $feeAmount,

@@ -29,14 +29,14 @@ class ShowSender
         // Find the sender contact
         $sender = $user->senders()->find($contactId);
 
-        if (!$sender) {
+        if (! $sender) {
             return ApiResponse::error('Sender not found', 404);
         }
 
         // Get pivot data
         $pivot = $sender->pivot;
-        $metadata = is_string($pivot->metadata) 
-            ? json_decode($pivot->metadata, true) 
+        $metadata = is_string($pivot->metadata)
+            ? json_decode($pivot->metadata, true)
             : ($pivot->metadata ?? []);
 
         // Transform to SenderData DTO
@@ -48,7 +48,7 @@ class ShowSender
             foreach ($metadata as $txMetadata) {
                 $txMetadata['amount'] = $txMetadata['amount'] ?? 0;
                 $txMetadata['currency'] = 'PHP';
-                
+
                 $transactions->push(
                     DepositTransactionData::fromMetadata($sender, $txMetadata)
                 );

@@ -7,6 +7,7 @@ use Illuminate\Notifications\Notification;
 class AdhocNotification extends Notification
 {
     public function __construct(protected $message) {}
+
     public function via($notifiable): array
     {
         return ['omnichannel'];
@@ -14,6 +15,6 @@ class AdhocNotification extends Notification
 
     public function toOmnichannel($notifiable): OmniChannelSmsMessage
     {
-        return (new OmniChannelSmsMessage($this->message));
+        return new OmniChannelSmsMessage($this->message);
     }
 }

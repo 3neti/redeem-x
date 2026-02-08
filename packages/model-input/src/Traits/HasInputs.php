@@ -2,11 +2,11 @@
 
 namespace LBHurtado\ModelInput\Traits;
 
+use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Database\Eloquent\Builder;
 use LBHurtado\ModelInput\Enums\InputType;
-use \Exception;
 
 trait HasInputs
 {
@@ -118,41 +118,43 @@ trait HasInputs
             || $this->hasSetMutator($key)
         ) {
             parent::__set($key, $value);
+
             return;
         }
 
         // 2) Otherwise, if it’s one of our “inputs”
         if ($input = $this->getInputFromEnum($key)) {
             $this->forceSetInput($input->value, $value);
+
             return;
         }
 
         parent::__set($key, $value);
     }
 
-//    public function __get($key)
-//    {
-//        // Check if the key matches any Input enum value
-//        if ($input = $this->getInputFromEnum($key)) {
-//            return $this->getInputAttribute($input->value);
-//        }
-//
-//        // Delegate to the parent method for non-magic properties
-//        return parent::__get($key);
-//    }
-//
-//    public function __set($key, $value)
-//    {
-//        // Check if the key matches any Channel enum value
-//        if ($input = $this->getInputFromEnum($key)) {
-//
-//            $this->setInputAttribute($input->value, $value);
-//            return;
-//        }
-//
-//        // Delegate to the parent method for non-magic properties
-//        parent::__set($key, $value);
-//    }
+    //    public function __get($key)
+    //    {
+    //        // Check if the key matches any Input enum value
+    //        if ($input = $this->getInputFromEnum($key)) {
+    //            return $this->getInputAttribute($input->value);
+    //        }
+    //
+    //        // Delegate to the parent method for non-magic properties
+    //        return parent::__get($key);
+    //    }
+    //
+    //    public function __set($key, $value)
+    //    {
+    //        // Check if the key matches any Channel enum value
+    //        if ($input = $this->getInputFromEnum($key)) {
+    //
+    //            $this->setInputAttribute($input->value, $value);
+    //            return;
+    //        }
+    //
+    //        // Delegate to the parent method for non-magic properties
+    //        parent::__set($key, $value);
+    //    }
 
     protected function getInputAttribute(string $name): ?string
     {
@@ -216,7 +218,7 @@ trait HasInputs
             $inputName = strtolower(str_replace('findBy', '', $method));
 
             // Ensure there are at least two parameters: the channel value
-            if (!isset($parameters[0])) {
+            if (! isset($parameters[0])) {
                 throw new \InvalidArgumentException('Channel value is required');
             }
             $inputValue = $parameters[0];
@@ -231,6 +233,6 @@ trait HasInputs
 
     public function input(string $name): ?string
     {
-        return $this->inputs()->where('name',$name)->value('value');
+        return $this->inputs()->where('name', $name)->value('value');
     }
 }

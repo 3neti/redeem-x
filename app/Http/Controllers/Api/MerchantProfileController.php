@@ -23,7 +23,7 @@ class MerchantProfileController extends Controller
     {
         $merchant = $this->merchantService->getMerchantProfile($request->user());
 
-        if (!$merchant) {
+        if (! $merchant) {
             // Auto-create if doesn't exist
             $merchant = $request->user()->getOrCreateMerchant();
         }

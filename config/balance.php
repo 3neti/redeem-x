@@ -13,18 +13,18 @@ return [
 
     /**
      * Enable or disable balance viewing globally.
-     * 
+     *
      * Set to false to completely disable the balance page.
      */
     'view_enabled' => env('BALANCE_VIEW_ENABLED', true),
 
     /**
      * Required role to view balance information.
-     * 
+     *
      * Users must have this role to access the balance page.
      * Set to empty string or null to allow all authenticated users.
      * Change via BALANCE_VIEW_ROLE in .env
-     * 
+     *
      * Examples:
      * - 'admin' - Only admins can view (default)
      * - 'manager' - Only managers can view
@@ -34,7 +34,7 @@ return [
 
     /**
      * Default account number for balance checking.
-     * 
+     *
      * Falls back to payment-gateway, omnipay, or disbursement config.
      */
     'default_account' => env('BALANCE_DEFAULT_ACCOUNT'),

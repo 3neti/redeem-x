@@ -6,13 +6,13 @@ namespace App\Actions\Api\Vouchers;
 
 /**
  * IMPORTANT: This is the PRIMARY voucher generation endpoint used by the Vue.js frontend.
- * 
+ *
  * The web form at /vouchers/generate uses this API endpoint (POST /api/v1/vouchers)
  * via the useVoucherApi composable, NOT the web controller.
- * 
+ *
  * There is also a web controller (App\Http\Controllers\Vouchers\GenerateController)
  * that is currently unused but exists for backward compatibility.
- * 
+ *
  * When adding new fields (like rider_splash), update BOTH controllers to avoid confusion.
  */
 
@@ -25,8 +25,9 @@ use App\Models\VoucherGenerationCharge;
 use App\Services\VoucherGenerationGate;
 use App\Settings\VoucherSettings;
 use Carbon\CarbonInterval;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
@@ -38,8 +39,6 @@ use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Propaganistas\LaravelPhone\Rules\Phone;
 use Spatie\LaravelData\DataCollection;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
  * Generate Vouchers
@@ -54,6 +53,7 @@ use Dedoc\Scramble\Attributes\BodyParameter;
  * database transaction. If generation fails, no charges are applied to your wallet.
  *
  * @group Vouchers
+ *
  * @authenticated
  */
 #[Group('Vouchers')]
@@ -63,10 +63,11 @@ class GenerateVouchers
 
     /**
      * Generate Vouchers
-     * 
+     *
      * Create one or more vouchers with customizable instructions for disbursement.
      *
      * @operationId generateVouchers
+     *
      * @response 201 {"count":2,"vouchers":[{"code":"ABC-1234","amount":100}],"total_amount":200,"currency":"PHP"}
      * @response 400 {"message":"Idempotency-Key header is required for this request."}
      * @response 403 {"message":"Insufficient wallet balance to generate vouchers."}
@@ -115,34 +116,34 @@ class GenerateVouchers
 
         // Generate vouchers using package action
         $vouchers = BaseGenerateVouchers::run($instructions);
-        
+
         // Store idempotency key and external metadata in vouchers (if provided)
         $idempotencyKey = $request->header('Idempotency-Key');
         $externalMetadata = $validated['external_metadata'] ?? null;
-        
+
         foreach ($vouchers as $voucher) {
             $updateData = [];
-            
+
             if ($idempotencyKey) {
                 $updateData['idempotency_key'] = $idempotencyKey;
                 $updateData['idempotency_created_at'] = now();
             }
-            
-            if (!empty($updateData)) {
+
+            if (! empty($updateData)) {
                 $voucher->update($updateData);
             }
-            
+
             // Set external metadata using trait accessor (stores in metadata->external)
             if ($externalMetadata) {
                 $voucher->external_metadata = $externalMetadata;
                 $voucher->save();
             }
         }
-        
+
         // Calculate and create billing record
         $calculateCharge = app(CalculateCharge::class);
         $breakdown = $calculateCharge->handle($request->user(), $instructions);
-        
+
         VoucherGenerationCharge::create([
             'user_id' => $request->user()->id,
             'campaign_id' => $validated['campaign_id'] ?? null,
@@ -154,12 +155,12 @@ class GenerateVouchers
             'charge_per_voucher' => ($breakdown->total / $vouchers->count()) / 100,
             'generated_at' => now(),
         ]);
-        
+
         // Escrow is handled automatically by the pipeline via pay() on Cash entities
         // ChargeInstructions pipeline charges any fees (now runs synchronously)
 
         // Attach vouchers to campaign if campaign_id provided
-        if (!empty($validated['campaign_id'])) {
+        if (! empty($validated['campaign_id'])) {
             $campaign = Campaign::find($validated['campaign_id']);
             if ($campaign && $campaign->user_id === $request->user()->id) {
                 foreach ($vouchers as $voucher) {
@@ -171,7 +172,7 @@ class GenerateVouchers
                 }
             }
         }
-        
+
         // Attach uploaded files to vouchers
         if ($request->hasFile('attachments')) {
             $files = $request->file('attachments');
@@ -183,7 +184,7 @@ class GenerateVouchers
                 }
             }
         }
-        
+
         // Create settlement envelopes if configured
         $envelopeConfig = $validated['envelope_config'] ?? null;
         if ($envelopeConfig && ($envelopeConfig['enabled'] ?? false)) {
@@ -203,7 +204,7 @@ class GenerateVouchers
                     // Log but don't fail - envelope creation is optional
                     \Log::warning('[GenerateVouchers] Failed to create envelope for voucher', [
                         'voucher_code' => $voucher->code,
-                        'driver' => $envelopeConfig['driver_id'] . '@' . $envelopeConfig['driver_version'],
+                        'driver' => $envelopeConfig['driver_id'].'@'.$envelopeConfig['driver_version'],
                         'error' => $e->getMessage(),
                     ]);
                 }
@@ -224,7 +225,6 @@ class GenerateVouchers
         ]);
     }
 
-
     /**
      * Validation rules.
      */
@@ -238,7 +238,7 @@ class GenerateVouchers
                 'nullable',
                 'string',
                 function ($attribute, $value, $fail) {
-                    if (! preg_match("/^[\\*\\-]+$/", $value)) {
+                    if (! preg_match('/^[\\*\\-]+$/', $value)) {
                         $fail('The :attribute may only contain asterisks (*) and hyphens (-).');
                     }
 
@@ -271,30 +271,30 @@ class GenerateVouchers
             'rider_redirect_timeout' => 'nullable|integer|min:0|max:300',
             'rider_splash' => 'nullable|string|max:51200',
             'rider_splash_timeout' => 'nullable|integer|min:0|max:60',
-            
+
             // Settlement rail and fee strategy
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
             'fee_strategy' => 'nullable|string|in:absorb,include,add',
-            
+
             // Settlement voucher fields
             'voucher_type' => 'nullable|string|in:redeemable,payable,settlement',
             'target_amount' => 'nullable|numeric|min:0|required_if:voucher_type,payable,settlement',
             'rules' => 'nullable|array',
 
             'campaign_id' => 'nullable|integer|exists:campaigns,id',
-            
+
             // Preview controls
             'preview_enabled' => 'nullable|boolean',
             'preview_scope' => 'nullable|string|in:full,requirements_only,none',
             'preview_message' => 'nullable|string|max:500',
-            
+
             // External metadata (freeform JSON for payable vouchers)
             'external_metadata' => 'nullable|array',
-            
+
             // File attachments
             'attachments' => 'nullable|array|max:5',
-            'attachments.*' => 'file|mimes:jpeg,jpg,png,pdf|max:' . config('voucher.attachments.max_file_size_kb', 2048),
-            
+            'attachments.*' => 'file|mimes:jpeg,jpg,png,pdf|max:'.config('voucher.attachments.max_file_size_kb', 2048),
+
             // Location validation
             'validation_location' => 'nullable|array',
             'validation_location.required' => 'nullable|boolean',
@@ -302,7 +302,7 @@ class GenerateVouchers
             'validation_location.target_lng' => 'required_with:validation_location|numeric|between:-180,180',
             'validation_location.radius_meters' => 'required_with:validation_location|integer|min:1|max:10000',
             'validation_location.on_failure' => 'required_with:validation_location|in:block,warn',
-            
+
             // Time validation
             'validation_time' => 'nullable|array',
             'validation_time.window' => 'nullable|array',
@@ -311,7 +311,7 @@ class GenerateVouchers
             'validation_time.window.timezone' => 'required_with:validation_time.window|string|timezone',
             'validation_time.limit_minutes' => 'nullable|integer|min:1|max:1440',
             'validation_time.track_duration' => 'nullable|boolean',
-            
+
             // Envelope configuration
             'envelope_config' => 'nullable|array',
             'envelope_config.enabled' => 'required_with:envelope_config|boolean',
@@ -340,7 +340,7 @@ class GenerateVouchers
 
         // Get authenticated user for metadata
         $owner = auth()->user();
-        
+
         // Get redemption endpoint from settings (with fallback if not seeded)
         try {
             $settings = app(VoucherSettings::class);
@@ -349,28 +349,28 @@ class GenerateVouchers
             // Fallback if settings not seeded yet
             $redemptionPath = '/disburse';
         }
-        
+
         // Get redemption URLs
         $redemptionUrls = [
             'web' => url($redemptionPath),
         ];
-        
+
         // Add API endpoint if route exists
         if (Route::has('api.redemption.validate')) {
             $redemptionUrls['api'] = route('api.redemption.validate');
         }
-        
+
         // Add widget URL if configured
         if ($widgetUrl = config('voucher.redemption.widget_url')) {
             $redemptionUrls['widget'] = $widgetUrl;
         }
-        
+
         // Determine primary URL (prefer web)
         $primaryUrl = $redemptionUrls['web'] ?? null;
-        
+
         // Collect active licenses (non-null values)
         $licenses = array_filter(config('voucher.metadata.licenses', []));
-        
+
         // Create metadata with preview controls
         $metadata = VoucherMetadataData::from([
             'version' => config('voucher.metadata.version'),
@@ -384,19 +384,19 @@ class GenerateVouchers
             'primary_url' => $primaryUrl,
             'created_at' => now(),
             'issued_at' => now(),
-            
+
             // Optional fields (signature support)
-            'public_key' => config('voucher.security.enable_signatures') 
-                ? config('voucher.security.public_key') 
+            'public_key' => config('voucher.security.enable_signatures')
+                ? config('voucher.security.public_key')
                 : null,
-            
+
             // Preview controls from request
             // Use array_key_exists to properly handle false boolean values
             'preview_enabled' => array_key_exists('preview_enabled', $validated) ? $validated['preview_enabled'] : true,
             'preview_scope' => $validated['preview_scope'] ?? 'full',
             'preview_message' => $validated['preview_message'] ?? null,
         ]);
-        
+
         $data_array = [
             'cash' => [
                 'amount' => $validated['amount'],
@@ -471,5 +471,4 @@ class GenerateVouchers
             'count.max' => 'You cannot generate more than 1000 vouchers at once.',
         ];
     }
-
 }

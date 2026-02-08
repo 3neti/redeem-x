@@ -16,6 +16,7 @@ use LBHurtado\Voucher\Enums\VoucherInputField;
 class CampaignController extends Controller
 {
     use AuthorizesRequests;
+
     /**
      * Display a listing of the resource.
      */
@@ -24,8 +25,8 @@ class CampaignController extends Controller
         $this->authorize('viewAny', Campaign::class);
 
         $campaigns = Campaign::where('user_id', $request->user()->id)
-            ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%"))
+            ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->latest()
             ->get();
 
@@ -77,7 +78,7 @@ class CampaignController extends Controller
         // Use campaignVouchers relationship (no dependency on Voucher model having campaigns())
         $totalVouchers = $campaign->campaignVouchers()->count();
         $redeemedVouchers = $campaign->campaignVouchers()
-            ->whereHas('voucher', fn($q) => $q->whereNotNull('redeemed_at'))
+            ->whereHas('voucher', fn ($q) => $q->whereNotNull('redeemed_at'))
             ->count();
 
         return Inertia::render('settings/campaigns/Show', [
@@ -138,7 +139,7 @@ class CampaignController extends Controller
         $this->authorize('duplicate', $campaign);
 
         $newCampaign = $campaign->replicate();
-        $newCampaign->name = $campaign->name . ' (Copy)';
+        $newCampaign->name = $campaign->name.' (Copy)';
         $newCampaign->slug = null; // Will auto-generate
         $newCampaign->status = 'draft';
         $newCampaign->save();
@@ -155,10 +156,11 @@ class CampaignController extends Controller
         try {
             $driverService = app(DriverService::class);
             $driverList = $driverService->list();
-            
+
             return collect($driverList)->map(function ($item) use ($driverService) {
                 try {
                     $driver = $driverService->load($item['id'], $item['version']);
+
                     return [
                         'id' => $driver->id,
                         'version' => $driver->version,

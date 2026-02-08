@@ -41,7 +41,7 @@ return [
     */
     'rate_limiting' => [
         'enabled' => env('ADVANCED_RATE_LIMITING', true),
-        
+
         'tiers' => [
             'basic' => [
                 'requests_per_minute' => 60,
@@ -59,7 +59,7 @@ return [
                 'burst_window_seconds' => 30,
             ],
         ],
-        
+
         // Per-endpoint overrides
         'endpoint_limits' => [
             'POST /api/v1/vouchers' => 10,

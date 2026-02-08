@@ -79,9 +79,9 @@ test('meta is cast to array', function () {
 
 test('seeded instruction items exist', function () {
     $this->seed(\Database\Seeders\InstructionItemSeeder::class);
-    
+
     $count = InstructionItem::count();
-    
+
     expect($count)->toBeGreaterThan(0)
         ->and(InstructionItem::where('index', 'cash.amount')->exists())->toBeTrue()
         ->and(InstructionItem::where('index', 'feedback.email')->exists())->toBeTrue();
@@ -89,9 +89,9 @@ test('seeded instruction items exist', function () {
 
 test('instruction item has price history relationship', function () {
     $item = InstructionItem::factory()->create(['price' => 100]);
-    
+
     $item->update(['price' => 200]);
-    
+
     expect($item->priceHistory)->toHaveCount(1)
         ->and($item->priceHistory->first())->toBeInstanceOf(InstructionItemPriceHistory::class);
 });

@@ -2,8 +2,8 @@
 
 namespace LBHurtado\Contact\Traits;
 
-use Spatie\SchemalessAttributes\Casts\SchemalessAttributes;
 use Illuminate\Database\Eloquent\Builder;
+use Spatie\SchemalessAttributes\Casts\SchemalessAttributes;
 
 trait HasMeta
 {

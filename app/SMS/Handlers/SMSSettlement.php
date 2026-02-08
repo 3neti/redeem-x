@@ -2,12 +2,12 @@
 
 namespace App\SMS\Handlers;
 
-use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use App\Models\Campaign;
 use App\Models\User;
 use Carbon\CarbonInterval;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Number;
+use LBHurtado\Voucher\Actions\GenerateVouchers as BaseGenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherType;
 use Symfony\Component\Console\Input\InputArgument;
@@ -16,10 +16,10 @@ use Symfony\Component\Console\Input\InputOption;
 
 /**
  * SMS handler for generating SETTLEMENT vouchers.
- * 
+ *
  * Supports command:
  * - SETTLEMENT {amount} {target} [--flags]
- * 
+ *
  * Settlement vouchers have an initial amount and a target amount.
  */
 class SMSSettlement extends BaseSMSVoucherHandler
@@ -49,20 +49,20 @@ class SMSSettlement extends BaseSMSVoucherHandler
             $values['_message'] ?? '',
             $this->getInputDefinition()
         );
-        
+
         // Router also extracted {amount}/{target}, but parseCommand has them too
         $amount = (float) ($parsed['arguments']['amount'] ?? $values['amount'] ?? 0);
         $target = (float) ($parsed['arguments']['target'] ?? $values['target'] ?? 0);
         $options = $parsed['options'];
-        
+
         // Handle --campaign option
         $campaign = null;
-        if (!empty($options['campaign'])) {
+        if (! empty($options['campaign'])) {
             $campaign = $this->getCampaign($user, $options['campaign']);
-            if (!$campaign) {
+            if (! $campaign) {
                 return $this->errorResponse("Campaign not found: {$options['campaign']}");
             }
-            
+
             // Use campaign amounts if not provided
             if ($amount <= 0) {
                 $amount = $campaign->instructions->cash->amount;
@@ -71,41 +71,41 @@ class SMSSettlement extends BaseSMSVoucherHandler
                 $target = $campaign->instructions->target_amount ?? $amount;
             }
         }
-        
+
         // Validate amounts (after potentially using campaign defaults)
         if ($amount <= 0 || $target <= 0) {
             return $this->errorResponse('Invalid amounts. Both amount and target must be greater than 0.');
         }
-        
+
         if ($target < $amount) {
             return $this->errorResponse('Target amount must be greater than or equal to initial amount.');
         }
-        
+
         $instructions = $this->buildInstructions(
             ['amount' => $amount, 'target' => $target, 'type' => 'settlement'],
             $options,
             $campaign
         );
-        
+
         $vouchers = BaseGenerateVouchers::run($instructions);
-        
+
         $codes = $vouchers->pluck('code')->implode(', ');
         $formattedAmount = Number::format($amount, locale: 'en_PH');
         $formattedTarget = Number::format($target, locale: 'en_PH');
-        
+
         $message = sprintf(
             '✅ Settlement voucher(s) %s generated (₱%s → ₱%s)',
             $codes,
             $formattedAmount,
             $formattedTarget
         );
-        
+
         if ($vouchers->count() > 1) {
             $message .= sprintf(' • %d vouchers', $vouchers->count());
         }
-        
+
         $message = $this->appendShareLinks($message, $vouchers, $options);
-        
+
         return response()->json(['message' => $message]);
     }
 
@@ -114,26 +114,26 @@ class SMSSettlement extends BaseSMSVoucherHandler
         $amount = $params['amount'];
         $target = $params['target'];
         $count = max(1, min(1000, (int) ($options['count'] ?? 1)));
-        
+
         if ($campaign) {
             $base = $campaign->instructions->toArray();
             $base['voucher_type'] = VoucherType::SETTLEMENT->value;
             $base['cash']['amount'] = $amount;
             $base['target_amount'] = $target;
             $base['count'] = $count;
-            
+
             // Normalize campaign input fields (convert enums to strings)
             if (isset($base['inputs']['fields'])) {
                 $base['inputs']['fields'] = $this->normalizeInputFields($base['inputs']['fields']);
             }
-            
+
             // Normalize TTL (convert serialized array back to CarbonInterval)
             if (isset($base['ttl'])) {
                 $base['ttl'] = $this->normalizeTtl($base['ttl']);
             }
-            
+
             // Override inputs if provided via flag
-            if (!empty($options['inputs'])) {
+            if (! empty($options['inputs'])) {
                 $base['inputs']['fields'] = $this->parseInputFields($options['inputs']);
             }
         } else {
@@ -155,9 +155,9 @@ class SMSSettlement extends BaseSMSVoucherHandler
                 'voucher_type' => VoucherType::SETTLEMENT->value,
                 'target_amount' => $target,
                 'inputs' => [
-                    'fields' => !empty($options['inputs']) 
+                    'fields' => ! empty($options['inputs'])
                         ? $this->parseInputFields($options['inputs'])
-                        : []
+                        : [],
                 ],
                 'feedback' => [
                     'email' => null,
@@ -179,29 +179,29 @@ class SMSSettlement extends BaseSMSVoucherHandler
                 'metadata' => null,
             ];
         }
-        
+
         // Apply options from flags
-        if (!empty($options['prefix'])) {
+        if (! empty($options['prefix'])) {
             $base['prefix'] = $options['prefix'];
         }
-        
-        if (!empty($options['mask'])) {
+
+        if (! empty($options['mask'])) {
             $base['mask'] = $options['mask'];
         }
-        
-        if (!empty($options['rider-message'])) {
+
+        if (! empty($options['rider-message'])) {
             $base['rider']['message'] = $options['rider-message'];
         }
-        
-        if (!empty($options['ttl'])) {
+
+        if (! empty($options['ttl'])) {
             $days = (int) $options['ttl'];
             $base['ttl'] = CarbonInterval::days($days);
         }
-        
-        if (!empty($options['settlement-rail'])) {
+
+        if (! empty($options['settlement-rail'])) {
             $base['cash']['settlement_rail'] = strtolower($options['settlement-rail']);
         }
-        
+
         return VoucherInstructionsData::from($base);
     }
 }

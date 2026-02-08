@@ -11,17 +11,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Classes\BankAccount;
 use LBHurtado\Contact\Models\Contact;
-use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Voucher\Enums\VoucherType;
+use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * SMS Redemption Endpoint
- * 
+ *
  * Handles voucher redemption via SMS with bank account resolution.
  * Only works with simple vouchers (no validation/input requirements).
- * 
+ *
  * Endpoint: POST /api/v1/redeem/sms
  */
 class RedeemViaSms
@@ -47,7 +47,7 @@ class RedeemViaSms
             // Find voucher
             $voucher = Voucher::where('code', $voucherCode)->first();
 
-            if (!$voucher) {
+            if (! $voucher) {
                 return ApiResponse::error('Invalid voucher code.', 404);
             }
 
@@ -62,13 +62,13 @@ class RedeemViaSms
 
             // Defensive: Check voucher type (PAYABLE vouchers cannot be redeemed)
             if ($voucher->voucher_type === VoucherType::PAYABLE) {
-                $paymentUrl = config('app.url') . '/pay?code=' . $voucherCode;
-                
+                $paymentUrl = config('app.url').'/pay?code='.$voucherCode;
+
                 Log::info('[RedeemViaSms] PAYABLE voucher - redirect to payment', [
                     'voucher' => $voucherCode,
                     'payment_url' => $paymentUrl,
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'error' => 'payment_required',
@@ -79,10 +79,10 @@ class RedeemViaSms
 
             // Check if voucher is simple (no requirements)
             $hasRequirements = $this->checkVoucherRequirements($voucher);
-            
+
             if ($hasRequirements) {
-                $redemptionUrl = config('app.url') . '/redeem?code=' . $voucherCode;
-                
+                $redemptionUrl = config('app.url').'/redeem?code='.$voucherCode;
+
                 return response()->json([
                     'success' => false,
                     'error' => 'requires_web',
@@ -94,7 +94,7 @@ class RedeemViaSms
             // Find or create contact
             $contact = Contact::firstOrCreate(
                 ['mobile' => $mobile],
-                ['bank_account' => config('contact.default.bank_code', 'GCASH') . ':' . $this->toNationalFormat($mobile)]
+                ['bank_account' => config('contact.default.bank_code', 'GCASH').':'.$this->toNationalFormat($mobile)]
             );
 
             // Resolve bank account
@@ -110,6 +110,7 @@ class RedeemViaSms
                     'bank_account' => $bankAccount,
                     'error' => $e->getMessage(),
                 ]);
+
                 return ApiResponse::error('Invalid bank account format.', 400);
             }
 
@@ -120,7 +121,7 @@ class RedeemViaSms
 
             // Perform redemption in transaction
             DB::beginTransaction();
-            
+
             try {
                 // Override request data for ConfirmRedemption
                 request()->merge([
@@ -133,9 +134,10 @@ class RedeemViaSms
                 ]);
 
                 $result = (new ConfirmRedemption)->asController();
-                
+
                 if ($result->status() !== 200) {
                     DB::rollBack();
+
                     return $result;
                 }
 
@@ -183,7 +185,7 @@ class RedeemViaSms
 
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 Log::error('[RedeemViaSms] Redemption failed', [
                     'voucher' => $voucherCode,
                     'error' => $e->getMessage(),
@@ -218,21 +220,21 @@ class RedeemViaSms
     {
         try {
             $instructions = $voucher->instructions;
-            
+
             // Check validation requirements (except mobile - always allowed)
             if ($instructions->cash->validation) {
                 $validation = $instructions->cash->validation;
-                
+
                 if ($validation->secret || $validation->location) {
                     return true;
                 }
             }
-            
+
             // Check input fields
             if ($instructions->inputs && $instructions->inputs->fields) {
                 return count($instructions->inputs->fields) > 0;
             }
-            
+
             return false;
         } catch (\Exception $e) {
             // If we can't read instructions, assume simple voucher
@@ -247,17 +249,18 @@ class RedeemViaSms
     {
         // Convert mobile to national format (09XX) for account number
         $accountNumber = $this->toNationalFormat($mobile);
-        
+
         if (empty($bankSpec)) {
             // Use contact's default or GCash fallback
-            return $contact->bank_account ?: ('GCASH:' . $accountNumber);
+            return $contact->bank_account ?: ('GCASH:'.$accountNumber);
         }
 
         // Resolve friendly bank code to SWIFT code
         $bankCode = strtoupper($bankSpec);
-        if (!str_contains($bankCode, ':')) {
+        if (! str_contains($bankCode, ':')) {
             // Check if it's a friendly code (e.g., "GCASH" -> "GXCHPHM2XXX")
             $swiftCode = config("bank-aliases.{$bankCode}", $bankCode);
+
             return "{$swiftCode}:{$accountNumber}";
         }
 
@@ -265,7 +268,7 @@ class RedeemViaSms
         // Resolve bank code part if it's friendly
         [$code, $account] = explode(':', $bankCode, 2);
         $swiftCode = config("bank-aliases.{$code}", $code);
-        
+
         // Keep account as provided (user specified exact format)
         return "{$swiftCode}:{$account}";
     }
@@ -277,14 +280,14 @@ class RedeemViaSms
     {
         // Remove non-numeric characters
         $mobile = preg_replace('/[^0-9]/', '', $mobile);
-        
+
         // Add country code if missing
         if (str_starts_with($mobile, '09')) {
-            $mobile = '63' . substr($mobile, 1);
-        } elseif (!str_starts_with($mobile, '63')) {
-            $mobile = '63' . $mobile;
+            $mobile = '63'.substr($mobile, 1);
+        } elseif (! str_starts_with($mobile, '63')) {
+            $mobile = '63'.$mobile;
         }
-        
+
         return $mobile;
     }
 
@@ -295,18 +298,18 @@ class RedeemViaSms
     {
         // Remove non-numeric characters
         $mobile = preg_replace('/[^0-9]/', '', $mobile);
-        
+
         // Convert 639XXXXXXXXX to 09XXXXXXXXX
         if (str_starts_with($mobile, '63')) {
-            return '0' . substr($mobile, 2);
+            return '0'.substr($mobile, 2);
         }
-        
+
         // Already in national format or other format
         if (str_starts_with($mobile, '09')) {
             return $mobile;
         }
-        
+
         // Assume it's missing leading 0
-        return '0' . $mobile;
+        return '0'.$mobile;
     }
 }

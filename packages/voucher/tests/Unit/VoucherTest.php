@@ -1,10 +1,10 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Carbon\CarbonInterval;
 use Carbon\Exceptions\InvalidFormatException;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Voucher\Models\Voucher;
-use Carbon\CarbonInterval;
 
 uses(RefreshDatabase::class);
 
@@ -34,7 +34,7 @@ it('can set and get processed attribute correctly', function () {
     // Verify the processed column and processed_on timestamp
     expect($voucher->processed)->toBeTrue();
     expect($voucher->processed_on)->toBeInstanceOf(\DateTime::class);
-    expect($voucher->processed_on->format('Y-m-d H:i:s'))->toBe((string)now()->format('Y-m-d H:i:s'));
+    expect($voucher->processed_on->format('Y-m-d H:i:s'))->toBe((string) now()->format('Y-m-d H:i:s'));
 
     // Mark voucher as unprocessed
     $voucher->processed = false;

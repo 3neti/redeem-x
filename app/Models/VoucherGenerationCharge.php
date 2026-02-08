@@ -38,12 +38,12 @@ class VoucherGenerationCharge extends Model
     {
         return $this->belongsTo(Campaign::class);
     }
-    
+
     public function vouchers()
     {
         return Voucher::whereIn('code', $this->voucher_codes)->get();
     }
-    
+
     public function grossProfit(): float
     {
         // Future: subtract actual expenses

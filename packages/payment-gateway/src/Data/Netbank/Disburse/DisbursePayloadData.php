@@ -2,24 +2,24 @@
 
 namespace LBHurtado\PaymentGateway\Data\Netbank\Disburse;
 
+use Illuminate\Support\Arr;
 use LBHurtado\PaymentGateway\Data\Netbank\Common\PayloadAmountData;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Data;
-use Illuminate\Support\Arr;
 
 class DisbursePayloadData extends Data
 {
     public function __construct(
         #[MapInputName('reference')]
-        public string  $reference_id,
+        public string $reference_id,
         #[MapInputName('via')]
-        public string  $settlement_rail,
+        public string $settlement_rail,
         public PayloadAmountData $amount,
-        public string  $source_account_number,
-        public array  $sender,
+        public string $source_account_number,
+        public array $sender,
         public DisbursePayloadDestinationAccountData $destination_account,
         public DisbursePayloadRecipientData $recipient,
-    ){}
+    ) {}
 
     public static function fromValidated(array $validated): self
     {

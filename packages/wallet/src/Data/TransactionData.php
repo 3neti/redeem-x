@@ -2,13 +2,14 @@
 
 namespace LBHurtado\Wallet\Data;
 
-use LBHurtado\Wallet\Data\Transformers\MoneyToStringTransformer;
-use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
 use Bavix\Wallet\Models\Transaction as TransactionModel;
-use LBHurtado\Wallet\Data\Casts\MoneyCast;
-use Illuminate\Support\Arr;
-use Spatie\LaravelData\Data;
 use Brick\Money\Money;
+use Illuminate\Support\Arr;
+use LBHurtado\Wallet\Data\Casts\MoneyCast;
+use LBHurtado\Wallet\Data\Transformers\MoneyToStringTransformer;
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Attributes\WithTransformer;
+use Spatie\LaravelData\Data;
 
 class TransactionData extends Data
 {
@@ -16,9 +17,9 @@ class TransactionData extends Data
         #[WithTransformer(MoneyToStringTransformer::class)]
         #[WithCast(MoneyCast::class)]
         public Money $amount,
-        public bool  $confirmed,
+        public bool $confirmed,
         public array $payload
-    ){}
+    ) {}
 
     public static function fromModel(TransactionModel $model): TransactionData
     {

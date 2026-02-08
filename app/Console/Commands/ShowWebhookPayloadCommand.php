@@ -15,6 +15,7 @@ use Tests\Helpers\VoucherTestHelper;
 class ShowWebhookPayloadCommand extends Command
 {
     protected $signature = 'webhook:show-payload';
+
     protected $description = 'Display example webhook payload with all enhanced features';
 
     public function handle(): int

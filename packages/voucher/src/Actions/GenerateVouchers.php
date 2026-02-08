@@ -2,23 +2,24 @@
 
 namespace LBHurtado\Voucher\Actions;
 
+use Carbon\CarbonInterval;
+use FrittenKeeZ\Vouchers\Facades\Vouchers;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Validator;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Data\VoucherMetadataData;
-use Illuminate\Support\Facades\{Log, Validator};
 use LBHurtado\Voucher\Events\VouchersGenerated;
-use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Lorisleiva\Actions\Concerns\AsAction;
-use Illuminate\Support\Collection;
-use Carbon\CarbonInterval;
-use Illuminate\Support\Facades\Route;
 
 class GenerateVouchers
 {
     use AsAction;
-    
+
     private const DEBUG = false;
 
-    //TODO: explicitly add owner in the parameter
+    // TODO: explicitly add owner in the parameter
     public function handle(VoucherInstructionsData|array $instructions): Collection
     {
         if (is_array($instructions)) {
@@ -26,7 +27,7 @@ class GenerateVouchers
         }
 
         if (self::DEBUG) {
-            Log::debug('[GenerateVouchers] Received count=' . $instructions->count);
+            Log::debug('[GenerateVouchers] Received count='.$instructions->count);
             Log::debug('[GenerateVouchers] Raw DTO:', $instructions->toArray());
         }
 
@@ -52,7 +53,7 @@ class GenerateVouchers
             : CarbonInterval::hours(12); // Default TTL to 12 hours if missing
 
         if (self::DEBUG) {
-            Log::debug('[GenerateVouchers] About to create', compact('count','prefix','mask','ttl'));
+            Log::debug('[GenerateVouchers] About to create', compact('count', 'prefix', 'mask', 'ttl'));
         }
 
         $owner = auth()->user();
@@ -69,14 +70,13 @@ class GenerateVouchers
             ->withMask($mask)
             ->withMetadata(['instructions' => $instructions->toCleanArray()]) // This is most important! Pass instructions as metadata.
             ->withOwner($owner);
-        
+
         // Only set expiration if TTL is not zero (non-expiring vouchers)
         if ($ttl->totalSeconds > 0) {
             $voucherBuilder = $voucherBuilder->withExpireTimeIn($ttl);
         }
-        
-        $vouchers = $voucherBuilder->create($count)
-        ;
+
+        $vouchers = $voucherBuilder->create($count);
         if (self::DEBUG) {
             Log::debug('[GenerateVouchers] Raw facade response', ['raw' => $vouchers]);
         }
@@ -137,8 +137,8 @@ class GenerateVouchers
             'issued_at' => now(),
 
             // Optional fields (signature support)
-            'public_key' => config('voucher.security.enable_signatures') 
-                ? config('voucher.security.public_key') 
+            'public_key' => config('voucher.security.enable_signatures')
+                ? config('voucher.security.public_key')
                 : null,
         ]);
     }

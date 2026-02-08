@@ -24,8 +24,7 @@ class RedemptionGuard
         private readonly LocationSpecification $locationSpec,
         private readonly TimeWindowSpecification $timeWindowSpec,
         private readonly TimeLimitSpecification $timeLimitSpec,
-    ) {
-    }
+    ) {}
 
     /**
      * Check if redemption is allowed based on voucher instructions and context.
@@ -43,6 +42,7 @@ class RedemptionGuard
             if (! $this->payableSpec->passes($voucher, $context)) {
                 $failures[] = 'payable';
             }
+
             // Skip ALL other validations for B2B vouchers
             return new ValidationResult(empty($failures), $failures);
         }
@@ -61,29 +61,29 @@ class RedemptionGuard
                 $failures[] = 'mobile';
             }
         }
-        
+
         // Input fields validation (email, name, birthdate, etc.)
-        if (!empty($voucher->instructions->inputs->fields)) {
+        if (! empty($voucher->instructions->inputs->fields)) {
             if (! $this->inputsSpec->passes($voucher, $context)) {
                 $failures[] = 'inputs';
             }
         }
-        
+
         // KYC validation
         if (! $this->kycSpec->passes($voucher, $context)) {
             $failures[] = 'kyc';
         }
-        
+
         // Location validation
         if (! $this->locationSpec->passes($voucher, $context)) {
             $failures[] = 'location';
         }
-        
+
         // Time window validation
         if (! $this->timeWindowSpec->passes($voucher, $context)) {
             $failures[] = 'time_window';
         }
-        
+
         // Time limit validation
         if (! $this->timeLimitSpec->passes($voucher, $context)) {
             $failures[] = 'time_limit';

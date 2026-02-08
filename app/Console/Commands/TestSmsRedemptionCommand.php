@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Actions\Api\Redemption\RedeemViaSms;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
@@ -26,7 +25,7 @@ class TestSmsRedemptionCommand extends Command
         $this->info("Testing SMS redemption...\n");
         $this->line("Voucher Code: {$code}");
         $this->line("Mobile: {$mobile}");
-        $this->line("Bank Spec: " . ($bank ?: '(default)'));
+        $this->line('Bank Spec: '.($bank ?: '(default)'));
         $this->newLine();
 
         // Prepare request data
@@ -38,14 +37,14 @@ class TestSmsRedemptionCommand extends Command
 
         try {
             // Call local API endpoint
-            $url = config('app.url') . '/api/v1/redeem/sms';
-            
+            $url = config('app.url').'/api/v1/redeem/sms';
+
             $this->comment("Calling: POST {$url}");
-            $this->comment("Payload: " . json_encode($payload, JSON_PRETTY_PRINT));
+            $this->comment('Payload: '.json_encode($payload, JSON_PRETTY_PRINT));
             $this->newLine();
 
             $response = Http::post($url, $payload);
-            
+
             $data = $response->json();
             $status = $response->status();
 
@@ -56,48 +55,48 @@ class TestSmsRedemptionCommand extends Command
             if ($response->successful()) {
                 $this->info('✅ SUCCESS');
                 $this->newLine();
-                
+
                 if (isset($data['message'])) {
                     $this->line("Message: {$data['message']}");
                 }
-                
+
                 if (isset($data['data'])) {
                     $this->line("\nVoucher Details:");
                     $this->table(
                         ['Field', 'Value'],
                         [
                             ['Code', $data['data']['voucher']['code'] ?? 'N/A'],
-                            ['Amount', '₱' . number_format($data['data']['voucher']['amount'] ?? 0, 2)],
+                            ['Amount', '₱'.number_format($data['data']['voucher']['amount'] ?? 0, 2)],
                             ['Currency', $data['data']['voucher']['currency'] ?? 'PHP'],
                             ['Mobile', $data['data']['mobile'] ?? 'N/A'],
                             ['Bank Account', $data['data']['bank_account'] ?? 'N/A'],
                         ]
                     );
                 }
-                
+
                 return self::SUCCESS;
             }
 
             // Handle errors
             $this->error('❌ FAILED');
             $this->newLine();
-            
+
             if (isset($data['error'])) {
                 $this->line("Error Type: {$data['error']}");
             }
-            
+
             if (isset($data['message'])) {
                 $this->line("Message: {$data['message']}");
             }
-            
+
             if (isset($data['redemption_url'])) {
                 $this->line("Redemption URL: {$data['redemption_url']}");
             }
-            
+
             $this->newLine();
             $this->comment('Full Response:');
             $this->line(json_encode($data, JSON_PRETTY_PRINT));
-            
+
             return self::FAILURE;
 
         } catch (\Exception $e) {
@@ -107,7 +106,7 @@ class TestSmsRedemptionCommand extends Command
             $this->newLine();
             $this->comment('Stack Trace:');
             $this->line($e->getTraceAsString());
-            
+
             return self::FAILURE;
         }
     }

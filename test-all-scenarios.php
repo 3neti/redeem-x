@@ -6,8 +6,8 @@ require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\FormFlowManager\Services\DriverService;
+use LBHurtado\Voucher\Models\Voucher;
 
 $codes = ['BIO-SYHZ', 'LOCATION-NNP8', 'MEDIA-VLM3', 'KYC-3L9M', 'FULL-QNEZ'];
 $driver = app(DriverService::class);
@@ -18,23 +18,24 @@ echo "╚═══════════════════════�
 
 foreach ($codes as $code) {
     $voucher = Voucher::where('code', $code)->first();
-    if (!$voucher) {
+    if (! $voucher) {
         echo "⚠️  Voucher {$code} not found\n\n";
+
         continue;
     }
-    
+
     $instructions = $driver->transform($voucher);
-    
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
     echo "📋 {$code}\n";
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
     echo "Amount: {$voucher->formatted_amount}\n";
-    echo "Inputs: " . implode(', ', array_map(
-        fn($f) => is_object($f) && isset($f->value) ? $f->value : $f,
+    echo 'Inputs: '.implode(', ', array_map(
+        fn ($f) => is_object($f) && isset($f->value) ? $f->value : $f,
         $voucher->instructions->inputs->fields ?? []
-    )) . "\n";
-    echo "Steps: " . count($instructions->steps) . "\n\n";
-    
+    ))."\n";
+    echo 'Steps: '.count($instructions->steps)."\n\n";
+
     foreach ($instructions->steps as $index => $step) {
         $num = $index + 1;
         echo "  Step {$num}: {$step->handler}";
@@ -42,7 +43,7 @@ foreach ($codes as $code) {
             echo " - {$step->config['title']}";
         }
         echo "\n";
-        
+
         if ($step->handler === 'form' && isset($step->config['fields'])) {
             foreach ($step->config['fields'] as $field) {
                 $req = ($field['required'] ?? false) ? '*' : '';
@@ -50,7 +51,7 @@ foreach ($codes as $code) {
             }
         }
     }
-    
+
     echo "\n  🌐 Test URL:\n";
     echo "  http://redeem-x.test/disburse?code={$code}\n\n";
 }

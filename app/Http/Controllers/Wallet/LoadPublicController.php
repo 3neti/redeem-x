@@ -12,7 +12,7 @@ class LoadPublicController extends Controller
 {
     /**
      * Display public QR code for a merchant.
-     * 
+     *
      * This is a public page accessible without authentication.
      * Shows only the QR code for the specified merchant.
      */
@@ -20,7 +20,7 @@ class LoadPublicController extends Controller
     {
         // Find merchant by UUID
         $merchant = Merchant::where('uuid', $uuid)->firstOrFail();
-        
+
         return Inertia::render('wallet/LoadPublic', [
             'merchantUuid' => $uuid,
             'merchantName' => $merchant->name,

@@ -1,8 +1,8 @@
 <?php
 
+use LBHurtado\Wallet\Enums\WalletType;
 use LBHurtado\Wallet\Services\WalletProvisioningService;
 use LBHurtado\Wallet\Tests\Models\User;
-use LBHurtado\Wallet\Enums\WalletType;
 
 it('creates wallets for all WalletType enums upon user creation', function () {
     $user = User::factory()->create();
@@ -27,9 +27,9 @@ it('sets wallet balances to zero by default', function () {
     }
 });
 
-//use LBHurtado\PaymentGateway\Support\WalletConfig;
+// use LBHurtado\PaymentGateway\Support\WalletConfig;
 //
-//it('sets default metadata on each wallet', function () {
+// it('sets default metadata on each wallet', function () {
 //    $user = User::factory()->create();
 //
 //    foreach (WalletType::cases() as $type) {
@@ -38,7 +38,7 @@ it('sets wallet balances to zero by default', function () {
 //        $expectedMeta = WalletConfig::defaultMeta($type); // e.g., []
 //        expect($wallet->meta)->toBe($expectedMeta);
 //    }
-//});
+// });
 
 it('does not duplicate wallets on repeated provisioning', function () {
     $user = User::factory()->create();

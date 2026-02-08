@@ -19,7 +19,7 @@ class InstructionItemFactory extends Factory
         $types = ['feedback', 'inputs', 'validation', 'rider'];
         $type = fake()->randomElement($types);
         $field = fake()->word();
-        
+
         return [
             'name' => fake()->words(2, true),
             'index' => "{$type}.{$field}",

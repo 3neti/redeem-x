@@ -4,33 +4,33 @@ declare(strict_types=1);
 
 namespace LBHurtado\PaymentGateway\Tests\Models;
 
-use LBHurtado\PaymentGateway\Database\Factories\AnotherUserFactory;
-use LBHurtado\Merchant\Traits\HasMerchant;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use LBHurtado\ModelChannel\Traits\HasChannels;
-use LBHurtado\Merchant\Models\Merchant;
-use Illuminate\Notifications\Notifiable;
-use Bavix\Wallet\Traits\HasWalletFloat;
 use Bavix\Wallet\Traits\CanConfirm;
+use Bavix\Wallet\Traits\HasWalletFloat;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Notifications\Notifiable;
+use LBHurtado\Merchant\Models\Merchant;
+use LBHurtado\Merchant\Traits\HasMerchant;
+use LBHurtado\ModelChannel\Traits\HasChannels;
+use LBHurtado\PaymentGateway\Database\Factories\AnotherUserFactory;
 
 /**
  * AnotherClass User.
  *
- * @property int        $id
- * @property string     $name
- * @property string     $email
- * @property Merchant   $merchant
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property Merchant $merchant
  *
  * @method int getKey()
  */
 class AnotherUser extends Authenticatable
 {
-    use HasWalletFloat;
-    use HasChannels;
-    use HasMerchant;
-    use HasFactory;
-    use Notifiable;
     use CanConfirm;
+    use HasChannels;
+    use HasFactory;
+    use HasMerchant;
+    use HasWalletFloat;
+    use Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -41,7 +41,7 @@ class AnotherUser extends Authenticatable
         'name',
         'email',
         'password',
-        'mobile'
+        'mobile',
     ];
 
     /**

@@ -2,9 +2,9 @@
 
 namespace LBHurtado\Wallet\Services;
 
-use LBHurtado\Wallet\Exceptions\SystemUserNotFoundException;
-use Illuminate\Support\Facades\Config;
 use Bavix\Wallet\Interfaces\Wallet;
+use Illuminate\Support\Facades\Config;
+use LBHurtado\Wallet\Exceptions\SystemUserNotFoundException;
 
 class SystemUserResolverService
 {
@@ -16,7 +16,7 @@ class SystemUserResolverService
 
         $user = $modelClass::where($column, $identifier)->first();
 
-        if (!($user instanceof Wallet)) {
+        if (! ($user instanceof Wallet)) {
             throw new SystemUserNotFoundException('The resolved user must be an instance of Wallet.');
         }
 

@@ -6,11 +6,11 @@ use App\Events\PaymentDetectedButNotConfirmed;
 use App\Services\DepositClassificationService;
 use Bavix\Wallet\External\Dto\Extra;
 use Bavix\Wallet\External\Dto\Option;
+use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\PaymentGateway\Data\Netbank\Deposit\DepositResponseData;
 use LBHurtado\PaymentGateway\Gateways\Netbank\NetbankPaymentGateway;
 use LBHurtado\Wallet\Services\SystemUserResolverService;
-use Illuminate\Support\Facades\Log;
 
 class CustomNetbankPaymentGateway extends NetbankPaymentGateway
 {
@@ -19,7 +19,7 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
      */
     protected function afterDepositConfirmed(DepositResponseData $deposit, ?Contact $sender): void
     {
-        if (!$sender) {
+        if (! $sender) {
             return;
         }
 
@@ -58,7 +58,7 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
             // Don't fail the deposit - just log and continue
         }
     }
-    
+
     /**
      * Create unconfirmed transfer from system wallet to voucher wallet
      */
@@ -67,11 +67,11 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
         try {
             // Get or create cash entity for voucher
             $cash = $voucher->cash;
-            if (!$cash) {
+            if (! $cash) {
                 Log::info('[Payment] Creating cash entity for first payment', [
                     'voucher_code' => $voucher->code,
                 ]);
-                
+
                 $cash = \LBHurtado\Cash\Models\Cash::create([
                     'amount' => 0,
                     'currency' => 'PHP',
@@ -79,10 +79,10 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
                 $voucher->cashable()->associate($cash);
                 $voucher->save();
             }
-            
+
             // Get system wallet
             $system = app(SystemUserResolverService::class)->resolve();
-            
+
             // Create UNCONFIRMED transfer: System → Voucher
             $transfer = $system->transferFloat(
                 $cash,
@@ -109,7 +109,7 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
                     )
                 )
             );
-            
+
             // Store transaction UUID in PaymentRequest for later confirmation
             $paymentRequest->update([
                 'meta' => [
@@ -117,7 +117,7 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
                     'transfer_uuid' => $transfer->uuid,
                 ],
             ]);
-            
+
             Log::info('[Payment] Unconfirmed transfer created', [
                 'payment_request_id' => $paymentRequest->id,
                 'voucher_code' => $voucher->code,
@@ -125,7 +125,7 @@ class CustomNetbankPaymentGateway extends NetbankPaymentGateway
                 'transaction_uuid' => $transfer->deposit->uuid,
                 'deposit_confirmed' => $transfer->deposit->confirmed,
             ]);
-            
+
         } catch (\Throwable $e) {
             Log::error('[Payment] Failed to create unconfirmed transfer', [
                 'payment_request_id' => $paymentRequest->id,

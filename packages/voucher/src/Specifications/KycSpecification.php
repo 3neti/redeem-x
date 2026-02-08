@@ -7,7 +7,7 @@ use LBHurtado\Voucher\Enums\VoucherInputField;
 
 /**
  * Validates KYC approval status for vouchers requiring KYC.
- * 
+ *
  * Checks if:
  * 1. Voucher requires KYC (has 'kyc' in inputs.fields)
  * 2. Contact has approved KYC status (kyc_status = 'approved')
@@ -18,7 +18,7 @@ class KycSpecification implements RedemptionSpecificationInterface
     {
         // Check if KYC is required
         $requiredFields = $voucher->instructions->inputs->fields ?? [];
-        
+
         $kycRequired = false;
         foreach ($requiredFields as $field) {
             $fieldValue = $field instanceof VoucherInputField ? $field->value : $field;
@@ -27,14 +27,14 @@ class KycSpecification implements RedemptionSpecificationInterface
                 break;
             }
         }
-        
-        if (!$kycRequired) {
+
+        if (! $kycRequired) {
             return true; // KYC not required, pass
         }
-        
+
         // Check KYC status from context inputs
         $kycStatus = $context->inputs['kyc_status'] ?? null;
-        
+
         return $kycStatus === 'approved';
     }
 }

@@ -2,23 +2,22 @@
 
 namespace LBHurtado\PaymentGateway\Data\Netbank\Generate;
 
-use LBHurtado\PaymentGateway\Data\Netbank\Deposit\Helpers\RecipientAccountNumberData;
-use LBHurtado\PaymentGateway\Data\Netbank\Common\PayloadAmountData;
-use LBHurtado\Merchant\Contracts\MerchantInterface;
-use Spatie\LaravelData\Data;
 use Brick\Money\Money;
+use LBHurtado\Merchant\Contracts\MerchantInterface;
+use LBHurtado\PaymentGateway\Data\Netbank\Common\PayloadAmountData;
+use Spatie\LaravelData\Data;
 
 class GeneratePayloadData extends Data
 {
     public function __construct(
-        public string            $merchant_name,
-        public string            $merchant_city,
-        public string            $qr_type,
-        public string            $qr_transaction_type,
-        public string            $destination_account,
-        public int               $resolution,
+        public string $merchant_name,
+        public string $merchant_city,
+        public string $qr_type,
+        public string $qr_transaction_type,
+        public string $destination_account,
+        public int $resolution,
         public PayloadAmountData $amount,
-    ){}
+    ) {}
 
     public static function fromUserAccountAmount(MerchantInterface $user, string $account, Money $amount, bool $shouldFormatDestination = false): self
     {
@@ -47,7 +46,7 @@ class GeneratePayloadData extends Data
     {
         return __(':alias:account', [
             'alias' => config('disbursement.client.alias'),
-            'account' => $merchantCode ? $merchantCode[0] . substr($account, 1) : $account,
+            'account' => $merchantCode ? $merchantCode[0].substr($account, 1) : $account,
         ]);
     }
 }

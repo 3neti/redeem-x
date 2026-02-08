@@ -17,10 +17,11 @@ enum InputType: string
     case LOCATION = 'location';
     case REFERENCE_CODE = 'reference_code';
     case OTP = 'otp';
+
     public function rules(): array
     {
         // Dynamically retrieve rules from the configuration file
-        $rules = Config::get('model-input.rules.' . $this->value);
+        $rules = Config::get('model-input.rules.'.$this->value);
 
         // Throw an exception if no rule is defined for the channel
         if (is_null($rules)) {

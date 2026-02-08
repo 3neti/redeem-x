@@ -7,8 +7,8 @@ namespace App\Actions\Api\Redemption;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
-use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Voucher\Data\VoucherData;
+use LBHurtado\Voucher\Models\Voucher;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class FinalizeRedemption
@@ -21,18 +21,20 @@ class FinalizeRedemption
             // Get voucher code from request (query param or body)
             $voucherCode = request()->input('voucher_code') ?? request()->query('voucher_code');
 
-            if (!$voucherCode) {
+            if (! $voucherCode) {
                 Log::warning('[FinalizeRedemption] Missing voucher code');
+
                 return ApiResponse::error('Voucher code is required', 400);
             }
 
             // Find voucher
             $voucher = Voucher::where('code', $voucherCode)->first();
 
-            if (!$voucher) {
+            if (! $voucher) {
                 Log::warning('[FinalizeRedemption] Voucher not found', [
                     'voucher' => $voucherCode,
                 ]);
+
                 return ApiResponse::error('Voucher not found', 404);
             }
 
@@ -41,6 +43,7 @@ class FinalizeRedemption
                 Log::warning('[FinalizeRedemption] Voucher already redeemed', [
                     'voucher' => $voucherCode,
                 ]);
+
                 return ApiResponse::error('This voucher has already been redeemed', 422);
             }
 
@@ -49,6 +52,7 @@ class FinalizeRedemption
                 Log::warning('[FinalizeRedemption] Voucher expired', [
                     'voucher' => $voucherCode,
                 ]);
+
                 return ApiResponse::error('This voucher has expired', 422);
             }
 
@@ -83,10 +87,6 @@ class FinalizeRedemption
 
     /**
      * Format bank account for display.
-     *
-     * @param  string|null  $bankCode
-     * @param  string|null  $accountNumber
-     * @return string|null
      */
     private function formatBankAccount(?string $bankCode, ?string $accountNumber): ?string
     {
@@ -103,8 +103,6 @@ class FinalizeRedemption
 
     /**
      * Get banks list.
-     *
-     * @return array
      */
     private function getBanksList(): array
     {

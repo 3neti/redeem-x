@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class RunFraudChecks
 {
     private const DEBUG = false;
-    
+
     public function handle($vouchers, Closure $next)
     {
         // @todo Implement fraud detection logic here

@@ -94,7 +94,6 @@ class ValidateVoucherCode
      * Validate and return voucher or throw exception.
      *
      * @param  string  $code  Voucher code
-     * @return Voucher
      *
      * @throws \Illuminate\Validation\ValidationException
      */

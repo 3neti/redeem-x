@@ -12,7 +12,7 @@ class TestCase extends Orchestra
     {
         parent::setUp();
 
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 
     protected function getPackageProviders($app): array
@@ -32,7 +32,7 @@ class TestCase extends Orchestra
             'prefix' => '',
         ]);
 
-        $app['config']->set('settlement-envelope.driver_directory', __DIR__ . '/../drivers');
+        $app['config']->set('settlement-envelope.driver_directory', __DIR__.'/../drivers');
 
         // Laravel Data configuration - load defaults
         $app['config']->set('data', [

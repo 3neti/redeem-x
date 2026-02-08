@@ -2,24 +2,22 @@
 
 namespace LBHurtado\Wallet;
 
-use LBHurtado\Wallet\Exceptions\SystemUserNotFoundException;
-use LBHurtado\Wallet\Services\SystemUserResolverService;
-use LBHurtado\Wallet\Providers\EventServiceProvider;
 use Illuminate\Support\ServiceProvider;
+use LBHurtado\Wallet\Providers\EventServiceProvider;
 
 class WalletServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/wallet.php',
+            __DIR__.'/../config/wallet.php',
             'wallet'
         );
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/account.php',
+            __DIR__.'/../config/account.php',
             'account'
         );
-        
+
         // Register event service provider
         $this->app->register(EventServiceProvider::class);
     }
@@ -28,8 +26,8 @@ class WalletServiceProvider extends ServiceProvider
     {
         // Allow publishing the configuration files
         $this->publishes([
-            __DIR__ . '/../config/account.php' => config_path('account.php'),
-            __DIR__ . '/../config/wallet.php' => config_path('wallet.php'),
+            __DIR__.'/../config/account.php' => config_path('account.php'),
+            __DIR__.'/../config/wallet.php' => config_path('wallet.php'),
         ], 'config');
     }
 }

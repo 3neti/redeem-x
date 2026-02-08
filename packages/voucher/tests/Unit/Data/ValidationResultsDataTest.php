@@ -1,8 +1,8 @@
 <?php
 
-use LBHurtado\Voucher\Data\ValidationResultsData;
 use LBHurtado\Voucher\Data\LocationValidationResultData;
 use LBHurtado\Voucher\Data\TimeValidationResultData;
+use LBHurtado\Voucher\Data\ValidationResultsData;
 
 it('creates ValidationResultsData with all results', function () {
     $location = LocationValidationResultData::from([

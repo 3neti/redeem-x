@@ -2,49 +2,51 @@
 
 namespace LBHurtado\Cash\Models;
 
-use Bavix\Wallet\Interfaces\{Confirmable, Customer, ProductInterface, Wallet};
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Casts\AsArrayObject;
-use Bavix\Wallet\Traits\{CanConfirm, HasWalletFloat};
+use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Interfaces\ProductInterface;
+use Bavix\Wallet\Traits\CanConfirm;
+use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Traits\HasWalletFloat;
+use Brick\Money\Money;
 use Illuminate\Database\Eloquent\Casts\ArrayObject;
-use LBHurtado\Cash\Database\Factories\CashFactory;
+use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use LBHurtado\Cash\Enums\CashStatus;
 use Illuminate\Support\Facades\Hash;
-use Spatie\ModelStatus\HasStatuses;
-use Bavix\Wallet\Traits\HasWallet;
 use Illuminate\Support\Number;
+use LBHurtado\Cash\Database\Factories\CashFactory;
+use LBHurtado\Cash\Enums\CashStatus;
+use Spatie\ModelStatus\HasStatuses;
 use Spatie\Tags\HasTags;
-use Brick\Money\Money;
 
 /**
  * Class Cash.
  *
- * @property int         $id
- * @property Money       $amount
- * @property string      $currency
- * @property Model       $reference
+ * @property int $id
+ * @property Money $amount
+ * @property string $currency
+ * @property Model $reference
  * @property ArrayObject $meta
- * @property string      $secret
- * @property \DateTime   $expires_on
- * @property bool        $expired
- * @property string      $status
- * @property Collection  $tags
+ * @property string $secret
+ * @property \DateTime $expires_on
+ * @property bool $expired
+ * @property string $status
+ * @property Collection $tags
  *
  * @method int getKey()
  */
 class Cash extends Model implements ProductInterface
 {
+    use CanConfirm;
+    use HasFactory;
     use HasStatuses {
         HasStatuses::setStatus as traitSetStatus; // Rename the HasStatuses method to traitSetStatus
     }
-    use HasWalletFloat;
-    use CanConfirm;
-    use HasFactory;
-    use HasWallet;
     use HasTags;
+    use HasWallet;
+    use HasWalletFloat;
 
     protected $table = 'cash';
 
@@ -66,19 +68,20 @@ class Cash extends Model implements ProductInterface
     {
         return CashFactory::new();
     }
+
     public static function booted(): void
     {
         static::creating(function (Cash $cash) {
             $cash->currency = $cash->currency ?: Number::defaultCurrency();
         });
-//        static::created(function (Cash $cash) {
-//            $float = $cash->amount->getAmount()->toFloat();
-//            $cash->depositFloat($float);
-//        });
-//        // **never** let this model be updated again:
-//        static::updating(function (self $cash) {
-//            return false; // cancels the update
-//        });
+        //        static::created(function (Cash $cash) {
+        //            $float = $cash->amount->getAmount()->toFloat();
+        //            $cash->depositFloat($float);
+        //        });
+        //        // **never** let this model be updated again:
+        //        static::updating(function (self $cash) {
+        //            return false; // cancels the update
+        //        });
     }
 
     public function withdrawTransaction()
@@ -92,6 +95,7 @@ class Cash extends Model implements ProductInterface
     {
         return $this->morphTo();
     }
+
     protected function amount(): Attribute
     {
         return Attribute::make(
@@ -136,8 +140,8 @@ class Cash extends Model implements ProductInterface
     /**
      * Set the status of the Cash model.
      *
-     * @param CashStatus $status The status to be set.
-     * @param string|null $reason Optional reason for the status change.
+     * @param  CashStatus  $status  The status to be set.
+     * @param  string|null  $reason  Optional reason for the status change.
      * @return $this
      */
     public function setStatus(CashStatus $status, ?string $reason = null): self
@@ -148,12 +152,10 @@ class Cash extends Model implements ProductInterface
         return $this;
     }
 
-
     /**
      * Check if the Cash model has a specific status.
      *
-     * @param CashStatus $status The status to check.
-     * @return bool
+     * @param  CashStatus  $status  The status to check.
      */
     public function hasStatus(CashStatus $status): bool
     {
@@ -163,8 +165,7 @@ class Cash extends Model implements ProductInterface
     /**
      * Check if the Cash model had a specific status in the past.
      *
-     * @param CashStatus $status The status to check.
-     * @return bool
+     * @param  CashStatus  $status  The status to check.
      */
     public function hasHadStatus(CashStatus $status): bool
     {
@@ -173,8 +174,6 @@ class Cash extends Model implements ProductInterface
 
     /**
      * Get the current status of the model.
-     *
-     * @return CashStatus|null
      */
     public function getCurrentStatus(): ?CashStatus
     {
@@ -185,8 +184,6 @@ class Cash extends Model implements ProductInterface
 
     /**
      * Alias for retrieving the latest status instance.
-     *
-     * @return \Spatie\ModelStatus\Status
      */
     public function getStatusInstance(): \Spatie\ModelStatus\Status
     {
@@ -196,7 +193,7 @@ class Cash extends Model implements ProductInterface
     public function setExpiredAttribute(bool $value): self
     {
         $this->setAttribute('expires_on', $value ? now() : null);
-        $this->traitSetStatus(  CashStatus::EXPIRED->value, 'Manually Expired');
+        $this->traitSetStatus(CashStatus::EXPIRED->value, 'Manually Expired');
 
         return $this;
     }
@@ -215,9 +212,6 @@ class Cash extends Model implements ProductInterface
 
     /**
      * Verify if the provided secret matches the hashed secret.
-     *
-     * @param  string  $providedSecret
-     * @return bool
      */
     public function verifySecret(string $providedSecret): bool
     {
@@ -226,14 +220,11 @@ class Cash extends Model implements ProductInterface
 
     /**
      * Determine if the cash can be redeemed.
-     *
-     * @param  string  $providedSecret
-     * @return bool
      */
     public function canRedeem(string $providedSecret): bool
     {
         // Check if it is not expired and the provided secret matches
-        return (!$this->expires_on || !$this->expires_on->isPast()) // Not expired
+        return (! $this->expires_on || ! $this->expires_on->isPast()) // Not expired
             && $this->verifySecret($providedSecret); // Secret is valid
     }
 
@@ -246,7 +237,7 @@ class Cash extends Model implements ProductInterface
     {
         return [
             'title' => $this->title,
-            'description' => 'Purchase of Product #' . $this->id,
+            'description' => 'Purchase of Product #'.$this->id,
         ];
     }
 }

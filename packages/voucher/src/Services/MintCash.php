@@ -2,16 +2,17 @@
 
 namespace LBHurtado\Voucher\Services;
 
-use Lorisleiva\Actions\Concerns\AsAction;
-use Illuminate\Support\Facades\{DB, Log};
-use LBHurtado\Voucher\Models\Voucher;
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use LBHurtado\Cash\Models\Cash;
+use LBHurtado\Voucher\Models\Voucher;
+use Lorisleiva\Actions\Concerns\AsAction;
 
 class MintCash
 {
     use AsAction;
-    
+
     private const DEBUG = false;
 
     public function handle(Voucher $voucher): Cash

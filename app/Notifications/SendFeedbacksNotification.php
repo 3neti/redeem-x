@@ -2,25 +2,24 @@
 
 namespace App\Notifications;
 
-use App\Notifications\BaseNotification;
+use App\Notifications\Channels\WebhookChannel;
 use App\Services\InputFormatter;
 use App\Services\TemplateProcessor;
 use App\Services\VoucherTemplateContextBuilder;
-use Illuminate\Notifications\Messages\MailMessage;
-use LBHurtado\EngageSpark\EngageSparkMessage;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\EngageSpark\EngageSparkMessage;
 use LBHurtado\ModelInput\Data\InputData;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
-use App\Notifications\Channels\WebhookChannel;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Send Feedbacks Notification
- * 
+ *
  * Sends voucher redemption notifications to issuer via email, SMS, and webhook.
  * Most complex notification with email attachments (signature, selfie, location).
- * 
+ *
  * Migration to BaseNotification:
  * - Extends BaseNotification for standardized behavior
  * - Uses config/notifications.php for channel configuration
@@ -31,7 +30,6 @@ use Illuminate\Support\Facades\Log;
  */
 class SendFeedbacksNotification extends BaseNotification
 {
-
     // Toggle debug logging: set to true to enable, false to disable
     private const DEBUG_ENABLED = false;
 
@@ -52,7 +50,7 @@ class SendFeedbacksNotification extends BaseNotification
         $this->debug("Constructing notification for voucher: {$voucherCode}");
         $model = Voucher::with('inputs')->where('code', $voucherCode)->firstOrFail();
         $this->voucher = VoucherData::fromModel($model);
-        $this->debug("Voucher loaded with " . $this->voucher->inputs->count() . " inputs");
+        $this->debug('Voucher loaded with '.$this->voucher->inputs->count().' inputs');
     }
 
     /**
@@ -109,12 +107,12 @@ class SendFeedbacksNotification extends BaseNotification
     protected function hasInput(string $name): bool
     {
         return $this->voucher->inputs
-            ->first(fn(InputData $input) => $input->name === $name) !== null;
+            ->first(fn (InputData $input) => $input->name === $name) !== null;
     }
 
     /**
      * Get notification delivery channels.
-     * 
+     *
      * Override BaseNotification to add webhook channel for AnonymousNotifiable.
      */
     public function via(object $notifiable): array
@@ -122,70 +120,70 @@ class SendFeedbacksNotification extends BaseNotification
         // For routed (Anonymous) notifications: use config channels + optional webhook
         if ($notifiable instanceof AnonymousNotifiable) {
             $channels = parent::via($notifiable);
-            
+
             // TODO: Re-enable webhook channel once properly tested
             // $channels[] = WebhookChannel::class;
-            
+
             return $channels;
         }
-        
+
         // For model notifications (e.g., User): persist to database only
         return ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $this->debug("Building email notification");
-        
+        $this->debug('Building email notification');
+
         // Build template context from voucher data
         $context = VoucherTemplateContextBuilder::build($this->voucher);
-        
+
         // Get templates from translations
         $subject = __('notifications.voucher_redeemed.email.subject');
         $greeting = __('notifications.voucher_redeemed.email.greeting');
         $body = __('notifications.voucher_redeemed.email.body');
         $warning = __('notifications.voucher_redeemed.email.warning');
         $salutation = __('notifications.voucher_redeemed.email.salutation');
-        
+
         // Process templates with context
         $processedSubject = TemplateProcessor::process($subject, $context);
         $processedGreeting = TemplateProcessor::process($greeting, $context);
         $processedBody = TemplateProcessor::process($body, $context);
         $processedWarning = TemplateProcessor::process($warning, $context);
         $processedSalutation = TemplateProcessor::process($salutation, $context);
-        
+
         // Build email message
         $mail_message = (new MailMessage)
             ->subject($processedSubject)
             ->greeting($processedGreeting)
             ->line($processedBody);
-        
+
         // Add Redemption Details section
         $details = __('notifications.voucher_redeemed.email.details');
         $mail_message->line('')
             ->line(TemplateProcessor::process($details['header'], $context))
             ->line(TemplateProcessor::process($details['redeemed_by'], $context));
-        
+
         if ($context['formatted_address']) {
             $mail_message->line(TemplateProcessor::process($details['location'], $context));
         }
-        
+
         if ($context['redeemed_at']) {
             $mail_message->line(TemplateProcessor::process($details['date'], $context));
         }
-        
+
         // Add Additional Information section (if custom inputs exist)
         $customInputs = InputFormatter::formatForEmail($this->voucher->inputs);
-        if (!empty($customInputs)) {
+        if (! empty($customInputs)) {
             $customInputsHeader = __('notifications.voucher_redeemed.email.custom_inputs_header');
             $mail_message->line('')
                 ->line($customInputsHeader);
-            
+
             foreach ($customInputs as $label => $value) {
                 $mail_message->line("**{$label}:** {$value}");
             }
         }
-        
+
         // Add warning and salutation
         $mail_message->line('')
             ->line($processedWarning)
@@ -193,10 +191,10 @@ class SendFeedbacksNotification extends BaseNotification
 
         // Attach signature if present
         $signature = $this->voucher->inputs
-            ->first(fn(InputData $input) => $input->name === 'signature')
+            ->first(fn (InputData $input) => $input->name === 'signature')
             ?->value;
 
-        $this->debug("Signature input", ['found' => $signature !== null, 'is_data_url' => $signature && str_starts_with($signature, 'data:image/')]);
+        $this->debug('Signature input', ['found' => $signature !== null, 'is_data_url' => $signature && str_starts_with($signature, 'data:image/')]);
 
         if ($signature && str_starts_with($signature, 'data:image/')) {
             // Extract the actual base64 data
@@ -212,15 +210,15 @@ class SendFeedbacksNotification extends BaseNotification
                 "signature.{$extension}",
                 ['mime' => $mime]
             );
-            $this->debug("Attached signature", ['extension' => $extension, 'mime' => $mime]);
+            $this->debug('Attached signature', ['extension' => $extension, 'mime' => $mime]);
         }
-        
+
         // Attach selfie if present
         $selfie = $this->voucher->inputs
-            ->first(fn(InputData $input) => $input->name === 'selfie')
+            ->first(fn (InputData $input) => $input->name === 'selfie')
             ?->value;
 
-        $this->debug("Selfie input", ['found' => $selfie !== null, 'is_data_url' => $selfie && str_starts_with($selfie, 'data:image/')]);
+        $this->debug('Selfie input', ['found' => $selfie !== null, 'is_data_url' => $selfie && str_starts_with($selfie, 'data:image/')]);
 
         if ($selfie && str_starts_with($selfie, 'data:image/')) {
             // Extract the actual base64 data
@@ -236,51 +234,51 @@ class SendFeedbacksNotification extends BaseNotification
                 "selfie.{$extension}",
                 ['mime' => $mime]
             );
-            $this->debug("Attached selfie", ['extension' => $extension, 'mime' => $mime]);
+            $this->debug('Attached selfie', ['extension' => $extension, 'mime' => $mime]);
         }
-        
+
         // Attach location snapshot if present (try 'location' first, then 'map')
         $locationInput = $this->voucher->inputs
-            ->first(fn(InputData $input) => $input->name === 'location')
+            ->first(fn (InputData $input) => $input->name === 'location')
             ?->value;
-        
-        $this->debug("Location input", ['found' => $locationInput !== null]);
-        
+
+        $this->debug('Location input', ['found' => $locationInput !== null]);
+
         $mapImageData = null;
-            
+
         if ($locationInput) {
             // Old format: location field with JSON containing snapshot
             try {
                 $locationData = json_decode($locationInput, true);
                 $snapshot = $locationData['snapshot'] ?? null;
-                
-                $this->debug("Location data parsed", [
+
+                $this->debug('Location data parsed', [
                     'has_snapshot' => $snapshot !== null,
                     'snapshot_length' => $snapshot ? strlen($snapshot) : 0,
                     'is_data_url' => $snapshot && str_starts_with($snapshot, 'data:image/'),
-                    'location_keys' => array_keys($locationData)
+                    'location_keys' => array_keys($locationData),
                 ]);
-                
+
                 if ($snapshot && str_starts_with($snapshot, 'data:image/')) {
                     $mapImageData = $snapshot;
                 }
             } catch (\Exception $e) {
-                $this->debug("Failed to parse location JSON", ['error' => $e->getMessage()]);
+                $this->debug('Failed to parse location JSON', ['error' => $e->getMessage()]);
             }
         }
-        
+
         // New format: separate 'map' field with data URL
-        if (!$mapImageData) {
+        if (! $mapImageData) {
             $mapInput = $this->voucher->inputs
-                ->first(fn(InputData $input) => $input->name === 'map')
+                ->first(fn (InputData $input) => $input->name === 'map')
                 ?->value;
-            
+
             if ($mapInput && str_starts_with($mapInput, 'data:image/')) {
                 $mapImageData = $mapInput;
-                $this->debug("Using map field", ['found' => true]);
+                $this->debug('Using map field', ['found' => true]);
             }
         }
-        
+
         // Attach the map image if found
         if ($mapImageData) {
             try {
@@ -297,53 +295,53 @@ class SendFeedbacksNotification extends BaseNotification
                     "location-map.{$extension}",
                     ['mime' => $mime]
                 );
-                $this->debug("Attached location map", ['extension' => $extension, 'mime' => $mime]);
+                $this->debug('Attached location map', ['extension' => $extension, 'mime' => $mime]);
             } catch (\Exception $e) {
-                $this->debug("Failed to attach location map", ['error' => $e->getMessage()]);
+                $this->debug('Failed to attach location map', ['error' => $e->getMessage()]);
             }
         }
-        
-        $this->debug("Email notification built successfully");
+
+        $this->debug('Email notification built successfully');
 
         return $mail_message;
     }
 
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
-        $this->debug("Building SMS notification");
-        
+        $this->debug('Building SMS notification');
+
         // Build template context from voucher data (includes enhanced fields)
         $context = VoucherTemplateContextBuilder::build($this->voucher);
-        
+
         // Determine which template tier to use
         $hasCustomInputs = $context['has_custom_inputs'] ?? false;
         $hasImages = $context['has_images'] ?? false;
-        
+
         if ($hasCustomInputs) {
             // Tier 3: with_inputs (includes custom fields + magic links)
             $templateKey = 'notifications.voucher_redeemed.sms.with_inputs';
-            $this->debug("Using inputs template", ['custom_inputs' => $context['custom_inputs_formatted']]);
+            $this->debug('Using inputs template', ['custom_inputs' => $context['custom_inputs_formatted']]);
         } elseif ($hasImages) {
             // Tier 2: with_images (includes magic links only)
             $templateKey = 'notifications.voucher_redeemed.sms.with_images';
-            $this->debug("Using images template", ['image_links' => $context['image_links']]);
+            $this->debug('Using images template', ['image_links' => $context['image_links']]);
         } else {
             // Tier 1: basic (original template)
             $templateKey = 'notifications.voucher_redeemed.sms.basic';
-            $this->debug("Using basic template");
+            $this->debug('Using basic template');
         }
-        
+
         $template = __($templateKey);
         $message = TemplateProcessor::process($template, $context);
-        
-        $this->debug("SMS notification built", [
+
+        $this->debug('SMS notification built', [
             'template_key' => $templateKey,
             'has_custom_inputs' => $hasCustomInputs,
             'has_images' => $hasImages,
             'message_length' => strlen($message),
         ]);
 
-        return (new EngageSparkMessage())
+        return (new EngageSparkMessage)
             ->content($message);
     }
 
@@ -375,7 +373,7 @@ class SendFeedbacksNotification extends BaseNotification
         // Add external metadata (for QuestPay integration)
         if ($voucherModel->external_metadata) {
             $external = $voucherModel->external_metadata;
-            
+
             // Handle both array and object formats
             if (is_array($external)) {
                 $payload['external'] = [
@@ -460,7 +458,7 @@ class SendFeedbacksNotification extends BaseNotification
             // Handle signature/selfie - indicate presence but don't send full data URL
             elseif (in_array($name, ['signature', 'selfie'])) {
                 $payload['inputs'][$name] = [
-                    'present' => !empty($value),
+                    'present' => ! empty($value),
                     'size_bytes' => strlen($value),
                 ];
             }

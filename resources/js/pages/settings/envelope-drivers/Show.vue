@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
     FileCode2, FileText, CheckSquare, Signal, Shield, ArrowLeft,
-    File, CheckCircle2, XCircle, Bot, User, Code, Pencil, Trash2, AlertTriangle
+    File, CheckCircle2, XCircle, Bot, User, Code, Pencil, Trash2, AlertTriangle, Download
 } from 'lucide-vue-next';
 
 interface DocumentType {
@@ -127,6 +127,12 @@ const getKindLabel = (kind: string) => {
                         :description="driver.description || 'Envelope driver configuration'"
                     />
                     <div class="flex items-center gap-2">
+                        <Button variant="outline" as-child>
+                            <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/export`">
+                                <Download class="mr-2 h-4 w-4" />
+                                Export
+                            </a>
+                        </Button>
                         <Button variant="outline" as-child>
                             <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/edit`">
                                 <Pencil class="mr-2 h-4 w-4" />

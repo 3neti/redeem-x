@@ -1,10 +1,10 @@
 <?php
 
+use Brick\Money\Money;
+use Illuminate\Support\Facades\Config;
+use LBHurtado\Merchant\Models\Merchant;
 use LBHurtado\PaymentGateway\Data\Netbank\Generate\GeneratePayloadData;
 use LBHurtado\PaymentGateway\Tests\Models\User;
-use LBHurtado\Merchant\Models\Merchant;
-use Illuminate\Support\Facades\Config;
-use Brick\Money\Money;
 
 beforeEach(function () {
     Config::set('disbursement.client.alias', '31799');
@@ -21,7 +21,7 @@ it('formats destination_account correctly when merchant code is provided', funct
     $user->save();
 
     $account = '09171234567';
-    $amount  = Money::of(100, 'PHP');
+    $amount = Money::of(100, 'PHP');
 
     $payload = GeneratePayloadData::fromUserAccountAmount($user, $account, $amount);
 

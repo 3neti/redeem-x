@@ -65,8 +65,8 @@ enum CashStatus: string
     public static function initialStatuses(): array
     {
         return array_map(
-            fn(self $status) => $status->value,
-            array_filter(self::cases(), fn(self $status) => !$status->isReversed())
+            fn (self $status) => $status->value,
+            array_filter(self::cases(), fn (self $status) => ! $status->isReversed())
         );
     }
 
@@ -76,8 +76,8 @@ enum CashStatus: string
     public static function reversedStatuses(): array
     {
         return array_map(
-            fn(self $status) => $status->value,
-            array_filter(self::cases(), fn(self $status) => $status->isReversed())
+            fn (self $status) => $status->value,
+            array_filter(self::cases(), fn (self $status) => $status->isReversed())
         );
     }
 }

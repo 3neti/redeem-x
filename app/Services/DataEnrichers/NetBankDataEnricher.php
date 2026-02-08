@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * NetBank-specific data enricher.
- * 
+ *
  * Extracts rich metadata from NetBank API responses including:
  * - Settled timestamp
  * - Reference number
@@ -20,20 +20,18 @@ class NetBankDataEnricher extends AbstractDataEnricher
     /**
      * Check if this enricher supports the given gateway.
      *
-     * @param string $gateway Gateway name
-     * @return bool
+     * @param  string  $gateway  Gateway name
      */
     public function supports(string $gateway): bool
     {
         return strtolower($gateway) === 'netbank';
     }
-    
+
     /**
      * Extract rich data from NetBank API response.
      *
-     * @param array &$metadata Voucher metadata (passed by reference)
-     * @param array $raw Raw NetBank API response
-     * @return void
+     * @param  array  &$metadata  Voucher metadata (passed by reference)
+     * @param  array  $raw  Raw NetBank API response
      */
     public function extract(array &$metadata, array $raw): void
     {
@@ -46,14 +44,14 @@ class NetBankDataEnricher extends AbstractDataEnricher
                 }
             }
         }
-        
+
         // Extract reference number (bank's reference)
         if (isset($raw['reference_number'])) {
             $metadata['disbursement']['reference_number'] = $raw['reference_number'];
         }
-        
+
         // Extract fees
-        if (isset($raw['fees']) && is_array($raw['fees']) && !empty($raw['fees'])) {
+        if (isset($raw['fees']) && is_array($raw['fees']) && ! empty($raw['fees'])) {
             $firstFee = $raw['fees'][0] ?? null;
             if ($firstFee && isset($firstFee['amount'])) {
                 $metadata['disbursement']['fees'] = [
@@ -62,7 +60,7 @@ class NetBankDataEnricher extends AbstractDataEnricher
                 ];
             }
         }
-        
+
         // Extract status history
         if (isset($raw['status_details']) && is_array($raw['status_details'])) {
             $metadata['disbursement']['status_history'] = array_map(function ($detail) {
@@ -72,17 +70,17 @@ class NetBankDataEnricher extends AbstractDataEnricher
                 ];
             }, $raw['status_details']);
         }
-        
+
         // Extract sender name (might be useful)
         if (isset($raw['sender_name'])) {
             $metadata['disbursement']['sender_name'] = $raw['sender_name'];
         }
-        
+
         // Extract settlement rail (confirm what was used)
         if (isset($raw['settlement_rail'])) {
             $metadata['disbursement']['metadata']['rail'] = $raw['settlement_rail'];
         }
-        
+
         Log::debug('[NetBankEnricher] Extracted rich data', [
             'has_settled_at' => isset($metadata['disbursement']['settled_at']),
             'has_reference_number' => isset($metadata['disbursement']['reference_number']),

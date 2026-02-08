@@ -2,10 +2,10 @@
 
 namespace App\Notifications\Channels;
 
+use Exception;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class WebhookChannel
 {
@@ -13,21 +13,21 @@ class WebhookChannel
      * Send the given notification.
      *
      * @param  mixed  $notifiable
-     * @param  \Illuminate\Notifications\Notification  $notification
      * @return void
      */
     public function send($notifiable, Notification $notification)
     {
-        if (!method_exists($notification, 'toWebhook')) {
+        if (! method_exists($notification, 'toWebhook')) {
             return;
         }
 
         $data = $notification->toWebhook($notifiable);
 
-        if (!isset($data['url'])) {
+        if (! isset($data['url'])) {
             Log::warning('[WebhookChannel] No webhook URL provided', [
                 'notification' => get_class($notification),
             ]);
+
             return;
         }
 

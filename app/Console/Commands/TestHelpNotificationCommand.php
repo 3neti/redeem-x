@@ -23,8 +23,8 @@ class TestHelpNotificationCommand extends Command
 
         // Find or create user
         $user = User::where('email', $email)->first();
-        
-        if (!$user) {
+
+        if (! $user) {
             $this->info("Creating user: {$email}");
             $user = User::factory()->create([
                 'email' => $email,
@@ -54,7 +54,7 @@ Flags:
 --count=5 - Number of vouchers
 --inputs=loc,sig,sel - Required fields
 HELP;
-            $this->info("Testing COMMAND-SPECIFIC help notification");
+            $this->info('Testing COMMAND-SPECIFIC help notification');
         } else {
             $message = <<<'MSG'
 Commands:
@@ -73,7 +73,7 @@ Flags:
 
 HELP [cmd] for details
 MSG;
-            $this->info("Testing GENERAL help notification");
+            $this->info('Testing GENERAL help notification');
         }
 
         // Send notification
@@ -82,10 +82,10 @@ MSG;
         $this->info("Sending notification to {$email} / {$mobile}...");
         $user->notify($notification);
 
-        $this->info("✓ HelpNotification sent successfully!");
-        $this->info("Check:");
+        $this->info('✓ HelpNotification sent successfully!');
+        $this->info('Check:');
         $this->info("  - SMS: {$mobile}");
-        $this->info("  - Database: notifications table");
+        $this->info('  - Database: notifications table');
 
         return self::SUCCESS;
     }

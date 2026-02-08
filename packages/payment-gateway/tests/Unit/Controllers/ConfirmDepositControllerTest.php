@@ -1,8 +1,8 @@
 <?php
 
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Event;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 
 it('tests confirm-deposit controller without irrelevant implementation details', function () {
     // Fake events
@@ -86,31 +86,31 @@ it('handles the real‐world bank payload in ConfirmDepositController', function
         'productBranchCode' => '000',
     ];
 
-//    $payload = [
-//        'alias' => '91500',
-//        'amount' => 150,
-//        'channel' => 'INSTAPAY',
-//        'commandId' => 140787329,
-//        'externalTransferStatus' => 'SETTLED',
-//        'operationId' => 175192002,
-//        'productBranchCode' => '000',
-//        'recipientAccountNumber' => '9150019173011987',
-//        'recipientAccountNumberBankFormat' => '113-001-00001-9',
-//        'referenceCode' => '19173011987',
-//        'referenceNumber' => '20250613GXCHPHM2XXXB000000005603644',
-//        'registrationTime' => '2025-06-13T19:31:01.607',
-//        'remarks' => 'InstaPay transfer #20250613GXCHPHM2XXXB000000005603644',
-//        'sender' => [
-//            'accountNumber' => '09175180722',
-//            'institutionCode' => 'GXCHPHM2XXX',
-//            'name' => 'RUTH APPLE HURTADO',
-//        ],
-//        'transferType' => 'QR_P2M',
-//        'merchant_details' => [
-//            'merchant_code' => '1',
-//            'merchant_account' => '09173011987',
-//        ],
-//    ];
+    //    $payload = [
+    //        'alias' => '91500',
+    //        'amount' => 150,
+    //        'channel' => 'INSTAPAY',
+    //        'commandId' => 140787329,
+    //        'externalTransferStatus' => 'SETTLED',
+    //        'operationId' => 175192002,
+    //        'productBranchCode' => '000',
+    //        'recipientAccountNumber' => '9150019173011987',
+    //        'recipientAccountNumberBankFormat' => '113-001-00001-9',
+    //        'referenceCode' => '19173011987',
+    //        'referenceNumber' => '20250613GXCHPHM2XXXB000000005603644',
+    //        'registrationTime' => '2025-06-13T19:31:01.607',
+    //        'remarks' => 'InstaPay transfer #20250613GXCHPHM2XXXB000000005603644',
+    //        'sender' => [
+    //            'accountNumber' => '09175180722',
+    //            'institutionCode' => 'GXCHPHM2XXX',
+    //            'name' => 'RUTH APPLE HURTADO',
+    //        ],
+    //        'transferType' => 'QR_P2M',
+    //        'merchant_details' => [
+    //            'merchant_code' => '1',
+    //            'merchant_account' => '09173011987',
+    //        ],
+    //    ];
 
     // 3️⃣ Expect the gateway to receive *exactly* that validated array
     $gateway
@@ -125,10 +125,10 @@ it('handles the real‐world bank payload in ConfirmDepositController', function
             return $a === $b;
         }))
         ->andReturnTrue();
-//    $gateway->shouldReceive('confirmDeposit')
-//        ->once()
-//        ->with(Mockery::on(fn ($validated) => $validated === $payload))
-//        ->andReturn(true); // Just return success
+    //    $gateway->shouldReceive('confirmDeposit')
+    //        ->once()
+    //        ->with(Mockery::on(fn ($validated) => $validated === $payload))
+    //        ->andReturn(true); // Just return success
 
     // 4️⃣ Hit your endpoint
     $response = $this->postJson(route('confirm-deposit'), $payload);

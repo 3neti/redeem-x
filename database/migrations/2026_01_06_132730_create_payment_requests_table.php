@@ -21,7 +21,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'awaiting_confirmation', 'confirmed', 'expired'])->default('pending');
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamps();
-            
+
             $table->index(['voucher_id', 'status']);
         });
     }

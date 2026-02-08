@@ -2,11 +2,11 @@
 
 namespace LBHurtado\Voucher\Tests;
 
+use Illuminate\Auth\AuthServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use LBHurtado\Voucher\Tests\Models\User;
 use Orchestra\Testbench\TestCase as BaseTestCase;
-use Illuminate\Auth\AuthServiceProvider;
-use Illuminate\Database\Eloquent\Relations\Relation;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -18,20 +18,20 @@ abstract class TestCase extends BaseTestCase
             fn (string $modelName) => 'LBHurtado\\Voucher\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
         // Set the base path for the package
-        if (!defined('TESTING_PACKAGE_PATH')) {
-            define('TESTING_PACKAGE_PATH', __DIR__ . '/../resources/documents');
+        if (! defined('TESTING_PACKAGE_PATH')) {
+            define('TESTING_PACKAGE_PATH', __DIR__.'/../resources/documents');
         }
         $this->loadEnvironment();
         $this->loadConfig();
-//        Relation::morphMap([
-//            'User'  => User::class,
-//        ]);
+        //        Relation::morphMap([
+        //            'User'  => User::class,
+        //        ]);
     }
 
     protected function getPackageProviders($app)
     {
         return [
-//            AuthServiceProvider::class,
+            //            AuthServiceProvider::class,
             \FrittenKeeZ\Vouchers\VouchersServiceProvider::class,
             \LBHurtado\Voucher\VoucherServiceProvider::class,
             \LBHurtado\Wallet\WalletServiceProvider::class,
@@ -70,43 +70,42 @@ abstract class TestCase extends BaseTestCase
         config()->set('instructions.feedback.email', 'example@example.com');
         config()->set('instructions.feedback.webhook', 'http://example.com/webhook');
 
-//        // Configure the web guard for authentication
-//        $app['config']->set('auth.guards.web', [
-//            'driver' => 'session', // Use the session driver for web guard
-//            'provider' => 'users', // Reference the users provider below
-//        ]);
-//
-//        // Add an authentication provider using the array driver
-//        $app['config']->set('auth.providers.users', [
-//            'driver' => 'eloquent', // Use the lightweight array driver
-//            'model' => \Illuminate\Foundation\Auth\User::class, // Optionally specify Laravel's default User model
-//        ]);
+        //        // Configure the web guard for authentication
+        //        $app['config']->set('auth.guards.web', [
+        //            'driver' => 'session', // Use the session driver for web guard
+        //            'provider' => 'users', // Reference the users provider below
+        //        ]);
+        //
+        //        // Add an authentication provider using the array driver
+        //        $app['config']->set('auth.providers.users', [
+        //            'driver' => 'eloquent', // Use the lightweight array driver
+        //            'model' => \Illuminate\Foundation\Auth\User::class, // Optionally specify Laravel's default User model
+        //        ]);
 
         // Optional: Set web guard as the default
         $app['config']->set('auth.defaults.guard', 'web');
 
-
         // Run the published voucher migration from the vendor
         $baseVoucherMigration = include 'vendor/frittenkeez/laravel-vouchers/publishes/migrations/2018_06_12_000000_create_voucher_tables.php';
         $baseVoucherMigration->up();
-        
+
         // Run the idempotency migration for vouchers
-        $idempotencyVoucherMigration = include __DIR__ . '/../database/migrations/test/2025_12_28_155100_add_idempotency_key_to_vouchers_table.php';
+        $idempotencyVoucherMigration = include __DIR__.'/../database/migrations/test/2025_12_28_155100_add_idempotency_key_to_vouchers_table.php';
         $idempotencyVoucherMigration->up();
 
         // Run the cash migration from the local package
-        $userMigration = include __DIR__ . '/../database/migrations/test/0001_01_01_000000_create_users_table.php';
+        $userMigration = include __DIR__.'/../database/migrations/test/0001_01_01_000000_create_users_table.php';
         $userMigration->up();
-        $moneyIssuerMigration = include __DIR__ . '/../database/migrations/test/2024_07_02_202500_create_money_issuers_table.php';
+        $moneyIssuerMigration = include __DIR__.'/../database/migrations/test/2024_07_02_202500_create_money_issuers_table.php';
         $moneyIssuerMigration->up();
-//        $channelsMigration = include __DIR__ . '/../database/migrations/test/2024_08_02_000000_create_channels_table.php';
-//        $channelsMigration->up();
-        $statusMigration = include __DIR__ . '/../database/migrations/test/2024_08_03_202500_create_statuses_table.php';
+        //        $channelsMigration = include __DIR__ . '/../database/migrations/test/2024_08_02_000000_create_channels_table.php';
+        //        $channelsMigration->up();
+        $statusMigration = include __DIR__.'/../database/migrations/test/2024_08_03_202500_create_statuses_table.php';
         $statusMigration->up();
-        $tagMigration = include __DIR__ . '/../database/migrations/test/2024_08_04_202500_create_tag_tables.php';
+        $tagMigration = include __DIR__.'/../database/migrations/test/2024_08_04_202500_create_tag_tables.php';
         $tagMigration->up();
-//        $inputMigration = include __DIR__ . '/../database/migrations/test/2024_08_02_000000_create_inputs_table.php';
-//        $inputMigration->up();
+        //        $inputMigration = include __DIR__ . '/../database/migrations/test/2024_08_02_000000_create_inputs_table.php';
+        //        $inputMigration->up();
 
         // Settlement envelope migrations
         $this->loadSettlementEnvelopeMigrations();
@@ -114,16 +113,16 @@ abstract class TestCase extends BaseTestCase
 
     protected function loadSettlementEnvelopeMigrations(): void
     {
-        $settlementEnvelopePath = __DIR__ . '/../../settlement-envelope/database/migrations';
+        $settlementEnvelopePath = __DIR__.'/../../settlement-envelope/database/migrations';
         if (is_dir($settlementEnvelopePath)) {
-            foreach (glob($settlementEnvelopePath . '/*.php') as $migration) {
+            foreach (glob($settlementEnvelopePath.'/*.php') as $migration) {
                 $migrationClass = include $migration;
                 $migrationClass->up();
             }
         }
 
         // Configure settlement-envelope
-        config()->set('settlement-envelope.driver_directory', __DIR__ . '/../../settlement-envelope/drivers');
+        config()->set('settlement-envelope.driver_directory', __DIR__.'/../../settlement-envelope/drivers');
         config()->set('settlement-envelope.storage_disk', 'local');
     }
 
@@ -143,23 +142,23 @@ abstract class TestCase extends BaseTestCase
     {
         $this->app['config']->set(
             'disbursement',
-            require __DIR__ . '/../config/disbursement.php'
+            require __DIR__.'/../config/disbursement.php'
         );
 
         $this->app['config']->set(
             'payment-gateway',
-            require __DIR__ . '/../config/payment-gateway.php'
+            require __DIR__.'/../config/payment-gateway.php'
         );
 
         $this->app['config']->set(
             'instructions',
-            require __DIR__ . '/../config/instructions.php'
+            require __DIR__.'/../config/instructions.php'
         );
     }
 
     protected function loadEnvironment()
     {
-        $path =__DIR__ . '/../.env';
+        $path = __DIR__.'/../.env';
 
         if (file_exists($path)) {
             \Dotenv\Dotenv::createImmutable(dirname($path), '.env')->load();

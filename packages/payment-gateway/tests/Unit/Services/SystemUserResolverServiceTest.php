@@ -1,8 +1,8 @@
 <?php
 
-use LBHurtado\Wallet\Services\SystemUserResolverService;
-use LBHurtado\PaymentGateway\Tests\Models\User;
 use Illuminate\Support\Facades\Config;
+use LBHurtado\PaymentGateway\Tests\Models\User;
+use LBHurtado\Wallet\Services\SystemUserResolverService;
 
 it('resolves the system user based on config/account.php', function () {
     // Arrange: set config values

@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Events\PaymentDetectedButNotConfirmed;
 use App\Models\PaymentRequest;
+use App\Notifications\PaymentConfirmationNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,13 +11,13 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
-use App\Notifications\PaymentConfirmationNotification;
 
 class SendPaymentConfirmationSms implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
+
     public $backoff = [10, 30, 60]; // Retry after 10s, 30s, 60s
 
     public function __construct(
@@ -32,11 +32,12 @@ class SendPaymentConfirmationSms implements ShouldQueue
         $paymentRequest = PaymentRequest::find($this->paymentRequestId);
 
         // Race condition guard: check if still pending
-        if (!$paymentRequest || $paymentRequest->status !== 'pending') {
+        if (! $paymentRequest || $paymentRequest->status !== 'pending') {
             Log::info('Skipping SMS - payment already confirmed', [
                 'payment_request_id' => $this->paymentRequestId,
                 'current_status' => $paymentRequest?->status,
             ]);
+
             return;
         }
 

@@ -2,8 +2,8 @@
 
 namespace LBHurtado\Voucher\Http\Controllers;
 
-use LBHurtado\Voucher\Models\Voucher;
 use Illuminate\Http\Request;
+use LBHurtado\Voucher\Models\Voucher;
 
 class VoucherDataController
 {

@@ -1,10 +1,10 @@
 <?php
 
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use LBHurtado\OmniChannel\Notifications\OmniChannelSmsChannel;
 use LBHurtado\OmniChannel\Notifications\OmniChannelSmsMessage;
 use LBHurtado\OmniChannel\Services\OmniChannelService;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Notifiable;
 
 beforeEach(function () {
     // Bind a spy so we can assert send(...) was called.
@@ -16,15 +16,18 @@ beforeEach(function () {
 });
 
 it('sends a simple string payload', function () {
-    $user = new class {
+    $user = new class
+    {
         use Notifiable;
+
         public function routeNotificationFor($channel, $notification = null)
         {
             return '0917 123 4567';
         }
     };
 
-    $notification = new class extends Notification {
+    $notification = new class extends Notification
+    {
         public function via($notifiable): array
         {
             return ['omnichannel'];
@@ -49,20 +52,24 @@ it('sends a simple string payload', function () {
             expect($content)->toBe('Hello World');
             // from should fall back to config default
             expect($from)->toBe(config('omnichannel.default_sender_id'));
+
             return true;
         });
 });
 
 it('sends a rich OmniChannelSmsMessage payload', function () {
-    $user = new class {
+    $user = new class
+    {
         use Notifiable;
+
         public function routeNotificationFor($channel, $notification = null)
         {
             return '+63 917 765 4321';
         }
     };
 
-    $notification = new class extends Notification {
+    $notification = new class extends Notification
+    {
         public function via($notifiable): array
         {
             return ['omnichannel'];
@@ -73,7 +80,7 @@ it('sends a rich OmniChannelSmsMessage payload', function () {
             // returning a DTO, including a custom `from`
             return new OmniChannelSmsMessage(
                 content: 'Balance is low',
-                from:    'MYBUSINESS'
+                from: 'MYBUSINESS'
             );
         }
     };
@@ -87,6 +94,7 @@ it('sends a rich OmniChannelSmsMessage payload', function () {
             expect($recipient)->toBe('639177654321');
             expect($content)->toBe('Balance is low');
             expect($from)->toBe('MYBUSINESS');
+
             return true;
         });
 });

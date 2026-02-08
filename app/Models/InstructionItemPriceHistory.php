@@ -32,17 +32,18 @@ class InstructionItemPriceHistory extends Model
     {
         return $this->belongsTo(User::class, 'changed_by');
     }
-    
+
     public function priceDifference(): int
     {
         return $this->new_price - $this->old_price;
     }
-    
+
     public function percentageChange(): float
     {
         if ($this->old_price === 0) {
             return 100.0;
         }
+
         return (($this->new_price - $this->old_price) / $this->old_price) * 100;
     }
 }

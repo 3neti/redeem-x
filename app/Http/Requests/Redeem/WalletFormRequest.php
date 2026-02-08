@@ -105,8 +105,6 @@ class WalletFormRequest extends FormRequest
      * Adds custom voucher-specific validations:
      * - Mobile number must match voucher's expected recipient (if set)
      * - Secret must match voucher's hashed secret (if set)
-     *
-     * @param  Validator  $validator
      */
     public function withValidator(Validator $validator): void
     {

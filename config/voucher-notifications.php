@@ -16,7 +16,7 @@ return [
     'vouchers_generated' => [
         /*
         | Channels to use when notifying users about voucher generation.
-        | 
+        |
         | Available channels:
         | - 'engage_spark' : SMS via EngageSpark
         | - 'mail'         : Email
@@ -35,7 +35,7 @@ return [
 
         /*
         | Voucher instructions format in notifications.
-        | 
+        |
         | Options:
         | - 'none'  : Don't include instructions (default, current behavior)
         | - 'json'  : Pretty-printed JSON format
@@ -48,7 +48,7 @@ return [
 
         /*
         | Include shareable links in voucher generation notifications.
-        | 
+        |
         | When enabled, notifications will include shareable links based on voucher type:
         | - REDEEMABLE: /disburse?code=ABCD
         | - PAYABLE: /pay?code=EFGH
@@ -63,7 +63,7 @@ return [
     'balance' => [
         /*
         | Channels to use when notifying users about balance queries.
-        | 
+        |
         | Available channels:
         | - 'engage_spark' : SMS via EngageSpark
         | - 'mail'         : Email

@@ -60,6 +60,22 @@ return [
             'report' => false,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Envelope Drivers Disk
+        |--------------------------------------------------------------------------
+        |
+        | Storage for settlement envelope driver YAML files.
+        | Can be switched to S3 for multi-server deployments.
+        |
+        */
+
+        'envelope-drivers' => [
+            'driver' => 'local',
+            'root' => storage_path('app/envelope-drivers'),
+            'throw' => false,
+        ],
+
     ],
 
     /*

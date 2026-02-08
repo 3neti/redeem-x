@@ -11,34 +11,34 @@ use Bavix\Wallet\Traits\HasWalletFloat;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use LBHurtado\ModelChannel\Traits\HasChannels;
 use LBHurtado\Merchant\Contracts\MerchantInterface;
 use LBHurtado\Merchant\Models\Merchant;
 use LBHurtado\Merchant\Traits\HasMerchant;
+use LBHurtado\ModelChannel\Traits\HasChannels;
 use LBHurtado\PaymentGateway\Traits\HasTopUps;
-use LBHurtado\Wallet\Traits\HasPlatformWallets;
 use LBHurtado\Wallet\Services\WalletProvisioningService;
+use LBHurtado\Wallet\Traits\HasPlatformWallets;
 
 /**
  * Class User.
  *
- * @property int        $id
- * @property string     $name
- * @property string     $email
- * @property Merchant   $merchant
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property Merchant $merchant
  *
  * @method int getKey()
  */
-class User extends Authenticatable implements MerchantInterface, Wallet, Confirmable
+class User extends Authenticatable implements Confirmable, MerchantInterface, Wallet
 {
-    use HasPlatformWallets;
-    use HasWalletFloat;
-    use HasChannels;
-    use HasMerchant;
-    use HasTopUps;
-    use HasFactory;
-    use Notifiable;
     use CanConfirm;
+    use HasChannels;
+    use HasFactory;
+    use HasMerchant;
+    use HasPlatformWallets;
+    use HasTopUps;
+    use HasWalletFloat;
+    use Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -49,7 +49,7 @@ class User extends Authenticatable implements MerchantInterface, Wallet, Confirm
         'name',
         'email',
         'password',
-        'mobile'
+        'mobile',
     ];
 
     /**

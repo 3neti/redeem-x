@@ -16,7 +16,7 @@ class NotifyBatchCreator
         if ($owner && $owner->mobile && app()->bound(VouchersGeneratedNotificationInterface::class)) {
             $notificationClass = app(VouchersGeneratedNotificationInterface::class);
             $notification = $notificationClass::make($vouchers);
-            
+
             $owner->notify($notification);
         }
 
@@ -24,7 +24,7 @@ class NotifyBatchCreator
         // if ($owner && $owner->email && app()->bound(VouchersGeneratedNotificationInterface::class)) {
         //     $notificationClass = app(VouchersGeneratedNotificationInterface::class);
         //     $notification = $notificationClass::make($vouchers);
-        //     
+        //
         //     $owner->notify($notification);
         // }
 

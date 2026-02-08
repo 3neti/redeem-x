@@ -11,7 +11,7 @@ use Throwable;
 
 /**
  * Health check service for monitoring system components.
- * 
+ *
  * Checks the health of critical components: database, cache, queue, and payment gateway.
  * Used by health check endpoints for uptime monitoring and SLA tracking.
  */
@@ -21,13 +21,16 @@ class HealthCheckService
      * Overall system health status.
      */
     private const STATUS_HEALTHY = 'healthy';
+
     private const STATUS_DEGRADED = 'degraded';
+
     private const STATUS_DOWN = 'down';
 
     /**
      * Component status.
      */
     private const COMPONENT_UP = 'up';
+
     private const COMPONENT_DOWN = 'down';
 
     /**
@@ -82,7 +85,7 @@ class HealthCheckService
     private function checkCache(): array
     {
         try {
-            $key = 'health_check_' . time();
+            $key = 'health_check_'.time();
             Cache::put($key, 'test', 10);
             $value = Cache::get($key);
             Cache::forget($key);

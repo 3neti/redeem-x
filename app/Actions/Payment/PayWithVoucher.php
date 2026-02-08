@@ -28,22 +28,22 @@ class PayWithVoucher
      * @param  string  $code  Voucher code
      * @return array{success: bool, amount: float, new_balance: float, voucher_code: string}
      *
-     * @throws \Illuminate\Validation\ValidationException  If validation fails
-     * @throws RedemptionException  If validation fails
+     * @throws \Illuminate\Validation\ValidationException If validation fails
+     * @throws RedemptionException If validation fails
      */
     public function handle(User $user, string $code): array
     {
         // Step 1: Validate voucher (reuses existing action)
-        $validator = new ValidateVoucherCode();
+        $validator = new ValidateVoucherCode;
         $voucher = $validator->validateOrFail($code);
-        
+
         // Step 2: Validate using Unified Validation Gateway
-        $service = new VoucherRedemptionService();
+        $service = new VoucherRedemptionService;
         $context = new RedemptionContext(
             mobile: '', // Not needed for authenticated redemption
             vendorAlias: $user->primaryVendorAlias?->alias
         );
-        
+
         $service->validateRedemption($voucher, $context);
 
         Log::info('[PayWithVoucher] Voucher validated and payable check passed, transferring from Cash wallet', [
@@ -58,7 +58,7 @@ class PayWithVoucher
         return DB::transaction(function () use ($user, $voucher) {
             $cash = $voucher->cash;
             $amount = $voucher->instructions->cash->amount;
-            
+
             // Get issuer for sender attribution
             $issuer = User::find($voucher->owner_id);
 

@@ -6,21 +6,21 @@ enum EnvelopeStatus: string
 {
     // Initial state
     case DRAFT = 'draft';
-    
+
     // Evidence collection states
     case IN_PROGRESS = 'in_progress';
     case READY_FOR_REVIEW = 'ready_for_review';
     case READY_TO_SETTLE = 'ready_to_settle';
-    
+
     // Terminal/locked states
     case LOCKED = 'locked';
     case SETTLED = 'settled';
     case CANCELLED = 'cancelled';
     case REJECTED = 'rejected';
-    
+
     // Recovery state
     case REOPENED = 'reopened';
-    
+
     // Legacy (deprecated, maps to IN_PROGRESS)
     case ACTIVE = 'active';
 
@@ -86,7 +86,7 @@ enum EnvelopeStatus: string
      */
     public function canReject(): bool
     {
-        return !$this->isTerminal() && $this !== self::LOCKED;
+        return ! $this->isTerminal() && $this !== self::LOCKED;
     }
 
     /**
@@ -102,6 +102,6 @@ enum EnvelopeStatus: string
      */
     public function canCancel(): bool
     {
-        return !$this->isTerminal();
+        return ! $this->isTerminal();
     }
 }

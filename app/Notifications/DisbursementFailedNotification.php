@@ -2,16 +2,15 @@
 
 namespace App\Notifications;
 
-use App\Notifications\BaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 use LBHurtado\Voucher\Models\Voucher;
 
 /**
  * Disbursement Failed Notification
- * 
+ *
  * Alerts administrators when a voucher disbursement fails.
  * Used by NotifyAdminOfDisbursementFailure listener.
- * 
+ *
  * Migration to BaseNotification:
  * - Extends BaseNotification for standardized behavior
  * - Uses config/notifications.php for channel configuration
@@ -21,14 +20,13 @@ use LBHurtado\Voucher\Models\Voucher;
  */
 class DisbursementFailedNotification extends BaseNotification
 {
-
     public function __construct(
         protected Voucher $voucher,
         protected string $errorMessage,
         protected string $errorType,
         protected ?string $mobile = null
     ) {}
-    
+
     /**
      * Create from exception (convenience method)
      */
@@ -74,7 +72,7 @@ class DisbursementFailedNotification extends BaseNotification
         return array_merge(parent::getAuditMetadata(), [
             'voucher_code' => $this->voucher->code,
             'error_type' => $this->errorType,
-            'has_mobile' => !empty($this->mobile),
+            'has_mobile' => ! empty($this->mobile),
         ]);
     }
 
@@ -85,35 +83,35 @@ class DisbursementFailedNotification extends BaseNotification
     {
         // Refresh voucher to get latest cash entity in queued context
         $this->voucher->refresh();
-        
+
         // Build context for template processing
         $context = $this->buildMailContext();
-        
+
         // Get localized templates
         $subject = $this->getLocalizedTemplate('notifications.disbursement_failed.email.subject', $context);
         $greeting = $this->getLocalizedTemplate('notifications.disbursement_failed.email.greeting', $context);
         $body = $this->getLocalizedTemplate('notifications.disbursement_failed.email.body', $context);
         $footer = $this->getLocalizedTemplate('notifications.disbursement_failed.email.footer', $context);
-        
+
         // Get detail lines
         $details = __('notifications.disbursement_failed.email.details');
-        
+
         $mail = (new MailMessage)
             ->error()
             ->subject($subject)
             ->greeting($greeting)
             ->line($body);
-        
+
         // Add detail lines
         foreach ($details as $key => $template) {
-            $line = $this->getLocalizedTemplate('notifications.disbursement_failed.email.details.' . $key, $context);
+            $line = $this->getLocalizedTemplate('notifications.disbursement_failed.email.details.'.$key, $context);
             $mail->line($line);
         }
-        
+
         $action = $this->getLocalizedTemplate('notifications.disbursement_failed.email.action', $context);
-        $mail->action($action, url('/vouchers/' . $this->voucher->id));
+        $mail->action($action, url('/vouchers/'.$this->voucher->id));
         $mail->line($footer);
-        
+
         return $mail;
     }
 

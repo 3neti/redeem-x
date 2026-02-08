@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -8,8 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { FileCode2, FileText, CheckSquare, Signal, Shield, AlertCircle, ExternalLink, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-vue-next';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { FileCode2, FileText, CheckSquare, Signal, Shield, AlertCircle, ExternalLink, Plus, MoreVertical, Pencil, Trash2, Upload } from 'lucide-vue-next';
 
 interface Driver {
     id: string;
@@ -32,6 +35,11 @@ defineProps<Props>();
 
 const deleteDialog = ref<{ open: boolean; driver: Driver | null }>({ open: false, driver: null });
 const isDeleting = ref(false);
+const importDialogOpen = ref(false);
+const importForm = useForm({
+    file: null as File | null,
+});
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const confirmDelete = (driver: Driver) => {
     deleteDialog.value = { open: true, driver };
@@ -48,6 +56,37 @@ const executeDelete = () => {
         },
     });
 };
+
+const handleFileChange = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+        importForm.file = input.files[0];
+    }
+};
+
+const submitImport = () => {
+    if (!importForm.file) return;
+    
+    importForm.post('/settings/envelope-drivers/import', {
+        forceFormData: true,
+        onSuccess: () => {
+            importDialogOpen.value = false;
+            importForm.reset();
+            if (fileInputRef.value) {
+                fileInputRef.value.value = '';
+            }
+        },
+    });
+};
+
+const closeImportDialog = () => {
+    importDialogOpen.value = false;
+    importForm.reset();
+    importForm.clearErrors();
+    if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+    }
+};
 </script>
 
 <template>
@@ -61,12 +100,18 @@ const executeDelete = () => {
                         title="Envelope Drivers"
                         description="Manage settlement envelope driver configurations"
                     />
-                    <Button as-child>
-                        <a href="/settings/envelope-drivers/create">
-                            <Plus class="mr-2 h-4 w-4" />
-                            Create Driver
-                        </a>
-                    </Button>
+                    <div class="flex items-center gap-2">
+                        <Button variant="outline" @click="importDialogOpen = true">
+                            <Upload class="mr-2 h-4 w-4" />
+                            Import
+                        </Button>
+                        <Button as-child>
+                            <a href="/settings/envelope-drivers/create">
+                                <Plus class="mr-2 h-4 w-4" />
+                                Create Driver
+                            </a>
+                        </Button>
+                    </div>
                 </div>
 
                 <div class="space-y-4">
@@ -188,6 +233,47 @@ const executeDelete = () => {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
+                <!-- Import Dialog -->
+                <Dialog :open="importDialogOpen" @update:open="closeImportDialog">
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Import Driver</DialogTitle>
+                            <DialogDescription>
+                                Upload a YAML file to import an envelope driver configuration.
+                                The driver ID and version will be read from the file.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form @submit.prevent="submitImport">
+                            <div class="space-y-4 py-4">
+                                <div class="space-y-2">
+                                    <Label for="file">Driver YAML File</Label>
+                                    <Input
+                                        id="file"
+                                        ref="fileInputRef"
+                                        type="file"
+                                        accept=".yaml,.yml"
+                                        @change="handleFileChange"
+                                    />
+                                    <p class="text-xs text-muted-foreground">
+                                        Accepts .yaml or .yml files up to 1MB
+                                    </p>
+                                    <p v-if="importForm.errors.file" class="text-sm text-destructive">
+                                        {{ importForm.errors.file }}
+                                    </p>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" @click="closeImportDialog">
+                                    Cancel
+                                </Button>
+                                <Button type="submit" :disabled="!importForm.file || importForm.processing">
+                                    {{ importForm.processing ? 'Importing...' : 'Import' }}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
         </SettingsLayout>
     </AppLayout>

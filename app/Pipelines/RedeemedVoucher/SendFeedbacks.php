@@ -2,11 +2,11 @@
 
 namespace App\Pipelines\RedeemedVoucher;
 
-use Spatie\LaravelData\Exceptions\InvalidDataClass;
 use App\Notifications\SendFeedbacksNotification;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Log;
 use Closure;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Spatie\LaravelData\Exceptions\InvalidDataClass;
 
 /**
  * SendFeedbacks is a pipeline stage that sends post-redemption
@@ -24,16 +24,16 @@ class SendFeedbacks
     /**
      * Send feedback notifications via the resolved channels.
      *
-     * @param \LBHurtado\Voucher\Models\Voucher $voucher
-     * @param \Closure $next
+     * @param  \LBHurtado\Voucher\Models\Voucher  $voucher
      * @return mixed
+     *
      * @throws InvalidDataClass
      */
     public function handle($voucher, Closure $next)
     {
         $rawFeedbacks = $voucher->getData()->instructions->feedback->toArray() ?? [];
 
-        $feedbacks = array_filter($rawFeedbacks, fn($value) => !empty($value));
+        $feedbacks = array_filter($rawFeedbacks, fn ($value) => ! empty($value));
         $routes = $this->getRoutesFromFeedbacks($feedbacks);
 
         Log::info('[SendFeedbacks] Feedback routes resolved', [
@@ -45,6 +45,7 @@ class SendFeedbacks
             Log::info('[SendFeedbacks] No valid feedback routes found; skipping notification.', [
                 'voucher' => $voucher->code,
             ]);
+
             return $next($voucher);
         }
 
@@ -67,8 +68,7 @@ class SendFeedbacks
     /**
      * Convert feedback map to route format for Notification::routes()
      *
-     * @param  array  $feedbacks
-     * @return array  ['mail' => ..., 'engage_spark' => ..., 'webhook' => ...]
+     * @return array ['mail' => ..., 'engage_spark' => ..., 'webhook' => ...]
      */
     private function getRoutesFromFeedbacks(array $feedbacks): array
     {

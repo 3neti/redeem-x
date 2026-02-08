@@ -4,8 +4,8 @@ namespace LBHurtado\SettlementEnvelope\Services;
 
 use LBHurtado\SettlementEnvelope\Data\DriverData;
 use LBHurtado\SettlementEnvelope\Exceptions\PayloadValidationException;
-use Opis\JsonSchema\Validator;
 use Opis\JsonSchema\Errors\ErrorFormatter;
+use Opis\JsonSchema\Validator;
 
 class PayloadValidator
 {
@@ -13,7 +13,7 @@ class PayloadValidator
 
     public function __construct()
     {
-        $this->validator = new Validator();
+        $this->validator = new Validator;
         $this->validator->setMaxErrors(10);
     }
 
@@ -22,7 +22,7 @@ class PayloadValidator
      */
     public function validate(array $payload, ?DriverData $driver = null, ?array $schema = null): bool
     {
-        if (!$schema) {
+        if (! $schema) {
             // If no schema provided, assume valid
             return true;
         }
@@ -33,8 +33,8 @@ class PayloadValidator
 
         $result = $this->validator->validate($data, $schemaObject);
 
-        if (!$result->isValid()) {
-            $formatter = new ErrorFormatter();
+        if (! $result->isValid()) {
+            $formatter = new ErrorFormatter;
             $errors = $formatter->format($result->error());
 
             throw new PayloadValidationException(
@@ -55,7 +55,7 @@ class PayloadValidator
         $current = $payload;
 
         foreach ($path as $key) {
-            if (!is_array($current) || !array_key_exists($key, $current)) {
+            if (! is_array($current) || ! array_key_exists($key, $current)) {
                 return false;
             }
             $current = $current[$key];
@@ -73,7 +73,7 @@ class PayloadValidator
         $current = $payload;
 
         foreach ($path as $key) {
-            if (!is_array($current) || !array_key_exists($key, $current)) {
+            if (! is_array($current) || ! array_key_exists($key, $current)) {
                 return null;
             }
             $current = $current[$key];
@@ -138,11 +138,11 @@ class PayloadValidator
         $diff = [];
 
         foreach ($new as $key => $value) {
-            if (!array_key_exists($key, $old)) {
+            if (! array_key_exists($key, $old)) {
                 $diff[$key] = ['added' => $value];
             } elseif (is_array($value) && is_array($old[$key])) {
                 $subDiff = $this->computeDiff($old[$key], $value);
-                if (!empty($subDiff)) {
+                if (! empty($subDiff)) {
                     $diff[$key] = $subDiff;
                 }
             } elseif ($old[$key] !== $value) {
@@ -151,7 +151,7 @@ class PayloadValidator
         }
 
         foreach ($old as $key => $value) {
-            if (!array_key_exists($key, $new)) {
+            if (! array_key_exists($key, $new)) {
                 $diff[$key] = ['removed' => $value];
             }
         }

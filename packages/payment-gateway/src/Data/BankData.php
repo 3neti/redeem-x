@@ -19,39 +19,39 @@ class BankData extends Data
         public array $settlementRails,
     ) {}
 
-//    public static function fromRegistry(): array
-//    {
-//        return collect(app(\LBHurtado\PaymentGateway\Support\BankRegistry::class)->all())
-//            ->map(fn (array $data, string $swift) => new self(
-//                code: $swift,
-//                name: $data['full_name'],
-//                settlementRails: array_map(
-//                    fn (string $key) => SettlementRail::from($key),
-//                    array_keys($data['settlement_rail'] ?? [])
-//                )
-//            ))
-//            ->values()
-//            ->all();
-//    }
-//
-//    public static function all(): array
-//    {
-//        return collect(app(\LBHurtado\PaymentGateway\Support\BankRegistry::class)->all())
-//            ->map(fn (array $data, string $swift) => new self(
-//                code: $swift,
-//                name: $data['full_name'],
-//                settlementRails: array_map(
-//                    fn (string $key) => SettlementRail::from($key),
-//                    array_keys($data['settlement_rail'] ?? [])
-//                )
-//            ))
-//            ->values()
-//            ->all();
-//    }
-//
-//    public static function findByCode(string $code): ?self
-//    {
-//        return collect(self::all())
-//            ->firstWhere('code', $code);
-//    }
+    //    public static function fromRegistry(): array
+    //    {
+    //        return collect(app(\LBHurtado\PaymentGateway\Support\BankRegistry::class)->all())
+    //            ->map(fn (array $data, string $swift) => new self(
+    //                code: $swift,
+    //                name: $data['full_name'],
+    //                settlementRails: array_map(
+    //                    fn (string $key) => SettlementRail::from($key),
+    //                    array_keys($data['settlement_rail'] ?? [])
+    //                )
+    //            ))
+    //            ->values()
+    //            ->all();
+    //    }
+    //
+    //    public static function all(): array
+    //    {
+    //        return collect(app(\LBHurtado\PaymentGateway\Support\BankRegistry::class)->all())
+    //            ->map(fn (array $data, string $swift) => new self(
+    //                code: $swift,
+    //                name: $data['full_name'],
+    //                settlementRails: array_map(
+    //                    fn (string $key) => SettlementRail::from($key),
+    //                    array_keys($data['settlement_rail'] ?? [])
+    //                )
+    //            ))
+    //            ->values()
+    //            ->all();
+    //    }
+    //
+    //    public static function findByCode(string $code): ?self
+    //    {
+    //        return collect(self::all())
+    //            ->firstWhere('code', $code);
+    //    }
 }

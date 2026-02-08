@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Laravel\Pennant\Feature;
 use LBHurtado\Voucher\Models\Voucher;
-use Illuminate\Support\Facades\Log;
 
 class PayVoucherController extends Controller
 {
     /**
      * Show pay voucher page
-     * 
+     *
      * Note: This is a public endpoint. Feature check uses global config,
      * not per-user flags since payers are typically unauthenticated.
      */
@@ -21,15 +20,15 @@ class PayVoucherController extends Controller
         // Check if settlement vouchers feature is enabled globally
         // In local/staging: Always enabled
         // In production: Requires APP_ENV=production + feature enabled in config
-        $enabled = app()->environment('local', 'staging') || 
+        $enabled = app()->environment('local', 'staging') ||
                    config('pay.enabled', false);
-        
-        if (!$enabled) {
+
+        if (! $enabled) {
             abort(404, 'Settlement vouchers feature is not available');
         }
-        
+
         $code = request()->query('code');
-        
+
         return inertia('pay/Index', [
             'pay' => config('pay'),
             'initial_code' => $code,
@@ -47,13 +46,13 @@ class PayVoucherController extends Controller
 
         $voucher = Voucher::where('code', strtoupper(trim($request->code)))->first();
 
-        if (!$voucher) {
+        if (! $voucher) {
             return response()->json([
                 'error' => 'Voucher not found',
             ], 404);
         }
 
-        if (!$voucher->canAcceptPayment()) {
+        if (! $voucher->canAcceptPayment()) {
             return response()->json([
                 'error' => 'This voucher cannot accept payments',
             ], 403);
@@ -91,7 +90,7 @@ class PayVoucherController extends Controller
 
     /**
      * Generate QR code for payment
-     * 
+     *
      * TODO: Implement NetBank Direct Checkout QR generation
      * Reuse existing top-up QR generation logic
      */
@@ -104,7 +103,7 @@ class PayVoucherController extends Controller
 
         $voucher = Voucher::where('code', strtoupper(trim($request->code)))->firstOrFail();
 
-        if (!$voucher->canAcceptPayment()) {
+        if (! $voucher->canAcceptPayment()) {
             return response()->json([
                 'error' => 'This voucher cannot accept payments',
             ], 403);
@@ -114,7 +113,7 @@ class PayVoucherController extends Controller
         // For now, return mock response
         return response()->json([
             'qr_code' => 'data:image/png;base64,mock-qr-code',
-            'reference' => 'PAY-' . $voucher->code . '-' . time(),
+            'reference' => 'PAY-'.$voucher->code.'-'.time(),
             'amount' => $request->amount,
         ]);
     }

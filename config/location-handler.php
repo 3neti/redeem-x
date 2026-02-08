@@ -12,7 +12,7 @@ return [
     |
     */
     'opencage_api_key' => env('VITE_OPENCAGE_KEY', env('OPENCAGE_API_KEY')),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Map Provider
@@ -26,7 +26,7 @@ return [
     |
     */
     'map_provider' => env('LOCATION_HANDLER_MAP_PROVIDER', 'mapbox'),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Mapbox Access Token
@@ -38,7 +38,7 @@ return [
     |
     */
     'mapbox_token' => env('VITE_MAPBOX_TOKEN', env('MAPBOX_TOKEN')),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Google Maps API Key
@@ -50,7 +50,7 @@ return [
     |
     */
     'google_maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Capture Snapshot
@@ -61,7 +61,7 @@ return [
     |
     */
     'capture_snapshot' => env('LOCATION_HANDLER_CAPTURE_SNAPSHOT', true),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Require Address
@@ -72,7 +72,7 @@ return [
     |
     */
     'require_address' => env('LOCATION_HANDLER_REQUIRE_ADDRESS', false),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Cache Duration

@@ -5,22 +5,22 @@ declare(strict_types=1);
 namespace App\Actions\Api\Transactions;
 
 use App\Http\Responses\ApiResponse;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Models\Voucher;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\PathParameter;
 
 /**
  * Show Transaction Details
  *
  * Retrieve detailed information about a specific voucher redemption transaction.
- * 
+ *
  * Returns complete transaction data including voucher details, redemption information,
  * disbursement status, and redeemer details. Essential for transaction lookups,
  * customer support, and detailed auditing.
- * 
+ *
  * **Transaction Details Include:**
  * - Voucher code, amount, and currency
  * - Redemption timestamp and location
@@ -28,7 +28,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
  * - Settlement rail and operation IDs
  * - Redeemer information (if available)
  * - Input data collected during redemption
- * 
+ *
  * **Use Cases:**
  * - Customer support inquiries
  * - Transaction dispute resolution
@@ -36,6 +36,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
  * - Debugging disbursement issues
  *
  * @group Transactions
+ *
  * @authenticated
  */
 #[Group('Transactions')]
@@ -51,12 +52,12 @@ class ShowTransaction
     {
         // Load relationships
         $voucher->load(['owner', 'redeemers']);
-        
+
         // Transform to VoucherData DTO
         $voucherData = VoucherData::fromModel($voucher);
-        
+
         // Check if it's a redeemed voucher using DTO's computed field
-        if (!$voucherData->is_redeemed) {
+        if (! $voucherData->is_redeemed) {
             return ApiResponse::error('Voucher has not been redeemed yet.', 404);
         }
 

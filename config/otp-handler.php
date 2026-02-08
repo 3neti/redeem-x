@@ -10,7 +10,7 @@ return [
     |
     */
     'label' => env('OTP_LABEL', config('app.name', 'Your App')),
-    
+
     /*
     |--------------------------------------------------------------------------
     | SMS Provider
@@ -21,7 +21,7 @@ return [
     |
     */
     'sms_provider' => env('OTP_SMS_PROVIDER', 'engagespark'),
-    
+
     /*
     |--------------------------------------------------------------------------
     | txtcmdr OTP API Configuration
@@ -35,7 +35,7 @@ return [
         'api_token' => env('TXTCMDR_API_TOKEN'),
         'timeout' => env('TXTCMDR_TIMEOUT', 30),
     ],
-    
+
     /*
     |--------------------------------------------------------------------------
     | Max Resends
@@ -46,7 +46,7 @@ return [
     |
     */
     'max_resends' => env('OTP_MAX_RESENDS', 3),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Resend Cooldown

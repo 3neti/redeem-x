@@ -2,8 +2,8 @@
 
 namespace LBHurtado\SettlementEnvelope\Data;
 
-use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
+use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;
 
 class DriverData extends Data
@@ -12,9 +12,9 @@ class DriverData extends Data
         public string $id,
         public string $version,
         public string $title,
-        public ?string $description = null,
-        public ?string $domain = null,
-        public ?string $issuer_type = null,
+        public ?string $description,
+        public ?string $domain,
+        public ?string $issuer_type,
         public PayloadConfigData $payload,
         /** @var DataCollection<DocumentTypeData> */
         #[DataCollectionOf(DocumentTypeData::class)]
@@ -158,7 +158,7 @@ class ManifestConfigData extends Data
 {
     public function __construct(
         public bool $enabled = true,
-        public ManifestIncludesData $includes = new ManifestIncludesData(),
+        public ManifestIncludesData $includes = new ManifestIncludesData,
     ) {}
 }
 

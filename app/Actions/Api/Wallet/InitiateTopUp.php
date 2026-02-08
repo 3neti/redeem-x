@@ -3,23 +3,22 @@
 namespace App\Actions\Api\Wallet;
 
 use App\Models\User;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use LBHurtado\PaymentGateway\Data\TopUp\TopUpResultData;
 use LBHurtado\PaymentGateway\Exceptions\TopUpException;
-use Dedoc\Scramble\Attributes\Group;
-use Dedoc\Scramble\Attributes\BodyParameter;
 
 /**
  * Initiate Wallet Top-Up
  *
  * Start a payment transaction to add funds to your wallet via supported payment gateways.
- * 
+ *
  * **Supported Payment Methods:**
  * - E-Wallets: GCash, Maya (formerly PayMaya)
  * - Banks: BDO, BPI, UnionBank, and other InstaPay-enabled banks
  * - Over-the-counter: 7-Eleven, Cebuana, etc. (via partner banks)
- * 
+ *
  * **Payment Flow:**
  * 1. Call this endpoint with desired amount
  * 2. Receive a payment URL in the response
@@ -27,10 +26,11 @@ use Dedoc\Scramble\Attributes\BodyParameter;
  * 4. User completes payment in their chosen method
  * 5. System automatically credits wallet upon successful payment
  * 6. Use `GetTopUpStatus` endpoint to check payment status
- * 
+ *
  * **Idempotency:** Supports idempotency keys to prevent duplicate charges on retry.
  *
  * @group Wallet
+ *
  * @authenticated
  */
 #[Group('Wallet')]
@@ -38,16 +38,16 @@ class InitiateTopUp
 {
     /**
      * Initiate wallet top-up
-     * 
+     *
      * Begin a top-up transaction to add funds to your wallet. Returns a payment URL where the user completes payment.
-     * 
+     *
      * **Response includes:**
      * - `payment_url`: URL to redirect user for payment (GCash, Maya, bank, etc.)
      * - `reference_no`: Unique transaction reference (e.g., "TOPUP-ABC123")
      * - `amount`: Requested top-up amount
      * - `status`: Initial status (usually "PENDING")
      * - `expires_at`: Payment link expiration time
-     * 
+     *
      * **Important:**
      * - Save the `reference_no` to check payment status later
      * - Redirect user to `payment_url` immediately
@@ -72,7 +72,7 @@ class InitiateTopUp
                 $validated['gateway'] ?? 'netbank',
                 $validated['institution_code'] ?? null
             );
-            
+
             // Store idempotency key in the top-up record
             $idempotencyKey = $request->header('Idempotency-Key');
             if ($idempotencyKey && $result->reference_no) {

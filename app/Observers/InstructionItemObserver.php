@@ -10,7 +10,7 @@ class InstructionItemObserver
 {
     /**
      * Handle the InstructionItem "updating" event.
-     * 
+     *
      * Log price changes before the model is saved.
      */
     public function updating(InstructionItem $item): void
@@ -19,7 +19,7 @@ class InstructionItemObserver
         if ($item->isDirty('price')) {
             $oldPrice = $item->getOriginal('price');
             $newPrice = $item->price;
-            
+
             // Only log if there's an actual change
             if ($oldPrice !== $newPrice) {
                 InstructionItemPriceHistory::create([

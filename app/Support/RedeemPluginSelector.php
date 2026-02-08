@@ -29,7 +29,7 @@ class RedeemPluginSelector
      * based on the intersection of voucher's required fields and plugin fields.
      *
      * @param  Voucher  $voucher  The voucher being redeemed
-     * @return Collection<int, string>  Collection of plugin keys
+     * @return Collection<int, string> Collection of plugin keys
      */
     public static function fromVoucher(Voucher $voucher): Collection
     {
@@ -72,7 +72,7 @@ class RedeemPluginSelector
      *
      * @param  string  $plugin  Plugin key
      * @param  Voucher  $voucher  The voucher being redeemed
-     * @return array<int, string>  Array of field names (string values)
+     * @return array<int, string> Array of field names (string values)
      */
     public static function requestedFieldsFor(string $plugin, Voucher $voucher): array
     {
@@ -95,7 +95,6 @@ class RedeemPluginSelector
      *
      * @param  Voucher  $voucher  The voucher being redeemed
      * @param  string  $plugin  Plugin key to check
-     * @return bool
      */
     public static function voucherRequiresPlugin(Voucher $voucher, string $plugin): bool
     {
@@ -106,7 +105,7 @@ class RedeemPluginSelector
      * Get the first required plugin for a voucher.
      *
      * @param  Voucher  $voucher  The voucher being redeemed
-     * @return string|null  First plugin key, or null if no plugins required
+     * @return string|null First plugin key, or null if no plugins required
      */
     public static function firstPluginFor(Voucher $voucher): ?string
     {
@@ -118,7 +117,7 @@ class RedeemPluginSelector
      *
      * @param  Voucher  $voucher  The voucher being redeemed
      * @param  string  $current  Current plugin key
-     * @return string|null  Next plugin key, or null if last
+     * @return string|null Next plugin key, or null if last
      */
     public static function nextPluginFor(Voucher $voucher, string $current): ?string
     {

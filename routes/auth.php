@@ -11,6 +11,7 @@ Route::get('login', function (AuthKitLoginRequest $request) {
 
 Route::get('authenticate', function (AuthKitAuthenticationRequest $request) {
     $homeRoute = app(\App\Settings\VoucherSettings::class)->default_home_route ?? 'portal';
+
     return tap(to_route($homeRoute), fn () => $request->authenticate());
 })->middleware(['guest']);
 

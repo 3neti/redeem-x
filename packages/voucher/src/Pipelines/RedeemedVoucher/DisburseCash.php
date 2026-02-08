@@ -2,33 +2,30 @@
 
 namespace LBHurtado\Voucher\Pipelines\RedeemedVoucher;
 
-use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
-use LBHurtado\PaymentGateway\Data\Disburse\{
-    DisburseResponseData,
-    DisburseInputData
-};
+use App\Support\GatewayErrorMapper;
+use Closure;
+use Illuminate\Support\Facades\Log;
 use LBHurtado\MoneyIssuer\Support\BankRegistry;
-use LBHurtado\PaymentGateway\Enums\{DisbursementStatus, SettlementRail};
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
+use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Events\DisburseInputPrepared;
 use LBHurtado\Voucher\Exceptions\InvalidSettlementRailException;
 use LBHurtado\Wallet\Actions\WithdrawCash;
-use Illuminate\Support\Facades\Log;
-use App\Support\GatewayErrorMapper;
-use Closure;
 use RuntimeException;
-
 
 class DisburseCash
 {
     private const DEBUG = false;
-    
+
     public function __construct(protected PaymentGatewayInterface $gateway) {}
 
     /**
      * Attempts to disburse the Cash entity attached to the voucher.
      *
-     * @param  mixed    $voucher
-     * @param  \Closure $next
+     * @param  mixed  $voucher
      * @return mixed
      */
     public function handle($voucher, Closure $next)
@@ -48,10 +45,10 @@ class DisburseCash
         // CRITICAL: Validate EMI + PESONET combination
         $bankRegistry = app(BankRegistry::class);
         $rail = SettlementRail::from($input->via);
-        
+
         if ($rail === SettlementRail::PESONET && $bankRegistry->isEMI($input->bank)) {
             $bankName = $bankRegistry->getBankName($input->bank);
-            
+
             Log::warning('[DisburseCash] EMI with PESONET detected - blocking disbursement', [
                 'voucher' => $voucher->code,
                 'bank_code' => $input->bank,
@@ -59,7 +56,7 @@ class DisburseCash
                 'rail' => $rail->value,
                 'amount' => $input->amount,
             ]);
-            
+
             throw InvalidSettlementRailException::emiRequiresInstapay(
                 $bankName,
                 $input->bank,
@@ -73,10 +70,10 @@ class DisburseCash
         if ($response === false) {
             Log::error('[DisburseCash] Gateway returned false - disbursement failed', [
                 'voucher' => $voucher->code,
-                'redeemer'=> $voucher->contact->mobile,
-                'amount'  => $input->amount,
+                'redeemer' => $voucher->contact->mobile,
+                'amount' => $input->amount,
             ]);
-            
+
             // Map to user-friendly error message
             // Note: Gateway returns false, actual error message is in logs
             $errorMessage = GatewayErrorMapper::toUserFriendly('failed to process transaction');
@@ -86,9 +83,9 @@ class DisburseCash
         if (! $response instanceof DisburseResponseData) {
             Log::error('[DisburseCash] Unexpected response type - disbursement failed', [
                 'voucher' => $voucher->code,
-                'type'    => gettype($response),
+                'type' => gettype($response),
             ]);
-            
+
             $errorMessage = GatewayErrorMapper::toUserFriendly('Invalid gateway response');
             throw new RuntimeException($errorMessage);
         }
@@ -98,17 +95,17 @@ class DisburseCash
         $bankName = $bankRegistry->getBankName($input->bank);
         $bankLogo = $bankRegistry->getBankLogo($input->bank);
         $isEmi = $bankRegistry->isEMI($input->bank);
-        
+
         // Normalize status using DisbursementStatus enum
         $gatewayName = config('payment-gateway.default', 'netbank');
         $normalizedStatus = DisbursementStatus::fromGateway($gatewayName, $response->status)->value;
-        
+
         // Get fee for the selected rail
         $rail = SettlementRail::from($input->via);
         $feeAmount = $this->gateway->getRailFee($rail);
         $totalCost = ($input->amount * 100) + $feeAmount; // amount in pesos to centavos + fee
         $feeStrategy = $voucher->instructions?->cash?->fee_strategy ?? 'absorb';
-        
+
         if (self::DEBUG) {
             Log::debug('[DisburseCash] Fee calculation', [
                 'rail' => $rail->value,
@@ -118,7 +115,7 @@ class DisburseCash
                 'fee_strategy' => $feeStrategy,
             ]);
         }
-        
+
         // Withdraw funds from cash wallet (money has left the system)
         $cash = $voucher->cash;
         $withdrawal = WithdrawCash::run(
@@ -134,7 +131,7 @@ class DisburseCash
                 'idempotency_key' => $response->uuid,
             ]
         );
-        
+
         $voucher->metadata = array_merge(
             $voucher->metadata ?? [],
             [
@@ -172,14 +169,14 @@ class DisburseCash
         $voucher->save();
 
         Log::info('[DisburseCash] Success', [
-            'voucher'       => $voucher->code,
+            'voucher' => $voucher->code,
             'transactionId' => $response->transaction_id,
-            'uuid'          => $response->uuid,
-            'status'        => $response->status,
-            'amount'        => $input->amount,
-            'bank'          => $input->bank,
-            'via'           => $input->via,
-            'account'       => $input->account_number,
+            'uuid' => $response->uuid,
+            'status' => $response->status,
+            'amount' => $input->amount,
+            'bank' => $input->bank,
+            'via' => $input->via,
+            'account' => $input->account_number,
         ]);
 
         return $next($voucher);

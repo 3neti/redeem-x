@@ -78,17 +78,29 @@ class EnvelopeAuditLog extends Model
 
     // Action constants
     public const ACTION_CREATED = 'envelope_created';
+
     public const ACTION_PAYLOAD_PATCH = 'payload_patch';
+
     public const ACTION_ATTACHMENT_UPLOAD = 'attachment_upload';
+
     public const ACTION_ATTACHMENT_REVIEW = 'attachment_review';
+
     public const ACTION_SIGNAL_SET = 'signal_set';
+
     public const ACTION_STATUS_CHANGE = 'status_change';
+
     public const ACTION_GATE_CHANGE = 'gate_change';
+
     public const ACTION_LOCKED = 'envelope_locked';
+
     public const ACTION_SETTLED = 'envelope_settled';
+
     public const ACTION_CANCELLED = 'envelope_cancelled';
+
     public const ACTION_REJECTED = 'envelope_rejected';
+
     public const ACTION_REOPENED = 'envelope_reopened';
+
     public const ACTION_CONTEXT_UPDATE = 'context_update';
 
     // Scopes

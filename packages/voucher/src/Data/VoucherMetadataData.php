@@ -6,7 +6,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * Voucher Metadata Data
- * 
+ *
  * Contains voucher issuance metadata for "x-ray" inspection before redemption.
  * All fields are nullable for backward compatibility.
  */
@@ -18,29 +18,29 @@ class VoucherMetadataData extends Data
         public ?string $system_name = null,      // System name (from config)
         public ?string $copyright = null,        // Copyright holder (from env/config)
         public ?array $licenses = null,          // Array of licenses/registrations
-        
+
         // Issuer information
         public ?string $issuer_id = null,        // User ID who created
         public ?string $issuer_name = null,      // User name
         public ?string $issuer_email = null,     // User email
-        
+
         // Source/campaign information
         public ?string $campaign_id = null,      // Campaign ID if from campaign
         public ?string $campaign_name = null,    // Campaign display name
         public ?string $source = null,           // 'campaign', 'manual', 'api', 'bulk'
-        
+
         // Redemption context
         public ?array $redemption_urls = null,   // Array of available endpoint URLs
         public ?string $primary_url = null,      // Main redemption URL (route('redeem'))
-        
+
         // Security & Verification (optional)
         public ?string $public_key = null,       // Public key for verification
         public ?string $signature = null,        // Digital signature
-        
+
         // Timestamps (ISO 8601)
         public ?string $created_at = null,       // When generated
         public ?string $issued_at = null,        // When issued (if different)
-        
+
         // Additional context
         public ?string $notes = null,            // Admin notes
         public ?array $tags = null,              // Categorization tags
@@ -88,11 +88,11 @@ class VoucherMetadataData extends Data
     public function getRedemptionUrl(string $type, ?string $code = null): ?string
     {
         $url = $this->redemption_urls[$type] ?? null;
-        
+
         if ($url && $code) {
-            return $url . '?code=' . urlencode($code);
+            return $url.'?code='.urlencode($code);
         }
-        
+
         return $url;
     }
 
@@ -122,13 +122,13 @@ class VoucherMetadataData extends Data
 
     /**
      * Verify signature with public key (if present)
-     * 
-     * @param string $data Data to verify
+     *
+     * @param  string  $data  Data to verify
      * @return bool True if signature is valid, false otherwise
      */
     public function verify(string $data): bool
     {
-        if (!$this->public_key || !$this->signature) {
+        if (! $this->public_key || ! $this->signature) {
             return false;
         }
 

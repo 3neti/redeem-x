@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use LBHurtado\Voucher\Actions\GenerateVouchers;
 use App\Models\User;
 use App\Services\VoucherRedemptionService;
 use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\RedemptionContext;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Exceptions\RedemptionException;
@@ -16,7 +16,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    
+
     // Add sufficient balance for voucher generation
     $this->user->deposit(10000); // ₱10,000
 });
@@ -25,13 +25,13 @@ describe('Time Limit Validation - Integration Tests', function () {
     test('blocks redemption when limit_minutes configured but no timing data', function () {
         // Create voucher with 1 minute limit
         $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
-        
+
         // Verify timing data is missing
         expect($voucher->timing)->toBeNull();
         expect($voucher->getRedemptionDuration())->toBeNull();
-        
+
         // Try to redeem WITHOUT tracking timing
-        $service = new VoucherRedemptionService();
+        $service = new VoucherRedemptionService;
         $context = new RedemptionContext(
             mobile: '09171234567',
             secret: null,
@@ -39,35 +39,35 @@ describe('Time Limit Validation - Integration Tests', function () {
             inputs: [],
             bankAccount: []
         );
-        
+
         // Should throw exception
-        expect(fn() => $service->validateRedemption($voucher, $context))
+        expect(fn () => $service->validateRedemption($voucher, $context))
             ->toThrow(RedemptionException::class, 'Redemption time limit exceeded');
     });
-    
+
     test('allows redemption when timing tracked within limit', function () {
         // Create voucher with 1 minute limit
         $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
-        
+
         // Track start
         $voucher->trackRedemptionStart();
         $voucher->refresh();
-        
+
         // Verify timing data exists
         expect($voucher->timing)->not->toBeNull();
         expect($voucher->timing->started_at)->not->toBeNull();
-        
+
         // Simulate quick redemption (10 seconds)
         sleep(1); // Small delay for realistic test
         $voucher->trackRedemptionSubmit();
         $voucher->refresh();
-        
+
         // Verify duration was calculated
         expect($voucher->getRedemptionDuration())->not->toBeNull();
         expect($voucher->getRedemptionDuration())->toBeLessThan(60); // Under 1 minute
-        
+
         // Try to redeem
-        $service = new VoucherRedemptionService();
+        $service = new VoucherRedemptionService;
         $context = new RedemptionContext(
             mobile: '09171234567',
             secret: null,
@@ -75,21 +75,21 @@ describe('Time Limit Validation - Integration Tests', function () {
             inputs: [],
             bankAccount: []
         );
-        
+
         // Should NOT throw exception
         $service->validateRedemption($voucher, $context);
-        
+
         expect(true)->toBeTrue(); // If we reach here, validation passed
     });
-    
+
     test('blocks redemption when timing exceeds limit', function () {
         // Create voucher with 1 minute limit
         $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
-        
+
         // Track start
         $voucher->trackRedemptionStart();
         $voucher->refresh();
-        
+
         // Manually set started_at to 2 minutes ago to simulate slow redemption
         $timing = $voucher->timing;
         $startedAt = now()->subMinutes(2)->toIso8601String();
@@ -102,16 +102,16 @@ describe('Time Limit Validation - Integration Tests', function () {
         ];
         $voucher->metadata = $metadata;
         $voucher->save();
-        
+
         // Now track submit (will calculate duration)
         $voucher->trackRedemptionSubmit();
         $voucher->refresh();
-        
+
         // Verify duration is over 1 minute
         expect($voucher->getRedemptionDuration())->toBeGreaterThan(60);
-        
+
         // Try to redeem
-        $service = new VoucherRedemptionService();
+        $service = new VoucherRedemptionService;
         $context = new RedemptionContext(
             mobile: '09171234567',
             secret: null,
@@ -119,18 +119,18 @@ describe('Time Limit Validation - Integration Tests', function () {
             inputs: [],
             bankAccount: []
         );
-        
+
         // Should throw exception
-        expect(fn() => $service->validateRedemption($voucher, $context))
+        expect(fn () => $service->validateRedemption($voucher, $context))
             ->toThrow(RedemptionException::class, 'Redemption time limit exceeded');
     });
-    
+
     test('allows redemption when no time limit configured', function () {
         // Create voucher WITHOUT time validation
         $voucher = createVoucherWithoutTimeValidationIntegration($this->user);
-        
+
         // Try to redeem WITHOUT timing tracking
-        $service = new VoucherRedemptionService();
+        $service = new VoucherRedemptionService;
         $context = new RedemptionContext(
             mobile: '09171234567',
             secret: null,
@@ -138,22 +138,22 @@ describe('Time Limit Validation - Integration Tests', function () {
             inputs: [],
             bankAccount: []
         );
-        
+
         // Should NOT throw exception (no time validation)
         $service->validateRedemption($voucher, $context);
-        
+
         expect(true)->toBeTrue(); // If we reach here, validation passed
     });
-    
+
     test('validates via RedemptionGuard in VoucherRedemptionService', function () {
         // This test verifies the entire validation flow:
         // 1. VoucherRedemptionService creates RedemptionGuard
         // 2. RedemptionGuard calls TimeLimitSpecification
         // 3. TimeLimitSpecification checks timing data
-        
+
         $voucher = createVoucherWithTimeLimitIntegration($this->user, 1);
-        
-        $service = new VoucherRedemptionService();
+
+        $service = new VoucherRedemptionService;
         $context = new RedemptionContext(
             mobile: '09171234567',
             secret: null,
@@ -161,7 +161,7 @@ describe('Time Limit Validation - Integration Tests', function () {
             inputs: [],
             bankAccount: []
         );
-        
+
         // Should fail at validation layer (not ProcessRedemption)
         try {
             $service->validateRedemption($voucher, $context);
@@ -202,12 +202,12 @@ function createVoucherWithTimeLimitIntegration(User $user, int $limitMinutes): V
 
     auth()->setUser($user);
     $vouchers = GenerateVouchers::run($instructions);
-    
+
     $voucher = $vouchers->first();
     // Mark as processed since queue is faked
     $voucher->processed = true;
     $voucher->save();
-    
+
     return $voucher;
 }
 
@@ -235,11 +235,11 @@ function createVoucherWithoutTimeValidationIntegration(User $user): Voucher
 
     auth()->setUser($user);
     $vouchers = GenerateVouchers::run($instructions);
-    
+
     $voucher = $vouchers->first();
     // Mark as processed since queue is faked
     $voucher->processed_on = now();
     $voucher->save();
-    
+
     return $voucher;
 }

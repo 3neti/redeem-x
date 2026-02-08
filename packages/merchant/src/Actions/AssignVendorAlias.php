@@ -17,7 +17,7 @@ class AssignVendorAlias
      * @param  string  $alias  The alias to assign (will be normalized)
      * @param  int|null  $assignedByUserId  The admin user assigning the alias
      * @param  string|null  $notes  Optional notes
-     * @return VendorAlias
+     *
      * @throws \RuntimeException
      */
     public function handle(
@@ -26,7 +26,7 @@ class AssignVendorAlias
         ?int $assignedByUserId = null,
         ?string $notes = null
     ): VendorAlias {
-        $service = new VendorAliasService();
+        $service = new VendorAliasService;
 
         // Step 1: Normalize
         $normalized = $service->normalize($alias);

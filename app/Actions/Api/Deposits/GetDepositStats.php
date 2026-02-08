@@ -30,28 +30,30 @@ class GetDepositStats
         $totalCount = 0;
         $todayCount = 0;
         $monthCount = 0;
-        
+
         // 1. Include wallet top-up transactions
         $walletTransactions = $user->walletTransactions()
             ->where('type', 'deposit')
             ->where('amount', '>', 0);
-        
+
         if ($dateFrom) {
             $walletTransactions->where('created_at', '>=', $dateFrom);
         }
         if ($dateTo) {
             $walletTransactions->where('created_at', '<=', $dateTo);
         }
-        
+
         foreach ($walletTransactions->get() as $tx) {
             // Apply institution filter if provided
             $txInstitution = $tx->meta['gateway'] ?? null;
-            if ($institution && $txInstitution !== $institution) continue;
-            
+            if ($institution && $txInstitution !== $institution) {
+                continue;
+            }
+
             $amount = $tx->amount / 100; // Convert cents to pesos
             $totalAmount += $amount;
             $totalCount++;
-            
+
             if ($tx->created_at->isToday()) {
                 $todayCount++;
             }
@@ -59,7 +61,7 @@ class GetDepositStats
                 $monthCount++;
             }
         }
-        
+
         // 2. Get QR deposits from external senders
         $sendersQuery = $user->senders();
 
@@ -76,11 +78,11 @@ class GetDepositStats
 
         foreach ($senders as $sender) {
             $pivot = $sender->pivot;
-            $metadata = is_string($pivot->metadata) 
-                ? json_decode($pivot->metadata, true) 
+            $metadata = is_string($pivot->metadata)
+                ? json_decode($pivot->metadata, true)
                 : ($pivot->metadata ?? []);
 
-            if (!is_array($metadata)) {
+            if (! is_array($metadata)) {
                 continue;
             }
 

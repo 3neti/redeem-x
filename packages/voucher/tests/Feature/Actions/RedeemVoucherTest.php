@@ -1,20 +1,18 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use LBHurtado\Voucher\Actions\RedeemVoucher;
+use FrittenKeeZ\Vouchers\Exceptions\VoucherAlreadyRedeemedException;
+use FrittenKeeZ\Vouchers\Exceptions\VoucherNotFoundException;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Contact\Models\Contact;
-use FrittenKeeZ\Vouchers\Exceptions\{
-    VoucherAlreadyRedeemedException,
-    VoucherNotFoundException
-};
+use LBHurtado\Voucher\Actions\RedeemVoucher;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Create a dummy contact
     $this->contact = Contact::factory()->create([
-        'mobile'  => '09171234567',
+        'mobile' => '09171234567',
         'country' => 'PH',
     ]);
 });
@@ -51,11 +49,11 @@ it('returns false if voucher has already been redeemed', function () {
     // Arrange: redeem() throws VoucherAlreadyRedeemedException
     Vouchers::shouldReceive('redeem')
         ->once()
-        ->with('USED456', $this->contact, ['redemption' => ['at'=>'2025-06-14T12:00:00']])
+        ->with('USED456', $this->contact, ['redemption' => ['at' => '2025-06-14T12:00:00']])
         ->andThrow(new VoucherAlreadyRedeemedException('Already used'));
 
     // Act
-    $result = RedeemVoucher::run($this->contact, 'USED456', ['at'=>'2025-06-14T12:00:00']);
+    $result = RedeemVoucher::run($this->contact, 'USED456', ['at' => '2025-06-14T12:00:00']);
 
     // Assert
     expect($result)->toBeFalse();

@@ -15,7 +15,7 @@ class WalletController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        
+
         // Get recent transactions (last 20 for grouping)
         $recentTransactions = $user->walletTransactions()
             ->latest()
@@ -31,16 +31,16 @@ class WalletController extends Controller
                     'meta' => $tx->meta,
                 ];
             });
-        
+
         // Get quick stats
         $totalSpentCents = abs($user->walletTransactions()->where('amount', '<', 0)->sum('amount'));
-        
+
         $stats = [
             'total_loaded' => $user->getPaidTopUps()->sum('amount'),
             'total_spent' => $totalSpentCents / 100, // Bavix stores in cents, convert to float
             'transaction_count' => $user->walletTransactions()->count(),
         ];
-        
+
         return Inertia::render('wallet/Index', [
             'balance' => $user->balanceFloatNum,
             'recentTransactions' => $recentTransactions,

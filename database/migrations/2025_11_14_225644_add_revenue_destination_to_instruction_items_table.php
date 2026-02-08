@@ -15,7 +15,7 @@ return new class extends Migration
             // Polymorphic relationship for flexible revenue destination
             $table->string('revenue_destination_type')->nullable()->after('meta');
             $table->unsignedBigInteger('revenue_destination_id')->nullable()->after('revenue_destination_type');
-            
+
             // Index for polymorphic lookup
             $table->index(['revenue_destination_type', 'revenue_destination_id'], 'instruction_items_revenue_destination_index');
         });

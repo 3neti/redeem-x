@@ -5,7 +5,6 @@ use App\Http\Controllers\Settings\CampaignController;
 use App\Http\Controllers\Settings\EnvelopeDriverController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
-use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use App\Http\Controllers\Settings\VendorAliasController;
 use App\Http\Controllers\Settings\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -48,7 +47,7 @@ Route::middleware([
         Route::resource('campaigns', CampaignController::class);
         Route::post('campaigns/{campaign}/duplicate', [CampaignController::class, 'duplicate'])
             ->name('campaigns.duplicate');
-        
+
         // Vendor Aliases
         Route::get('vendor-aliases/list', [VendorAliasController::class, 'list'])
             ->name('vendor-aliases.list');
@@ -56,18 +55,22 @@ Route::middleware([
             ->name('vendor-aliases.search-users');
         Route::resource('vendor-aliases', VendorAliasController::class)
             ->only(['index', 'store', 'update', 'destroy']);
-        
-        // Envelope Drivers (full CRUD)
+
+        // Envelope Drivers (full CRUD + import/export)
         Route::get('envelope-drivers', [EnvelopeDriverController::class, 'index'])
             ->name('envelope-drivers.index');
         Route::get('envelope-drivers/create', [EnvelopeDriverController::class, 'create'])
             ->name('envelope-drivers.create');
         Route::post('envelope-drivers', [EnvelopeDriverController::class, 'store'])
             ->name('envelope-drivers.store');
+        Route::post('envelope-drivers/import', [EnvelopeDriverController::class, 'import'])
+            ->name('envelope-drivers.import');
         Route::get('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'show'])
             ->name('envelope-drivers.show');
         Route::get('envelope-drivers/{id}/{version}/edit', [EnvelopeDriverController::class, 'edit'])
             ->name('envelope-drivers.edit');
+        Route::get('envelope-drivers/{id}/{version}/export', [EnvelopeDriverController::class, 'export'])
+            ->name('envelope-drivers.export');
         Route::put('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'update'])
             ->name('envelope-drivers.update');
         Route::delete('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'destroy'])

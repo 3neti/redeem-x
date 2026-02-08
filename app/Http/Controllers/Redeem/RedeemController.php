@@ -8,16 +8,16 @@ use App\Actions\Voucher\ProcessRedemption;
 use App\Http\Controllers\Controller;
 use App\Services\VoucherRedemptionService;
 use Illuminate\Http\RedirectResponse;
-use LBHurtado\Voucher\Data\VoucherData;
-use LBHurtado\Voucher\Exceptions\RedemptionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\Contact\Models\Contact;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
+use LBHurtado\Voucher\Data\VoucherData;
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use LBHurtado\Voucher\Models\Voucher;
 use Propaganistas\LaravelPhone\PhoneNumber;
-use LBHurtado\MoneyIssuer\Support\BankRegistry;
 
 /**
  * Redemption controller (LEGACY - DEPRECATED).
@@ -27,11 +27,10 @@ use LBHurtado\MoneyIssuer\Support\BankRegistry;
  *             which is more flexible and maintainable.
  *
  * Handles redemption start, confirmation, and success pages.
- * 
+ *
  * **Current Status:** Still functional but not actively developed.
  * **Replacement:** Use DisburseController (/disburse route) for new implementations.
  * **Validation:** Uses Unified Validation Gateway (PayableSpecification, etc.).
- * 
  * @see \App\Http\Controllers\Disburse\DisburseController
  */
 class RedeemController extends Controller
@@ -39,8 +38,6 @@ class RedeemController extends Controller
     /**
      * Show the redemption start page.
      * If code is provided in query string, validate and redirect to wallet step.
-     *
-     * @return Response|RedirectResponse
      */
     public function start(): Response|RedirectResponse
     {
@@ -98,15 +95,12 @@ class RedeemController extends Controller
 
     /**
      * Show the wallet page (API-first flow).
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function wallet(Voucher $voucher): Response
     {
         // Load banks from BankRegistry
         // TODO: Implement PesoNet settlement rail support in addition to InstaPay
-        $bankRegistry = new BankRegistry();
+        $bankRegistry = new BankRegistry;
         $allowedRails = config('redeem.bank_select.allowed_settlement_rails', ['INSTAPAY']);
 
         $banks = collect($bankRegistry->all())
@@ -118,9 +112,10 @@ class RedeemController extends Controller
 
                 // Check if bank has any of the allowed settlement rails
                 $bankRails = array_keys($bank['settlement_rail'] ?? []);
-                return !empty(array_intersect($bankRails, $allowedRails));
+
+                return ! empty(array_intersect($bankRails, $allowedRails));
             })
-            ->map(fn($bank, $code) => [
+            ->map(fn ($bank, $code) => [
                 'code' => $code,
                 'name' => $bank['full_name'] ?? $code,
             ])
@@ -156,9 +151,6 @@ class RedeemController extends Controller
     /**
      * Show the inputs page (API-first flow).
      * Collects email, birthdate, name, and other text inputs.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function inputs(Voucher $voucher): Response
     {
@@ -169,9 +161,6 @@ class RedeemController extends Controller
 
     /**
      * Show the location page (API-first flow).
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function location(Voucher $voucher): Response
     {
@@ -182,9 +171,6 @@ class RedeemController extends Controller
 
     /**
      * Show the selfie page (API-first flow).
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function selfie(Voucher $voucher): Response
     {
@@ -196,9 +182,6 @@ class RedeemController extends Controller
 
     /**
      * Show the signature page (API-first flow).
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function signature(Voucher $voucher): Response
     {
@@ -211,9 +194,6 @@ class RedeemController extends Controller
     /**
      * Store redemption session data (called from frontend before navigation).
      * This ensures session data is available for KYC and other backend operations.
-     *
-     * @param  Voucher  $voucher
-     * @return \Illuminate\Http\JsonResponse
      */
     public function storeSession(Voucher $voucher): \Illuminate\Http\JsonResponse
     {
@@ -229,26 +209,26 @@ class RedeemController extends Controller
         Log::debug('[RedeemController] Storing session data', [
             'voucher' => $voucher->code,
             'mobile' => $data['mobile'],
-            'has_inputs' => !empty($data['inputs']),
+            'has_inputs' => ! empty($data['inputs']),
         ]);
 
         // Store in Laravel session
         Session::put("redeem.{$voucher->code}.mobile", $data['mobile']);
         Session::put("redeem.{$voucher->code}.country", $data['country']);
-        
-        if (!empty($data['secret'])) {
+
+        if (! empty($data['secret'])) {
             Session::put("redeem.{$voucher->code}.secret", $data['secret']);
         }
-        
-        if (!empty($data['bank_code'])) {
+
+        if (! empty($data['bank_code'])) {
             Session::put("redeem.{$voucher->code}.bank_code", $data['bank_code']);
         }
-        
-        if (!empty($data['account_number'])) {
+
+        if (! empty($data['account_number'])) {
             Session::put("redeem.{$voucher->code}.account_number", $data['account_number']);
         }
-        
-        if (!empty($data['inputs'])) {
+
+        if (! empty($data['inputs'])) {
             Session::put("redeem.{$voucher->code}.inputs", $data['inputs']);
         }
 
@@ -258,23 +238,20 @@ class RedeemController extends Controller
     /**
      * Show the finalize page.
      * This page displays a summary of all collected data before final confirmation.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function finalize(Voucher $voucher): Response
     {
         Log::info('[RedeemController] finalize method called', [
             'voucher' => $voucher->code,
         ]);
-        
+
         // Check if KYC is required
         $inputFields = array_map(
-            fn($field) => $field->value ?? $field, 
+            fn ($field) => $field->value ?? $field,
             $voucher->instructions->inputs->fields ?? []
         );
         $kycRequired = in_array('kyc', $inputFields);
-        
+
         Log::info('[RedeemController] finalize - KYC required check', [
             'voucher' => $voucher->code,
             'kyc_required' => $kycRequired,
@@ -324,9 +301,6 @@ class RedeemController extends Controller
 
     /**
      * Confirm and execute voucher redemption.
-     *
-     * @param  Voucher  $voucher
-     * @return RedirectResponse
      */
     public function confirm(Voucher $voucher): RedirectResponse
     {
@@ -371,16 +345,16 @@ class RedeemController extends Controller
         try {
             // Create PhoneNumber instance
             $phoneNumber = new PhoneNumber($mobile, $country);
-            
+
             // Validate using Unified Validation Gateway
-            $service = new VoucherRedemptionService();
+            $service = new VoucherRedemptionService;
             $context = $service->resolveContextFromArray([
                 'mobile' => $mobile,
                 'secret' => $secret,
                 'inputs' => $allInputs,
                 'bank_account' => $bankAccount,
             ], auth()->user());
-            
+
             $service->validateRedemption($voucher, $context);
 
             // Process redemption (uses transaction)
@@ -441,9 +415,6 @@ class RedeemController extends Controller
 
     /**
      * Show redemption success page.
-     *
-     * @param  Voucher  $voucher
-     * @return Response
      */
     public function success(Voucher $voucher): Response
     {
@@ -476,9 +447,6 @@ class RedeemController extends Controller
 
     /**
      * Clear redemption session data.
-     *
-     * @param  string  $voucherCode
-     * @return void
      */
     protected function clearRedemptionSession(string $voucherCode): void
     {

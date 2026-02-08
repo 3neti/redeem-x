@@ -1,7 +1,7 @@
 <?php
 
-use LBHurtado\PaymentGateway\Support\Address;
 use Illuminate\Support\Facades\File;
+use LBHurtado\PaymentGateway\Support\Address;
 
 it('generates a valid address', function () {
     // Arrange: Mock the zip_codes_list.json file
@@ -32,9 +32,9 @@ it('generates a valid address', function () {
     expect($address['country'])->toBe('PH');
     expect($address['postal_code'])->not->toBeEmpty();
 
-//    // Assert: Check postal code exists in mocked data
-//    $postal_code_key = substr($address['postal_code'], 0, 2) . '00';
-//    dd($mocked_zip_codes, $postal_code_key);
-//    expect(isset($mocked_zip_codes[$postal_code_key]))
-//        ->toBeTrue();
+    //    // Assert: Check postal code exists in mocked data
+    //    $postal_code_key = substr($address['postal_code'], 0, 2) . '00';
+    //    dd($mocked_zip_codes, $postal_code_key);
+    //    expect(isset($mocked_zip_codes[$postal_code_key]))
+    //        ->toBeTrue();
 });

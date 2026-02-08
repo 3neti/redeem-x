@@ -13,7 +13,7 @@ use LBHurtado\Voucher\Models\Voucher;
 
 /**
  * Transaction History Controller
- * 
+ *
  * Renders the transaction history page.
  * Data is fetched via API endpoints.
  */
@@ -21,14 +21,12 @@ class TransactionController extends Controller
 {
     /**
      * Display the transaction history page.
-     *
-     * @return Response
      */
     public function index(): Response
     {
         return Inertia::render('transactions/Index');
     }
-    
+
     /**
      * Export transactions to CSV.
      */
@@ -39,7 +37,7 @@ class TransactionController extends Controller
             ->where('owner_id', $request->user()->id)
             ->whereNotNull('redeemed_at')
             ->orderByDesc('redeemed_at');
-        
+
         // Apply filters if provided
         if ($request->has('date_from')) {
             $query->whereDate('redeemed_at', '>=', $request->date_from);
@@ -50,13 +48,13 @@ class TransactionController extends Controller
         if ($request->has('status')) {
             // Add status filtering if needed
         }
-        
+
         $transactions = $query->get();
-        
+
         // Generate CSV
-        $filename = 'transactions_' . now()->format('Y-m-d_His') . '.csv';
+        $filename = 'transactions_'.now()->format('Y-m-d_His').'.csv';
         $handle = fopen('php://temp', 'r+');
-        
+
         // CSV Headers
         fputcsv($handle, [
             'Voucher Code',
@@ -66,7 +64,7 @@ class TransactionController extends Controller
             'Redeemed At',
             'Created At',
         ]);
-        
+
         // CSV Data
         foreach ($transactions as $transaction) {
             fputcsv($handle, [
@@ -78,14 +76,14 @@ class TransactionController extends Controller
                 $transaction->created_at->toDateTimeString(),
             ]);
         }
-        
+
         rewind($handle);
         $csv = stream_get_contents($handle);
         fclose($handle);
-        
+
         return ResponseFacade::make($csv, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 }

@@ -3,8 +3,8 @@
 namespace LBHurtado\MoneyIssuer\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use LBHurtado\MoneyIssuer\Tests\Models\User;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -16,15 +16,15 @@ abstract class TestCase extends BaseTestCase
             fn (string $modelName) => 'LBHurtado\\MoneyIssuer\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
         // Set the base path for the package
-        if (!defined('TESTING_PACKAGE_PATH')) {
-            define('TESTING_PACKAGE_PATH', __DIR__ . '/../resources/documents');
+        if (! defined('TESTING_PACKAGE_PATH')) {
+            define('TESTING_PACKAGE_PATH', __DIR__.'/../resources/documents');
         }
     }
 
     protected function getPackageProviders($app)
     {
         return [
-        \LBHurtado\MoneyIssuer\MoneyIssuerServiceProvider::class,
+            \LBHurtado\MoneyIssuer\MoneyIssuerServiceProvider::class,
         ];
     }
 
@@ -48,7 +48,7 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('auth.defaults.guard', 'web');
 
         // Run the cash migration from the local package
-        $userMigration = include __DIR__ . '/../database/migrations/0001_01_01_000000_create_users_table.php';
+        $userMigration = include __DIR__.'/../database/migrations/0001_01_01_000000_create_users_table.php';
         $userMigration->up();
     }
 

@@ -2,56 +2,58 @@
 
 namespace LBHurtado\Voucher\Data;
 
-use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;
-use Spatie\LaravelData\Attributes\{WithCast, WithTransformer};
-use LBHurtado\Voucher\Models\Voucher as VoucherModel;
-use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
-use Spatie\LaravelData\{Data, DataCollection};
-use LBHurtado\ModelInput\Data\InputData;
-use LBHurtado\Contact\Data\ContactData;
-use LBHurtado\Contact\Models\Contact;
+use Illuminate\Support\Carbon;
 use LBHurtado\Cash\Data\CashData;
 use LBHurtado\Cash\Models\Cash;
-use Illuminate\Support\Carbon;
+use LBHurtado\Contact\Data\ContactData;
+use LBHurtado\Contact\Models\Contact;
+use LBHurtado\ModelInput\Data\InputData;
+use LBHurtado\Voucher\Models\Voucher as VoucherModel;
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Attributes\WithTransformer;
+use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
+use Spatie\LaravelData\Data;
+use Spatie\LaravelData\DataCollection;
+use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;
 
 class VoucherData extends Data
 {
     public function __construct(
-        public string                       $code,
-        public ?ModelData                   $owner,
+        public string $code,
+        public ?ModelData $owner,
         #[WithTransformer(DateTimeInterfaceTransformer::class)]
         #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
-        public ?Carbon                      $created_at,
+        public ?Carbon $created_at,
         #[WithTransformer(DateTimeInterfaceTransformer::class)]
         #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
-        public ?Carbon                      $starts_at,
+        public ?Carbon $starts_at,
         #[WithTransformer(DateTimeInterfaceTransformer::class)]
         #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
-        public ?Carbon                      $expires_at,
+        public ?Carbon $expires_at,
         #[WithTransformer(DateTimeInterfaceTransformer::class)]
         #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
-        public ?Carbon                      $redeemed_at,
+        public ?Carbon $redeemed_at,
         #[WithTransformer(DateTimeInterfaceTransformer::class)]
         #[WithCast(DateTimeInterfaceCast::class, timeZone: 'Asia/Manila')]
-        public ?Carbon                      $processed_on,
-        public bool                         $processed,
-        public ?VoucherInstructionsData     $instructions,
+        public ?Carbon $processed_on,
+        public bool $processed,
+        public ?VoucherInstructionsData $instructions,
         /** @var InputData[] */
-        public DataCollection               $inputs,
-        public ?CashData                    $cash = null,
-        public ?ContactData                 $contact = null,
-        public ?DisbursementData            $disbursement = null,
-//        public ?ModelData                   $redeemer,
+        public DataCollection $inputs,
+        public ?CashData $cash = null,
+        public ?ContactData $contact = null,
+        public ?DisbursementData $disbursement = null,
+        //        public ?ModelData                   $redeemer,
         // Computed fields
-        public ?string                      $status = null,
-        public ?float                       $amount = null,
-        public ?string                      $currency = null,
-        public ?bool                        $is_expired = null,
-        public ?bool                        $is_redeemed = null,
-        public ?bool                        $can_redeem = null,
-        public ?array                       $external_metadata = null,
-        public ?float                       $target_amount = null,
-        public ?string                      $voucher_type = null,
+        public ?string $status = null,
+        public ?float $amount = null,
+        public ?string $currency = null,
+        public ?bool $is_expired = null,
+        public ?bool $is_redeemed = null,
+        public ?bool $can_redeem = null,
+        public ?array $external_metadata = null,
+        public ?float $target_amount = null,
+        public ?string $voucher_type = null,
     ) {}
 
     public static function fromModel(VoucherModel $model): static
@@ -84,9 +86,9 @@ class VoucherData extends Data
             cash: $model->cash instanceof Cash ? CashData::fromModel($model->cash) : null,
             contact: $model->contact instanceof Contact ? ContactData::fromModel($model->contact) : null,
             disbursement: DisbursementData::fromMetadata($model->metadata),
-//            redeemer: $model->redeemer
-//                ? ModelData::fromModel($model->redeemer)
-//                : null,
+            //            redeemer: $model->redeemer
+            //                ? ModelData::fromModel($model->redeemer)
+            //                : null,
             // Computed fields
             status: static::computeStatus($model),
             amount: $instructions?->cash?->amount,
@@ -134,11 +136,11 @@ class VoucherData extends Data
 class ModelData extends Data
 {
     public function __construct(
-        public int         $id,
-        public string      $name,
-        public string      $email,
-        public ?string     $mobile
-    ){}
+        public int $id,
+        public string $name,
+        public string $email,
+        public ?string $mobile
+    ) {}
 
     public static function fromModel($model): static
     {

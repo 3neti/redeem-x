@@ -21,10 +21,10 @@ class SetDefaultBankAccount
     public function asController(ActionRequest $request, string $id): JsonResponse
     {
         $user = $request->user();
-        
+
         $success = $user->setDefaultBankAccount($id);
-        
-        if (!$success) {
+
+        if (! $success) {
             return ApiResponse::notFound('Bank account not found.');
         }
 

@@ -6,14 +6,14 @@ use Spatie\LaravelData\Data;
 
 /**
  * Container for all validation results
- * 
+ *
  * Aggregates location and time validation results for a voucher redemption.
  * Used to store validation outcomes in voucher metadata.
- * 
+ *
  * @property LocationValidationResultData|null $location - Location validation results
- * @property TimeValidationResultData|null     $time     - Time validation results
- * @property bool                              $passed   - Overall validation status
- * @property bool                              $blocked  - Whether redemption was blocked
+ * @property TimeValidationResultData|null $time - Time validation results
+ * @property bool $passed - Overall validation status
+ * @property bool $blocked - Whether redemption was blocked
  */
 class ValidationResultsData extends Data
 {
@@ -33,7 +33,7 @@ class ValidationResultsData extends Data
     ): self {
         $locationPassed = $location ? $location->passed() : true;
         $timePassed = $time ? $time->passed() : true;
-        
+
         $locationBlocked = $location ? $location->should_block : false;
         $timeBlocked = $time ? $time->should_block : false;
 
@@ -82,7 +82,7 @@ class ValidationResultsData extends Data
      */
     public function anyFailed(): bool
     {
-        return !$this->passed;
+        return ! $this->passed;
     }
 
     /**

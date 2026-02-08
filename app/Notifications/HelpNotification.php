@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Notifications\BaseNotification;
 use LBHurtado\EngageSpark\EngageSparkMessage;
 
 /**
  * Help Notification
- * 
+ *
  * Sends help text via SMS for the HELP command.
  * Provides general command syntax or command-specific help.
- * 
+ *
  * Migration to BaseNotification:
  * - Extends BaseNotification for standardized behavior
  * - Uses config/notifications.php for channel configuration
  * - Implements NotificationInterface (getNotificationType, getNotificationData, getAuditMetadata)
  * - Database logging and queue priority managed by BaseNotification
- * 
+ *
  * Note: Help messages are kept in SMSHelp handler (multi-line formatted strings)
  * Future improvement: Move to lang/en/notifications.php if localization needed
  */
@@ -43,7 +42,7 @@ class HelpNotification extends BaseNotification
     {
         return [
             'message' => $this->message,
-            'message_preview' => substr($this->message, 0, 50) . '...',
+            'message_preview' => substr($this->message, 0, 50).'...',
         ];
     }
 
@@ -63,6 +62,6 @@ class HelpNotification extends BaseNotification
      */
     public function toEngageSpark(object $notifiable): EngageSparkMessage
     {
-        return (new EngageSparkMessage())->content($this->message);
+        return (new EngageSparkMessage)->content($this->message);
     }
 }

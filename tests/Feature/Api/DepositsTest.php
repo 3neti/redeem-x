@@ -23,7 +23,7 @@ describe('List Deposits API', function () {
         for ($i = 0; $i < 3; $i++) {
             $sender = Contact::factory()->create();
             $this->user->recordDepositFrom($sender, 1000 + ($i * 100), [
-                'reference' => 'REF-' . $i,
+                'reference' => 'REF-'.$i,
             ]);
         }
 
@@ -68,7 +68,7 @@ describe('Deposit Statistics API', function () {
         // Create some deposits
         for ($i = 0; $i < 3; $i++) {
             $sender = Contact::factory()->create();
-            $this->user->recordDepositFrom($sender, 1000, ['reference' => 'REF-' . $i]);
+            $this->user->recordDepositFrom($sender, 1000, ['reference' => 'REF-'.$i]);
         }
 
         $response = $this->getJson('/api/v1/deposits/stats');
@@ -109,7 +109,7 @@ describe('List Senders API', function () {
         // Create senders with deposits
         for ($i = 0; $i < 3; $i++) {
             $sender = Contact::factory()->create();
-            $this->user->recordDepositFrom($sender, 1000, ['reference' => 'REF-' . $i]);
+            $this->user->recordDepositFrom($sender, 1000, ['reference' => 'REF-'.$i]);
         }
 
         $response = $this->getJson('/api/v1/senders');

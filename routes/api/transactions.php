@@ -19,7 +19,7 @@ Route::prefix('transactions')->name('api.transactions.')->group(function () {
     // GET /api/v1/transactions
     Route::get('', \App\Actions\Api\Transactions\ListTransactions::class)
         ->name('index');
-    
+
     // Get transaction statistics
     // GET /api/v1/transactions/stats
     Route::get('stats', \App\Actions\Api\Transactions\GetTransactionStats::class)
@@ -34,7 +34,7 @@ Route::prefix('transactions')->name('api.transactions.')->group(function () {
     // GET /api/v1/transactions/{voucher}
     Route::get('{voucher:code}', \App\Actions\Api\Transactions\ShowTransaction::class)
         ->name('show');
-    
+
     // Refresh disbursement status
     // POST /api/v1/transactions/{code}/refresh-status
     // Rate limit: 5 requests per minute per user to prevent gateway abuse

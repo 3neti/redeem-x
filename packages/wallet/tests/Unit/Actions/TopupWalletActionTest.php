@@ -1,11 +1,11 @@
 <?php
 
-use LBHurtado\Wallet\Services\SystemUserResolverService;
-use LBHurtado\Wallet\Actions\TopupWalletAction;
-use LBHurtado\Wallet\Tests\Models\User;
-use Illuminate\Support\Facades\Config;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Models\Transfer;
+use Illuminate\Support\Facades\Config;
+use LBHurtado\Wallet\Actions\TopupWalletAction;
+use LBHurtado\Wallet\Services\SystemUserResolverService;
+use LBHurtado\Wallet\Tests\Models\User;
 
 beforeEach(function () {
     Config::set('account.system_user.identifier', 'system@dev-asiana.io');
@@ -42,7 +42,7 @@ it('handles wallet top-ups via system user transfer', function () {
         ->andReturn($transferMock);
 
     // Call the action
-    $action = new TopupWalletAction();
+    $action = new TopupWalletAction;
     $result = $action->handle($walletMock, 1000.0);
 
     // Assert the result is what we expect (the mocked transfer)
