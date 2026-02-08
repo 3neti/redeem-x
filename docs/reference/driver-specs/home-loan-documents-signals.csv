@@ -1,0 +1,53 @@
+row_type,driver_id,variant_family,category,sub_category,item_key,item_kind,doc_type,doc_title,doc_required,review_mode,multiple,max_size_mb,signal_key,signal_required,signal_source,payload_pointer,payload_required,notes
+DOC,bank.home-loan.eligible.single,bank_home_loan,borrower,identity,borrower_id_primary,document,BORROWER_ID_PRIMARY,"Borrower Government ID (Primary)",true,required,false,10,,,,,,Baseline single borrower ID
+DOC,bank.home-loan.eligible.single,bank_home_loan,borrower,civil_status,cenomar_or_single_status,document,CENOMAR,"CENOMAR / Proof of Single Status",false,required,false,10,,,,,,Optional unless bank requires for single status verification
+DOC,bank.home-loan.eligible.single,bank_home_loan,borrower,contact,proof_of_residence,document,PROOF_OF_RESIDENCE,"Proof of Residence (utility bill/barangay cert)",true,required,false,10,,,,,,Common KYC requirement
+DOC,bank.home-loan.eligible.single,bank_home_loan,income,employed,coe_employed,document,COE,"Certificate of Employment",true,required,false,10,,,,,,Employed baseline income proof
+DOC,bank.home-loan.eligible.single,bank_home_loan,income,employed,payslips_latest,document,PAYSLIPS,"Payslips (Latest 3 months)",true,required,true,10,,,,,,Multiple payslips allowed
+DOC,bank.home-loan.eligible.single,bank_home_loan,income,employed,bir_2316_or_itr,document,BIR_2316,"BIR 2316 / ITR",true,required,false,10,,,,,,Tax proof
+DOC,bank.home-loan.eligible.single,bank_home_loan,property,unit_docs,contract_to_sell,document,CONTRACT_TO_SELL,"Contract to Sell",true,required,false,15,,,,,,Unit obligation document
+DOC,bank.home-loan.eligible.single,bank_home_loan,property,title,tct_cct_or_title_doc,document,TITLE_DOCUMENT,"Title Document (TCT/CCT/Mother Title as applicable)",true,required,false,20,,,,,,Legal basis for take-out
+DOC,bank.home-loan.eligible.single,bank_home_loan,property,tax,tax_declaration,document,TAX_DECLARATION,"Tax Declaration",true,required,false,15,,,,,,Common collateral support document
+DOC,bank.home-loan.eligible.single,bank_home_loan,property,appraisal,appraisal_report,document,APPRAISAL_REPORT,"Appraisal Report",false,required,false,20,,,,,,Often bank-generated; include if you want envelope completeness
+DOC,bank.home-loan.eligible.single,bank_home_loan,developer,project_compliance,license_to_sell,document,LICENSE_TO_SELL,"License to Sell (DHSUD/HLURB)",false,required,false,20,,,,,,Required for pre-selling; optional for RFO baseline
+DOC,bank.home-loan.eligible.single,bank_home_loan,developer,project_compliance,occupancy_permit,document,OCCUPANCY_PERMIT,"Occupancy Permit",false,required,false,20,,,,,,Required for RFO; optional in baseline
+SIG,bank.home-loan.eligible.single,bank_home_loan,approvals,kyc,borrower_kyc_passed,signal,,,,,,,borrower_kyc_passed,true,host,,,KYC reviewer decision
+SIG,bank.home-loan.eligible.single,bank_home_loan,approvals,credit,credit_approved,signal,,,,,,,credit_approved,true,host,,,Credit/underwriting decision
+SIG,bank.home-loan.eligible.single,bank_home_loan,approvals,legal,legal_cleared,signal,,,,,,,legal_cleared,true,host,,,Legal/title review cleared
+SIG,bank.home-loan.eligible.single,bank_home_loan,approvals,disbursement,takeout_authorized,signal,,,,,,,takeout_authorized,true,host,,,Final authority to proceed to settlement
+PAYLOAD,bank.home-loan.eligible.single,bank_home_loan,payload,borrower,borrower_full_name,payload_field,,,,,,,,,,/borrower/full_name,true,Required identity field
+PAYLOAD,bank.home-loan.eligible.single,bank_home_loan,payload,loan,tcp,payload_field,,,,,,,,,,/loan/tcp,true,Total Contract Price
+PAYLOAD,bank.home-loan.eligible.single,bank_home_loan,payload,loan,loan_amount_requested,payload_field,,,,,,,,,,/loan/amount_requested,true,Requested loan amount
+PAYLOAD,bank.home-loan.eligible.single,bank_home_loan,payload,property,property_code,payload_field,,,,,,,,,,/property/code,true,Reference to unit/property
+PAYLOAD,bank.home-loan.eligible.single,bank_home_loan,payload,developer,developer_code,payload_field,,,,,,,,,,/developer/code,true,Reference to developer/org
+DOC,bank.home-loan.eligible.married,bank_home_loan,borrower,civil_status,marriage_certificate,document,MARRIAGE_CERT,"Marriage Certificate",true,required,false,10,,,,,,Married variant: always required
+DOC,bank.home-loan.eligible.married,bank_home_loan,borrower,identity,spouse_id,document,SPOUSE_ID,"Spouse Government ID",true,required,false,10,,,,,,Spouse KYC/disclosure
+SIG,bank.home-loan.eligible.married,bank_home_loan,approvals,consent,spouse_consent_captured,signal,,,,,,,spouse_consent_captured,true,host,,,Spouse consent for encumbrance/loan (policy-dependent)
+DOC,bank.home-loan.eligible.widower,bank_home_loan,borrower,civil_status,spouse_death_certificate,document,DEATH_CERT,"Death Certificate (Spouse)",true,required,false,10,,,,,,Widower variant
+DOC,bank.home-loan.eligible.widower,bank_home_loan,borrower,civil_status,marriage_certificate_if_needed,document,MARRIAGE_CERT,"Marriage Certificate (if required for linkage)",false,required,false,10,,,,,,Some workflows require proof of prior marriage
+DOC,bank.home-loan.eligible.separated,bank_home_loan,borrower,civil_status,legal_separation_decree,document,COURT_DECREE,"Court Decree (Annulment/Legal Separation)",true,required,false,20,,,,,,High-legal-risk variant
+SIG,bank.home-loan.eligible.separated,bank_home_loan,approvals,legal,property_regime_cleared,signal,,,,,,,property_regime_cleared,true,host,,,Legal confirms property regime/ownership is clear
+DOC,bank.home-loan.eligible.with-co-borrower,bank_home_loan,co_borrower,identity,co_borrower_id,document,CO_BORROWER_ID,"Co-borrower Government ID",true,required,false,10,,,,,,Co-borrower must be KYC'd
+DOC,bank.home-loan.eligible.with-co-borrower,bank_home_loan,co_borrower,income,co_borrower_income_proof,document,CO_BORROWER_INCOME,"Co-borrower Proof of Income",true,required,true,15,,,,,,Mirror income proof rules
+SIG,bank.home-loan.eligible.with-co-borrower,bank_home_loan,approvals,credit,joint_income_sufficient,signal,,,,,,,joint_income_sufficient,true,host,,,Credit confirms joint income sufficiency
+SIG,bank.home-loan.eligible.with-co-borrower,bank_home_loan,approvals,consent,co_borrower_consent_captured,signal,,,,,,,co_borrower_consent_captured,true,host,,,Explicit consent captured
+DOC,bank.home-loan.income.self-employed,bank_home_loan,income,self_employed,dti_or_sec_registration,document,BUSINESS_REGISTRATION,"DTI/SEC Registration",true,required,false,15,,,,,,Self-employed income foundation
+DOC,bank.home-loan.income.self-employed,bank_home_loan,income,self_employed,business_permit,document,BUSINESS_PERMIT,"Mayor's/Business Permit",true,required,false,15,,,,,,Operational legitimacy
+DOC,bank.home-loan.income.self-employed,bank_home_loan,income,self_employed,financial_statements,document,FINANCIAL_STATEMENTS,"Financial Statements",true,required,true,20,,,,,,Often multiple periods
+DOC,bank.home-loan.income.self-employed,bank_home_loan,income,self_employed,itr,document,ITR,"Income Tax Return",true,required,true,10,,,,,,Tax proof
+SIG,bank.home-loan.income.self-employed,bank_home_loan,approvals,income,income_validated,signal,,,,,,,income_validated,true,host,,,Income verification complete
+DOC,bank.home-loan.income.ofw,bank_home_loan,income,ofw,poea_contract,document,POEA_CONTRACT,"POEA Contract / Employment Contract",true,required,false,15,,,,,,OFW eligibility basis
+DOC,bank.home-loan.income.ofw,bank_home_loan,income,ofw,overseas_payslips,document,OFW_PAYSLIPS,"Overseas Payslips/Remittance Proof",true,required,true,15,,,,,,Multiple docs
+DOC,bank.home-loan.income.ofw,bank_home_loan,income,ofw,special_power_of_attorney,document,SPA,"Special Power of Attorney",true,required,false,15,,,,,,Common for OFW processing
+SIG,bank.home-loan.income.ofw,bank_home_loan,approvals,income,ofw_income_validated,signal,,,,,,,ofw_income_validated,true,host,,,OFW income verification decision
+DOC,bank.home-loan.property.rfo,bank_home_loan,property,rfo,occupancy_permit_required,document,OCCUPANCY_PERMIT,"Occupancy Permit",true,required,false,20,,,,,,RFO baseline requires this
+DOC,bank.home-loan.property.non-rfo,bank_home_loan,property,pre_selling,license_to_sell_required,document,LICENSE_TO_SELL,"License to Sell (DHSUD/HLURB)",true,required,false,20,,,,,,Pre-selling must have LTS
+DOC,bank.home-loan.property.non-rfo,bank_home_loan,property,pre_selling,development_permit,document,DEVELOPMENT_PERMIT,"Development Permit",true,required,false,20,,,,,,Project compliance
+SIG,bank.home-loan.property.non-rfo,bank_home_loan,approvals,developer,developer_accredited,signal,,,,,,,developer_accredited,true,host,,,Bank confirms developer accreditation
+SIG,pagibig.home-loan.takeout.standard,pagibig_home_loan,approvals,pagibig,membership_verified,signal,,,,,,,membership_verified,true,host,,,Pag-IBIG membership eligibility verified
+SIG,pagibig.home-loan.takeout.standard,pagibig_home_loan,approvals,pagibig,pagibig_eligibility_confirmed,signal,,,,,,,pagibig_eligibility_confirmed,true,host,,,Pag-IBIG loan eligibility confirmed
+DOC,pagibig.home-loan.takeout.standard,pagibig_home_loan,borrower,eligibility,pagibig_mid_proof,document,PAGIBIG_MID,"Pag-IBIG MID / Membership Proof",true,required,false,10,,,,,,Membership proof artifact
+SIG,pagibig.home-loan.takeout.standard,pagibig_home_loan,approvals,pagibig,appraisal_completed,signal,,,,,,,appraisal_completed,true,host,,,Pag-IBIG appraisal completion
+SIG,pagibig.home-loan.takeout.standard,pagibig_home_loan,approvals,pagibig,credit_approved,signal,,,,,,,credit_approved,true,host,,,Credit approval step (can reuse bank signal key)
+SIG,pagibig.home-loan.takeout.standard,pagibig_home_loan,approvals,pagibig,takeout_authorized,signal,,,,,,,takeout_authorized,true,host,,,Final authority before settlement
+SIG,pagibig.home-loan.takeout.enhanced,pagibig_home_loan,approvals,pagibig,senior_approval,signal,,,,,,,senior_approval,true,host,,,Enhanced/senior review for high-value or exception cases

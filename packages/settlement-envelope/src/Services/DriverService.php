@@ -6,6 +6,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use LBHurtado\SettlementEnvelope\Data\DriverData;
+use LBHurtado\SettlementEnvelope\Exceptions\CircularDependencyException;
 use LBHurtado\SettlementEnvelope\Exceptions\DriverNotFoundException;
 use LBHurtado\SettlementEnvelope\Exceptions\InvalidDriverException;
 use Symfony\Component\Yaml\Yaml;
@@ -64,7 +65,166 @@ class DriverService
         $content = $this->disk()->get($path);
         $data = Yaml::parse($content);
 
+        // Resolve extends composition if present
+        if (isset($data['extends'])) {
+            $data = $this->resolveComposition($data, [$driverId]);
+        }
+
         return $this->parseDriver($data, $driverId);
+    }
+
+    /**
+     * Resolve driver composition via extends
+     *
+     * @param array $data The overlay driver data
+     * @param array $resolved Stack of resolved driver IDs (for circular detection)
+     * @return array Merged driver data
+     */
+    protected function resolveComposition(array $data, array $resolved = []): array
+    {
+        $extends = $data['extends'] ?? [];
+        unset($data['extends']);
+
+        if (empty($extends)) {
+            return $data;
+        }
+
+        // Start with empty base
+        $merged = [];
+
+        // Process each parent in order
+        foreach ($extends as $parentRef) {
+            [$parentId, $parentVersion] = $this->parseDriverRef($parentRef);
+
+            // Check for circular dependency
+            if (in_array($parentId, $resolved)) {
+                throw new CircularDependencyException(
+                    "Circular dependency detected: " . implode(' -> ', [...$resolved, $parentId])
+                );
+            }
+
+            // Load parent driver data (raw, not parsed)
+            $parentPath = $this->resolveDriverPath($parentId, $parentVersion);
+            $parentContent = $this->disk()->get($parentPath);
+            $parentData = Yaml::parse($parentContent);
+
+            // Recursively resolve parent's extends
+            if (isset($parentData['extends'])) {
+                $parentData = $this->resolveComposition($parentData, [...$resolved, $parentId]);
+            }
+
+            // Merge parent into result
+            $merged = $this->mergeDrivers($merged, $parentData);
+        }
+
+        // Finally merge the overlay on top
+        return $this->mergeDrivers($merged, $data);
+    }
+
+    /**
+     * Parse driver reference like "bank.home-loan.base@1.0.0"
+     */
+    protected function parseDriverRef(string $ref): array
+    {
+        if (str_contains($ref, '@')) {
+            [$id, $version] = explode('@', $ref, 2);
+            return [$id, $version];
+        }
+        return [$ref, null];
+    }
+
+    /**
+     * Merge two driver data arrays
+     * Later values override earlier ones for scalar fields
+     * Arrays are merged by key for registry-style fields
+     */
+    protected function mergeDrivers(array $base, array $overlay): array
+    {
+        // If base is empty, return overlay
+        if (empty($base)) {
+            return $overlay;
+        }
+
+        $result = $base;
+
+        // Merge driver metadata (overlay wins)
+        if (isset($overlay['driver'])) {
+            $result['driver'] = array_merge($result['driver'] ?? [], $overlay['driver']);
+        }
+
+        // Merge payload (overlay wins, but merge schema if both have inline)
+        if (isset($overlay['payload'])) {
+            $result['payload'] = array_merge($result['payload'] ?? [], $overlay['payload']);
+        }
+
+        // Merge documents registry by type
+        if (isset($overlay['documents']['registry'])) {
+            $result['documents']['registry'] = $this->mergeByKey(
+                $result['documents']['registry'] ?? [],
+                $overlay['documents']['registry'],
+                'type'
+            );
+        }
+
+        // Merge checklist template by key
+        if (isset($overlay['checklist']['template'])) {
+            $result['checklist']['template'] = $this->mergeByKey(
+                $result['checklist']['template'] ?? [],
+                $overlay['checklist']['template'],
+                'key'
+            );
+        }
+
+        // Merge signals definitions by key
+        if (isset($overlay['signals']['definitions'])) {
+            $result['signals']['definitions'] = $this->mergeByKey(
+                $result['signals']['definitions'] ?? [],
+                $overlay['signals']['definitions'],
+                'key'
+            );
+        }
+
+        // Merge gates definitions by key
+        if (isset($overlay['gates']['definitions'])) {
+            $result['gates']['definitions'] = $this->mergeByKey(
+                $result['gates']['definitions'] ?? [],
+                $overlay['gates']['definitions'],
+                'key'
+            );
+        }
+
+        // Merge other config sections (overlay wins)
+        foreach (['audit', 'manifest', 'permissions', 'ui'] as $section) {
+            if (isset($overlay[$section])) {
+                $result[$section] = array_merge($result[$section] ?? [], $overlay[$section]);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Merge two arrays by a key field (union, later overrides)
+     */
+    protected function mergeByKey(array $base, array $overlay, string $keyField): array
+    {
+        $indexed = [];
+
+        // Index base items
+        foreach ($base as $item) {
+            if (isset($item[$keyField])) {
+                $indexed[$item[$keyField]] = $item;
+            }
+        }
+
+        // Overlay items override or add
+        foreach ($overlay as $item) {
+            if (isset($item[$keyField])) {
+                $indexed[$item[$keyField]] = $item;
+            }
+        }
+
+        return array_values($indexed);
     }
 
     /**

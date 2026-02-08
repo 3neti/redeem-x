@@ -1,0 +1,85 @@
+driver_id,variant_family,gate_key,gate_category,gate_purpose,expression,blocking_if_false,notes
+bank.home-loan.eligible.single,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Strict payload schema should enforce required borrower/loan/property fields
+bank.home-loan.eligible.single,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Blocks progression to READY_FOR_REVIEW if any required item is missing
+bank.home-loan.eligible.single,bank_home_loan,required_accepted,checklist,All required checklist items are accepted (docs reviewed; signals satisfied via checklist items),checklist.required_accepted == true,yes,If any required doc is pending review/rejected; this stays false
+bank.home-loan.eligible.single,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,Relies on checklist signal items marked required:true
+bank.home-loan.eligible.single,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,Intermediate gate for debugging: is it payload or checklist?
+bank.home-loan.eligible.single,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && !checklist.has_rejected,yes,Final gate; keep explicit !has_rejected for clarity even if implied by required_accepted
+bank.home-loan.eligible.married,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Includes spouse fields if schema requires them
+bank.home-loan.eligible.married,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Marriage certificate + spouse ID typically required
+bank.home-loan.eligible.married,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,Spouse docs often require human review
+bank.home-loan.eligible.married,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,Includes spouse_consent_captured if marked required in checklist
+bank.home-loan.eligible.married,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.eligible.married,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && !checklist.has_rejected,yes,
+bank.home-loan.eligible.widower,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Widower schema may omit spouse consent but include spouse linkage fields
+bank.home-loan.eligible.widower,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Death certificate required; marriage certificate may be optional per policy
+bank.home-loan.eligible.widower,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,Death certificate is a legal doc → review:required
+bank.home-loan.eligible.widower,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,
+bank.home-loan.eligible.widower,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.eligible.widower,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && !checklist.has_rejected,yes,
+bank.home-loan.eligible.separated,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Should capture civil status + decree metadata
+bank.home-loan.eligible.separated,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Court decree required; often additional title/property regime docs
+bank.home-loan.eligible.separated,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,Expect many docs in review:required
+bank.home-loan.eligible.separated,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,Includes property_regime_cleared if required
+bank.home-loan.eligible.separated,bank_home_loan,high_risk_clearance,signals,Explicit legal clearance for property regime,signal.property_regime_cleared == true,yes,Keep separate to make the reason visible to ops/audit
+bank.home-loan.eligible.separated,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.eligible.separated,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && gate.high_risk_clearance && !checklist.has_rejected,yes,Separated/annulled adds a hard legal gate
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Schema should include co-borrower identity fields if strict
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Includes co-borrower ID + income docs
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,Co-borrower docs typically review:required
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,joint_capacity_ok,signals,Joint income/capacity confirmed,signal.joint_income_sufficient == true,yes,Expose as explicit blocking gate
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.eligible.with-co-borrower,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && gate.joint_capacity_ok && !checklist.has_rejected,yes,
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Married + co-borrower: schema usually includes spouse + co-borrower metadata
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Marriage docs + co-borrower docs
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,Includes spouse_consent_captured + co_borrower_consent_captured if required
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,joint_capacity_ok,signals,Joint income/capacity confirmed,signal.joint_income_sufficient == true,yes,
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.eligible.with-co-borrower.married,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && gate.joint_capacity_ok && !checklist.has_rejected,yes,
+bank.home-loan.income.self-employed,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Self-employed schema may require business profile fields
+bank.home-loan.income.self-employed,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,DTI/SEC; permits; FS; ITR docs must exist
+bank.home-loan.income.self-employed,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,Expect review:required on most docs
+bank.home-loan.income.self-employed,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,
+bank.home-loan.income.self-employed,bank_home_loan,income_validated,signals,Income verification complete,signal.income_validated == true,yes,Separate gate because self-employed income is higher variance
+bank.home-loan.income.self-employed,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.income.self-employed,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && gate.income_validated && !checklist.has_rejected,yes,
+bank.home-loan.income.ofw,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,OFW schema may require country/employer/contract metadata
+bank.home-loan.income.ofw,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,POEA/contract; remittance/payslips; SPA commonly required
+bank.home-loan.income.ofw,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,
+bank.home-loan.income.ofw,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,
+bank.home-loan.income.ofw,bank_home_loan,ofw_income_validated,signals,OFW income verification complete,signal.ofw_income_validated == true,yes,Separate for clarity; OFW income is policy-heavy
+bank.home-loan.income.ofw,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.income.ofw,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && gate.ofw_income_validated && !checklist.has_rejected,yes,
+bank.home-loan.property.rfo,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,RFO payload may capture RFO flags/occupancy metadata
+bank.home-loan.property.rfo,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Occupancy permit becomes required in this variant
+bank.home-loan.property.rfo,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,
+bank.home-loan.property.rfo,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,
+bank.home-loan.property.rfo,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.property.rfo,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && !checklist.has_rejected,yes,RFO mostly changes required docs; not approvals
+bank.home-loan.property.non-rfo,bank_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Pre-selling payload may capture project stage/progress metadata
+bank.home-loan.property.non-rfo,bank_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,License to Sell + Development Permit typically required
+bank.home-loan.property.non-rfo,bank_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,
+bank.home-loan.property.non-rfo,bank_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,
+bank.home-loan.property.non-rfo,bank_home_loan,developer_ok,signals,Developer accreditation confirmed,signal.developer_accredited == true,yes,Explicit gate because this is a common blocker in pre-selling take-outs
+bank.home-loan.property.non-rfo,bank_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+bank.home-loan.property.non-rfo,bank_home_loan,settleable,composite,Loan take-out may proceed to lock/settle,gate.evidence_ready && gate.approvals_ready && gate.developer_ok && !checklist.has_rejected,yes,Pre-selling adds hard developer/policy gate
+pagibig.home-loan.takeout.standard,pagibig_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Pag-IBIG payload should carry borrower MID + loan take-out references
+pagibig.home-loan.takeout.standard,pagibig_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,Includes Pag-IBIG membership proof doc if required
+pagibig.home-loan.takeout.standard,pagibig_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,
+pagibig.home-loan.takeout.standard,pagibig_home_loan,pagibig_membership_ok,signals,Membership verified,signal.membership_verified == true,yes,Separate gate so ops can see the exact blocker
+pagibig.home-loan.takeout.standard,pagibig_home_loan,pagibig_eligibility_ok,signals,Pag-IBIG eligibility confirmed,signal.pagibig_eligibility_confirmed == true,yes,Often distinct from generic KYC/credit
+pagibig.home-loan.takeout.standard,pagibig_home_loan,pagibig_appraisal_done,signals,Pag-IBIG appraisal completed,signal.appraisal_completed == true,yes,Pag-IBIG appraisal step
+pagibig.home-loan.takeout.standard,pagibig_home_loan,approvals_ready,signals,All required approval signals satisfied,signal._all_satisfied == true,yes,If you mark the Pag-IBIG signals as required in checklist; this may become redundant; keep for readability
+pagibig.home-loan.takeout.standard,pagibig_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+pagibig.home-loan.takeout.standard,pagibig_home_loan,settleable,composite,Pag-IBIG take-out may proceed to lock/settle,gate.evidence_ready && gate.pagibig_membership_ok && gate.pagibig_eligibility_ok && gate.pagibig_appraisal_done && signal.takeout_authorized && !checklist.has_rejected,yes,Explicitly requires takeout_authorized signal as final authority
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,payload_valid,payload,Payload schema valid / required fields present,payload.valid == true,yes,Enhanced variant may require risk flags (e.g.; high TCP; borderline income)
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,required_present,checklist,All required checklist items are present (not missing),checklist.required_present == true,yes,May include additional supporting docs
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,required_accepted,checklist,All required checklist items are accepted,checklist.required_accepted == true,yes,
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,pagibig_membership_ok,signals,Membership verified,signal.membership_verified == true,yes,
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,pagibig_eligibility_ok,signals,Pag-IBIG eligibility confirmed,signal.pagibig_eligibility_confirmed == true,yes,
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,pagibig_appraisal_done,signals,Pag-IBIG appraisal completed,signal.appraisal_completed == true,yes,
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,enhanced_review_done,signals,Enhanced/senior review completed,signal.senior_approval == true,yes,Use when policy requires an extra approval layer (high value / exceptions)
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,evidence_ready,composite,Payload + required items accepted,gate.payload_valid && gate.required_accepted,yes,
+pagibig.home-loan.takeout.enhanced,pagibig_home_loan,settleable,composite,Enhanced Pag-IBIG take-out may proceed to lock/settle,gate.evidence_ready && gate.pagibig_membership_ok && gate.pagibig_eligibility_ok && gate.pagibig_appraisal_done && gate.enhanced_review_done && signal.takeout_authorized && !checklist.has_rejected,yes,Adds senior_approval on top of standard requirements
