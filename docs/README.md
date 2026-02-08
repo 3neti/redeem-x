@@ -13,6 +13,7 @@
 
 ### [Guides](guides/) - How-To Documentation
 - **[Features](guides/features/)** - Feature implementation guides
+  - [Settlement Envelope User Manual](guides/features/SETTLEMENT_ENVELOPE_USER_MANUAL.md) ⭐ NEW
   - [Bank Integration](guides/features/BANK_INTEGRATION_GUIDE.md), [Feature Flags](guides/features/FEATURE_ENABLEMENT_STRATEGY.md)
   - **Notifications**: [Architecture](guides/features/NOTIFICATION_SYSTEM.md), [Templates](guides/features/NOTIFICATION_TEMPLATES.md), [Triggers & Recipients](guides/features/NOTIFICATION_TRIGGERS_AND_RECIPIENTS.md)
 - **[Testing](guides/testing/)** - Test plans & procedures
@@ -20,6 +21,7 @@
 - **[AI Development](guides/ai-development/)** - AI-assisted dev guides
 
 ### [Architecture](architecture/) - System Design
+- [Settlement Envelope Architecture](architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md) ⭐ NEW
 - [Wallet Architecture](architecture/SYSTEM_WALLET_ARCHITECTURE.md)
 - [Form Flow System](architecture/FORM_FLOW_SYSTEM.md)
 - [Pricing Architecture](architecture/ARCHITECTURE-PRICING.md)

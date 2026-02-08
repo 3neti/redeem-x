@@ -1085,7 +1085,13 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 - See `docs/NOTIFICATION_TEMPLATES.md` for full documentation and customization guide
 
 ### Payable/Settlement Voucher Envelopes
-**Automatic envelope creation** for payable and settlement vouchers:
+**Automatic envelope creation** for payable and settlement vouchers.
+
+**📚 Full Documentation:**
+- [Architecture Document](docs/architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md) - Technical reference
+- [User Manual](docs/guides/features/SETTLEMENT_ENVELOPE_USER_MANUAL.md) - How-to guide
+
+**Quick Overview:**
 - When generating a payable/settlement voucher via `/portal`, an envelope is auto-created
 - External metadata JSON stored in envelope `payload` (not voucher's deprecated `external_metadata`)
 - Attachments (invoices/bills) stored as envelope documents (not voucher's deprecated `voucher_attachments`)
