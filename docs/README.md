@@ -19,6 +19,7 @@
 - **[Testing](guides/testing/)** - Test plans & procedures
   - [Testing Plan](guides/testing/TESTING_PLAN.md), [Settlement Testing](guides/testing/SETTLEMENT_TESTING_GUIDE.md)
 - **[AI Development](guides/ai-development/)** - AI-assisted dev guides
+  - [Settlement Envelope Driver Guide](guides/ai-development/SETTLEMENT_ENVELOPE_DRIVER_GUIDE.md) ⭐ NEW
 
 ### [Architecture](architecture/) - System Design
 - [Settlement Envelope Architecture](architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md) ⭐ NEW

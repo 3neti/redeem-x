@@ -1090,6 +1090,7 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 **📚 Full Documentation:**
 - [Architecture Document](docs/architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md) - Technical reference
 - [User Manual](docs/guides/features/SETTLEMENT_ENVELOPE_USER_MANUAL.md) - How-to guide
+- [Driver Development Guide](docs/guides/ai-development/SETTLEMENT_ENVELOPE_DRIVER_GUIDE.md) - Create custom drivers (AI-assisted scaffolding)
 
 **Quick Overview:**
 - When generating a payable/settlement voucher via `/portal`, an envelope is auto-created
