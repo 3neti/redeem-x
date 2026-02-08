@@ -57,10 +57,20 @@ Route::middleware([
         Route::resource('vendor-aliases', VendorAliasController::class)
             ->only(['index', 'store', 'update', 'destroy']);
         
-        // Envelope Drivers (read-only)
+        // Envelope Drivers (full CRUD)
         Route::get('envelope-drivers', [EnvelopeDriverController::class, 'index'])
             ->name('envelope-drivers.index');
+        Route::get('envelope-drivers/create', [EnvelopeDriverController::class, 'create'])
+            ->name('envelope-drivers.create');
+        Route::post('envelope-drivers', [EnvelopeDriverController::class, 'store'])
+            ->name('envelope-drivers.store');
         Route::get('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'show'])
             ->name('envelope-drivers.show');
+        Route::get('envelope-drivers/{id}/{version}/edit', [EnvelopeDriverController::class, 'edit'])
+            ->name('envelope-drivers.edit');
+        Route::put('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'update'])
+            ->name('envelope-drivers.update');
+        Route::delete('envelope-drivers/{id}/{version}', [EnvelopeDriverController::class, 'destroy'])
+            ->name('envelope-drivers.destroy');
     });
 });

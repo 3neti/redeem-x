@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileCode2, FileText, CheckSquare, Signal, Shield, AlertCircle, ExternalLink } from 'lucide-vue-next';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { FileCode2, FileText, CheckSquare, Signal, Shield, AlertCircle, ExternalLink, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-vue-next';
 
 interface Driver {
     id: string;
@@ -26,6 +29,25 @@ interface Props {
 }
 
 defineProps<Props>();
+
+const deleteDialog = ref<{ open: boolean; driver: Driver | null }>({ open: false, driver: null });
+const isDeleting = ref(false);
+
+const confirmDelete = (driver: Driver) => {
+    deleteDialog.value = { open: true, driver };
+};
+
+const executeDelete = () => {
+    if (!deleteDialog.value.driver) return;
+    isDeleting.value = true;
+    
+    router.delete(`/settings/envelope-drivers/${deleteDialog.value.driver.id}/${deleteDialog.value.driver.version}`, {
+        onFinish: () => {
+            isDeleting.value = false;
+            deleteDialog.value = { open: false, driver: null };
+        },
+    });
+};
 </script>
 
 <template>
@@ -34,10 +56,18 @@ defineProps<Props>();
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
-                <HeadingSmall
-                    title="Envelope Drivers"
-                    description="Settlement envelope driver configurations (read-only)"
-                />
+                <div class="flex items-center justify-between">
+                    <HeadingSmall
+                        title="Envelope Drivers"
+                        description="Manage settlement envelope driver configurations"
+                    />
+                    <Button as-child>
+                        <a href="/settings/envelope-drivers/create">
+                            <Plus class="mr-2 h-4 w-4" />
+                            Create Driver
+                        </a>
+                    </Button>
+                </div>
 
                 <div class="space-y-4">
                     <div
@@ -76,17 +106,35 @@ defineProps<Props>();
                                         </Badge>
                                     </CardDescription>
                                 </div>
-                                <Button 
-                                    v-if="!driver.error"
-                                    variant="outline" 
-                                    size="sm" 
-                                    as-child
-                                >
-                                    <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}`">
-                                        View Details
-                                        <ExternalLink class="ml-2 h-3 w-3" />
-                                    </a>
-                                </Button>
+                                <div v-if="!driver.error" class="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" as-child>
+                                        <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}`">
+                                            View
+                                        </a>
+                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger as-child>
+                                            <Button variant="ghost" size="icon" class="h-8 w-8">
+                                                <MoreVertical class="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem as-child>
+                                                <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/edit`" class="flex items-center">
+                                                    <Pencil class="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </a>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                class="text-destructive focus:text-destructive"
+                                                @click="confirmDelete(driver)"
+                                            >
+                                                <Trash2 class="mr-2 h-4 w-4" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -115,6 +163,31 @@ defineProps<Props>();
                         </CardContent>
                     </Card>
                 </div>
+
+                <!-- Delete Confirmation Dialog -->
+                <AlertDialog :open="deleteDialog.open" @update:open="deleteDialog.open = $event">
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Driver?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to delete
+                                <strong>{{ deleteDialog.driver?.title }}</strong>
+                                ({{ deleteDialog.driver?.id }}@{{ deleteDialog.driver?.version }})?
+                                This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                variant="destructive"
+                                :disabled="isDeleting"
+                                @click="executeDelete"
+                            >
+                                {{ isDeleting ? 'Deleting...' : 'Delete' }}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </SettingsLayout>
     </AppLayout>

@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
     FileCode2, FileText, CheckSquare, Signal, Shield, ArrowLeft,
-    File, CheckCircle2, XCircle, Bot, User, Code
+    File, CheckCircle2, XCircle, Bot, User, Code, Pencil, Trash2, AlertTriangle
 } from 'lucide-vue-next';
 
 interface DocumentType {
@@ -73,9 +76,23 @@ interface Driver {
 
 interface Props {
     driver: Driver;
+    usage_count: number;
 }
 
 const props = defineProps<Props>();
+
+const deleteDialogOpen = ref(false);
+const isDeleting = ref(false);
+
+const executeDelete = () => {
+    isDeleting.value = true;
+    router.delete(`/settings/envelope-drivers/${props.driver.id}/${props.driver.version}`, {
+        onFinish: () => {
+            isDeleting.value = false;
+            deleteDialogOpen.value = false;
+        },
+    });
+};
 
 const getKindIcon = (kind: string) => {
     switch (kind) {
@@ -109,13 +126,33 @@ const getKindLabel = (kind: string) => {
                         :title="driver.title"
                         :description="driver.description || 'Envelope driver configuration'"
                     />
-                    <Button variant="outline" as-child>
-                        <a href="/settings/envelope-drivers">
-                            <ArrowLeft class="mr-2 h-4 w-4" />
-                            Back to Drivers
-                        </a>
-                    </Button>
+                    <div class="flex items-center gap-2">
+                        <Button variant="outline" as-child>
+                            <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/edit`">
+                                <Pencil class="mr-2 h-4 w-4" />
+                                Edit
+                            </a>
+                        </Button>
+                        <Button variant="outline" @click="deleteDialogOpen = true">
+                            <Trash2 class="mr-2 h-4 w-4" />
+                            Delete
+                        </Button>
+                        <Button variant="ghost" as-child>
+                            <a href="/settings/envelope-drivers">
+                                <ArrowLeft class="mr-2 h-4 w-4" />
+                                Back
+                            </a>
+                        </Button>
+                    </div>
                 </div>
+
+                <!-- Usage Warning -->
+                <Alert v-if="usage_count > 0" variant="default">
+                    <AlertTriangle class="h-4 w-4" />
+                    <AlertDescription>
+                        This driver is used by <strong>{{ usage_count }}</strong> envelope(s).
+                    </AlertDescription>
+                </Alert>
 
                 <!-- Driver Info Card -->
                 <Card>
@@ -324,6 +361,37 @@ const getKindLabel = (kind: string) => {
                         <pre class="text-xs bg-muted p-4 rounded overflow-auto max-h-96">{{ JSON.stringify(driver.payload.schema.inline, null, 2) }}</pre>
                     </CardContent>
                 </Card>
+
+                <!-- Delete Confirmation Dialog -->
+                <AlertDialog :open="deleteDialogOpen" @update:open="deleteDialogOpen = $event">
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Driver?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                <template v-if="usage_count > 0">
+                                    <span class="text-destructive font-medium">Warning:</span>
+                                    This driver is used by {{ usage_count }} envelope(s). Deleting it may cause issues.
+                                </template>
+                                <template v-else>
+                                    Are you sure you want to delete
+                                    <strong>{{ driver.title }}</strong>
+                                    ({{ driver.id }}@{{ driver.version }})?
+                                    This action cannot be undone.
+                                </template>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                variant="destructive"
+                                :disabled="isDeleting || usage_count > 0"
+                                @click="executeDelete"
+                            >
+                                {{ isDeleting ? 'Deleting...' : 'Delete' }}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </SettingsLayout>
     </AppLayout>

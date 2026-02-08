@@ -48,8 +48,8 @@ class DriverService
     {
         $path = $this->resolveDriverPath($driverId, $version);
 
-        if (!File::exists($path)) {
-            throw new DriverNotFoundException("Driver not found: {$driverId}" . ($version ? "@{$version}" : ''));
+        if (! File::exists($path)) {
+            throw new DriverNotFoundException("Driver not found: {$driverId}".($version ? "@{$version}" : ''));
         }
 
         $content = File::get($path);
@@ -77,9 +77,10 @@ class DriverService
         $driverDir = "{$basePath}/{$driverId}";
         if (File::isDirectory($driverDir)) {
             $files = File::glob("{$driverDir}/v*.yaml");
-            if (!empty($files)) {
+            if (! empty($files)) {
                 // Sort and get latest version
                 usort($files, 'version_compare');
+
                 return end($files);
             }
         }
@@ -98,7 +99,7 @@ class DriverService
      */
     protected function parseDriver(array $data, string $driverId): DriverData
     {
-        if (!isset($data['driver'])) {
+        if (! isset($data['driver'])) {
             throw new InvalidDriverException("Invalid driver format: missing 'driver' key");
         }
 
@@ -166,7 +167,7 @@ class DriverService
 
         // External schema file
         if ($schemaConfig->uri) {
-            $schemaPath = $this->driverDirectory . '/' . $driver->id . '/' . $schemaConfig->uri;
+            $schemaPath = $this->driverDirectory.'/'.$driver->id.'/'.$schemaConfig->uri;
             if (File::exists($schemaPath)) {
                 return json_decode(File::get($schemaPath), true);
             }
@@ -182,7 +183,7 @@ class DriverService
     {
         $drivers = [];
 
-        if (!File::isDirectory($this->driverDirectory)) {
+        if (! File::isDirectory($this->driverDirectory)) {
             return $drivers;
         }
 
@@ -226,5 +227,133 @@ class DriverService
         }
 
         $this->loadedDrivers = [];
+    }
+
+    /**
+     * Write a driver to YAML file
+     */
+    public function write(string $driverId, string $version, array $data): string
+    {
+        $dirPath = "{$this->driverDirectory}/{$driverId}";
+        $filePath = "{$dirPath}/v{$version}.yaml";
+
+        // Ensure directory exists
+        if (! File::isDirectory($dirPath)) {
+            File::makeDirectory($dirPath, 0755, true);
+        }
+
+        // Convert to YAML
+        $yaml = Yaml::dump($data, 10, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
+
+        // Write file
+        File::put($filePath, $yaml);
+
+        // Clear cache for this driver
+        $this->clearCache($driverId);
+        Cache::forget("envelope_driver:{$driverId}:{$version}");
+
+        return $filePath;
+    }
+
+    /**
+     * Delete a driver YAML file
+     */
+    public function delete(string $driverId, string $version): bool
+    {
+        $filePath = "{$this->driverDirectory}/{$driverId}/v{$version}.yaml";
+
+        if (! File::exists($filePath)) {
+            return false;
+        }
+
+        File::delete($filePath);
+
+        // Remove directory if empty
+        $dirPath = "{$this->driverDirectory}/{$driverId}";
+        if (File::isDirectory($dirPath) && count(File::files($dirPath)) === 0) {
+            File::deleteDirectory($dirPath);
+        }
+
+        // Clear cache
+        $this->clearCache($driverId);
+        Cache::forget("envelope_driver:{$driverId}:{$version}");
+
+        return true;
+    }
+
+    /**
+     * Check if a driver exists
+     */
+    public function exists(string $driverId, string $version): bool
+    {
+        $filePath = "{$this->driverDirectory}/{$driverId}/v{$version}.yaml";
+
+        return File::exists($filePath);
+    }
+
+    /**
+     * Get count of envelopes using a specific driver
+     */
+    public function getUsageCount(string $driverId, string $version): int
+    {
+        return \LBHurtado\SettlementEnvelope\Models\Envelope::where('driver_id', $driverId)
+            ->where('driver_version', $version)
+            ->count();
+    }
+
+    /**
+     * Convert form data to driver YAML structure
+     */
+    public function toYamlStructure(array $formData): array
+    {
+        return [
+            'driver' => [
+                'id' => $formData['id'],
+                'version' => $formData['version'],
+                'title' => $formData['title'],
+                'description' => $formData['description'] ?? null,
+                'domain' => $formData['domain'] ?? null,
+                'issuer_type' => $formData['issuer_type'] ?? null,
+            ],
+            'payload' => [
+                'schema' => [
+                    'id' => $formData['payload_schema_id'] ?? "{$formData['id']}.v{$formData['version']}",
+                    'format' => 'json_schema',
+                    'inline' => $formData['payload_schema'] ?? [
+                        'type' => 'object',
+                        'properties' => new \stdClass,
+                        'required' => [],
+                    ],
+                ],
+                'storage' => [
+                    'mode' => 'versioned',
+                    'patch_strategy' => 'merge',
+                ],
+            ],
+            'documents' => [
+                'registry' => $formData['documents'] ?? [],
+            ],
+            'checklist' => [
+                'template' => $formData['checklist'] ?? [],
+            ],
+            'signals' => [
+                'definitions' => $formData['signals'] ?? [],
+            ],
+            'gates' => [
+                'definitions' => $formData['gates'] ?? [],
+            ],
+            'audit' => [
+                'enabled' => true,
+                'capture' => ['payload_patch', 'attachment_upload', 'attachment_review', 'signal_set', 'gate_change'],
+            ],
+            'manifest' => [
+                'enabled' => true,
+                'includes' => [
+                    'payload_hash' => true,
+                    'attachments_hashes' => true,
+                    'envelope_fingerprint' => true,
+                ],
+            ],
+        ];
     }
 }
