@@ -14,6 +14,8 @@ A comprehensive guide for creating custom settlement envelope drivers, including
 
 ---
 
+> **See Also:** [Driver Composition Architecture](../../architecture/DRIVER_COMPOSITION_ARCHITECTURE.md) for deep dive on `extends`, CSV specs, and bank/pag-ibig family dissection.
+
 ## 1. Driver Fundamentals
 
 ### 1.1 What is a Driver?

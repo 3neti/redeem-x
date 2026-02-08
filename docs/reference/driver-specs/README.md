@@ -61,6 +61,8 @@ Defines gate expressions for each driver.
 
 **Composite overlays** (`with-co-borrower.married`, `enhanced`) - These are gate-only definitions that combine multiple overlays. They inherit docs/signals from their constituent overlays via the `extends` mechanism.
 
+> **Deep Dive:** See [Driver Composition Architecture](../../architecture/DRIVER_COMPOSITION_ARCHITECTURE.md) for complete documentation on extends, merge rules, and bank/pag-ibig family dissection.
+
 ## Validation
 
 Run the sanity check:

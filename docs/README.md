@@ -22,7 +22,8 @@
   - [Settlement Envelope Driver Guide](guides/ai-development/SETTLEMENT_ENVELOPE_DRIVER_GUIDE.md) ⭐ NEW
 
 ### [Architecture](architecture/) - System Design
-- [Settlement Envelope Architecture](architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md) ⭐ NEW
+- [Settlement Envelope Architecture](architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md)
+- [Driver Composition Architecture](architecture/DRIVER_COMPOSITION_ARCHITECTURE.md) ⭐ NEW - CSV specs, inheritance, bank/pag-ibig dissection
 - [Wallet Architecture](architecture/SYSTEM_WALLET_ARCHITECTURE.md)
 - [Form Flow System](architecture/FORM_FLOW_SYSTEM.md)
 - [Pricing Architecture](architecture/ARCHITECTURE-PRICING.md)
