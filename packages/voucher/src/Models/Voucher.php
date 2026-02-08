@@ -83,11 +83,21 @@ class Voucher extends BaseVoucher implements HasMedia, InputInterface
 
     /**
      * Register media collections for voucher attachments.
+     *
+     * @deprecated The 'voucher_attachments' collection is deprecated for payable/settlement vouchers.
+     *             Use the settlement envelope's documents instead, which provide:
+     *             - Document type classification (REFERENCE_DOC, etc.)
+     *             - Review status tracking (pending, accepted, rejected)
+     *             - Audit trail for all changes
+     *             New payable/settlement vouchers automatically create envelopes.
+     *             Run `php artisan vouchers:migrate-to-envelopes` to migrate existing vouchers.
+     * @see \LBHurtado\SettlementEnvelope\Models\SettlementEnvelope::attachments()
      */
     public function registerMediaCollections(): void
     {
         $disk = config('voucher.attachments.disk', 'public');
 
+        // @deprecated For payable/settlement vouchers, use envelope documents instead
         $this->addMediaCollection('voucher_attachments')
             ->useDisk($disk)
             ->acceptsFile(function ($file) {

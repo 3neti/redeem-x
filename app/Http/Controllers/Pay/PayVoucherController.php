@@ -62,17 +62,9 @@ class PayVoucherController extends Controller
         $minAmount = $voucher->rules['min_payment_amount'] ?? 1.00;
         $maxAmount = min($remaining, $voucher->rules['max_payment_amount'] ?? $remaining);
 
-        // Get attachments
-        $attachments = $voucher->getMedia('voucher_attachments')->map(function ($media) {
-            return [
-                'id' => $media->id,
-                'file_name' => $media->file_name,
-                'mime_type' => $media->mime_type,
-                'size' => $media->size,
-                'human_readable_size' => $media->human_readable_size,
-                'url' => $media->getUrl(),
-            ];
-        });
+        // Get external metadata and attachments - prefer envelope, fallback to voucher
+        $externalMetadata = $this->getExternalMetadataFromEnvelope($voucher) ?? $voucher->external_metadata;
+        $attachments = $this->getAttachmentsFromEnvelope($voucher) ?? $this->getVoucherAttachments($voucher);
 
         return response()->json([
             'voucher_code' => $voucher->code,
@@ -83,9 +75,92 @@ class PayVoucherController extends Controller
             'min_amount' => $minAmount,
             'max_amount' => $maxAmount,
             'allow_partial' => $voucher->rules['allow_partial_payments'] ?? true,
-            'external_metadata' => $voucher->external_metadata, // Freeform JSON for display
+            'external_metadata' => $externalMetadata,
             'attachments' => $attachments,
         ]);
+    }
+
+    /**
+     * Get external metadata from envelope payload (if envelope exists)
+     * @deprecated Use envelope payload instead of voucher external_metadata
+     */
+    private function getExternalMetadataFromEnvelope(Voucher $voucher): ?array
+    {
+        $envelope = $voucher->envelope;
+        if (! $envelope) {
+            return null;
+        }
+
+        // Return the envelope payload as external metadata
+        return $envelope->payload;
+    }
+
+    /**
+     * Get attachments from envelope (if envelope exists)
+     * @deprecated Use envelope documents instead of voucher_attachments collection
+     */
+    private function getAttachmentsFromEnvelope(Voucher $voucher): ?array
+    {
+        $envelope = $voucher->envelope;
+        if (! $envelope) {
+            return null;
+        }
+
+        // Get all attachments from envelope relationship
+        $attachments = $envelope->attachments;
+        if ($attachments->isEmpty()) {
+            return null; // Fall back to voucher if no envelope attachments
+        }
+
+        return $attachments->map(function ($attachment) {
+            return [
+                'id' => $attachment->id,
+                'file_name' => $attachment->original_filename,
+                'mime_type' => $attachment->mime_type,
+                'size' => $attachment->size,
+                'human_readable_size' => $this->humanReadableSize($attachment->size),
+                'url' => \Storage::disk($attachment->disk ?? 'public')->url($attachment->file_path),
+                'doc_type' => $attachment->doc_type,
+                'review_status' => $attachment->review_status,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Convert bytes to human readable size
+     */
+    private function humanReadableSize(?int $bytes): string
+    {
+        if (! $bytes) {
+            return '0 B';
+        }
+        
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+        
+        return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    /**
+     * Get attachments from voucher (legacy storage)
+     * @deprecated Will be removed when all vouchers migrated to envelope
+     */
+    private function getVoucherAttachments(Voucher $voucher): array
+    {
+        return $voucher->getMedia('voucher_attachments')->map(function ($media) {
+            return [
+                'id' => $media->id,
+                'file_name' => $media->file_name,
+                'mime_type' => $media->mime_type,
+                'size' => $media->size,
+                'human_readable_size' => $media->human_readable_size,
+                'url' => $media->getUrl(),
+            ];
+        })->toArray();
     }
 
     /**

@@ -38,10 +38,13 @@ class VoucherController extends Controller
         // Load relationships including inputs (single source of truth)
         $voucher->load(['owner', 'inputs']);
 
+        // Get external metadata - prefer envelope payload, fallback to voucher storage (deprecated)
+        $externalMetadata = $this->getExternalMetadataFromEnvelope($voucher) ?? $voucher->external_metadata;
+
         $data = [
             'voucher' => VoucherData::fromModel($voucher),
             'input_field_options' => VoucherInputField::options(),
-            'external_metadata' => $voucher->external_metadata, // Freeform JSON metadata
+            'external_metadata' => $externalMetadata,
         ];
 
         // TODO: @package-candidate settlement-envelope
@@ -128,7 +131,7 @@ class VoucherController extends Controller
                         'value' => $sig->value,
                         'source' => $sig->source,
                     ])->toArray(),
-                    'audit_logs' => $envelope->auditLogs->map(fn ($log) => [
+                    'audit_logs' => $envelope->auditLogs->sortBy('id')->values()->map(fn ($log) => [
                         'id' => $log->id,
                         'action' => $log->action,
                         'actor_type' => $log->actor_type,
@@ -244,5 +247,20 @@ class VoucherController extends Controller
             'blocking' => $blocking,
             'all_satisfied' => empty($blocking),
         ];
+    }
+
+    /**
+     * Get external metadata from envelope payload (if envelope exists)
+     * @deprecated Use envelope payload instead of voucher external_metadata
+     */
+    private function getExternalMetadataFromEnvelope(Voucher $voucher): ?array
+    {
+        $envelope = $voucher->envelope;
+        if (! $envelope) {
+            return null;
+        }
+
+        // Return the envelope payload as external metadata
+        return $envelope->payload;
     }
 }

@@ -15,6 +15,14 @@ namespace LBHurtado\Voucher\Traits;
  * - Any LLM-processable data
  *
  * @property array $metadata
+ *
+ * @deprecated Since the settlement envelope migration. For payable/settlement vouchers,
+ *             use the envelope's payload instead of this trait's external_metadata.
+ *             The envelope provides richer features: audit trail, documents, signals, gates.
+ *             This trait is preserved for backward compatibility with legacy vouchers.
+ *             New payable/settlement vouchers automatically create envelopes.
+ *             Run `php artisan vouchers:migrate-to-envelopes` to migrate existing vouchers.
+ * @see \LBHurtado\SettlementEnvelope\Models\SettlementEnvelope::$payload
  */
 trait HasExternalMetadata
 {

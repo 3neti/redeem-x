@@ -170,6 +170,13 @@ class EnvelopeService
             $path = $file->store("envelopes/{$envelope->id}/{$docType}", $disk);
             $hash = hash_file('sha256', $file->getPathname());
 
+            // Determine initial review status based on checklist item's review_mode
+            // If review_mode is 'none', auto-accept the attachment
+            $reviewStatus = 'pending';
+            if ($checklistItem && $checklistItem->review_mode?->value === 'none') {
+                $reviewStatus = 'accepted';
+            }
+
             // Create attachment
             $attachment = EnvelopeAttachment::create([
                 'envelope_id' => $envelope->id,
@@ -183,7 +190,9 @@ class EnvelopeService
                 'hash' => $hash,
                 'metadata' => $metadata,
                 'uploaded_by' => $actor?->getKey(),
-                'review_status' => 'pending',
+                'review_status' => $reviewStatus,
+                'reviewed_at' => $reviewStatus === 'accepted' ? now() : null,
+                'reviewed_by' => $reviewStatus === 'accepted' ? $actor?->getKey() : null,
             ]);
 
             // Update checklist item status
@@ -562,6 +571,8 @@ class EnvelopeService
     {
         $maxIterations = 10; // Safety limit to prevent infinite loops
         $iterations = 0;
+        $initialStatus = $envelope->status; // Track starting state for summary
+        $transitionPath = [$initialStatus->value]; // Track full path
 
         while ($iterations < $maxIterations) {
             $currentStatus = $envelope->status;
@@ -574,6 +585,7 @@ class EnvelopeService
 
             $envelope->update(['status' => $newStatus]);
             $envelope->refresh(); // Refresh to get updated status for next iteration
+            $transitionPath[] = $newStatus->value;
 
             $this->audit($envelope, EnvelopeAuditLog::ACTION_STATUS_CHANGE, null, 'system', [
                 'status' => $currentStatus->value,
@@ -583,6 +595,18 @@ class EnvelopeService
             ]);
 
             $iterations++;
+        }
+
+        // Add summary audit entry if multiple transitions occurred
+        if ($iterations > 1) {
+            $finalStatus = $envelope->status;
+            $this->audit($envelope, 'auto_advance_summary', null, 'system', [
+                'initial_status' => $initialStatus->value,
+            ], [
+                'final_status' => $finalStatus->value,
+                'transition_path' => implode(' → ', $transitionPath),
+                'transitions_count' => $iterations,
+            ]);
         }
     }
 

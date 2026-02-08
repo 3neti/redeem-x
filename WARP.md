@@ -1084,6 +1084,47 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 - Used in: Email notifications, SMS notifications (EngageSpark), webhook payloads
 - See `docs/NOTIFICATION_TEMPLATES.md` for full documentation and customization guide
 
+### Payable/Settlement Voucher Envelopes
+**Automatic envelope creation** for payable and settlement vouchers:
+- When generating a payable/settlement voucher via `/portal`, an envelope is auto-created
+- External metadata JSON stored in envelope `payload` (not voucher's deprecated `external_metadata`)
+- Attachments (invoices/bills) stored as envelope documents (not voucher's deprecated `voucher_attachments`)
+- Uses `payable.default@1.0.0` driver with minimal workflow
+
+**Driver Configuration (`payable.default`):**
+- **Payload**: Required - freeform JSON for payment details/references
+- **Documents**: Optional - `REFERENCE_DOC` type for invoices/bills (auto-accepted, no review)
+- **Checklist**: `payload_present` (required), `reference_documents` (optional)
+- **Gates**: `settleable` = true when payload exists (auto-advances to `ready_to_settle`)
+- **No signals** - no manual approval workflow needed
+
+**State Flow:**
+1. Envelope created with payload → auto-advances: `draft` → `in_progress` → `ready_for_review` → `ready_to_settle`
+2. Document upload (optional) happens after envelope already at `ready_to_settle`
+3. Audit log shows full transition path with summary entry
+
+**Data Access (with backward compatibility):**
+- Controllers prefer envelope data, fall back to voucher storage for legacy vouchers
+- `/pay` quote endpoint returns `external_metadata` and `attachments` from envelope
+- `/vouchers/{code}` show page displays envelope payload as external metadata
+
+**Migration Command:**
+```bash
+# Preview existing vouchers to migrate
+php artisan vouchers:migrate-to-envelopes --dry-run
+
+# Migrate all payable/settlement vouchers without envelopes
+php artisan vouchers:migrate-to-envelopes --force
+
+# Migrate specific voucher
+php artisan vouchers:migrate-to-envelopes --code=XXXX
+```
+
+**Deprecation Notes:**
+- `HasExternalMetadata` trait - deprecated for payable/settlement vouchers
+- `voucher_attachments` media collection - deprecated for payable/settlement vouchers
+- Both preserved for backward compatibility with legacy vouchers
+
 ## Pending Package Extractions
 
 Code currently in the host app that will be extracted to monorepo packages once APIs stabilize.

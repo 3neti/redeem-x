@@ -173,8 +173,11 @@ class GenerateVouchers
             }
         }
 
-        // Attach uploaded files to vouchers
-        if ($request->hasFile('attachments')) {
+        // Attach uploaded files to vouchers (skip for payable/settlement - those use envelope)
+        $voucherType = $validated['voucher_type'] ?? 'redeemable';
+        $isPayableOrSettlement = in_array($voucherType, ['payable', 'settlement']);
+        
+        if ($request->hasFile('attachments') && ! $isPayableOrSettlement) {
             $files = $request->file('attachments');
             foreach ($vouchers as $voucher) {
                 foreach ($files as $file) {
@@ -185,7 +188,7 @@ class GenerateVouchers
             }
         }
 
-        // Create settlement envelopes if configured
+        // Create settlement envelopes if configured explicitly
         $envelopeConfig = $validated['envelope_config'] ?? null;
         if ($envelopeConfig && ($envelopeConfig['enabled'] ?? false)) {
             foreach ($vouchers as $voucher) {
@@ -205,6 +208,63 @@ class GenerateVouchers
                     \Log::warning('[GenerateVouchers] Failed to create envelope for voucher', [
                         'voucher_code' => $voucher->code,
                         'driver' => $envelopeConfig['driver_id'].'@'.$envelopeConfig['driver_version'],
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        // Auto-create envelope for payable/settlement vouchers (if not already created above)
+        if ($isPayableOrSettlement && ! $envelopeConfig) {
+            foreach ($vouchers as $voucher) {
+                try {
+                    // Create envelope with default payable driver
+                    $envelope = $voucher->createEnvelope(
+                        driverId: 'payable.default',
+                        driverVersion: '1.0.0',
+                        initialPayload: $externalMetadata, // Store external_metadata in envelope payload
+                        context: [
+                            'created_via' => 'voucher_generation_auto',
+                            'voucher_type' => $voucherType,
+                            'campaign_id' => $validated['campaign_id'] ?? null,
+                        ],
+                        actor: $request->user()
+                    );
+
+                    // Move attachments to envelope instead of voucher (if any)
+                    if ($request->hasFile('attachments') && $envelope) {
+                        $files = $request->file('attachments');
+                        $envelopeService = app(\LBHurtado\SettlementEnvelope\Services\EnvelopeService::class);
+                        foreach ($files as $file) {
+                            try {
+                                // Use envelope service to upload attachment
+                                $envelopeService->uploadAttachment(
+                                    envelope: $envelope,
+                                    docType: 'REFERENCE_DOC',
+                                    file: $file,
+                                    actor: $request->user()
+                                );
+                            } catch (\Exception $e) {
+                                \Log::warning('[GenerateVouchers] Failed to upload attachment to envelope', [
+                                    'voucher_code' => $voucher->code,
+                                    'file' => $file->getClientOriginalName(),
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+                    }
+
+                    \Log::info('[GenerateVouchers] Auto-created envelope for payable/settlement voucher', [
+                        'voucher_code' => $voucher->code,
+                        'voucher_type' => $voucherType,
+                        'envelope_id' => $envelope->id,
+                        'has_payload' => ! empty($externalMetadata),
+                    ]);
+                } catch (\Exception $e) {
+                    // Log but don't fail - envelope creation is optional enhancement
+                    \Log::warning('[GenerateVouchers] Failed to auto-create envelope for payable/settlement voucher', [
+                        'voucher_code' => $voucher->code,
+                        'voucher_type' => $voucherType,
                         'error' => $e->getMessage(),
                     ]);
                 }
