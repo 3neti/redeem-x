@@ -28,7 +28,8 @@ import {
     EnvelopeAuditLog,
     ReasonModal,
     DocumentUploadModal,
-    EnvelopeConfigCard 
+    EnvelopeConfigCard,
+    ContributionLinkCard,
 } from '@/components/envelope';
 import type { Envelope, EnvelopeAttachment } from '@/composables/useEnvelope';
 import type { DriverSummary, EnvelopeConfig } from '@/types/envelope';
@@ -129,6 +130,19 @@ interface SettlementData {
     rules: Record<string, any>;
 }
 
+interface ContributionToken {
+    id: number;
+    uuid: string;
+    label: string | null;
+    recipient_name: string | null;
+    recipient_email: string | null;
+    recipient_mobile: string | null;
+    password_protected: boolean;
+    expires_at: string;
+    created_at: string;
+    url: string;
+}
+
 interface Props {
     voucher: VoucherProp;
     input_field_options: VoucherInputFieldOption[];
@@ -136,6 +150,7 @@ interface Props {
     external_metadata?: Record<string, any> | null;
     envelope?: Envelope;
     envelope_drivers?: DriverSummary[];
+    contribution_tokens?: ContributionToken[];
 }
 
 const props = defineProps<Props>();
@@ -240,6 +255,17 @@ const handleUpload = async (docType: string, file: File) => {
 
 const hasMetadata = computed(() => !!props.voucher.instructions?.metadata);
 const hasEnvelope = computed(() => !!props.envelope);
+
+// Contribution tokens state (local copy for reactive updates)
+const contributionTokens = ref<ContributionToken[]>([...(props.contribution_tokens || [])]);
+
+const handleTokenGenerated = (token: ContributionToken) => {
+    contributionTokens.value.push(token);
+};
+
+const handleTokenRevoked = (tokenId: number) => {
+    contributionTokens.value = contributionTokens.value.filter(t => t.id !== tokenId);
+};
 
 // Envelope creation for vouchers without an envelope
 const envelopeConfig = ref<EnvelopeConfig | null>(null);
@@ -724,6 +750,16 @@ const instructionsFormData = computed(() => {
                         :context="envelope.context"
                         :voucher-code="voucher.code"
                         :readonly="!canUpload"
+                    />
+                    
+                    <!-- Contribution Links (for external document collection) -->
+                    <ContributionLinkCard
+                        v-if="isOwner"
+                        :voucher-code="voucher.code"
+                        :tokens="contributionTokens"
+                        :can-generate="canUpload"
+                        @generated="handleTokenGenerated"
+                        @revoked="handleTokenRevoked"
                     />
                     
                     <EnvelopeAuditLog 

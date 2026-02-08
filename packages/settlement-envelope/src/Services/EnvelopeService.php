@@ -486,6 +486,20 @@ class EnvelopeService
         return $this->gateEvaluator->evaluate($envelope, $driver);
     }
 
+    /**
+     * Refresh checklist items and recompute gates
+     *
+     * Used when payload is updated externally (e.g., by contribution links)
+     * without going through full updatePayload() validation.
+     */
+    public function refreshChecklistAndGates(Envelope $envelope): Envelope
+    {
+        $this->updatePayloadFieldItems($envelope);
+        $this->recomputeGates($envelope);
+
+        return $envelope->fresh();
+    }
+
     // Protected helpers
 
     protected function createChecklistItems(Envelope $envelope, DriverData $driver): void

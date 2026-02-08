@@ -97,6 +97,25 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
         ->name('collect');
 
     // =========================================================================
+    // Contribution Links (external document contribution)
+    // =========================================================================
+
+    // Generate contribution link
+    // POST /api/v1/vouchers/{code}/contribution-links
+    Route::post('{voucher:code}/contribution-links', [\App\Actions\Api\Vouchers\GenerateContributionLink::class, 'asController'])
+        ->name('contribution-links.generate');
+
+    // List contribution links
+    // GET /api/v1/vouchers/{code}/contribution-links
+    Route::get('{voucher:code}/contribution-links', [\App\Actions\Api\Vouchers\ListContributionTokens::class, 'asController'])
+        ->name('contribution-links.list');
+
+    // Revoke contribution link
+    // DELETE /api/v1/vouchers/{code}/contribution-links/{token}
+    Route::delete('{voucher:code}/contribution-links/{token}', [\App\Actions\Api\Vouchers\RevokeContributionToken::class, 'asController'])
+        ->name('contribution-links.revoke');
+
+    // =========================================================================
     // Envelope Management (create envelope for existing voucher)
     // =========================================================================
 

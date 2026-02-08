@@ -98,6 +98,16 @@ class Envelope extends Model
         return $this->hasMany(EnvelopeAuditLog::class)->orderByDesc('created_at');
     }
 
+    public function contributionTokens(): HasMany
+    {
+        return $this->hasMany(EnvelopeContributionToken::class);
+    }
+
+    public function activeContributionTokens(): HasMany
+    {
+        return $this->contributionTokens()->valid();
+    }
+
     // Domain Methods
 
     public function getDriverKey(): string

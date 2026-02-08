@@ -103,6 +103,12 @@ class EnvelopeAuditLog extends Model
 
     public const ACTION_CONTEXT_UPDATE = 'context_update';
 
+    public const ACTION_EXTERNAL_CONTRIBUTION = 'external_contribution';
+
+    public const ACTION_CONTRIBUTION_TOKEN_CREATED = 'contribution_token_created';
+
+    public const ACTION_CONTRIBUTION_TOKEN_REVOKED = 'contribution_token_revoked';
+
     // Scopes
 
     public function scopeByAction($query, string $action)

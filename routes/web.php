@@ -310,6 +310,7 @@ Route::middleware([
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/contribute.php';
 
 // Development login (bypass WorkOS) - MUST be after auth.php
 if (app()->environment('local')) {

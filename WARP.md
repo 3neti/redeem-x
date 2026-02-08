@@ -1125,6 +1125,56 @@ php artisan vouchers:migrate-to-envelopes --code=XXXX
 - `voucher_attachments` media collection - deprecated for payable/settlement vouchers
 - Both preserved for backward compatibility with legacy vouchers
 
+### External Document Contribution
+**Public contribution links** allow external parties (non-users) to upload documents to settlement envelopes:
+
+**Key Features:**
+- **Signed URLs**: Time-limited, cryptographically signed links
+- **Password Protection**: Optional password (hashed, verified with `Hash::check()`)
+- **Recipient Identification**: Track who received the link (name, email, mobile)
+- **Audit Trail**: All contributions logged with token ID, IP, user agent
+- **Document Review**: Uploaded documents have `pending` status until owner approves
+
+**Generating Links:**
+```bash
+# Via Artisan (testing)
+php artisan test:contribution-link VOUCHER-CODE --recipient="Vendor ABC" --password=secret123
+
+# Via API (authenticated as voucher owner)
+POST /api/v1/vouchers/{code}/contribution-links
+{
+  "label": "Invoice from Vendor",
+  "recipient_name": "Juan Dela Cruz",
+  "recipient_email": "juan@vendor.com",
+  "password": "secret123",
+  "expires_days": 7
+}
+```
+
+**Public Routes:**
+- `GET /contribute?voucher=CODE&token=UUID&signature=...` - Contribution page (signed URL)
+- `POST /contribute/verify-password` - Password verification
+- `POST /contribute/upload` - Document upload
+- `POST /contribute/payload` - Update reference data
+
+**API Endpoints (authenticated):**
+- `POST /api/v1/vouchers/{code}/contribution-links` - Generate link
+- `GET /api/v1/vouchers/{code}/contribution-links` - List links
+- `DELETE /api/v1/vouchers/{code}/contribution-links/{token}` - Revoke link
+
+**Database Storage:**
+- Table: `envelope_contribution_tokens` (in settlement-envelope package)
+- Model: `LBHurtado\SettlementEnvelope\Models\EnvelopeContributionToken`
+- Relationship: `Envelope::contributionTokens()`
+
+**Flow:**
+1. Voucher owner generates contribution link (optionally with password)
+2. Owner shares link with external party (vendor, supplier, etc.)
+3. Contributor visits link → password gate if protected
+4. Contributor uploads documents → `pending` review status
+5. Owner reviews and accepts/rejects documents
+6. Audit log tracks all activity with token + IP + user agent
+
 ## Pending Package Extractions
 
 Code currently in the host app that will be extracted to monorepo packages once APIs stabilize.

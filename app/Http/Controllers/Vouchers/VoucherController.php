@@ -143,6 +143,25 @@ class VoucherController extends Controller
                         'created_at' => $log->created_at->toIso8601String(),
                     ])->toArray(),
                 ];
+
+                // Add contribution tokens (only for envelope owner)
+                if ($voucher->owner_id === auth()->id()) {
+                    $data['contribution_tokens'] = $envelope->contributionTokens()
+                        ->orderBy('created_at', 'desc')
+                        ->get()
+                        ->map(fn ($token) => [
+                            'id' => $token->id,
+                            'uuid' => $token->token,
+                            'label' => $token->label,
+                            'recipient_name' => $token->recipient_name,
+                            'recipient_email' => $token->recipient_email,
+                            'recipient_mobile' => $token->recipient_mobile,
+                            'password_protected' => $token->requiresPassword(),
+                            'expires_at' => $token->expires_at->toIso8601String(),
+                            'created_at' => $token->created_at->toIso8601String(),
+                            'url' => $token->generateUrl($voucher->code),
+                        ])->toArray();
+                }
             }
         }
 
@@ -251,6 +270,7 @@ class VoucherController extends Controller
 
     /**
      * Get external metadata from envelope payload (if envelope exists)
+     *
      * @deprecated Use envelope payload instead of voucher external_metadata
      */
     private function getExternalMetadataFromEnvelope(Voucher $voucher): ?array
