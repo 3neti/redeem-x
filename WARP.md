@@ -1105,6 +1105,26 @@ $user->creditWalletFromTopUp($topUp); // Credit wallet
 - **Gates**: `settleable` = true when payload exists (auto-advances to `ready_to_settle`)
 - **No signals** - no manual approval workflow needed
 
+**Form Flow Mapping** (config-driven data transformation):
+Drivers can include a `form_flow_mapping` section that declaratively maps form flow collected data to envelope payload and attachments:
+```yaml
+form_flow_mapping:
+  payload:
+    redeemer:
+      name: "bio_fields.full_name | bio_fields.name"  # Fallback syntax
+      mobile: "wallet_info.mobile"
+    location:
+      latitude: "location_capture.latitude:float"     # Type casting
+  attachments:
+    SELFIE:
+      source: "selfie_capture.selfie"
+      filename: "selfie.jpg"
+      mime: "image/jpeg"
+```
+- Syntax: simple paths, fallback (`|`), type casting (`:float`, `:int`, `:bool`)
+- Composition support: child drivers deep-merge parent mappings
+- Falls back to hardcoded defaults if no mapping defined
+
 **State Flow:**
 1. Envelope created with payload → auto-advances: `draft` → `in_progress` → `ready_for_review` → `ready_to_settle`
 2. Document upload (optional) happens after envelope already at `ready_to_settle`

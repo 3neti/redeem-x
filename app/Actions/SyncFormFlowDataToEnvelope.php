@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Services\FormFlowDataMapper;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\SettlementEnvelope\Models\Envelope;
+use LBHurtado\SettlementEnvelope\Services\DriverService;
 use LBHurtado\SettlementEnvelope\Services\EnvelopeService;
 use LBHurtado\Voucher\Models\Voucher;
 
@@ -25,7 +26,8 @@ class SyncFormFlowDataToEnvelope
 {
     public function __construct(
         protected EnvelopeService $envelopeService,
-        protected FormFlowDataMapper $mapper
+        protected FormFlowDataMapper $mapper,
+        protected DriverService $driverService
     ) {}
 
     /**
@@ -33,7 +35,7 @@ class SyncFormFlowDataToEnvelope
      *
      * @param  Voucher  $voucher  The voucher with the envelope
      * @param  array  $collectedData  Form flow collected data (step-indexed or numeric-indexed)
-     * @return SyncResult  Result containing counts and any errors
+     * @return SyncResult Result containing counts and any errors
      */
     public function execute(Voucher $voucher, array $collectedData): SyncResult
     {
@@ -46,14 +48,20 @@ class SyncFormFlowDataToEnvelope
             );
         }
 
+        // Load driver to get form_flow_mapping config (if any)
+        $driver = $this->driverService->load($envelope->driver_id, $envelope->driver_version);
+        $mapping = $driver->form_flow_mapping;
+
         Log::info('[SyncFormFlowDataToEnvelope] Starting sync', [
             'voucher' => $voucher->code,
             'envelope_id' => $envelope->id,
+            'driver' => $driver->getDriverKey(),
+            'has_mapping' => $mapping !== null,
         ]);
 
-        // Map data
-        $payload = $this->mapper->toPayload($collectedData);
-        $attachments = $this->mapper->extractAttachments($collectedData);
+        // Map data using driver config (or hardcoded defaults if no config)
+        $payload = $this->mapper->toPayload($collectedData, $mapping);
+        $attachments = $this->mapper->extractAttachments($collectedData, $mapping);
 
         $attachmentErrors = [];
         $uploadedCount = 0;

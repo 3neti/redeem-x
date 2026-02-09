@@ -1,30 +1,37 @@
+# =============================================================================
 # Redemption Full Inputs Driver
-# ==============================
-# Demo driver that accepts ALL possible form flow inputs for testing and reference.
-# Use this driver to test the complete form flow → envelope sync pipeline.
+# =============================================================================
+# Extends: redemption.base@1.0.0
 #
-# Payload sections:
-#   - redeemer: Personal info (name, birth_date, address, email, mobile, etc.)
-#   - kyc: KYC verification status and transaction ID
-#   - location: GPS coordinates and formatted address
-#   - wallet: Bank/wallet payment details
+# Demo driver that accepts ALL possible form flow inputs for testing.
+# Adds KYC fields and documents on top of the base redemption driver.
 #
-# Document types:
-#   - SELFIE, SIGNATURE, MAP_SNAPSHOT
-#   - KYC_ID_FRONT, KYC_ID_BACK, KYC_SELFIE
+# Inherited from base:
+#   - redeemer, wallet, location payload sections
+#   - SELFIE, SIGNATURE, MAP_SNAPSHOT documents and mappings
+#   - Basic checklist and gates
+#
+# Added by this driver:
+#   - KYC payload section and mappings
+#   - KYC document types (ID_FRONT, ID_BACK, KYC_SELFIE)
+#   - Extended redeemer fields (reference_code, gross_monthly_income)
+# =============================================================================
+
+extends:
+  - "redemption.base@1.0.0"
 
 driver:
   id: "redemption.full-inputs"
   version: "1.0.0"
   title: "Full Inputs Redemption"
   description: "Demo driver accepting all form flow inputs (bio, KYC, location, selfie, signature)"
-  domain: "redemption"
-  issuer_type: "voucher"
 
+# -----------------------------------------------------------------------------
+# Extended Payload Schema - Add KYC section
+# -----------------------------------------------------------------------------
 payload:
   schema:
     id: "redemption.full-inputs.v1"
-    format: "json_schema"
     inline:
       type: "object"
       additionalProperties: true
@@ -44,41 +51,13 @@ payload:
           properties:
             status: { type: "string" }
             transaction_id: { type: "string" }
-        location:
-          type: "object"
-          properties:
-            latitude: { type: "number" }
-            longitude: { type: "number" }
-            accuracy: { type: "number" }
-            formatted_address: { type: "string" }
-            captured_at: { type: "string" }
-        wallet:
-          type: "object"
-          properties:
-            bank_code: { type: "string" }
-            account_number: { type: "string" }
-            settlement_rail: { type: "string" }
-  storage:
-    mode: "versioned"
-    patch_strategy: "merge"
 
+# -----------------------------------------------------------------------------
+# Extended Documents - Add KYC document types
+# -----------------------------------------------------------------------------
 documents:
   registry:
-    - type: "SELFIE"
-      title: "Selfie Photo"
-      allowed_mimes: ["image/jpeg", "image/png"]
-      max_size_mb: 5
-      multiple: false
-    - type: "SIGNATURE"
-      title: "Digital Signature"
-      allowed_mimes: ["image/png"]
-      max_size_mb: 2
-      multiple: false
-    - type: "MAP_SNAPSHOT"
-      title: "Location Map"
-      allowed_mimes: ["image/png", "image/jpeg"]
-      max_size_mb: 5
-      multiple: false
+    # KYC documents (SELFIE, SIGNATURE, MAP_SNAPSHOT inherited from base)
     - type: "KYC_ID_FRONT"
       title: "KYC ID Front"
       allowed_mimes: ["image/jpeg", "image/png"]
@@ -95,14 +74,12 @@ documents:
       max_size_mb: 5
       multiple: false
 
+# -----------------------------------------------------------------------------
+# Extended Checklist - Add document checklist items
+# -----------------------------------------------------------------------------
 checklist:
   template:
-    - key: "redeemer_info"
-      label: "Redeemer Information"
-      kind: "payload_field"
-      payload_pointer: "/redeemer"
-      required: true
-      review: "none"
+    # redeemer_info inherited from base
     - key: "selfie_doc"
       label: "Selfie Photo"
       kind: "document"
@@ -122,20 +99,34 @@ checklist:
       required: false
       review: "none"
 
-signals:
-  definitions: []  # No manual signals needed for redemption flow
+# =============================================================================
+# Extended Form Flow Mapping
+# =============================================================================
+# Adds KYC section and extended redeemer fields.
+# Base mappings (redeemer core, wallet, location, SELFIE, SIGNATURE, MAP) inherited.
+# =============================================================================
+form_flow_mapping:
+  payload:
+    # Override redeemer to add extra fields (mobile, name, etc. inherited)
+    redeemer:
+      reference_code: "bio_fields.reference_code"
+      gross_monthly_income: "bio_fields.gross_monthly_income"
+    # Add KYC section (not in base)
+    kyc:
+      status: "kyc_verification.status"
+      transaction_id: "kyc_verification.transaction_id"
 
-gates:
-  definitions:
-    - key: "settleable"
-      rule: "payload != null"
-
-audit:
-  enabled: true
-  capture:
-    - "payload_patch"
-    - "attachment_upload"
-    - "attachment_review"
-
-manifest:
-  enabled: false
+  attachments:
+    # KYC attachments (SELFIE, SIGNATURE, MAP_SNAPSHOT inherited from base)
+    KYC_ID_FRONT:
+      source: "kyc_verification.id_front"
+      filename: "kyc_id_front.jpg"
+      mime: "image/jpeg"
+    KYC_ID_BACK:
+      source: "kyc_verification.id_back"
+      filename: "kyc_id_back.jpg"
+      mime: "image/jpeg"
+    KYC_SELFIE:
+      source: "kyc_verification.kyc_selfie"
+      filename: "kyc_selfie.jpg"
+      mime: "image/jpeg"

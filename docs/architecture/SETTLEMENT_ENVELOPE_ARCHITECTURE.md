@@ -255,6 +255,44 @@ gates:
 | `simple.envelope` | Basic testing | Minimal configuration |
 | `simple.test` | Unit testing | Minimal configuration |
 
+### Form Flow Mapping
+
+Drivers can include a `form_flow_mapping` section that defines how form flow collected data maps to envelope payload and attachments. This enables declarative, per-driver configuration instead of hardcoded mapping logic.
+
+```yaml
+form_flow_mapping:
+  payload:
+    redeemer:
+      name: "bio_fields.full_name | bio_fields.name"   # Fallback syntax
+      mobile: "wallet_info.mobile"
+      birth_date: "bio_fields.birth_date"
+    location:
+      latitude: "location_capture.latitude:float"      # Type casting
+      longitude: "location_capture.longitude:float"
+      formatted_address: "location_capture.address.formatted | location_capture.formatted_address"
+
+  attachments:
+    SELFIE:
+      source: "selfie_capture.selfie"
+      filename: "selfie.jpg"
+      mime: "image/jpeg"
+    SIGNATURE:
+      source: "signature_capture.signature"
+      filename: "signature.png"
+      mime: "image/png"
+```
+
+**Mapping Syntax:**
+- Simple path: `"bio_fields.name"` → `Arr::get($data, 'bio_fields.name')`
+- Fallback: `"path1 | path2"` → tries path1 first, falls back to path2
+- Type cast: `":float"`, `":int"`, `":bool"` suffixes
+- Nested: `"step.field.subfield"` via dot notation
+
+**Composition Support:**
+When using `extends`, form_flow_mapping sections are deep-merged:
+- Payload sections: child fields override parent fields within same section
+- Attachments: merged by doc_type key (child overrides parent for same type)
+
 ### Loading Drivers
 ```php
 $driverService = app(DriverService::class);
@@ -267,6 +305,13 @@ $driver = $driverService->load('payable.default');
 
 // List all available drivers
 $drivers = $driverService->list();
+
+// Access form flow mapping (may be null)
+$mapping = $driver->form_flow_mapping;
+if ($mapping) {
+    $redeemerFields = $mapping->getPayloadSection('redeemer');
+    $selfieConfig = $mapping->getAttachmentMapping('SELFIE');
+}
 ```
 
 ## 5. Checklist System

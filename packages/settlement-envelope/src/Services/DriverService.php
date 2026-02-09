@@ -6,6 +6,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use LBHurtado\SettlementEnvelope\Data\DriverData;
+use LBHurtado\SettlementEnvelope\Data\FormFlowMappingData;
 use LBHurtado\SettlementEnvelope\Exceptions\CircularDependencyException;
 use LBHurtado\SettlementEnvelope\Exceptions\DriverNotFoundException;
 use LBHurtado\SettlementEnvelope\Exceptions\InvalidDriverException;
@@ -202,6 +203,32 @@ class DriverService
             }
         }
 
+        // Merge form_flow_mapping (deep merge payload sections, merge attachments by doc_type)
+        if (isset($overlay['form_flow_mapping'])) {
+            $baseMapping = $result['form_flow_mapping'] ?? [];
+            $overlayMapping = $overlay['form_flow_mapping'];
+
+            // Deep merge payload sections
+            $mergedPayload = $baseMapping['payload'] ?? [];
+            foreach ($overlayMapping['payload'] ?? [] as $section => $fields) {
+                $mergedPayload[$section] = array_merge(
+                    $mergedPayload[$section] ?? [],
+                    $fields
+                );
+            }
+
+            // Merge attachments by doc_type key (overlay wins)
+            $mergedAttachments = $baseMapping['attachments'] ?? [];
+            foreach ($overlayMapping['attachments'] ?? [] as $docType => $config) {
+                $mergedAttachments[$docType] = $config;
+            }
+
+            $result['form_flow_mapping'] = [
+                'payload' => $mergedPayload,
+                'attachments' => $mergedAttachments,
+            ];
+        }
+
         return $result;
     }
 
@@ -288,6 +315,7 @@ class DriverService
             'audit' => $data['audit'] ?? null,
             'manifest' => $data['manifest'] ?? null,
             'ui' => $data['ui'] ?? null,
+            'form_flow_mapping' => FormFlowMappingData::fromArray($data['form_flow_mapping'] ?? null),
         ]);
     }
 

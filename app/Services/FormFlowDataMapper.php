@@ -7,36 +7,175 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
+use LBHurtado\SettlementEnvelope\Data\FormFlowMappingData;
 
 /**
  * Maps form flow collected data to settlement envelope payload and attachments.
  *
- * Form flow steps use step_name keys (e.g., 'wallet_info', 'bio_fields').
- * This service transforms that structure into the envelope's expected format.
+ * Supports two modes:
+ * 1. Config-driven: Uses FormFlowMappingData from driver YAML for declarative field mapping
+ * 2. Hardcoded fallback: Uses built-in defaults when no config provided (backward compatible)
  *
- * Note: Form flow collected data may arrive in two formats:
- * 1. Numeric-indexed: [0 => ['_step_name' => 'wallet_info', 'mobile' => '...'], ...]
- * 2. Step-name-keyed: ['wallet_info' => ['mobile' => '...'], ...]
+ * Mapping syntax (config-driven):
+ *   - Simple: "bio_fields.name" → Arr::get($data, 'bio_fields.name')
+ *   - Fallback: "bio_fields.full_name | bio_fields.name" → tries first, falls back to second
+ *   - Type cast: "location_capture.latitude:float" → casts to float
+ *   - Type cast: "bio_fields.verified:bool" → casts to boolean
  *
- * This mapper normalizes both formats before extraction.
+ * Form flow data formats handled:
+ *   1. Numeric-indexed: [0 => ['_step_name' => 'wallet_info', 'mobile' => '...'], ...]
+ *   2. Step-name-keyed: ['wallet_info' => ['mobile' => '...'], ...]
  */
 class FormFlowDataMapper
 {
     /**
      * Map collected form flow data to envelope payload structure.
      *
-     * @param  array  $collectedData  Form flow collected data (numeric or step-name keyed)
+     * @param  array  $collectedData  Form flow collected data
+     * @param  FormFlowMappingData|null  $mapping  Optional config-driven mapping from driver
      * @return array Envelope payload structure
      */
-    public function toPayload(array $collectedData): array
+    public function toPayload(array $collectedData, ?FormFlowMappingData $mapping = null): array
     {
-        // Normalize to step-name keyed format
         $collectedData = $this->normalizeCollectedData($collectedData);
 
         Log::debug('[FormFlowDataMapper] Normalized data for payload', [
             'keys' => array_keys($collectedData),
+            'has_mapping' => $mapping !== null,
         ]);
 
+        // Use config-driven mapping if available, otherwise hardcoded defaults
+        return $mapping && ! $mapping->isEmpty()
+            ? $this->toPayloadFromConfig($collectedData, $mapping)
+            : $this->toPayloadHardcoded($collectedData);
+    }
+
+    /**
+     * Extract attachments from collected form flow data.
+     *
+     * @param  array  $collectedData  Form flow collected data
+     * @param  FormFlowMappingData|null  $mapping  Optional config-driven mapping from driver
+     * @return array<string, UploadedFile> Attachments keyed by document type
+     */
+    public function extractAttachments(array $collectedData, ?FormFlowMappingData $mapping = null): array
+    {
+        $collectedData = $this->normalizeCollectedData($collectedData);
+
+        Log::debug('[FormFlowDataMapper] Normalized data for attachments', [
+            'keys' => array_keys($collectedData),
+            'has_mapping' => $mapping !== null,
+        ]);
+
+        // Use config-driven mapping if available, otherwise hardcoded defaults
+        return $mapping && ! $mapping->isEmpty()
+            ? $this->extractAttachmentsFromConfig($collectedData, $mapping)
+            : $this->extractAttachmentsHardcoded($collectedData);
+    }
+
+    // ========================================================================
+    // Config-driven mapping (uses FormFlowMappingData from driver YAML)
+    // ========================================================================
+
+    /**
+     * Build payload using config-driven mapping.
+     */
+    protected function toPayloadFromConfig(array $data, FormFlowMappingData $mapping): array
+    {
+        $payload = [];
+
+        foreach ($mapping->payload as $section => $fields) {
+            $sectionData = [];
+
+            foreach ($fields as $targetField => $sourceExpr) {
+                $value = $this->resolveExpression($data, $sourceExpr);
+                if ($value !== null) {
+                    $sectionData[$targetField] = $value;
+                }
+            }
+
+            if (! empty($sectionData)) {
+                $payload[$section] = $sectionData;
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Extract attachments using config-driven mapping.
+     */
+    protected function extractAttachmentsFromConfig(array $data, FormFlowMappingData $mapping): array
+    {
+        $attachments = [];
+
+        foreach ($mapping->attachments as $docType => $config) {
+            $base64 = Arr::get($data, $config->source);
+            if ($base64) {
+                $file = $this->base64ToUploadedFile($base64, $config->filename, $config->mime);
+                if ($file) {
+                    $attachments[$docType] = $file;
+                }
+            }
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * Resolve a mapping expression to a value.
+     *
+     * Supports:
+     *   - Simple path: "bio_fields.name"
+     *   - Fallback: "bio_fields.full_name | bio_fields.name"
+     *   - Type cast: "location_capture.latitude:float"
+     */
+    protected function resolveExpression(array $data, string $expr): mixed
+    {
+        // Handle fallback syntax: "path1 | path2"
+        if (str_contains($expr, '|')) {
+            $paths = array_map('trim', explode('|', $expr));
+            foreach ($paths as $path) {
+                $value = $this->resolveExpression($data, $path);
+                if ($value !== null) {
+                    return $value;
+                }
+            }
+
+            return null;
+        }
+
+        // Handle type cast suffix: ":float", ":int", ":bool", ":string"
+        $type = null;
+        if (preg_match('/^(.+):([a-z]+)$/', $expr, $matches)) {
+            $expr = $matches[1];
+            $type = $matches[2];
+        }
+
+        $value = Arr::get($data, $expr);
+
+        if ($value === null) {
+            return null;
+        }
+
+        // Apply type cast
+        return match ($type) {
+            'float' => (float) $value,
+            'int' => (int) $value,
+            'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            'string' => (string) $value,
+            default => $value,
+        };
+    }
+
+    // ========================================================================
+    // Hardcoded mapping (backward compatible defaults)
+    // ========================================================================
+
+    /**
+     * Build payload using hardcoded defaults.
+     */
+    protected function toPayloadHardcoded(array $collectedData): array
+    {
         $payload = [];
 
         // Redeemer info from wallet_info and bio_fields
@@ -131,22 +270,10 @@ class FormFlowDataMapper
     }
 
     /**
-     * Extract attachments from collected form flow data.
-     *
-     * Returns an array of [doc_type => UploadedFile] for base64 images.
-     *
-     * @param  array  $collectedData  Form flow collected data (numeric or step-name keyed)
-     * @return array<string, UploadedFile> Attachments keyed by document type
+     * Extract attachments using hardcoded defaults.
      */
-    public function extractAttachments(array $collectedData): array
+    protected function extractAttachmentsHardcoded(array $collectedData): array
     {
-        // Normalize to step-name keyed format
-        $collectedData = $this->normalizeCollectedData($collectedData);
-
-        Log::debug('[FormFlowDataMapper] Normalized data for attachments', [
-            'keys' => array_keys($collectedData),
-        ]);
-
         $attachments = [];
 
         // Selfie from selfie_capture step
@@ -195,6 +322,10 @@ class FormFlowDataMapper
 
         return $attachments;
     }
+
+    // ========================================================================
+    // Utility methods
+    // ========================================================================
 
     /**
      * Convert base64 encoded image to UploadedFile.

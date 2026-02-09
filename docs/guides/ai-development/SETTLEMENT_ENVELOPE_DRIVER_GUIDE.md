@@ -37,15 +37,16 @@ A **driver** is a YAML configuration file that defines the complete behavior of 
 Every driver YAML file has these sections:
 
 ```yaml
-driver:        # Metadata (required)
-payload:       # Data schema (required)
-documents:     # Uploadable file types (required)
-checklist:     # Items to satisfy (required)
-signals:       # Boolean flags (required, can be empty)
-gates:         # Readiness rules (required)
-audit:         # Logging config (optional)
-manifest:      # Integrity config (optional)
-ui:            # UI hints (optional)
+driver:            # Metadata (required)
+payload:           # Data schema (required)
+documents:         # Uploadable file types (required)
+checklist:         # Items to satisfy (required)
+signals:           # Boolean flags (required, can be empty)
+gates:             # Readiness rules (required)
+audit:             # Logging config (optional)
+manifest:          # Integrity config (optional)
+ui:                # UI hints (optional)
+form_flow_mapping: # Form flow data mapping (optional)
 ```
 
 ### 1.3 Complete YAML Schema Reference
@@ -204,6 +205,99 @@ ui:
   steps:                            # UI wizard steps (for custom UIs)
     - "step_one"
     - "step_two"
+
+# -----------------------------------------------------------------------------
+# FORM FLOW MAPPING (optional)
+# -----------------------------------------------------------------------------
+# Maps form flow collected data to envelope payload and attachments.
+# Enables declarative, per-driver configuration instead of hardcoded logic.
+#
+# If not defined, the FormFlowDataMapper falls back to hardcoded defaults.
+# -----------------------------------------------------------------------------
+form_flow_mapping:
+  payload:
+    # Each section becomes a top-level key in the envelope payload
+    redeemer:                        # Section name → payload.redeemer
+      name: "bio_fields.full_name | bio_fields.name"   # Fallback syntax: try first, then second
+      mobile: "wallet_info.mobile"                     # Simple path
+      birth_date: "bio_fields.birth_date"
+      email: "bio_fields.email"
+    wallet:
+      bank_code: "wallet_info.bank_code"
+      account_number: "wallet_info.account_number"
+    location:
+      latitude: "location_capture.latitude:float"      # Type cast with :float suffix
+      longitude: "location_capture.longitude:float"
+      accuracy: "location_capture.accuracy:float"
+      formatted_address: "location_capture.address.formatted | location_capture.formatted_address"
+    kyc:
+      status: "kyc_verification.status"
+      transaction_id: "kyc_verification.transaction_id"
+
+  attachments:
+    # Each key is a doc_type that matches documents.registry[].type
+    SELFIE:                          # Doc type (must exist in documents.registry)
+      source: "selfie_capture.selfie"  # Path to base64 image in collected data
+      filename: "selfie.jpg"           # Output filename
+      mime: "image/jpeg"               # MIME type for the file
+    SIGNATURE:
+      source: "signature_capture.signature"
+      filename: "signature.png"
+      mime: "image/png"
+    MAP_SNAPSHOT:
+      source: "location_capture.map"
+      filename: "map_snapshot.png"
+      mime: "image/png"
+```
+
+#### Form Flow Mapping Syntax
+
+The `form_flow_mapping` section uses expression syntax for transforming form flow data:
+
+**Payload Mapping:**
+```yaml
+# Simple path - maps directly
+field: "step_name.field_name"
+
+# Fallback syntax - tries paths in order until one returns non-null
+field: "step.preferred_field | step.fallback_field"
+
+# Type casting - converts value to specified type
+field: "step.field:float"    # Supports :float, :int, :bool, :string
+
+# Nested paths - accesses deeply nested data
+field: "step.nested.deeply.value"
+```
+
+**Attachment Mapping:**
+```yaml
+DOC_TYPE:
+  source: "step_name.base64_field"  # Path to base64-encoded image
+  filename: "output.jpg"             # Filename for the attachment
+  mime: "image/jpeg"                 # MIME type
+```
+
+**Composition Behavior:**
+When a driver uses `extends`, form_flow_mapping sections are deep-merged:
+- Payload sections: child fields merge with/override parent fields
+- Attachments: child doc_types override parent for same type, add new types
+
+```yaml
+# Parent driver
+form_flow_mapping:
+  payload:
+    redeemer:
+      name: "bio_fields.name"
+      email: "bio_fields.email"
+
+# Child driver (extends parent)
+form_flow_mapping:
+  payload:
+    redeemer:
+      name: "kyc.verified_name | bio_fields.name"  # Override name with KYC priority
+      # email inherited from parent
+    kyc:
+      status: "kyc.status"  # Add new section
 ```
 
 #### Gate Expression Syntax
