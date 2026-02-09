@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace LBHurtado\SettlementEnvelope\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;

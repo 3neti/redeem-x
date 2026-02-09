@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Actions\SyncFormFlowDataToEnvelope;
-use App\Services\FormFlowDataMapper;
 use Illuminate\Console\Command;
+use LBHurtado\SettlementEnvelope\Services\FormFlowDataMapper;
 use LBHurtado\Voucher\Models\Voucher;
 
 /**
@@ -49,8 +49,8 @@ class SyncVoucherToEnvelopeCommand extends Command
 
         $this->info("Voucher: {$voucher->code}");
         $voucherType = $voucher->instructions->voucher_type;
-        $this->line("  Type: ".($voucherType?->value ?? $voucherType ?? 'N/A'));
-        $this->line("  Redeemed: ".($voucher->redeemed_at?->toDateTimeString() ?? 'No'));
+        $this->line('  Type: '.($voucherType?->value ?? $voucherType ?? 'N/A'));
+        $this->line('  Redeemed: '.($voucher->redeemed_at?->toDateTimeString() ?? 'No'));
 
         // Check envelope
         $envelope = $voucher->envelope;
