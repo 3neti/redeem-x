@@ -37,6 +37,7 @@
   - [Implementation Status](implementation/active/IMPLEMENTATION_STATUS.md)
   - [Settlement Vouchers TODO](implementation/active/SETTLEMENT_VOUCHERS_TODO.md)
 - **[Planned](implementation/planned/)** - Future work
+  - [Agentic AI Integration Roadmap](implementation/planned/AGENTIC_AI_INTEGRATION_ROADMAP.md) ⭐ NEW
 
 ### [Troubleshooting](troubleshooting/) - Debug Guides
 - [Disburse 404](troubleshooting/TROUBLESHOOTING_DISBURSE_404.md)
