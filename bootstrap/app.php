@@ -32,6 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // CSRF exemptions for server-to-server callbacks
+        $middleware->validateCsrfTokens(except: [
+            'disburse/*/complete',  // Form flow completion callback
+        ]);
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

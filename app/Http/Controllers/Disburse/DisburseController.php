@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Disburse;
 
 use App\Actions\Voucher\ProcessRedemption;
+use App\Events\FormFlowCompleted;
 use App\Http\Controllers\Controller;
 use App\Services\InputFieldMapper;
 use App\Services\VoucherRedemptionService;
@@ -122,12 +123,33 @@ class DisburseController extends Controller
 
     /**
      * Handle form flow completion (callback)
-     * Note: Does NOT redeem automatically - just acknowledges callback
+     *
+     * Fires FormFlowCompleted event which triggers:
+     * - SyncFormFlowToEnvelope listener (syncs data to settlement envelope)
+     *
+     * Note: Does NOT redeem automatically - user must click confirm button
+     * Note: This route is CSRF-exempt (see bootstrap/app.php) for server-to-server callbacks
      */
-    public function complete(Voucher $voucher)
+    public function complete(Voucher $voucher, Request $request)
     {
-        // Callback received - form flow complete
-        // Do not redeem here - user must click confirm button
+        $collectedData = $request->input('collected_data', []);
+        $flowId = $request->input('flow_id', '');
+        $completedAt = $request->input('completed_at', now()->toIso8601String());
+
+        Log::info('[DisburseController] Form flow callback received', [
+            'voucher' => $voucher->code,
+            'flow_id' => $flowId,
+            'collected_data_keys' => array_keys($collectedData),
+            'completed_at' => $completedAt,
+        ]);
+
+        // Fire event - listeners handle envelope sync, etc.
+        event(new FormFlowCompleted($voucher, $collectedData, $flowId, $completedAt));
+
+        Log::debug('[DisburseController] FormFlowCompleted event fired', [
+            'voucher' => $voucher->code,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Flow completed, awaiting user confirmation',

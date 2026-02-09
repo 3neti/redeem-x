@@ -1,0 +1,141 @@
+# Redemption Full Inputs Driver
+# ==============================
+# Demo driver that accepts ALL possible form flow inputs for testing and reference.
+# Use this driver to test the complete form flow → envelope sync pipeline.
+#
+# Payload sections:
+#   - redeemer: Personal info (name, birth_date, address, email, mobile, etc.)
+#   - kyc: KYC verification status and transaction ID
+#   - location: GPS coordinates and formatted address
+#   - wallet: Bank/wallet payment details
+#
+# Document types:
+#   - SELFIE, SIGNATURE, MAP_SNAPSHOT
+#   - KYC_ID_FRONT, KYC_ID_BACK, KYC_SELFIE
+
+driver:
+  id: "redemption.full-inputs"
+  version: "1.0.0"
+  title: "Full Inputs Redemption"
+  description: "Demo driver accepting all form flow inputs (bio, KYC, location, selfie, signature)"
+  domain: "redemption"
+  issuer_type: "voucher"
+
+payload:
+  schema:
+    id: "redemption.full-inputs.v1"
+    format: "json_schema"
+    inline:
+      type: "object"
+      additionalProperties: true
+      properties:
+        redeemer:
+          type: "object"
+          properties:
+            name: { type: "string" }
+            birth_date: { type: "string" }
+            address: { type: "string" }
+            email: { type: "string" }
+            mobile: { type: "string" }
+            reference_code: { type: "string" }
+            gross_monthly_income: { type: "number" }
+        kyc:
+          type: "object"
+          properties:
+            status: { type: "string" }
+            transaction_id: { type: "string" }
+        location:
+          type: "object"
+          properties:
+            latitude: { type: "number" }
+            longitude: { type: "number" }
+            accuracy: { type: "number" }
+            formatted_address: { type: "string" }
+            captured_at: { type: "string" }
+        wallet:
+          type: "object"
+          properties:
+            bank_code: { type: "string" }
+            account_number: { type: "string" }
+            settlement_rail: { type: "string" }
+  storage:
+    mode: "versioned"
+    patch_strategy: "merge"
+
+documents:
+  registry:
+    - type: "SELFIE"
+      title: "Selfie Photo"
+      allowed_mimes: ["image/jpeg", "image/png"]
+      max_size_mb: 5
+      multiple: false
+    - type: "SIGNATURE"
+      title: "Digital Signature"
+      allowed_mimes: ["image/png"]
+      max_size_mb: 2
+      multiple: false
+    - type: "MAP_SNAPSHOT"
+      title: "Location Map"
+      allowed_mimes: ["image/png", "image/jpeg"]
+      max_size_mb: 5
+      multiple: false
+    - type: "KYC_ID_FRONT"
+      title: "KYC ID Front"
+      allowed_mimes: ["image/jpeg", "image/png"]
+      max_size_mb: 5
+      multiple: false
+    - type: "KYC_ID_BACK"
+      title: "KYC ID Back"
+      allowed_mimes: ["image/jpeg", "image/png"]
+      max_size_mb: 5
+      multiple: false
+    - type: "KYC_SELFIE"
+      title: "KYC Selfie"
+      allowed_mimes: ["image/jpeg", "image/png"]
+      max_size_mb: 5
+      multiple: false
+
+checklist:
+  template:
+    - key: "redeemer_info"
+      label: "Redeemer Information"
+      kind: "payload_field"
+      payload_pointer: "/redeemer"
+      required: true
+      review: "none"
+    - key: "selfie_doc"
+      label: "Selfie Photo"
+      kind: "document"
+      doc_type: "SELFIE"
+      required: false
+      review: "none"
+    - key: "signature_doc"
+      label: "Digital Signature"
+      kind: "document"
+      doc_type: "SIGNATURE"
+      required: false
+      review: "none"
+    - key: "map_doc"
+      label: "Location Map"
+      kind: "document"
+      doc_type: "MAP_SNAPSHOT"
+      required: false
+      review: "none"
+
+signals:
+  definitions: []  # No manual signals needed for redemption flow
+
+gates:
+  definitions:
+    - key: "settleable"
+      rule: "payload != null"
+
+audit:
+  enabled: true
+  capture:
+    - "payload_patch"
+    - "attachment_upload"
+    - "attachment_review"
+
+manifest:
+  enabled: false

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Events\FormFlowCompleted;
 use App\Listeners\NotifyAdminOfDisbursementFailure;
+use App\Listeners\SyncFormFlowToEnvelope;
 use App\Listeners\UpdateContactKycStatus;
 use App\Models\InstructionItem;
 use App\Models\User;
@@ -68,6 +70,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(
             DisbursementRequested::class,
             UpdateContactKycStatus::class
+        );
+
+        // Register form flow to envelope sync listener
+        Event::listen(
+            FormFlowCompleted::class,
+            SyncFormFlowToEnvelope::class
         );
 
         // Register payment confirmation SMS job
