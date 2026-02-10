@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
+use App\Actions\Envelope\SyncFormFlowData;
 use App\Events\FormFlowCompleted;
 use App\Listeners\NotifyAdminOfDisbursementFailure;
-use App\Listeners\SyncFormFlowToEnvelope;
 use App\Listeners\UpdateContactKycStatus;
 use App\Models\InstructionItem;
 use App\Models\User;
@@ -19,6 +19,7 @@ use Laravel\Pennant\Feature;
 use LBHurtado\Voucher\Events\DisbursementRequested;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Events\DisbursementFailed;
+use Lorisleiva\Actions\Facades\Actions;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -75,8 +76,13 @@ class AppServiceProvider extends ServiceProvider
         // Register form flow to envelope sync listener
         Event::listen(
             FormFlowCompleted::class,
-            SyncFormFlowToEnvelope::class
+            SyncFormFlowData::class
         );
+
+        // Auto-register action commands (Laravel 11+ has no Kernel.php)
+        if ($this->app->runningInConsole()) {
+            Actions::registerCommands();
+        }
 
         // Register payment confirmation SMS job
         Event::listen(
