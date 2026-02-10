@@ -131,15 +131,18 @@ abstract class BaseNotification extends Notification implements NotificationInte
      *
      * Uses Brick\Money for accurate currency handling.
      */
-    public function formatMoney(float $amount, string $currency = 'PHP'): string
+    public function formatMoney(string|float $amount, string $currency = 'PHP'): string
     {
         try {
-            $money = \Brick\Money\Money::of($amount, $currency);
+            // Ensure amount is a float for Brick\Money
+            $numericAmount = is_string($amount) ? (float) $amount : $amount;
+            $money = \Brick\Money\Money::of($numericAmount, $currency);
 
             return $money->formatTo('en_PH');
         } catch (\Throwable $e) {
             // Fallback to simple formatting if Brick\Money fails
-            return '₱'.number_format($amount, 2);
+            $numericAmount = is_string($amount) ? (float) $amount : $amount;
+            return '₱'.number_format($numericAmount, 2);
         }
     }
 
