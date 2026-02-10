@@ -98,6 +98,42 @@ class FormFlowDataMapper
             }
         }
 
+        // Handle nested KYC modules array (HyperVerge structure)
+        // Config-driven mapping expects flat fields, but KYC data may have nested modules
+        $modules = Arr::get($data, 'kyc_verification.modules', []);
+        if (! empty($modules) && isset($payload['kyc'])) {
+            // Extract image URLs from modules
+            $extractedImages = $this->extractKYCImageUrlsFromModules($modules);
+            $payload['kyc'] = array_merge($payload['kyc'], $extractedImages);
+
+            // Also extract ID details if not already present
+            $extractedDetails = $this->extractKYCDetailsFromModules($modules);
+            if (empty($payload['kyc']['id_type']) && ! empty($extractedDetails['id_type'])) {
+                $payload['kyc']['id_type'] = $extractedDetails['id_type'];
+            }
+            if (empty($payload['kyc']['id_number']) && ! empty($extractedDetails['id_number'])) {
+                $payload['kyc']['id_number'] = $extractedDetails['id_number'];
+            }
+            if (empty($payload['kyc']['verified_name']) && ! empty($extractedDetails['full_name'])) {
+                $payload['kyc']['verified_name'] = $extractedDetails['full_name'];
+            }
+            if (empty($payload['kyc']['verified_birth_date']) && ! empty($extractedDetails['date_of_birth'])) {
+                $payload['kyc']['verified_birth_date'] = $extractedDetails['date_of_birth'];
+            }
+            if (empty($payload['kyc']['verified_address']) && ! empty($extractedDetails['address'])) {
+                $payload['kyc']['verified_address'] = $extractedDetails['address'];
+            }
+        } elseif (! empty($modules) && ! isset($payload['kyc'])) {
+            // No kyc section in payload yet, create one from modules
+            $kycData = [
+                'status' => Arr::get($data, 'kyc_verification.status'),
+                'transaction_id' => Arr::get($data, 'kyc_verification.transaction_id'),
+            ];
+            $kycData = array_merge($kycData, $this->extractKYCImageUrlsFromModules($modules));
+            $kycData = array_merge($kycData, $this->extractKYCDetailsFromModules($modules));
+            $payload['kyc'] = array_filter($kycData);
+        }
+
         return $payload;
     }
 
@@ -236,6 +272,51 @@ class FormFlowDataMapper
         if ($transactionId = Arr::get($collectedData, 'kyc_verification.transaction_id')) {
             $kyc['transaction_id'] = $transactionId;
         }
+        // ID document info extracted from HyperVerge
+        if ($idType = Arr::get($collectedData, 'kyc_verification.id_type')) {
+            $kyc['id_type'] = $idType;
+        }
+        if ($idNumber = Arr::get($collectedData, 'kyc_verification.id_number')) {
+            $kyc['id_number'] = $idNumber;
+        }
+        // Verified bio data from KYC (prefixed with 'verified_' to distinguish from user-entered)
+        if ($verifiedName = Arr::get($collectedData, 'kyc_verification.name')) {
+            $kyc['verified_name'] = $verifiedName;
+        }
+        if ($verifiedBirthDate = Arr::get($collectedData, 'kyc_verification.date_of_birth')) {
+            $kyc['verified_birth_date'] = $verifiedBirthDate;
+        }
+        if ($verifiedAddress = Arr::get($collectedData, 'kyc_verification.address')) {
+            $kyc['verified_address'] = $verifiedAddress;
+        }
+        if ($nationality = Arr::get($collectedData, 'kyc_verification.nationality')) {
+            $kyc['nationality'] = $nationality;
+        }
+
+        // Extract image URLs from nested modules array (HyperVerge KYC structure)
+        $modules = Arr::get($collectedData, 'kyc_verification.modules', []);
+        if (! empty($modules)) {
+            $extractedImages = $this->extractKYCImageUrlsFromModules($modules);
+            $kyc = array_merge($kyc, $extractedImages);
+
+            // Also extract ID details from modules if not already present
+            $extractedDetails = $this->extractKYCDetailsFromModules($modules);
+            if (empty($kyc['id_type']) && ! empty($extractedDetails['id_type'])) {
+                $kyc['id_type'] = $extractedDetails['id_type'];
+            }
+            if (empty($kyc['id_number']) && ! empty($extractedDetails['id_number'])) {
+                $kyc['id_number'] = $extractedDetails['id_number'];
+            }
+            if (empty($kyc['verified_name']) && ! empty($extractedDetails['full_name'])) {
+                $kyc['verified_name'] = $extractedDetails['full_name'];
+            }
+            if (empty($kyc['verified_birth_date']) && ! empty($extractedDetails['date_of_birth'])) {
+                $kyc['verified_birth_date'] = $extractedDetails['date_of_birth'];
+            }
+            if (empty($kyc['verified_address']) && ! empty($extractedDetails['address'])) {
+                $kyc['verified_address'] = $extractedDetails['address'];
+            }
+        }
 
         if (! empty($kyc)) {
             $payload['kyc'] = $kyc;
@@ -324,6 +405,95 @@ class FormFlowDataMapper
     }
 
     // ========================================================================
+    // KYC module extraction helpers
+    // ========================================================================
+
+    /**
+     * Extract image URLs from HyperVerge KYC modules array.
+     *
+     * Module names from HyperVerge:
+     * - "ID Card Validation front" or "ID Card Validation" or "id_card" → ID card image
+     * - "Selfie Validation" or "selfie" → Selfie image
+     *
+     * @param  array  $modules  Array of KYC modules from HyperVerge
+     * @return array Extracted image URLs keyed by type
+     */
+    protected function extractKYCImageUrlsFromModules(array $modules): array
+    {
+        $images = [];
+
+        foreach ($modules as $module) {
+            if (! is_array($module)) {
+                continue;
+            }
+
+            $moduleName = $module['module'] ?? '';
+
+            // ID Card module - check various possible names
+            if (in_array($moduleName, ['id_card', 'ID Card Validation', 'ID Card Validation front'])) {
+                if (! empty($module['imageUrl'])) {
+                    $images['id_card_full_url'] = $module['imageUrl'];
+                }
+                if (! empty($module['croppedImageUrl'])) {
+                    $images['id_card_cropped_url'] = $module['croppedImageUrl'];
+                }
+            }
+
+            // Selfie module - check various possible names
+            if (in_array($moduleName, ['selfie', 'Selfie Validation'])) {
+                if (! empty($module['imageUrl'])) {
+                    $images['selfie_url'] = $module['imageUrl'];
+                }
+            }
+        }
+
+        return $images;
+    }
+
+    /**
+     * Extract ID details from HyperVerge KYC modules array.
+     *
+     * @param  array  $modules  Array of KYC modules from HyperVerge
+     * @return array Extracted ID details
+     */
+    protected function extractKYCDetailsFromModules(array $modules): array
+    {
+        $details = [];
+
+        foreach ($modules as $module) {
+            if (! is_array($module)) {
+                continue;
+            }
+
+            $moduleName = $module['module'] ?? '';
+
+            // ID Card module contains document details
+            if (in_array($moduleName, ['id_card', 'ID Card Validation', 'ID Card Validation front'])) {
+                $moduleDetails = $module['details'] ?? [];
+
+                // Map camelCase to snake_case (HyperVerge uses both)
+                if (! empty($moduleDetails['idType']) || ! empty($moduleDetails['id_type'])) {
+                    $details['id_type'] = $moduleDetails['idType'] ?? $moduleDetails['id_type'];
+                }
+                if (! empty($moduleDetails['idNumber']) || ! empty($moduleDetails['id_number'])) {
+                    $details['id_number'] = $moduleDetails['idNumber'] ?? $moduleDetails['id_number'];
+                }
+                if (! empty($moduleDetails['fullName']) || ! empty($moduleDetails['full_name'])) {
+                    $details['full_name'] = $moduleDetails['fullName'] ?? $moduleDetails['full_name'];
+                }
+                if (! empty($moduleDetails['dateOfBirth']) || ! empty($moduleDetails['date_of_birth'])) {
+                    $details['date_of_birth'] = $moduleDetails['dateOfBirth'] ?? $moduleDetails['date_of_birth'];
+                }
+                if (! empty($moduleDetails['address'])) {
+                    $details['address'] = $moduleDetails['address'];
+                }
+            }
+        }
+
+        return $details;
+    }
+
+    // ========================================================================
     // Utility methods
     // ========================================================================
 
@@ -404,6 +574,11 @@ class FormFlowDataMapper
             if (! $stepName) {
                 // Try without underscore prefix
                 $stepName = $stepData['step_name'] ?? null;
+            }
+
+            // Detect KYC step by its structure (has 'modules' and 'transaction_id')
+            if (! $stepName && isset($stepData['modules']) && isset($stepData['transaction_id'])) {
+                $stepName = 'kyc_verification';
             }
 
             if ($stepName) {

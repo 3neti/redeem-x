@@ -231,7 +231,7 @@ class SyncFormFlowData
         $steps = [
             'wallet_info' => ['mobile', 'bank_code', 'account_number', 'settlement_rail', 'amount'],
             'bio_fields' => ['full_name', 'name', 'email', 'birth_date', 'address', 'reference_code', 'gross_monthly_income'],
-            'kyc_verification' => ['status', 'transaction_id', 'id_front', 'id_back', 'kyc_selfie'],
+            'kyc_verification' => ['status', 'transaction_id', 'id_type', 'id_number', 'name', 'date_of_birth', 'address', 'nationality', 'id_front', 'id_back', 'kyc_selfie', 'id_card_full', 'id_card_cropped', 'selfie'],
             'location_capture' => ['latitude', 'longitude', 'accuracy', 'timestamp', 'map', 'formatted_address'],
             'selfie_capture' => ['selfie', 'width', 'height', 'format'],
             'signature_capture' => ['signature'],

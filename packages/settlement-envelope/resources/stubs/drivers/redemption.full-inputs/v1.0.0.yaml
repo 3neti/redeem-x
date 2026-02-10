@@ -51,6 +51,16 @@ payload:
           properties:
             status: { type: "string" }
             transaction_id: { type: "string" }
+            id_type: { type: "string" }
+            id_number: { type: "string" }
+            verified_name: { type: "string" }
+            verified_birth_date: { type: "string" }
+            verified_address: { type: "string" }
+            nationality: { type: "string" }
+            # Image URLs from HyperVerge
+            id_card_full_url: { type: "string" }
+            id_card_cropped_url: { type: "string" }
+            selfie_url: { type: "string" }
 
 # -----------------------------------------------------------------------------
 # Extended Documents - Add KYC document types
@@ -115,6 +125,16 @@ form_flow_mapping:
     kyc:
       status: "kyc_verification.status"
       transaction_id: "kyc_verification.transaction_id"
+      id_type: "kyc_verification.id_type"
+      id_number: "kyc_verification.id_number"
+      verified_name: "kyc_verification.name"
+      verified_birth_date: "kyc_verification.date_of_birth"
+      verified_address: "kyc_verification.address"
+      nationality: "kyc_verification.nationality"
+      # Image URLs from HyperVerge
+      id_card_full_url: "kyc_verification.id_card_full"
+      id_card_cropped_url: "kyc_verification.id_card_cropped"
+      selfie_url: "kyc_verification.selfie"
 
   attachments:
     # KYC attachments (SELFIE, SIGNATURE, MAP_SNAPSHOT inherited from base)

@@ -71,7 +71,27 @@ class SyncFormFlowToEnvelope
         $attachmentErrors = [];
         $uploadedCount = 0;
 
-        // 1. Upload attachments FIRST (before payload triggers state change)
+        // 1. Update payload FIRST (before attachments trigger state change)
+        // This ensures all payload data is saved while envelope is still editable
+        $payloadUpdated = false;
+        if (! empty($payload)) {
+            // Direct update to avoid EnvelopeService validation issue
+            // TODO: Debug why EnvelopeService::updatePayload fails validation
+            $envelope->update(['payload' => $payload]);
+            $payloadUpdated = true;
+
+            // Update payload field checklist items (normally done by EnvelopeService)
+            $this->updatePayloadFieldItems($envelope);
+
+            Log::debug('[SyncFormFlowToEnvelope] Payload updated', [
+                'reference' => $logRef,
+                'payload_keys' => array_keys($payload),
+            ]);
+        }
+
+        // 2. Upload attachments AFTER payload
+        // Note: First attachment upload may trigger state advancement to ready_to_settle
+        // Subsequent attachments may fail with "not editable" - this is expected behavior
         foreach ($attachments as $docType => $file) {
             try {
                 $this->envelopeService->uploadAttachment($envelope, $docType, $file);
@@ -92,24 +112,10 @@ class SyncFormFlowToEnvelope
             }
         }
 
-        // 2. Update payload AFTER attachments
-        $payloadUpdated = false;
-        if (! empty($payload)) {
-            // Direct update to avoid EnvelopeService validation issue
-            // TODO: Debug why EnvelopeService::updatePayload fails validation
-            $envelope->update(['payload' => $payload]);
-            $payloadUpdated = true;
-
-            // Update payload field checklist items (normally done by EnvelopeService)
-            $this->updatePayloadFieldItems($envelope);
-
-            // Recompute gates to advance status if settleable
+        // 3. Recompute gates to advance status if settleable
+        // This is done after all uploads to ensure final state is correct
+        if ($payloadUpdated || $uploadedCount > 0) {
             $this->recomputeGates($envelope);
-
-            Log::debug('[SyncFormFlowToEnvelope] Payload updated', [
-                'reference' => $logRef,
-                'payload_keys' => array_keys($payload),
-            ]);
         }
 
         Log::info('[SyncFormFlowToEnvelope] Sync completed', [
