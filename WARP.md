@@ -556,6 +556,89 @@ WIP
 - Use feature branches for all changes
 - Exception: Hotfixes in production emergencies (document why)
 
+## Laravel Actions Convention
+
+This project uses `lorisleiva/laravel-actions` for business logic. **All new actions should use the Laravel Actions pattern.**
+
+### When to Use Laravel Actions
+Use Laravel Actions when you need logic that can be invoked in multiple ways:
+- Direct call (`Action::run($args)`)
+- Queued job (`Action::dispatch($args)`)
+- Event listener
+- Artisan command
+- Controller action
+
+### Action Structure
+```php
+namespace App\Actions\Domain;
+
+use Lorisleiva\Actions\Concerns\AsAction;
+
+class DoSomething
+{
+    use AsAction;
+
+    public string $commandSignature = 'domain:do-something {arg}';  // Optional CLI
+    public string $commandDescription = 'Description for artisan list';
+
+    public function handle(Model $model, array $data): ResultData
+    {
+        // Core business logic
+    }
+
+    public function asJob(Model $model, array $data): void
+    {
+        // Wrap handle() with logging/error handling for async
+        $this->handle($model, $data);
+    }
+
+    public function asListener(SomeEvent $event): void
+    {
+        // Dispatch as job for async processing
+        static::dispatch($event->model, $event->data);
+    }
+
+    public function asCommand(Command $command): int
+    {
+        // Parse CLI args, call handle(), return exit code
+    }
+}
+```
+
+### Directory Convention
+Place actions in domain subdirectories:
+```
+app/Actions/
+├── Envelope/          # Settlement envelope actions
+├── Voucher/           # Voucher-related actions
+├── Contact/           # Contact/KYC actions
+├── Notification/      # Notification actions
+├── Api/               # API-specific actions
+└── Billing/           # Billing actions
+```
+
+### Command Registration
+Commands are auto-registered via `Actions::registerCommands()` in `AppServiceProvider::boot()`.
+
+### Key Patterns
+1. **Listener dispatches job** (not direct handle call) for async processing
+2. **asJob wraps handle** with try/catch and logging
+3. **asCommand returns exit codes** (`Command::SUCCESS` or `Command::FAILURE`)
+
+### DO NOT Create Separate Files
+**Avoid** creating separate Listener, Job, or Command classes when an Action can consolidate them:
+```
+# ❌ Don't create these separately
+app/Listeners/DoSomethingListener.php
+app/Jobs/DoSomethingJob.php
+app/Console/Commands/DoSomethingCommand.php
+
+# ✅ Create one Action with all capabilities
+app/Actions/Domain/DoSomething.php
+```
+
+See `docs/guides/ai-development/LARAVEL_ACTIONS_CONSOLIDATION_GUIDE.md` for detailed methodology.
+
 ## Architecture Overview
 
 ### Tech Stack
