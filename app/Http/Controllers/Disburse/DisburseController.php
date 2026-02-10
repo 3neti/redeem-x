@@ -224,6 +224,10 @@ class DisburseController extends Controller
             $inputs['kyc_status'] = 'approved';
         }
 
+        // Store raw collected data for pipeline to sync to envelope
+        // (serialized to avoid issues with nested arrays in metadata)
+        $inputs['_form_flow_collected_data'] = json_encode($collectedData);
+
         try {
             // Validate using Unified Validation Gateway
             $service = new VoucherRedemptionService;

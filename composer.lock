@@ -76,16 +76,16 @@
         },
         {
             "name": "3neti/form-handler-kyc",
-            "version": "v1.0.1",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/3neti/form-handler-kyc.git",
-                "reference": "4d3807ea21f0b43f35b2ad7db42eb527a25c2608"
+                "reference": "5e4d217a534652d4a291dc5840268af8a9de8464"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-handler-kyc/zipball/4d3807ea21f0b43f35b2ad7db42eb527a25c2608",
-                "reference": "4d3807ea21f0b43f35b2ad7db42eb527a25c2608",
+                "url": "https://api.github.com/repos/3neti/form-handler-kyc/zipball/5e4d217a534652d4a291dc5840268af8a9de8464",
+                "reference": "5e4d217a534652d4a291dc5840268af8a9de8464",
                 "shasum": ""
             },
             "require": {
@@ -128,9 +128,9 @@
             "description": "KYC/identity verification handler for form flow system using HyperVerge",
             "support": {
                 "issues": "https://github.com/3neti/form-handler-kyc/issues",
-                "source": "https://github.com/3neti/form-handler-kyc/tree/v1.0.1"
+                "source": "https://github.com/3neti/form-handler-kyc/tree/v1.0.2"
             },
-            "time": "2026-01-14T12:25:43+00:00"
+            "time": "2026-02-10T05:27:33+00:00"
         },
         {
             "name": "3neti/form-handler-location",
@@ -3803,7 +3803,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-fix/balance-calculation-proper-transaction-fee",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -3988,7 +3988,7 @@
         },
         {
             "name": "lbhurtado/voucher",
-            "version": "dev-fix/balance-calculation-proper-transaction-fee",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",

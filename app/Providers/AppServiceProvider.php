@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Actions\Envelope\SyncFormFlowData;
-use App\Events\FormFlowCompleted;
 use App\Listeners\NotifyAdminOfDisbursementFailure;
 use App\Listeners\UpdateContactKycStatus;
 use App\Models\InstructionItem;
@@ -73,13 +71,10 @@ class AppServiceProvider extends ServiceProvider
             UpdateContactKycStatus::class
         );
 
-        // Register form flow to envelope sync listener
-        Event::listen(
-            FormFlowCompleted::class,
-            SyncFormFlowData::class
-        );
+        // NOTE: Form flow sync and image attachment moved to post-redemption pipeline
+        // SyncEnvelopeData dispatches SyncEnvelopeAndAttachImages job (async on 'high' queue)
 
-        // Auto-register action commands (Laravel 11+ has no Kernel.php)
+        // Auto-register action commands
         if ($this->app->runningInConsole()) {
             Actions::registerCommands();
         }

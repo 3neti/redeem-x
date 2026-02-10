@@ -29,6 +29,7 @@ return [
     'post-redemption' => [
         \LBHurtado\Voucher\Pipelines\RedeemedVoucher\ValidateRedeemerAndCash::class,
         \App\Pipelines\RedeemedVoucher\PersistInputs::class,
+        \App\Pipelines\RedeemedVoucher\SyncEnvelopeData::class,  // Dispatches SyncEnvelopeAndAttachImages job
         ...($disable_disbursement
             ? []
             : [\LBHurtado\Voucher\Pipelines\RedeemedVoucher\DisburseCash::class]
