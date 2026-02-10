@@ -47,8 +47,15 @@ class SMSBalance extends BaseSMSHandler
     /**
      * Handle user balance query (regular BALANCE command).
      */
-    protected function handleUserBalance(User $user, string $from): JsonResponse
+    protected function handleUserBalance(?User $user, string $from): JsonResponse
     {
+        // This should never happen due to requiresAuth() check in base handler,
+        // but guard against it just in case
+        if (! $user) {
+            $this->logError('User is null in handleUserBalance', ['from' => $from]);
+            return $this->errorResponse('Authentication required');
+        }
+
         $balance = BalanceData::fromWallet($user->wallet);
 
         $message = sprintf('Balance: %s', $this->formatMoney($balance->balance, 'PHP'));
@@ -71,8 +78,13 @@ class SMSBalance extends BaseSMSHandler
     /**
      * Handle system balance query (BALANCE --system command).
      */
-    protected function handleSystemBalance(User $user, string $from): JsonResponse
+    protected function handleSystemBalance(?User $user, string $from): JsonResponse
     {
+        if (! $user) {
+            $this->logError('User is null in handleSystemBalance', ['from' => $from]);
+            return $this->errorResponse('Authentication required');
+        }
+
         // Check permission
         if (! $user->can('view-balances')) {
             $this->logWarning('Unauthorized system balance request', [
