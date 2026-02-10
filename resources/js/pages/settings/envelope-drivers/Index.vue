@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileCode2, FileText, CheckSquare, Signal, Shield, AlertCircle, Plus, MoreVertical, Pencil, Trash2, Upload, ChevronDown, ChevronRight, GitBranch, Layers } from 'lucide-vue-next';
+import { FileCode2, FileText, CheckSquare, Signal, Shield, AlertCircle, Plus, MoreVertical, Pencil, Trash2, Upload, Download, ChevronDown, ChevronRight, GitBranch, Layers } from 'lucide-vue-next';
 
 interface Driver {
     id: string;
@@ -260,6 +260,12 @@ const closeImportDialog = () => {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem as-child>
+                                                        <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/export`" class="flex items-center">
+                                                            <Download class="mr-2 h-4 w-4" />
+                                                            Export
+                                                        </a>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem as-child>
                                                         <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/edit`" class="flex items-center">
                                                             <Pencil class="mr-2 h-4 w-4" />
                                                             Edit
@@ -350,6 +356,12 @@ const closeImportDialog = () => {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem as-child>
+                                                    <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/export`" class="flex items-center">
+                                                        <Download class="mr-2 h-4 w-4" />
+                                                        Export
+                                                    </a>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem as-child>
                                                     <a :href="`/settings/envelope-drivers/${driver.id}/${driver.version}/edit`" class="flex items-center">
                                                         <Pencil class="mr-2 h-4 w-4" />

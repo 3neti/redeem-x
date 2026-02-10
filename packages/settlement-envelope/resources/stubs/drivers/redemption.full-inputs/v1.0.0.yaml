@@ -13,7 +13,7 @@
 #
 # Added by this driver:
 #   - KYC payload section and mappings
-#   - KYC document types (ID_FRONT, ID_BACK, KYC_SELFIE)
+#   - KYC document type (ID_CARD) and checklist item
 #   - Extended redeemer fields (reference_code, gross_monthly_income)
 # =============================================================================
 
@@ -68,18 +68,8 @@ payload:
 documents:
   registry:
     # KYC documents (SELFIE, SIGNATURE, MAP_SNAPSHOT inherited from base)
-    - type: "KYC_ID_FRONT"
-      title: "KYC ID Front"
-      allowed_mimes: ["image/jpeg", "image/png"]
-      max_size_mb: 5
-      multiple: false
-    - type: "KYC_ID_BACK"
-      title: "KYC ID Back"
-      allowed_mimes: ["image/jpeg", "image/png"]
-      max_size_mb: 5
-      multiple: false
-    - type: "KYC_SELFIE"
-      title: "KYC Selfie"
+    - type: "ID_CARD"
+      title: "KYC ID Card"
       allowed_mimes: ["image/jpeg", "image/png"]
       max_size_mb: 5
       multiple: false
@@ -90,6 +80,12 @@ documents:
 checklist:
   template:
     # redeemer_info inherited from base
+    - key: "id_card_doc"
+      label: "KYC ID Card"
+      kind: "document"
+      doc_type: "ID_CARD"
+      required: false
+      review: "none"
     - key: "selfie_doc"
       label: "Selfie Photo"
       kind: "document"
@@ -138,15 +134,7 @@ form_flow_mapping:
 
   attachments:
     # KYC attachments (SELFIE, SIGNATURE, MAP_SNAPSHOT inherited from base)
-    KYC_ID_FRONT:
-      source: "kyc_verification.id_front"
-      filename: "kyc_id_front.jpg"
-      mime: "image/jpeg"
-    KYC_ID_BACK:
-      source: "kyc_verification.id_back"
-      filename: "kyc_id_back.jpg"
-      mime: "image/jpeg"
-    KYC_SELFIE:
-      source: "kyc_verification.kyc_selfie"
-      filename: "kyc_selfie.jpg"
+    ID_CARD:
+      source: "kyc_verification.id_card_full | kyc.id_card_full_url"
+      filename: "id_card.jpg"
       mime: "image/jpeg"
