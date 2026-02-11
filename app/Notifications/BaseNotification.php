@@ -173,6 +173,9 @@ abstract class BaseNotification extends Notification implements NotificationInte
      *
      * Database notifications are always sent immediately (sync)
      * for accurate audit trail timestamps.
+     *
+     * Note: Laravel uses the channel name from via() as the key,
+     * not the fully qualified class name.
      */
     public function viaQueues(): array
     {
