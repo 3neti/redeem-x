@@ -1264,6 +1264,175 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
     
+    <!-- Envelope Sheet (Phase 9 - Conditional for payable/settlement) -->
+    <Sheet v-model:open="sheetState.envelope.open">
+      <SheetContent side="bottom" class="h-auto max-h-[70vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Settlement Envelope</SheetTitle>
+          <SheetDescription>
+            Configure settlement envelope for tracking and documentation
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+          <div v-if="voucherType === 'payable' || voucherType === 'settlement'">
+            <p class="text-sm text-muted-foreground mb-4">
+              Settlement envelopes are automatically created for {{ voucherType }} vouchers.
+              You can configure additional settings here.
+            </p>
+            
+            <!-- Simple envelope toggle -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <Label>Enable Settlement Envelope</Label>
+                <Checkbox
+                  :checked="!!envelopeConfig"
+                  @update:checked="(checked) => envelopeConfig = checked ? {} : null"
+                />
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Track payments and documents in a settlement envelope
+              </p>
+            </div>
+            
+            <div v-if="envelopeConfig" class="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <p class="text-sm font-medium mb-1">✓ Envelope Enabled</p>
+              <p class="text-xs text-muted-foreground">
+                Default envelope driver will be used. Configure advanced options in desktop version.
+              </p>
+            </div>
+          </div>
+          
+          <div v-else class="py-8 text-center">
+            <p class="text-sm text-muted-foreground">Settlement envelopes are only available for payable and settlement vouchers</p>
+          </div>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.envelope.open = false" class="flex-1">
+            Close
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
+    <!-- Rail & Fees Sheet (Phase 10 - Conditional for settlement) -->
+    <Sheet v-model:open="sheetState.railFees.open">
+      <SheetContent side="bottom" class="h-auto max-h-[75vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Settlement Rail & Fees</SheetTitle>
+          <SheetDescription>
+            Configure disbursement method and fee handling
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+          <div v-if="voucherType === 'settlement' || voucherType === 'redeemable'">
+            <!-- Settlement Rail -->
+            <div class="space-y-2">
+              <Label>Settlement Rail</Label>
+              <RadioGroup v-model="settlementRail">
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    settlementRail === 'auto' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="settlementRail = 'auto'"
+                >
+                  <RadioGroupItem value="auto" id="rail-auto" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="rail-auto" class="font-semibold cursor-pointer">Auto</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Smart selection based on amount (≤₱50k = INSTAPAY, >₱50k = PESONET)</p>
+                  </div>
+                </div>
+                
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    settlementRail === 'INSTAPAY' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="settlementRail = 'INSTAPAY'"
+                >
+                  <RadioGroupItem value="INSTAPAY" id="rail-instapay" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="rail-instapay" class="font-semibold cursor-pointer">INSTAPAY</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Real-time transfer • Max ₱50,000 • ₱10 fee</p>
+                  </div>
+                </div>
+                
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    settlementRail === 'PESONET' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="settlementRail = 'PESONET'"
+                >
+                  <RadioGroupItem value="PESONET" id="rail-pesonet" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="rail-pesonet" class="font-semibold cursor-pointer">PESONET</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Next business day • Max ₱1,000,000 • ₱25 fee</p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <!-- Fee Strategy -->
+            <div class="space-y-2 pt-4 border-t">
+              <Label>Fee Strategy</Label>
+              <RadioGroup v-model="feeStrategy">
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem value="absorb" id="fee-absorb" />
+                  <Label for="fee-absorb" class="font-normal cursor-pointer">
+                    Absorb (issuer pays fee)
+                  </Label>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem value="include" id="fee-include" />
+                  <Label for="fee-include" class="font-normal cursor-pointer">
+                    Include (deduct from voucher)
+                  </Label>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem value="add" id="fee-add" />
+                  <Label for="fee-add" class="font-normal cursor-pointer">
+                    Add (redeemer receives voucher + fee)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <!-- Fee Preview -->
+            <div class="p-4 bg-muted/50 rounded-lg">
+              <p class="text-sm font-medium mb-2">Fee Preview</p>
+              <div class="text-xs text-muted-foreground space-y-1">
+                <p>Rail: {{ settlementRail === 'auto' ? 'Auto-select' : settlementRail || 'Not set' }}</p>
+                <p>Strategy: {{ feeStrategy === 'absorb' ? 'Issuer pays' : feeStrategy === 'include' ? 'Deduct from amount' : 'Add to disbursement' }}</p>
+                <p v-if="amount" class="pt-2 border-t mt-2">
+                  Example: ₱{{ amount.toLocaleString() }} voucher → 
+                  {{ feeStrategy === 'absorb' ? `₱${amount.toLocaleString()} to redeemer` : 
+                     feeStrategy === 'include' ? `₱${(amount - 10).toLocaleString()} to redeemer` :
+                     `₱${(amount + 10).toLocaleString()} to redeemer` }}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div v-else class="py-8 text-center">
+            <p class="text-sm text-muted-foreground">Rail & fee settings are only available for redeemable and settlement vouchers</p>
+          </div>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.railFees.open = false" class="flex-1">
+            Cancel
+          </Button>
+          <Button @click="sheetState.railFees.open = false" class="flex-1">
+            Apply
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
     <!-- More placeholder sheets... -->
   </PwaLayout>
 </template>
