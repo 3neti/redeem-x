@@ -3,6 +3,8 @@
 namespace LBHurtado\PwaUi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Campaign;
+use App\Settings\VoucherSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -76,9 +78,39 @@ class PwaVoucherController extends Controller
      */
     public function create(Request $request): Response
     {
+        $user = $request->user();
+        
+        // Load user campaigns
+        $campaigns = $user ? Campaign::where('user_id', $user->id)
+            ->latest()
+            ->get()
+            ->map(fn($campaign) => [
+                'id' => $campaign->id,
+                'name' => $campaign->name,
+                'slug' => $campaign->slug,
+                'instructions' => $campaign->instructions->toArray(),
+            ])
+            ->toArray() : [];
+        
+        // Load input field options from settings
+        $voucherSettings = app(VoucherSettings::class);
+        $inputFieldOptions = collect($voucherSettings->input_field_options ?? [])
+            ->map(fn($field) => [
+                'value' => $field['value'] ?? '',
+                'label' => $field['label'] ?? '',
+                'icon' => $field['icon'] ?? null,
+            ])
+            ->toArray();
+        
+        // Get wallet balance
+        $walletBalance = $user ? (float) $user->balance : 0;
+        $formattedBalance = '₱' . number_format($walletBalance, 2);
+        
         return Inertia::render('Pwa/Vouchers/Generate', [
-            'campaigns' => [], // TODO: Load user campaigns
-            'inputFieldOptions' => [], // TODO: Load from config
+            'campaigns' => $campaigns,
+            'inputFieldOptions' => $inputFieldOptions,
+            'walletBalance' => $walletBalance,
+            'formattedBalance' => $formattedBalance,
         ]);
     }
 
