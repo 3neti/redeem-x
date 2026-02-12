@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -498,6 +498,83 @@ watch([amount, interestRate], ([newAmount, newRate]) => {
   }
 });
 
+// State persistence (Phase 12)
+const STORAGE_KEY = 'pwa_voucher_wizard_state';
+
+// Save state to localStorage
+const saveState = () => {
+  try {
+    const state = {
+      amount: amount.value,
+      count: count.value,
+      voucherType: voucherType.value,
+      selectedInputFields: selectedInputFields.value,
+      targetAmount: targetAmount.value,
+      interestRate: interestRate.value,
+      payee: payee.value,
+      validationSecret: validationSecret.value,
+      feedbackEmail: feedbackEmail.value,
+      feedbackMobile: feedbackMobile.value,
+      feedbackWebhook: feedbackWebhook.value,
+      settlementRail: settlementRail.value,
+      feeStrategy: feeStrategy.value,
+      selectedCampaignId: selectedCampaignId.value,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Failed to save state:', e);
+  }
+};
+
+// Restore state from localStorage
+const restoreState = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const state = JSON.parse(saved);
+      if (state.amount) amount.value = state.amount;
+      if (state.count) count.value = state.count;
+      if (state.voucherType) voucherType.value = state.voucherType;
+      if (state.selectedInputFields) selectedInputFields.value = state.selectedInputFields;
+      if (state.targetAmount) targetAmount.value = state.targetAmount;
+      if (state.interestRate !== undefined) interestRate.value = state.interestRate;
+      if (state.payee) payee.value = state.payee;
+      if (state.validationSecret) validationSecret.value = state.validationSecret;
+      if (state.feedbackEmail) feedbackEmail.value = state.feedbackEmail;
+      if (state.feedbackMobile) feedbackMobile.value = state.feedbackMobile;
+      if (state.feedbackWebhook) feedbackWebhook.value = state.feedbackWebhook;
+      if (state.settlementRail) settlementRail.value = state.settlementRail;
+      if (state.feeStrategy) feeStrategy.value = state.feeStrategy;
+      if (state.selectedCampaignId) selectedCampaignId.value = state.selectedCampaignId;
+    }
+  } catch (e) {
+    console.error('Failed to restore state:', e);
+  }
+};
+
+// Clear saved state
+const clearSavedState = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error('Failed to clear state:', e);
+  }
+};
+
+// Watch key fields and save state on change
+watch(
+  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail],
+  () => {
+    saveState();
+  },
+  { deep: true }
+);
+
+// Restore state on mount
+onMounted(() => {
+  restoreState();
+});
+
 // Watch for mobile payee - auto-add OTP (same logic as Portal.vue)
 watch(payeeType, (newType, oldType) => {
   if (newType === 'mobile' && oldType !== 'mobile') {
@@ -891,7 +968,7 @@ watch(payeeType, (newType, oldType) => {
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
           <!-- Input Field Checkboxes -->
           <div class="space-y-3">
             <div
@@ -972,7 +1049,7 @@ watch(payeeType, (newType, oldType) => {
           </TabsList>
           
           <!-- Location Tab -->
-          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 space-y-4">
+          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
             <div class="space-y-3">
               <div class="space-y-2">
                 <Label for="location-lat">Latitude</Label>
@@ -1019,7 +1096,7 @@ watch(payeeType, (newType, oldType) => {
           </TabsContent>
           
           <!-- Time Tab -->
-          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 space-y-4">
+          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
             <div class="space-y-3">
               <div class="space-y-2">
                 <Label for="time-start">Start Time</Label>
@@ -1063,7 +1140,7 @@ watch(payeeType, (newType, oldType) => {
           </TabsContent>
           
           <!-- Secret Tab -->
-          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 space-y-4">
+          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
             <div class="space-y-3">
               <div class="space-y-2">
                 <Label for="secret">Secret Code</Label>
@@ -1089,7 +1166,7 @@ watch(payeeType, (newType, oldType) => {
           </TabsContent>
           
           <!-- Payee Tab -->
-          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 space-y-4">
+          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
             <div class="space-y-3">
               <div class="space-y-2">
                 <Label for="payee">{{ payeeLabel }}</Label>
@@ -1149,7 +1226,7 @@ watch(payeeType, (newType, oldType) => {
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
           <!-- Email Notification -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
@@ -1260,7 +1337,7 @@ watch(payeeType, (newType, oldType) => {
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
           <!-- Rider Message -->
           <div class="space-y-2">
             <Label for="rider-message">Custom Message</Label>
@@ -1431,7 +1508,7 @@ watch(payeeType, (newType, oldType) => {
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
           <div v-if="voucherType === 'settlement' || voucherType === 'redeemable'">
             <!-- Settlement Rail -->
             <div class="space-y-2">
