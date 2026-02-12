@@ -4,10 +4,10 @@ namespace LBHurtado\PwaUi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
-use App\Settings\VoucherSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\Voucher\Enums\VoucherInputField;
 
 class PwaVoucherController extends Controller
 {
@@ -92,15 +92,8 @@ class PwaVoucherController extends Controller
             ])
             ->toArray() : [];
         
-        // Load input field options from settings
-        $voucherSettings = app(VoucherSettings::class);
-        $inputFieldOptions = collect($voucherSettings->input_field_options ?? [])
-            ->map(fn($field) => [
-                'value' => $field['value'] ?? '',
-                'label' => $field['label'] ?? '',
-                'icon' => $field['icon'] ?? null,
-            ])
-            ->toArray();
+        // Load input field options from VoucherInputField enum
+        $inputFieldOptions = VoucherInputField::options();
         
         // Get wallet balance
         $walletBalance = $user ? (float) $user->balance : 0;
