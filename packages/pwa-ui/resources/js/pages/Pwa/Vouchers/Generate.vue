@@ -963,7 +963,7 @@ watch(payeeType, (newType, oldType) => {
           </SheetDescription>
         </SheetHeader>
         
-        <Tabs v-model="sheetState.validation.activeTab" class="flex-1 flex flex-col mt-4">
+        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col mt-4">
           <TabsList class="grid w-full grid-cols-4">
             <TabsTrigger value="location">Location</TabsTrigger>
             <TabsTrigger value="time">Time</TabsTrigger>
