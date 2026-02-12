@@ -7,8 +7,10 @@ import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2 } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
 
@@ -58,8 +60,8 @@ const payee = ref<string>('');
 
 // Advanced configuration
 const validationSecret = ref<string>('');
-const locationValidation = ref<any>(null);
-const timeValidation = ref<any>(null);
+const locationValidation = ref<any>({ latitude: null, longitude: null, radius: null });
+const timeValidation = ref<any>({ start_time: '', end_time: '', timezone: 'Asia/Manila' });
 
 // Feedback channels
 const feedbackEmail = ref<string>('');
@@ -152,6 +154,46 @@ const feedbackSummary = computed(() => {
   if (feedbackMobile.value) parts.push('SMS');
   if (feedbackWebhook.value) parts.push('Webhook');
   return parts.length > 0 ? parts.join(', ') : 'None';
+});
+
+// Payee label (from Portal.vue)
+const payeeLabel = computed(() => {
+  switch (voucherType.value) {
+    case 'payable': return 'Collect from';
+    case 'settlement': return 'Lend to';
+    case 'redeemable':
+    default: return 'Pay to';
+  }
+});
+
+// Payee context help (from Portal.vue)
+const payeeContextHelp = computed(() => {
+  switch (payeeType.value) {
+    case 'anyone': return 'Anyone can redeem';
+    case 'mobile': return `Restricted to: ${normalizedPayee.value}`;
+    case 'vendor': return `Merchant: ${normalizedPayee.value}`;
+    default: return 'Anyone can redeem';
+  }
+});
+
+// Payee type display
+const payeeTypeDisplay = computed(() => {
+  switch (payeeType.value) {
+    case 'anyone': return 'Anyone';
+    case 'mobile': return 'Mobile Number';
+    case 'vendor': return 'Vendor Alias';
+    default: return 'Unknown';
+  }
+});
+
+// Payee type description
+const payeeTypeDescription = computed(() => {
+  switch (payeeType.value) {
+    case 'anyone': return 'No restriction - anyone with the code can redeem';
+    case 'mobile': return 'Restricted to specific mobile number (OTP required)';
+    case 'vendor': return 'Restricted to vendor with this alias';
+    default: return '';
+  }
 });
 
 // Campaign display
@@ -316,8 +358,8 @@ const resetState = () => {
   interestRate.value = 0;
   payee.value = '';
   validationSecret.value = '';
-  locationValidation.value = null;
-  timeValidation.value = null;
+  locationValidation.value = { latitude: null, longitude: null, radius: null };
+  timeValidation.value = { start_time: '', end_time: '', timezone: 'Asia/Manila' };
   feedbackEmail.value = '';
   feedbackMobile.value = '';
   feedbackWebhook.value = '';
@@ -792,6 +834,192 @@ watch(payeeType, (newType, oldType) => {
           </Button>
           <Button @click="sheetState.inputs.open = false" class="flex-1">
             Apply ({{ selectedInputFields.length }})
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
+    <!-- Validation Sheet (Phase 6) -->
+    <Sheet v-model:open="sheetState.validation.open">
+      <SheetContent side="bottom" class="h-[85vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Validation Rules</SheetTitle>
+          <SheetDescription>
+            Add validation rules to restrict redemption
+          </SheetDescription>
+        </SheetHeader>
+        
+        <Tabs v-model="sheetState.validation.activeTab" class="flex-1 flex flex-col mt-4">
+          <TabsList class="grid w-full grid-cols-4">
+            <TabsTrigger value="location">Location</TabsTrigger>
+            <TabsTrigger value="time">Time</TabsTrigger>
+            <TabsTrigger value="secret">Secret</TabsTrigger>
+            <TabsTrigger value="payee">Payee</TabsTrigger>
+          </TabsList>
+          
+          <!-- Location Tab -->
+          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 space-y-4">
+            <div class="space-y-3">
+              <div class="space-y-2">
+                <Label for="location-lat">Latitude</Label>
+                <Input
+                  id="location-lat"
+                  v-model.number="locationValidation.latitude"
+                  type="number"
+                  placeholder="14.5995"
+                  step="0.0001"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label for="location-lng">Longitude</Label>
+                <Input
+                  id="location-lng"
+                  v-model.number="locationValidation.longitude"
+                  type="number"
+                  placeholder="120.9842"
+                  step="0.0001"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label for="location-radius">Radius (meters)</Label>
+                <Input
+                  id="location-radius"
+                  v-model.number="locationValidation.radius"
+                  type="number"
+                  placeholder="100"
+                  min="1"
+                />
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Redemption allowed within {{ locationValidation?.radius || 100 }}m of specified location
+              </p>
+              <Button
+                variant="outline"
+                class="w-full"
+                @click="locationValidation = null"
+                v-if="locationValidation"
+              >
+                Clear Location
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <!-- Time Tab -->
+          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 space-y-4">
+            <div class="space-y-3">
+              <div class="space-y-2">
+                <Label for="time-start">Start Time</Label>
+                <Input
+                  id="time-start"
+                  v-model="timeValidation.start_time"
+                  type="time"
+                  placeholder="09:00"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label for="time-end">End Time</Label>
+                <Input
+                  id="time-end"
+                  v-model="timeValidation.end_time"
+                  type="time"
+                  placeholder="17:00"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label for="time-timezone">Timezone</Label>
+                <Input
+                  id="time-timezone"
+                  v-model="timeValidation.timezone"
+                  type="text"
+                  placeholder="Asia/Manila"
+                />
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Redemption allowed between {{ timeValidation?.start_time || '00:00' }} - {{ timeValidation?.end_time || '23:59' }}
+              </p>
+              <Button
+                variant="outline"
+                class="w-full"
+                @click="timeValidation = null"
+                v-if="timeValidation"
+              >
+                Clear Time
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <!-- Secret Tab -->
+          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 space-y-4">
+            <div class="space-y-3">
+              <div class="space-y-2">
+                <Label for="secret">Secret Code</Label>
+                <Input
+                  id="secret"
+                  v-model="validationSecret"
+                  type="text"
+                  placeholder="Enter secret code"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Redeemer must enter this secret code to redeem voucher
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                class="w-full"
+                @click="validationSecret = ''"
+                v-if="validationSecret"
+              >
+                Clear Secret
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <!-- Payee Tab -->
+          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 space-y-4">
+            <div class="space-y-3">
+              <div class="space-y-2">
+                <Label for="payee">{{ payeeLabel }}</Label>
+                <Input
+                  id="payee"
+                  v-model="payee"
+                  type="text"
+                  placeholder="CASH, mobile number, or vendor alias"
+                />
+                <p class="text-xs text-muted-foreground">
+                  {{ payeeContextHelp }}
+                </p>
+              </div>
+              
+              <!-- Payee Type Info -->
+              <div class="p-3 bg-muted/50 rounded-lg">
+                <p class="text-sm font-medium mb-1">Detected: {{ payeeTypeDisplay }}</p>
+                <p class="text-xs text-muted-foreground">
+                  {{ payeeTypeDescription }}
+                </p>
+              </div>
+              
+              <!-- Quick Presets -->
+              <div class="space-y-2">
+                <Label class="text-xs">Quick Presets:</Label>
+                <div class="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" @click="payee = ''">
+                    Anyone (CASH)
+                  </Button>
+                  <Button variant="outline" size="sm" @click="payee = '09171234567'">
+                    Mobile Sample
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.validation.open = false" class="flex-1">
+            Cancel
+          </Button>
+          <Button @click="sheetState.validation.open = false" class="flex-1">
+            Apply
           </Button>
         </SheetFooter>
       </SheetContent>
