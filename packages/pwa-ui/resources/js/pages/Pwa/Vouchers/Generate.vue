@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
+import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -42,6 +44,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { toast } = useToast();
+const page = usePage();
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -201,13 +204,25 @@ const campaignDisplay = computed(() => {
   return selectedCampaign.value?.name || 'No campaign';
 });
 
-// Estimated cost (placeholder - will integrate useChargeBreakdown)
-const estimatedCost = computed(() => {
-  if (!amount.value) return 0;
-  const baseAmount = amount.value * count.value;
-  const inputCost = selectedInputFields.value.length * 0.50; // Placeholder
-  return baseAmount + inputCost;
-});
+// Instructions for pricing (Phase 11)
+const instructionsForPricing = computed(() => ({
+  cash: {
+    amount: amount.value || 0,
+    currency: 'PHP',
+  },
+  inputs: {
+    fields: selectedInputFields.value,
+  },
+  count: count.value,
+}));
+
+// Real-time pricing using composable (Phase 11)
+const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdown(
+  instructionsForPricing,
+  { debounce: 500, autoCalculate: true }
+);
+
+const estimatedCost = computed(() => totalDeduction.value);
 
 // Generate button state
 const canGenerate = computed(() => {
@@ -233,35 +248,125 @@ const openSheet = (sheet: keyof typeof sheetState.value) => {
   sheetState.value[sheet].open = true;
 };
 
-// Generate voucher
+// Generate voucher (Phase 11 - from Portal.vue)
 const handleGenerate = async () => {
   if (!canGenerate.value) return;
   
+  // STEP 1: Check authentication
+  const isAuthenticated = (page.props as any).auth?.user;
+  if (!isAuthenticated) {
+    toast({
+      title: 'Sign in required',
+      description: 'Please sign in to generate vouchers',
+    });
+    router.visit('/login', {
+      data: { redirect: '/pwa/vouchers/generate' },
+    });
+    return;
+  }
+  
+  // STEP 2: Check balance
+  if (estimatedCost.value > props.walletBalance) {
+    error.value = `Insufficient balance. You have ${props.formattedBalance}, need ~₱${estimatedCost.value.toFixed(2)}`;
+    toast({
+      title: 'Insufficient balance',
+      description: error.value,
+      variant: 'destructive',
+    });
+    return;
+  }
+  
+  // STEP 3: Build request payload
   loading.value = true;
   error.value = null;
   
   try {
-    // TODO: Implement actual API call (will copy from Portal.vue)
-    toast({
-      title: 'Generating voucher...',
-      description: 'This is a placeholder. API integration coming next.',
-    });
+    const requestData: any = {
+      amount: voucherType.value === 'payable' ? 0 : amount.value,
+      count: count.value,
+      input_fields: selectedInputFields.value,
+    };
     
-    // Placeholder success
-    setTimeout(() => {
+    // Add validation
+    if (payeeType.value === 'mobile' && normalizedPayee.value) {
+      requestData.validation_mobile = normalizedPayee.value;
+    }
+    if (payeeType.value === 'vendor' && normalizedPayee.value) {
+      requestData.validation_payable = normalizedPayee.value;
+    }
+    if (validationSecret.value) {
+      requestData.validation_secret = validationSecret.value;
+    }
+    if (locationValidation.value?.latitude && locationValidation.value?.longitude) {
+      requestData.validation_location = locationValidation.value;
+    }
+    if (timeValidation.value?.start_time && timeValidation.value?.end_time) {
+      requestData.validation_time = timeValidation.value;
+    }
+    
+    // Add voucher type for payable/settlement
+    if (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') {
+      requestData.voucher_type = voucherType.value;
+      if (targetAmount.value) {
+        requestData.target_amount = targetAmount.value;
+      }
+    }
+    
+    // Add feedback
+    if (feedbackEmail.value) requestData.feedback_email = feedbackEmail.value;
+    if (feedbackMobile.value) requestData.feedback_mobile = feedbackMobile.value;
+    if (feedbackWebhook.value) requestData.feedback_webhook = feedbackWebhook.value;
+    
+    // Add rider
+    if (riderMessage.value || riderUrl.value) {
+      requestData.rider = {};
+      if (riderMessage.value) requestData.rider.message = riderMessage.value;
+      if (riderUrl.value) requestData.rider.url = riderUrl.value;
+      if (riderRedirectTimeout.value !== null) requestData.rider.redirect_timeout = riderRedirectTimeout.value;
+      if (riderSplash.value) requestData.rider.splash = riderSplash.value;
+      if (riderSplashTimeout.value !== null) requestData.rider.splash_timeout = riderSplashTimeout.value;
+    }
+    
+    // Add settlement rail and fee strategy
+    if (settlementRail.value && settlementRail.value !== 'auto') {
+      requestData.settlement_rail = settlementRail.value;
+    }
+    if (feeStrategy.value !== 'absorb') {
+      requestData.fee_strategy = feeStrategy.value;
+    }
+    
+    const headers: Record<string, string> = {
+      'Idempotency-Key': `pwa-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    const response = await axios.post('/api/v1/vouchers', requestData, { headers });
+    
+    // API wraps data in response.data.data structure
+    const apiData = response.data.data;
+    if (apiData && apiData.vouchers && apiData.vouchers.length > 0) {
+      const voucherCount = apiData.vouchers.length;
+      const firstVoucher = apiData.vouchers[0];
+      
       toast({
-        title: 'Voucher generated!',
-        description: 'Redirecting to voucher details...',
+        title: `${voucherCount} Voucher${voucherCount > 1 ? 's' : ''} created!`,
+        description: voucherCount === 1 ? `Code: ${firstVoucher.code}` : `${voucherCount} codes generated`,
       });
-      loading.value = false;
-    }, 1000);
+      
+      // Redirect to voucher show page for single voucher, vouchers list for multiple
+      if (voucherCount === 1) {
+        router.visit(`/pwa/vouchers/${firstVoucher.code}`);
+      } else {
+        router.visit('/pwa/vouchers');
+      }
+    }
   } catch (err: any) {
-    error.value = err.message || 'Generation failed';
+    error.value = err.response?.data?.message || 'Generation failed';
     toast({
       title: 'Error',
       description: error.value,
       variant: 'destructive',
     });
+  } finally {
     loading.value = false;
   }
 };
