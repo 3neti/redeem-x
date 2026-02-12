@@ -22,7 +22,10 @@ createInertiaApp({
     resolve: (name) =>
         resolvePageComponent(
             `./pages/${name}.vue`,
-            import.meta.glob<DefineComponent>('./pages/**/*.vue'),
+            {
+                ...import.meta.glob<DefineComponent>('./pages/**/*.vue'),
+                ...import.meta.glob<DefineComponent>('../../packages/pwa-ui/resources/js/pages/**/*.vue'),
+            },
         ),
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })

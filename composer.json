@@ -85,6 +85,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./packages/pwa-ui",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -96,6 +103,7 @@
         "3neti/form-handler-selfie": "^1.0.1",
         "3neti/form-handler-signature": "^1.1.1",
         "3neti/hyperverge": "^1.0",
+        "3neti/pwa-ui": "@dev",
         "3neti/settlement-envelope": "@dev",
         "brick/money": "^0.10.3",
         "endroid/qr-code": "^6.1",

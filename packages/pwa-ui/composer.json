@@ -1,0 +1,31 @@
+{
+    "name": "3neti/pwa-ui",
+    "description": "PWA UI package for mobile-first subscriber experience",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\PwaUi\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\PwaUi\\PwaUiServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12.0",
+        "inertiajs/inertia-laravel": "^2.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

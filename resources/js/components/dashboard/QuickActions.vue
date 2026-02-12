@@ -11,6 +11,7 @@ import {
     TicketX,
     Download,
     CircleDollarSign,
+    Smartphone,
 } from 'lucide-vue-next';
 
 const page = usePage();
@@ -25,6 +26,13 @@ const actions = computed(() => {
             href: '/vouchers/generate',
             icon: Plus,
             variant: 'default' as const,
+            external: false,
+        },
+        {
+            label: 'Mobile App',
+            href: '/pwa/portal',
+            icon: Smartphone,
+            variant: 'outline' as const,
             external: false,
         },
         {

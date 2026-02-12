@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "11aa9afdc5fb8de86b57710a4f3f1db2",
+    "content-hash": "294b49e1de6c2bdaa476c1242c14b6c3",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -413,6 +413,47 @@
                 "source": "https://github.com/3neti/hyperverge/tree/v1.0.2"
             },
             "time": "2025-12-05T03:39:34+00:00"
+        },
+        {
+            "name": "3neti/pwa-ui",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "./packages/pwa-ui",
+                "reference": "1076be8ec1629375ee7461c015660f1fabfe33f6"
+            },
+            "require": {
+                "illuminate/support": "^12.0",
+                "inertiajs/inertia-laravel": "^2.0",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\PwaUi\\PwaUiServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\PwaUi\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "PWA UI package for mobile-first subscriber experience",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "3neti/settlement-envelope",
@@ -15322,6 +15363,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "3neti/pwa-ui": 20,
         "3neti/settlement-envelope": 20,
         "lbhurtado/cash": 20,
         "lbhurtado/contact": 20,

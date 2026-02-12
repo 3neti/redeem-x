@@ -1,0 +1,1 @@
+/Users/rli/PhpstormProjects/redeem-x/packages/pwa-ui/resources/js/layouts/PwaLayout.vue
