@@ -348,6 +348,15 @@ const toggleInputField = (fieldValue: string) => {
 // Auto-add tracking for OTP
 const autoAddedFields = ref<Set<string>>(new Set());
 
+// Clear rider config (Phase 8)
+const clearRider = () => {
+  riderMessage.value = '';
+  riderUrl.value = '';
+  riderRedirectTimeout.value = null;
+  riderSplash.value = '';
+  riderSplashTimeout.value = null;
+};
+
 // Reset state
 const resetState = () => {
   amount.value = null;
@@ -1019,6 +1028,236 @@ watch(payeeType, (newType, oldType) => {
             Cancel
           </Button>
           <Button @click="sheetState.validation.open = false" class="flex-1">
+            Apply
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
+    <!-- Feedback Sheet (Phase 7) -->
+    <Sheet v-model:open="sheetState.feedback.open">
+      <SheetContent side="bottom" class="h-auto max-h-[80vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Notifications</SheetTitle>
+          <SheetDescription>
+            Configure notification channels for redemption events
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+          <!-- Email Notification -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <Label for="feedback-email">Email Notification</Label>
+              <Checkbox
+                :checked="!!feedbackEmail"
+                @update:checked="(checked) => !checked && (feedbackEmail = '')"
+              />
+            </div>
+            <Input
+              id="feedback-email"
+              v-model="feedbackEmail"
+              type="email"
+              placeholder="recipient@example.com"
+              :disabled="!feedbackEmail && feedbackEmail === ''"
+            />
+            <p class="text-xs text-muted-foreground">
+              Send redemption notification to this email
+            </p>
+          </div>
+          
+          <!-- SMS Notification -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <Label for="feedback-mobile">SMS Notification</Label>
+              <Checkbox
+                :checked="!!feedbackMobile"
+                @update:checked="(checked) => !checked && (feedbackMobile = '')"
+              />
+            </div>
+            <Input
+              id="feedback-mobile"
+              v-model="feedbackMobile"
+              type="tel"
+              placeholder="09171234567"
+              :disabled="!feedbackMobile && feedbackMobile === ''"
+            />
+            <p class="text-xs text-muted-foreground">
+              Send SMS notification to this mobile number
+            </p>
+          </div>
+          
+          <!-- Webhook Notification -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <Label for="feedback-webhook">Webhook URL</Label>
+              <Checkbox
+                :checked="!!feedbackWebhook"
+                @update:checked="(checked) => !checked && (feedbackWebhook = '')"
+              />
+            </div>
+            <Input
+              id="feedback-webhook"
+              v-model="feedbackWebhook"
+              type="url"
+              placeholder="https://your-server.com/webhook"
+              :disabled="!feedbackWebhook && feedbackWebhook === ''"
+            />
+            <p class="text-xs text-muted-foreground">
+              POST redemption data to this endpoint
+            </p>
+          </div>
+          
+          <!-- Info Box -->
+          <div v-if="feedbackEmail || feedbackMobile || feedbackWebhook" class="p-4 bg-muted/50 rounded-lg mt-6">
+            <p class="text-sm font-medium mb-1">Active Channels</p>
+            <ul class="text-xs text-muted-foreground space-y-1">
+              <li v-if="feedbackEmail" class="flex items-center gap-2">
+                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                Email: {{ feedbackEmail }}
+              </li>
+              <li v-if="feedbackMobile" class="flex items-center gap-2">
+                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                SMS: {{ feedbackMobile }}
+              </li>
+              <li v-if="feedbackWebhook" class="flex items-center gap-2">
+                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                Webhook: {{ feedbackWebhook.substring(0, 40) }}{{ feedbackWebhook.length > 40 ? '...' : '' }}
+              </li>
+            </ul>
+          </div>
+          
+          <!-- Empty State -->
+          <div v-else class="py-8 text-center">
+            <p class="text-sm text-muted-foreground">No notification channels configured</p>
+            <p class="text-xs text-muted-foreground mt-1">Enable at least one channel above</p>
+          </div>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.feedback.open = false" class="flex-1">
+            Cancel
+          </Button>
+          <Button @click="sheetState.feedback.open = false" class="flex-1">
+            Apply
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
+    <!-- Rider Sheet (Phase 8 - Advanced) -->
+    <Sheet v-model:open="sheetState.rider.open">
+      <SheetContent side="bottom" class="h-[85vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Rider Configuration</SheetTitle>
+          <SheetDescription>
+            Advanced settings for redemption experience
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+          <!-- Rider Message -->
+          <div class="space-y-2">
+            <Label for="rider-message">Custom Message</Label>
+            <Textarea
+              id="rider-message"
+              v-model="riderMessage"
+              placeholder="Thank you for redeeming!"
+              rows="3"
+            />
+            <p class="text-xs text-muted-foreground">
+              Message displayed to redeemer during redemption
+            </p>
+          </div>
+          
+          <!-- Rider URL -->
+          <div class="space-y-2">
+            <Label for="rider-url">Custom URL</Label>
+            <Input
+              id="rider-url"
+              v-model="riderUrl"
+              type="url"
+              placeholder="https://your-website.com"
+            />
+            <p class="text-xs text-muted-foreground">
+              Optional URL to redirect after redemption
+            </p>
+          </div>
+          
+          <!-- Redirect Timeout -->
+          <div class="space-y-2">
+            <Label for="rider-redirect-timeout">Redirect Timeout (seconds)</Label>
+            <Input
+              id="rider-redirect-timeout"
+              v-model.number="riderRedirectTimeout"
+              type="number"
+              placeholder="5"
+              min="0"
+              max="60"
+            />
+            <p class="text-xs text-muted-foreground">
+              Delay before redirecting to custom URL (0 = immediate)
+            </p>
+          </div>
+          
+          <!-- Splash Text -->
+          <div class="space-y-2">
+            <Label for="rider-splash">Splash Text</Label>
+            <Textarea
+              id="rider-splash"
+              v-model="riderSplash"
+              placeholder="Success! Redirecting..."
+              rows="2"
+            />
+            <p class="text-xs text-muted-foreground">
+              Text shown during redirect countdown
+            </p>
+          </div>
+          
+          <!-- Splash Timeout -->
+          <div class="space-y-2">
+            <Label for="rider-splash-timeout">Splash Duration (seconds)</Label>
+            <Input
+              id="rider-splash-timeout"
+              v-model.number="riderSplashTimeout"
+              type="number"
+              placeholder="3"
+              min="0"
+              max="30"
+            />
+            <p class="text-xs text-muted-foreground">
+              How long to show splash text before redirect
+            </p>
+          </div>
+          
+          <!-- Preview -->
+          <div v-if="riderMessage || riderUrl || riderSplash" class="p-4 bg-muted/50 rounded-lg">
+            <p class="text-sm font-medium mb-2">Preview</p>
+            <div class="space-y-2 text-xs text-muted-foreground">
+              <p v-if="riderMessage">Message: "{{ riderMessage }}"</p>
+              <p v-if="riderUrl">Redirect to: {{ riderUrl }}</p>
+              <p v-if="riderRedirectTimeout !== null">Wait {{ riderRedirectTimeout }}s before redirect</p>
+              <p v-if="riderSplash">Show splash: "{{ riderSplash }}"</p>
+              <p v-if="riderSplashTimeout !== null">Splash duration: {{ riderSplashTimeout }}s</p>
+            </div>
+          </div>
+          
+          <!-- Clear All -->
+          <Button
+            variant="outline"
+            class="w-full"
+            @click="clearRider"
+            v-if="riderMessage || riderUrl || riderSplash"
+          >
+            Clear All
+          </Button>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.rider.open = false" class="flex-1">
+            Cancel
+          </Button>
+          <Button @click="sheetState.rider.open = false" class="flex-1">
             Apply
           </Button>
         </SheetFooter>
