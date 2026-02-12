@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2 } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
+import NumericKeypad from '@/components/NumericKeypad.vue';
 
 interface Campaign {
   id: number;
@@ -92,6 +93,8 @@ const selectedCampaign = ref<Campaign | null>(null);
 // UI state
 const loading = ref(false);
 const error = ref<string | null>(null);
+const showAmountKeypad = ref(false);
+const showCountKeypad = ref(false);
 
 // Sheet state management (following plan architecture)
 const sheetState = ref({
@@ -246,6 +249,25 @@ const canGenerate = computed(() => {
 // Open sheets
 const openSheet = (sheet: keyof typeof sheetState.value) => {
   sheetState.value[sheet].open = true;
+};
+
+// Numeric keypad handlers
+const openAmountKeypad = () => {
+  showAmountKeypad.value = true;
+};
+
+const openCountKeypad = () => {
+  showCountKeypad.value = true;
+};
+
+const confirmAmount = (value: number) => {
+  amount.value = value;
+  showAmountKeypad.value = false;
+};
+
+const confirmCount = (value: number) => {
+  count.value = value;
+  showCountKeypad.value = false;
 };
 
 // Generate voucher (Phase 11 - from Portal.vue)
@@ -667,13 +689,20 @@ watch(payeeType, (newType, oldType) => {
           </div>
         </div>
 
-        <!-- Amount Display (Large) -->
+        <!-- Amount Display (Large) - Clickable -->
         <div class="text-center py-8">
           <p class="text-sm text-muted-foreground mb-2">Amount</p>
-          <p class="text-5xl font-bold tabular-nums">
+          <p 
+            class="text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+            @click="openAmountKeypad"
+          >
             {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
-          <p v-if="count > 1" class="text-sm text-muted-foreground mt-2">
+          <p 
+            v-if="count > 1" 
+            class="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors"
+            @click="openCountKeypad"
+          >
             × {{ count }} vouchers
           </p>
         </div>
@@ -1616,5 +1645,27 @@ watch(payeeType, (newType, oldType) => {
     </Sheet>
     
     <!-- More placeholder sheets... -->
+    
+    <!-- Numeric Keypads -->
+    <NumericKeypad
+      v-model:open="showAmountKeypad"
+      :model-value="amount"
+      mode="amount"
+      :min="1"
+      :allow-decimal="true"
+      title="Enter Amount"
+      @confirm="confirmAmount"
+    />
+    
+    <NumericKeypad
+      v-model:open="showCountKeypad"
+      :model-value="count"
+      mode="count"
+      :min="1"
+      :max="100"
+      :allow-decimal="false"
+      title="Number of Vouchers"
+      @confirm="confirmCount"
+    />
   </PwaLayout>
 </template>
