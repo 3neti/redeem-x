@@ -5,6 +5,9 @@ import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2 } from 'lucide-vue-next';
 import { useToast } from '@/components/ui/toast/use-toast';
 
@@ -220,6 +223,75 @@ const handleGenerate = async () => {
   }
 };
 
+// Apply campaign (Phase 3)
+const applyCampaign = (campaign: Campaign | null) => {
+  if (!campaign) {
+    // Blank template - reset all
+    selectedCampaignId.value = '';
+    selectedCampaign.value = null;
+    resetState();
+    sheetState.value.campaign.open = false;
+    toast({
+      title: 'Blank template selected',
+      description: 'All settings cleared',
+    });
+    return;
+  }
+  
+  // Apply campaign instructions
+  selectedCampaignId.value = campaign.id.toString();
+  selectedCampaign.value = campaign;
+  
+  const instructions = campaign.instructions;
+  if (instructions) {
+    // Apply cash amount
+    if (instructions.cash?.amount) {
+      amount.value = instructions.cash.amount;
+    }
+    
+    // Apply input fields
+    if (instructions.inputs?.fields) {
+      selectedInputFields.value = instructions.inputs.fields;
+    }
+    
+    // Apply validation
+    if (instructions.validation) {
+      if (instructions.validation.location) locationValidation.value = instructions.validation.location;
+      if (instructions.validation.time) timeValidation.value = instructions.validation.time;
+      if (instructions.validation.secret) validationSecret.value = instructions.validation.secret;
+      if (instructions.validation.mobile) payee.value = instructions.validation.mobile;
+      if (instructions.validation.payable) payee.value = instructions.validation.payable;
+    }
+    
+    // Apply feedback
+    if (instructions.feedback) {
+      if (instructions.feedback.email) feedbackEmail.value = instructions.feedback.email;
+      if (instructions.feedback.mobile) feedbackMobile.value = instructions.feedback.mobile;
+      if (instructions.feedback.webhook) feedbackWebhook.value = instructions.feedback.webhook;
+    }
+    
+    // Apply rider
+    if (instructions.rider) {
+      if (instructions.rider.message) riderMessage.value = instructions.rider.message;
+      if (instructions.rider.url) riderUrl.value = instructions.rider.url;
+      if (instructions.rider.redirect_timeout) riderRedirectTimeout.value = instructions.rider.redirect_timeout;
+      if (instructions.rider.splash) riderSplash.value = instructions.rider.splash;
+      if (instructions.rider.splash_timeout) riderSplashTimeout.value = instructions.rider.splash_timeout;
+    }
+    
+    // Apply count if present
+    if (instructions.count) {
+      count.value = instructions.count;
+    }
+  }
+  
+  sheetState.value.campaign.open = false;
+  toast({
+    title: 'Campaign applied',
+    description: campaign.name,
+  });
+};
+
 // Reset state
 const resetState = () => {
   amount.value = null;
@@ -407,19 +479,213 @@ watch([amount, interestRate], ([newAmount, newRate]) => {
       </SheetContent>
     </Sheet>
 
-    <!-- Placeholder sheets (will implement in phases 3-10) -->
+    <!-- Campaign Selection Sheet (Phase 3) -->
     <Sheet v-model:open="sheetState.campaign.open">
-      <SheetContent side="bottom">
+      <SheetContent side="bottom" class="h-[80vh] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Campaign</SheetTitle>
-          <SheetDescription>Select a campaign template</SheetDescription>
+          <SheetTitle>Select Campaign</SheetTitle>
+          <SheetDescription>
+            Use a saved template to pre-fill all settings
+          </SheetDescription>
         </SheetHeader>
-        <div class="py-4">
-          <p class="text-sm text-muted-foreground">Coming in Phase 3</p>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-3">
+          <!-- Blank Template Option -->
+          <Card
+            @click="applyCampaign(null)"
+            :class="[
+              'p-4 cursor-pointer transition-all hover:bg-muted/50',
+              !selectedCampaignId && 'ring-2 ring-primary bg-primary/5'
+            ]"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Blank Template</p>
+                <p class="text-sm text-muted-foreground">Start from scratch</p>
+              </div>
+              <div v-if="!selectedCampaignId" class="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                <span class="text-primary-foreground text-xs">✓</span>
+              </div>
+            </div>
+          </Card>
+          
+          <!-- Campaign List -->
+          <Card
+            v-for="campaign in props.campaigns"
+            :key="campaign.id"
+            @click="applyCampaign(campaign)"
+            :class="[
+              'p-4 cursor-pointer transition-all hover:bg-muted/50',
+              selectedCampaignId === campaign.id.toString() && 'ring-2 ring-primary bg-primary/5'
+            ]"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <p class="font-semibold">{{ campaign.name }}</p>
+                <p class="text-sm text-muted-foreground mt-1">
+                  {{ campaign.instructions?.cash?.amount ? `₱${campaign.instructions.cash.amount.toLocaleString()}` : 'Variable amount' }}
+                </p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {{ campaign.instructions?.inputs?.fields?.length || 0 }} inputs • 
+                  {{ campaign.instructions?.validation ? 'Validated' : 'No validation' }}
+                </p>
+              </div>
+              <div v-if="selectedCampaignId === campaign.id.toString()" class="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                <span class="text-primary-foreground text-xs">✓</span>
+              </div>
+            </div>
+          </Card>
+          
+          <!-- Empty State -->
+          <div v-if="props.campaigns.length === 0" class="py-12 text-center">
+            <p class="text-sm text-muted-foreground">No campaigns yet</p>
+            <Button variant="link" @click="router.visit('/settings/campaigns')" class="mt-2">
+              Create your first campaign →
+            </Button>
+          </div>
         </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.campaign.open = false" class="flex-1">
+            Cancel
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
 
+    <!-- Voucher Type Sheet (Phase 4) -->
+    <Sheet v-model:open="sheetState.voucherType.open">
+      <SheetContent side="bottom" class="h-auto max-h-[90vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Voucher Type</SheetTitle>
+          <SheetDescription>
+            Choose the type of voucher to generate
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+          <RadioGroup v-model="voucherType">
+            <!-- Redeemable -->
+            <div
+              :class="[
+                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                voucherType === 'redeemable' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+              ]"
+              @click="voucherType = 'redeemable'"
+            >
+              <RadioGroupItem value="redeemable" id="type-redeemable" class="mt-1" />
+              <div class="flex-1">
+                <Label for="type-redeemable" class="font-semibold text-base cursor-pointer">
+                  Redeemable
+                </Label>
+                <p class="text-sm text-muted-foreground mt-1">
+                  Standard one-time redemption voucher. Redeemer receives the full amount.
+                </p>
+              </div>
+            </div>
+            
+            <!-- Payable -->
+            <div
+              :class="[
+                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                voucherType === 'payable' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+              ]"
+              @click="voucherType = 'payable'"
+            >
+              <RadioGroupItem value="payable" id="type-payable" class="mt-1" />
+              <div class="flex-1">
+                <Label for="type-payable" class="font-semibold text-base cursor-pointer">
+                  Payable
+                </Label>
+                <p class="text-sm text-muted-foreground mt-1">
+                  Accepts payments until target amount is reached. Anyone can contribute.
+                </p>
+              </div>
+            </div>
+            
+            <!-- Settlement -->
+            <div
+              :class="[
+                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                voucherType === 'settlement' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+              ]"
+              @click="voucherType = 'settlement'"
+            >
+              <RadioGroupItem value="settlement" id="type-settlement" class="mt-1" />
+              <div class="flex-1">
+                <Label for="type-settlement" class="font-semibold text-base cursor-pointer">
+                  Settlement
+                </Label>
+                <p class="text-sm text-muted-foreground mt-1">
+                  Enterprise settlement instrument. Supports multi-payment with interest calculation.
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
+          
+          <!-- Conditional Fields for Payable -->
+          <div v-if="voucherType === 'payable'" class="space-y-3 pt-4 border-t">
+            <div class="space-y-2">
+              <Label for="target-amount">Target Amount</Label>
+              <Input
+                id="target-amount"
+                v-model.number="targetAmount"
+                type="number"
+                placeholder="Enter target amount"
+                min="1"
+                step="0.01"
+              />
+              <p class="text-xs text-muted-foreground">
+                Total amount to collect before voucher closes
+              </p>
+            </div>
+          </div>
+          
+          <!-- Conditional Fields for Settlement -->
+          <div v-if="voucherType === 'settlement'" class="space-y-3 pt-4 border-t">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-2">
+                <Label for="loan-amount">Loan Amount</Label>
+                <Input
+                  id="loan-amount"
+                  v-model.number="amount"
+                  type="number"
+                  placeholder="Enter amount"
+                  min="1"
+                  step="0.01"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label for="interest-rate">Interest Rate</Label>
+                <Input
+                  id="interest-rate"
+                  v-model.number="interestRate"
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} 
+              (principal + {{ interestRate.toFixed(2) }}% interest)
+            </p>
+          </div>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.voucherType.open = false" class="flex-1">
+            Cancel
+          </Button>
+          <Button @click="sheetState.voucherType.open = false" class="flex-1">
+            Apply
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
     <!-- More placeholder sheets... -->
   </PwaLayout>
 </template>
