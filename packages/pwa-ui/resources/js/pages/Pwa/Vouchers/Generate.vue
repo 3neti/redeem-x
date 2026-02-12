@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2 } from 'lucide-vue-next';
@@ -292,6 +293,19 @@ const applyCampaign = (campaign: Campaign | null) => {
   });
 };
 
+// Toggle input field (Phase 5)
+const toggleInputField = (fieldValue: string) => {
+  const index = selectedInputFields.value.indexOf(fieldValue);
+  if (index > -1) {
+    selectedInputFields.value.splice(index, 1);
+  } else {
+    selectedInputFields.value.push(fieldValue);
+  }
+};
+
+// Auto-add tracking for OTP
+const autoAddedFields = ref<Set<string>>(new Set());
+
 // Reset state
 const resetState = () => {
   amount.value = null;
@@ -309,6 +323,7 @@ const resetState = () => {
   feedbackWebhook.value = '';
   selectedCampaignId.value = '';
   selectedCampaign.value = null;
+  autoAddedFields.value.clear();
 };
 
 // Watch for settlement type changes (from Portal.vue)
@@ -324,6 +339,30 @@ watch(voucherType, (newType) => {
 watch([amount, interestRate], ([newAmount, newRate]) => {
   if (voucherType.value === 'settlement' && newAmount && newRate >= 0) {
     targetAmount.value = parseFloat((newAmount * (1 + newRate / 100)).toFixed(2));
+  }
+});
+
+// Watch for mobile payee - auto-add OTP (same logic as Portal.vue)
+watch(payeeType, (newType, oldType) => {
+  if (newType === 'mobile' && oldType !== 'mobile') {
+    // Mobile validation enabled - auto-add OTP if not present
+    if (!selectedInputFields.value.includes('otp')) {
+      selectedInputFields.value.push('otp');
+      autoAddedFields.value.add('otp');
+      toast({
+        title: 'OTP required',
+        description: 'OTP input auto-added for mobile validation',
+      });
+    }
+  } else if (newType !== 'mobile' && oldType === 'mobile') {
+    // Mobile validation disabled - remove OTP if auto-added
+    if (autoAddedFields.value.has('otp')) {
+      const index = selectedInputFields.value.indexOf('otp');
+      if (index > -1) {
+        selectedInputFields.value.splice(index, 1);
+      }
+      autoAddedFields.value.delete('otp');
+    }
   }
 });
 </script>
@@ -681,6 +720,78 @@ watch([amount, interestRate], ([newAmount, newRate]) => {
           </Button>
           <Button @click="sheetState.voucherType.open = false" class="flex-1">
             Apply
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
+    <!-- Input Fields Sheet (Phase 5) -->
+    <Sheet v-model:open="sheetState.inputs.open">
+      <SheetContent side="bottom" class="h-[80vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Input Fields</SheetTitle>
+          <SheetDescription>
+            Select fields to collect during redemption
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+          <!-- Input Field Checkboxes -->
+          <div class="space-y-3">
+            <div
+              v-for="option in props.inputFieldOptions"
+              :key="option.value"
+              :class="[
+                'flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                selectedInputFields.includes(option.value) ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
+                option.value === 'otp' && autoAddedFields.has('otp') && 'opacity-60'
+              ]"
+              @click="option.value === 'otp' && autoAddedFields.has('otp') ? null : toggleInputField(option.value)"
+            >
+              <Checkbox
+                :id="`input-${option.value}`"
+                :checked="selectedInputFields.includes(option.value)"
+                :disabled="option.value === 'otp' && autoAddedFields.has('otp')"
+                @click.stop
+              />
+              <div class="flex-1">
+                <Label
+                  :for="`input-${option.value}`"
+                  :class="[
+                    'font-semibold text-base cursor-pointer flex items-center gap-2',
+                    option.value === 'otp' && autoAddedFields.has('otp') && 'cursor-not-allowed'
+                  ]"
+                >
+                  <span v-if="option.icon" class="text-xl">{{ option.icon }}</span>
+                  {{ option.label }}
+                </Label>
+                <p v-if="option.value === 'otp' && autoAddedFields.has('otp')" class="text-xs text-muted-foreground mt-1">
+                  Required for mobile validation
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Empty State -->
+          <div v-if="props.inputFieldOptions.length === 0" class="py-12 text-center">
+            <p class="text-sm text-muted-foreground">No input fields configured</p>
+          </div>
+          
+          <!-- Info Box -->
+          <div v-if="selectedInputFields.length > 0" class="p-4 bg-muted/50 rounded-lg">
+            <p class="text-sm font-medium mb-1">Selected: {{ selectedInputFields.length }} field{{ selectedInputFields.length > 1 ? 's' : '' }}</p>
+            <p class="text-xs text-muted-foreground">
+              Redeemers will need to provide: {{ selectedInputFields.join(', ') }}
+            </p>
+          </div>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button variant="outline" @click="sheetState.inputs.open = false" class="flex-1">
+            Cancel
+          </Button>
+          <Button @click="sheetState.inputs.open = false" class="flex-1">
+            Apply ({{ selectedInputFields.length }})
           </Button>
         </SheetFooter>
       </SheetContent>
