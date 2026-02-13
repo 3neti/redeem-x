@@ -31,7 +31,8 @@ class PwaVoucherController extends Controller
             // Helper to extract numeric amount from Money object or number
             $extractAmount = function ($value) {
                 if (is_object($value) && method_exists($value, 'getAmount')) {
-                    return (float) $value->getAmount();
+                    // Money->getAmount() returns BigDecimal, use toFloat() for conversion
+                    return $value->getAmount()->toFloat();
                 }
                 return is_numeric($value) ? (float) $value : 0;
             };
@@ -75,7 +76,8 @@ class PwaVoucherController extends Controller
         // Helper to extract numeric amount from Money object or number
         $extractAmount = function ($value) {
             if (is_object($value) && method_exists($value, 'getAmount')) {
-                return (float) $value->getAmount();
+                // Money->getAmount() returns BigDecimal, use toFloat() for conversion
+                return $value->getAmount()->toFloat();
             }
             return is_numeric($value) ? (float) $value : 0;
         };
