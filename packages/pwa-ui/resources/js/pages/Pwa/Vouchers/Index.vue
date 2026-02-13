@@ -61,6 +61,30 @@ const getStatusColor = (status: string) => {
     }
 };
 
+const getVoucherTypeColor = (type: string) => {
+    switch (type) {
+        case 'payable':
+            return 'default'; // Blue/gray
+        case 'settlement':
+            return 'secondary'; // Purple/muted
+        case 'redeemable':
+        default:
+            return 'outline'; // Border only
+    }
+};
+
+const getVoucherTypeLabel = (type: string) => {
+    switch (type) {
+        case 'payable':
+            return 'Payable';
+        case 'settlement':
+            return 'Settlement';
+        case 'redeemable':
+        default:
+            return 'Redeemable';
+    }
+};
+
 const setFilter = (filter: string) => {
     router.visit(`/pwa/vouchers?filter=${filter}`, {
         preserveState: true,
@@ -152,9 +176,14 @@ const setFilter = (filter: string) => {
                                     <div class="font-semibold text-sm">
                                         {{ voucher.currency }} {{ getAmountDisplay(voucher) }}
                                     </div>
-                                    <Badge :variant="getStatusColor(voucher.status)" class="text-xs">
-                                        {{ voucher.status }}
-                                    </Badge>
+                                    <div class="flex gap-1 justify-end">
+                                        <Badge :variant="getVoucherTypeColor(voucher.voucher_type)" class="text-xs">
+                                            {{ getVoucherTypeLabel(voucher.voucher_type) }}
+                                        </Badge>
+                                        <Badge v-if="voucher.status" :variant="getStatusColor(voucher.status)" class="text-xs">
+                                            {{ voucher.status }}
+                                        </Badge>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
