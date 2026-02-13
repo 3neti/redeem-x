@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Ticket, Share2, Copy, ArrowLeft } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { useVoucherQr } from '@/composables/useVoucherQr';
 
 interface Props {
@@ -28,9 +29,29 @@ interface Props {
 
 const props = defineProps<Props>();
 const copied = ref(false);
+const page = usePage();
 
-// QR Code generation
-const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(props.voucher.code, '/redeem');
+// Get redemption endpoint from shared props (configured in VoucherSettings)
+const redemptionEndpoint = computed(() => 
+    (page.props as any).redemption_endpoint || '/disburse'
+);
+
+// QR Code generation - use dynamic endpoint based on voucher type
+const getRedemptionPath = () => {
+    // Use voucher-type specific endpoints
+    switch (props.voucher.voucher_type) {
+        case 'payable':
+        case 'settlement':
+            return (page.props as any).settlement_endpoint || '/pay';
+        default:
+            return redemptionEndpoint.value;
+    }
+};
+
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
+    props.voucher.code, 
+    getRedemptionPath()
+);
 
 // Generate QR on mount
 onMounted(() => {
