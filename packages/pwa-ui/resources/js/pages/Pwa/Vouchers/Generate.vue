@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -141,6 +142,14 @@ const inputFieldsSummary = computed(() => {
   if (selectedInputFields.value.length === 0) return 'None selected';
   if (selectedInputFields.value.length === 1) return `${selectedInputFields.value.length} input`;
   return `${selectedInputFields.value.length} inputs`;
+});
+
+// Get input field labels for display
+const inputFieldLabels = computed(() => {
+  return selectedInputFields.value.map(field => {
+    const option = props.inputFieldOptions.find(opt => opt.value === field);
+    return option?.label || field;
+  });
 });
 
 // Validation summary
@@ -475,6 +484,20 @@ const toggleInputField = (fieldValue: string) => {
 // Auto-add tracking for OTP
 const autoAddedFields = ref<Set<string>>(new Set());
 
+// Clear all input fields
+const clearAllInputFields = () => {
+  // Keep auto-added fields (like OTP for mobile validation)
+  selectedInputFields.value = selectedInputFields.value.filter(field => 
+    autoAddedFields.value.has(field)
+  );
+  toast({
+    title: 'Input fields cleared',
+    description: autoAddedFields.value.size > 0 
+      ? 'Required fields retained' 
+      : 'All fields cleared',
+  });
+};
+
 // Clear rider config (Phase 8)
 const clearRider = () => {
   riderMessage.value = '';
@@ -662,12 +685,19 @@ watch(payeeType, (newType, oldType) => {
         <!-- Config Summary Chips -->
         <div class="space-y-2">
           <!-- Input Fields -->
-          <div class="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('inputs')">
-            <div>
+          <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('inputs')">
+            <div class="flex items-center justify-between mb-2">
               <p class="text-xs text-muted-foreground">Input Fields</p>
-              <p class="text-sm font-medium">{{ inputFieldsSummary }}</p>
+              <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
-            <Plus class="h-4 w-4 text-muted-foreground" />
+            <div v-if="selectedInputFields.length === 0" class="text-sm font-medium text-muted-foreground">
+              None selected
+            </div>
+            <div v-else class="flex flex-wrap gap-1">
+              <Badge v-for="label in inputFieldLabels" :key="label" variant="secondary" class="text-xs">
+                {{ label }}
+              </Badge>
+            </div>
           </div>
 
           <!-- Validation -->
@@ -991,10 +1021,23 @@ watch(payeeType, (newType, oldType) => {
     <Sheet v-model:open="sheetState.inputs.open">
       <SheetContent side="bottom" class="h-[80vh] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Input Fields</SheetTitle>
-          <SheetDescription>
-            Select fields to collect during redemption
-          </SheetDescription>
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <SheetTitle>Input Fields</SheetTitle>
+              <SheetDescription>
+                Select fields to collect during redemption
+              </SheetDescription>
+            </div>
+            <Button 
+              v-if="selectedInputFields.length > 0" 
+              variant="ghost" 
+              size="sm" 
+              @click="clearAllInputFields"
+              class="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              Clear All
+            </Button>
+          </div>
         </SheetHeader>
         
         <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
