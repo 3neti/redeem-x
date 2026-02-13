@@ -152,14 +152,63 @@ const inputFieldLabels = computed(() => {
   });
 });
 
-// Validation summary
+// Validation summary - check if actually configured with values
+const hasLocationValidation = computed(() => {
+  return locationValidation.value?.latitude && locationValidation.value?.longitude;
+});
+
+const hasTimeValidation = computed(() => {
+  return timeValidation.value?.start_time && timeValidation.value?.end_time;
+});
+
+// Validation badges with actual values
+const validationBadges = computed(() => {
+  const badges: { label: string; value: string; variant?: string }[] = [];
+  
+  // Location
+  if (hasLocationValidation.value) {
+    badges.push({
+      label: 'Location',
+      value: `${locationValidation.value.radius || 100}m radius`,
+      variant: 'default'
+    });
+  }
+  
+  // Time
+  if (hasTimeValidation.value) {
+    badges.push({
+      label: 'Time',
+      value: `${timeValidation.value.start_time}-${timeValidation.value.end_time}`,
+      variant: 'default'
+    });
+  }
+  
+  // Secret
+  if (validationSecret.value) {
+    badges.push({
+      label: 'Secret',
+      value: '•'.repeat(Math.min(validationSecret.value.length, 6)),
+      variant: 'default'
+    });
+  }
+  
+  // Payee
+  if (normalizedPayee.value) {
+    const label = payeeType.value === 'mobile' ? 'Mobile' : 'Vendor';
+    badges.push({
+      label: label,
+      value: normalizedPayee.value,
+      variant: 'secondary'
+    });
+  }
+  
+  return badges;
+});
+
 const validationSummary = computed(() => {
-  const parts = [];
-  if (locationValidation.value) parts.push('Location');
-  if (timeValidation.value) parts.push('Time');
-  if (validationSecret.value) parts.push('Secret');
-  if (normalizedPayee.value) parts.push(payeeType.value === 'mobile' ? 'Mobile' : 'Vendor');
-  return parts.length > 0 ? parts.join(', ') : 'None';
+  return validationBadges.value.length > 0 
+    ? `${validationBadges.value.length} rule${validationBadges.value.length > 1 ? 's' : ''}` 
+    : 'None';
 });
 
 // Feedback summary
@@ -701,12 +750,24 @@ watch(payeeType, (newType, oldType) => {
           </div>
 
           <!-- Validation -->
-          <div class="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('validation')">
-            <div>
+          <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('validation')">
+            <div class="flex items-center justify-between mb-2">
               <p class="text-xs text-muted-foreground">Validation</p>
-              <p class="text-sm font-medium">{{ validationSummary }}</p>
+              <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
-            <Plus class="h-4 w-4 text-muted-foreground" />
+            <div v-if="validationBadges.length === 0" class="text-sm font-medium text-muted-foreground">
+              None
+            </div>
+            <div v-else class="flex flex-wrap gap-1">
+              <Badge 
+                v-for="(badge, index) in validationBadges" 
+                :key="index" 
+                :variant="badge.variant || 'secondary'" 
+                class="text-xs"
+              >
+                {{ badge.label }}: {{ badge.value }}
+              </Badge>
+            </div>
           </div>
 
           <!-- Feedback -->
