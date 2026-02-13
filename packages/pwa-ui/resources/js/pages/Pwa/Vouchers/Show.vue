@@ -81,6 +81,30 @@ const getStatusColor = (status: string) => {
             return 'default';
     }
 };
+
+const getVoucherTypeColor = (type: string) => {
+    switch (type) {
+        case 'payable':
+            return 'default'; // Blue/gray
+        case 'settlement':
+            return 'secondary'; // Purple/muted
+        case 'redeemable':
+        default:
+            return 'outline'; // Border only
+    }
+};
+
+const getVoucherTypeLabel = (type: string) => {
+    switch (type) {
+        case 'payable':
+            return 'Payable';
+        case 'settlement':
+            return 'Settlement';
+        case 'redeemable':
+        default:
+            return 'Redeemable';
+    }
+};
 </script>
 
 <template>
@@ -110,9 +134,14 @@ const getStatusColor = (status: string) => {
                         </div>
                         <div>
                             <div class="text-2xl font-bold">{{ voucher.code }}</div>
-                            <Badge :variant="getStatusColor(voucher.status)" class="mt-2">
-                                {{ voucher.status }}
-                            </Badge>
+                            <div class="flex gap-2 justify-center mt-2">
+                                <Badge :variant="getVoucherTypeColor(voucher.voucher_type)">
+                                    {{ getVoucherTypeLabel(voucher.voucher_type) }}
+                                </Badge>
+                                <Badge v-if="voucher.status" :variant="getStatusColor(voucher.status)">
+                                    {{ voucher.status }}
+                                </Badge>
+                            </div>
                         </div>
                         <div class="py-4 border-y">
                             <div v-if="voucher.voucher_type === 'settlement' && voucher.target_amount" class="space-y-2">
