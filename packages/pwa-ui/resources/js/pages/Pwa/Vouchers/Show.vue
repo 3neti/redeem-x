@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Ticket, Share2, Copy, ArrowLeft } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 interface Props {
     voucher: {
@@ -21,6 +21,11 @@ interface Props {
 
 const props = defineProps<Props>();
 const copied = ref(false);
+
+// Check if Web Share API is available (client-side only)
+const canShare = computed(() => {
+    return typeof navigator !== 'undefined' && 'share' in navigator;
+});
 
 const copyToClipboard = async (text: string) => {
     try {
@@ -133,7 +138,7 @@ const getStatusColor = (status: string) => {
                     {{ copied ? 'Copied!' : 'Copy Code' }}
                 </Button>
                 <Button
-                    v-if="typeof navigator !== 'undefined' && 'share' in navigator"
+                    v-if="canShare"
                     @click="shareVoucher"
                     variant="outline"
                     class="w-full"
