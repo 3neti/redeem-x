@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
+import { usePhoneFormat } from '@/composables/usePhoneFormat';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -164,6 +165,7 @@ const hasTimeValidation = computed(() => {
 // Validation badges with actual values
 const validationBadges = computed(() => {
   const badges: { label: string; value: string; variant?: string }[] = [];
+  const { formatForDisplay } = usePhoneFormat();
   
   // Location
   if (hasLocationValidation.value) {
@@ -195,9 +197,12 @@ const validationBadges = computed(() => {
   // Payee
   if (normalizedPayee.value) {
     const label = payeeType.value === 'mobile' ? 'Mobile' : 'Vendor';
+    const displayValue = payeeType.value === 'mobile' 
+      ? formatForDisplay(normalizedPayee.value)
+      : normalizedPayee.value;
     badges.push({
       label: label,
-      value: normalizedPayee.value,
+      value: displayValue,
       variant: 'secondary'
     });
   }
