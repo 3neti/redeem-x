@@ -133,7 +133,7 @@ const getStatusColor = (status: string) => {
                     {{ copied ? 'Copied!' : 'Copy Code' }}
                 </Button>
                 <Button
-                    v-if="'share' in navigator"
+                    v-if="typeof navigator !== 'undefined' && 'share' in navigator"
                     @click="shareVoucher"
                     variant="outline"
                     class="w-full"
