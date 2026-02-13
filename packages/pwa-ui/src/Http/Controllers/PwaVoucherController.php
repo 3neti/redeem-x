@@ -28,11 +28,19 @@ class PwaVoucherController extends Controller
         }
 
         $vouchers = $query->paginate(20)->through(function ($voucher) {
+            // Helper to extract numeric amount from Money object or number
+            $extractAmount = function ($value) {
+                if (is_object($value) && method_exists($value, 'getAmount')) {
+                    return (float) $value->getAmount();
+                }
+                return is_numeric($value) ? (float) $value : 0;
+            };
+            
             // Determine amount based on voucher type
             $amount = match($voucher->voucher_type->value) {
                 'payable' => $voucher->target_amount ?? 0,
-                'settlement' => $voucher->cash?->amount ?? 0, // Show loan amount
-                default => $voucher->cash?->amount ?? 0, // Redeemable
+                'settlement' => $extractAmount($voucher->cash?->amount), // Show loan amount
+                default => $extractAmount($voucher->cash?->amount), // Redeemable
             };
             $amountFloat = is_numeric($amount) ? (float) $amount : 0;
             
@@ -64,11 +72,19 @@ class PwaVoucherController extends Controller
             ->where('code', $code)
             ->firstOrFail();
 
+        // Helper to extract numeric amount from Money object or number
+        $extractAmount = function ($value) {
+            if (is_object($value) && method_exists($value, 'getAmount')) {
+                return (float) $value->getAmount();
+            }
+            return is_numeric($value) ? (float) $value : 0;
+        };
+        
         // Determine amount based on voucher type
         $amount = match($voucher->voucher_type->value) {
             'payable' => $voucher->target_amount ?? 0,
-            'settlement' => $voucher->cash?->amount ?? 0, // Show loan amount
-            default => $voucher->cash?->amount ?? 0, // Redeemable
+            'settlement' => $extractAmount($voucher->cash?->amount), // Show loan amount
+            default => $extractAmount($voucher->cash?->amount), // Redeemable
         };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
         
