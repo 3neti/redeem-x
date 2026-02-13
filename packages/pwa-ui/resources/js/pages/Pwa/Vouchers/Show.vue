@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Ticket, Share2, Copy, ArrowLeft } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useVoucherQr } from '@/composables/useVoucherQr';
 
 interface Props {
     voucher: {
@@ -27,6 +28,14 @@ interface Props {
 
 const props = defineProps<Props>();
 const copied = ref(false);
+
+// QR Code generation
+const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(props.voucher.code, '/redeem');
+
+// Generate QR on mount
+onMounted(() => {
+    generateQr();
+});
 
 // Check if Web Share API is available (client-side only)
 const canShare = computed(() => {
@@ -218,14 +227,32 @@ const getVoucherTypeLabel = (type: string) => {
                 </Button>
             </div>
 
-            <!-- Redeem Link -->
+            <!-- QR Code -->
             <Card>
                 <CardHeader>
-                    <CardTitle class="text-sm">Redeem URL</CardTitle>
+                    <CardTitle class="text-sm">Scan to Redeem</CardTitle>
+                    <CardDescription class="text-xs">
+                        Show this QR code to the redeemer
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div class="text-xs text-muted-foreground break-all font-mono bg-muted p-3 rounded-lg">
-                        {{ voucher.redeem_url }}
+                    <div v-if="qrLoading" class="flex items-center justify-center py-12">
+                        <div class="text-sm text-muted-foreground">Generating QR code...</div>
+                    </div>
+                    <div v-else-if="qrError" class="flex items-center justify-center py-12">
+                        <div class="text-sm text-destructive">{{ qrError }}</div>
+                    </div>
+                    <div v-else-if="qrData" class="flex flex-col items-center">
+                        <!-- QR Code Image -->
+                        <img 
+                            :src="qrData.qr_code" 
+                            alt="Redemption QR Code"
+                            class="w-64 h-64 rounded-lg border"
+                        />
+                        <!-- URL Text (small, below QR) -->
+                        <div class="mt-4 text-xs text-muted-foreground text-center break-all">
+                            {{ qrData.redemption_url }}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
