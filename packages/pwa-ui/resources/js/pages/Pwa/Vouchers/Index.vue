@@ -9,6 +9,8 @@ import { Ticket, Plus, Filter } from 'lucide-vue-next';
 interface Voucher {
     code: string;
     amount: number;
+    target_amount: number | null;
+    voucher_type: 'redeemable' | 'payable' | 'settlement';
     currency: string;
     status: string;
     redeemed_at: string | null;
@@ -37,6 +39,15 @@ const formatAmount = (amount: number | string | null | undefined) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     const validNum = typeof num === 'number' && !isNaN(num) ? num : 0;
     return validNum.toFixed(2);
+};
+
+const getAmountDisplay = (voucher: Voucher) => {
+    if (voucher.voucher_type === 'settlement' && voucher.target_amount) {
+        // Settlement: Show "loan → payback"
+        return `${formatAmount(voucher.amount)} → ${formatAmount(voucher.target_amount)}`;
+    }
+    // Redeemable and Payable: Show single amount
+    return formatAmount(voucher.amount);
 };
 
 const getStatusColor = (status: string) => {
@@ -139,7 +150,7 @@ const setFilter = (filter: string) => {
                                 </div>
                                 <div class="text-right space-y-1">
                                     <div class="font-semibold text-sm">
-                                        {{ voucher.currency }} {{ formatAmount(voucher.amount) }}
+                                        {{ voucher.currency }} {{ getAmountDisplay(voucher) }}
                                     </div>
                                     <Badge :variant="getStatusColor(voucher.status)" class="text-xs">
                                         {{ voucher.status }}

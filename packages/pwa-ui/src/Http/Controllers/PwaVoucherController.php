@@ -28,12 +28,19 @@ class PwaVoucherController extends Controller
         }
 
         $vouchers = $query->paginate(20)->through(function ($voucher) {
-            $amount = $voucher->cash?->amount ?? 0;
+            // Determine amount based on voucher type
+            $amount = match($voucher->voucher_type->value) {
+                'payable' => $voucher->target_amount ?? 0,
+                'settlement' => $voucher->cash?->amount ?? 0, // Show loan amount
+                default => $voucher->cash?->amount ?? 0, // Redeemable
+            };
             $amountFloat = is_numeric($amount) ? (float) $amount : 0;
             
             return [
                 'code' => $voucher->code,
                 'amount' => $amountFloat,
+                'target_amount' => $voucher->target_amount ? (float) $voucher->target_amount : null,
+                'voucher_type' => $voucher->voucher_type->value,
                 'currency' => $voucher->cash?->currency ?? 'PHP',
                 'status' => $voucher->status,
                 'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
@@ -57,13 +64,20 @@ class PwaVoucherController extends Controller
             ->where('code', $code)
             ->firstOrFail();
 
-        $amount = $voucher->cash?->amount ?? 0;
+        // Determine amount based on voucher type
+        $amount = match($voucher->voucher_type->value) {
+            'payable' => $voucher->target_amount ?? 0,
+            'settlement' => $voucher->cash?->amount ?? 0, // Show loan amount
+            default => $voucher->cash?->amount ?? 0, // Redeemable
+        };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
         
         return Inertia::render('Pwa/Vouchers/Show', [
             'voucher' => [
                 'code' => $voucher->code,
                 'amount' => $amountFloat,
+                'target_amount' => $voucher->target_amount ? (float) $voucher->target_amount : null,
+                'voucher_type' => $voucher->voucher_type->value,
                 'currency' => $voucher->cash?->currency ?? 'PHP',
                 'status' => $voucher->status,
                 'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),

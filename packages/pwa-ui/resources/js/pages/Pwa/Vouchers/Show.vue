@@ -11,6 +11,8 @@ interface Props {
     voucher: {
         code: string;
         amount: number;
+        target_amount: number | null;
+        voucher_type: 'redeemable' | 'payable' | 'settlement';
         currency: string;
         status: string;
         redeemed_at: string | null;
@@ -113,8 +115,23 @@ const getStatusColor = (status: string) => {
                             </Badge>
                         </div>
                         <div class="py-4 border-y">
-                            <div class="text-3xl font-bold">
-                                {{ voucher.currency }} {{ formatAmount(voucher.amount) }}
+                            <div v-if="voucher.voucher_type === 'settlement' && voucher.target_amount" class="space-y-2">
+                                <div class="text-sm text-muted-foreground">Loan Amount</div>
+                                <div class="text-2xl font-bold">
+                                    {{ voucher.currency }} {{ formatAmount(voucher.amount) }}
+                                </div>
+                                <div class="text-sm text-muted-foreground">Payback Amount</div>
+                                <div class="text-2xl font-bold text-primary">
+                                    {{ voucher.currency }} {{ formatAmount(voucher.target_amount) }}
+                                </div>
+                            </div>
+                            <div v-else>
+                                <div v-if="voucher.voucher_type === 'payable'" class="text-sm text-muted-foreground mb-1">
+                                    Target Amount
+                                </div>
+                                <div class="text-3xl font-bold">
+                                    {{ voucher.currency }} {{ formatAmount(voucher.amount) }}
+                                </div>
                             </div>
                         </div>
                         <div class="text-sm text-muted-foreground space-y-1">
