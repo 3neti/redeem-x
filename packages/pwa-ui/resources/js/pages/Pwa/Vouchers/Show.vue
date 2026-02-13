@@ -15,8 +15,12 @@ interface Props {
         voucher_type: 'redeemable' | 'payable' | 'settlement';
         currency: string;
         status: string;
-        redeemed_at: string | null;
         created_at: string;
+        starts_at: string | null;
+        expires_at: string | null;
+        redeemed_at: string | null;
+        locked_at: string | null;
+        closed_at: string | null;
         redeem_url: string;
     };
 }
@@ -165,8 +169,20 @@ const getVoucherTypeLabel = (type: string) => {
                         </div>
                         <div class="text-sm text-muted-foreground space-y-1">
                             <div>Created: {{ formatDate(voucher.created_at) }}</div>
+                            <div v-if="voucher.starts_at">
+                                Starts: {{ formatDate(voucher.starts_at) }}
+                            </div>
+                            <div v-if="voucher.expires_at">
+                                Expires: {{ formatDate(voucher.expires_at) }}
+                            </div>
                             <div v-if="voucher.redeemed_at">
                                 Redeemed: {{ formatDate(voucher.redeemed_at) }}
+                            </div>
+                            <div v-if="voucher.locked_at">
+                                Locked: {{ formatDate(voucher.locked_at) }}
+                            </div>
+                            <div v-if="voucher.closed_at">
+                                Closed: {{ formatDate(voucher.closed_at) }}
                             </div>
                         </div>
                     </div>

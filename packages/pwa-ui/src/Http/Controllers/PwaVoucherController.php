@@ -98,8 +98,12 @@ class PwaVoucherController extends Controller
                 'voucher_type' => $voucher->voucher_type->value,
                 'currency' => $voucher->cash?->currency ?? 'PHP',
                 'status' => $voucher->status,
-                'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
                 'created_at' => $voucher->created_at->toIso8601String(),
+                'starts_at' => $voucher->starts_at?->toIso8601String(),
+                'expires_at' => $voucher->expires_at?->toIso8601String(),
+                'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
+                'locked_at' => $voucher->locked_at?->toIso8601String(),
+                'closed_at' => $voucher->closed_at?->toIso8601String(),
                 'redeem_url' => route('redeem.start', ['code' => $code]),
             ],
         ]);
