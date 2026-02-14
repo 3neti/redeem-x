@@ -112,6 +112,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const showAmountKeypad = ref(false);
 const showCountKeypad = ref(false);
+const showCostBreakdownModal = ref(false);
 
 // Sheet state management (following plan architecture)
 const sheetState = ref({
@@ -425,6 +426,41 @@ const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdow
 );
 
 const estimatedCost = computed(() => totalDeduction.value);
+
+// Group charges by category for display
+const chargesByCategory = computed(() => {
+  if (!breakdown.value || !breakdown.value.charges) return {};
+  
+  const categorized: Record<string, any[]> = {};
+  
+  breakdown.value.charges.forEach((charge: any, index: number) => {
+    const category = charge.category || 'Other';
+    if (!categorized[category]) {
+      categorized[category] = [];
+    }
+    categorized[category].push({
+      ...charge,
+      index,
+    });
+  });
+  
+  return categorized;
+});
+
+// Category labels for display
+const categoryLabels: Record<string, string> = {
+  'system': 'System Fees',
+  'escrow': 'Escrow',
+  'gateway': 'Gateway Fees',
+  'other': 'Other Charges',
+};
+
+// Show modal when cost is clicked
+const showCostModal = () => {
+  if (amount.value && amount.value > 0) {
+    showCostBreakdownModal.value = true;
+  }
+};
 
 // Generate button state
 const canGenerate = computed(() => {
@@ -1178,7 +1214,11 @@ watch(payeeType, (newType, oldType) => {
             <Wallet class="h-4 w-4" />
             <span>{{ formattedBalance }}</span>
           </div>
-          <div v-if="amount" class="text-muted-foreground">
+          <div 
+            v-if="amount" 
+            class="text-muted-foreground cursor-pointer hover:text-primary transition-colors underline decoration-dotted"
+            @click="showCostModal"
+          >
             Cost: ₱{{ estimatedCost.toFixed(2) }}
           </div>
         </div>
@@ -1196,6 +1236,78 @@ watch(payeeType, (newType, oldType) => {
       </div>
     </div>
 
+    <!-- ========================================================================
+         COST BREAKDOWN MODAL
+         ======================================================================== -->
+    <Dialog v-model:open="showCostBreakdownModal">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cost Breakdown</DialogTitle>
+          <DialogDescription>
+            Detailed charges for your voucher generation
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div class="space-y-4">
+          <!-- Loading state -->
+          <div v-if="pricingLoading" class="text-sm text-muted-foreground text-center py-4">
+            Calculating charges...
+          </div>
+          
+          <!-- Breakdown -->
+          <div v-else class="space-y-3">
+            <!-- Base voucher amount -->
+            <div class="flex justify-between pb-2 border-b text-sm">
+              <span class="text-muted-foreground">Voucher Amount × {{ count }}</span>
+              <span class="font-medium">₱{{ (amount * count).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+            </div>
+            
+            <!-- Charges by category -->
+            <div
+              v-for="(items, category) in chargesByCategory"
+              :key="category"
+              class="space-y-1"
+            >
+              <!-- Category header -->
+              <div class="text-xs font-semibold text-foreground/70 uppercase tracking-wide pt-1">
+                {{ categoryLabels[category] || category }}
+              </div>
+              
+              <!-- Items in this category -->
+              <div
+                v-for="item in items"
+                :key="item.index"
+                class="flex justify-between pl-2 text-sm"
+              >
+                <span class="text-muted-foreground">{{ item.label }}</span>
+                <span class="font-medium">{{ item.price_formatted }}</span>
+              </div>
+            </div>
+            
+            <!-- Total -->
+            <div class="flex justify-between pt-2 border-t text-base font-semibold">
+              <span>Total Deduction</span>
+              <span>₱{{ estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+            </div>
+            
+            <!-- Balance after -->
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Balance After Generation</span>
+              <span
+                :class="
+                  estimatedCost > walletBalance
+                    ? 'text-destructive font-medium'
+                    : 'text-green-600 dark:text-green-400 font-medium'
+                "
+              >
+                ₱{{ (walletBalance - estimatedCost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    
     <!-- ========================================================================
          BOTTOM SHEETS (Placeholders - will implement in subsequent phases)
          ======================================================================== -->
