@@ -1,0 +1,39 @@
+<script setup lang="ts">
+import { Link, usePage } from '@inertiajs/vue3';
+import { Home, Ticket, Wallet, Settings, Plus } from 'lucide-vue-next';
+import { computed } from 'vue';
+
+const page = usePage();
+
+const currentRoute = computed(() => page.url);
+
+const navItems = [
+    { name: 'Home', href: '/pwa/portal', icon: Home },
+    { name: 'Generate', href: '/pwa/vouchers/generate', icon: Plus },
+    { name: 'Vouchers', href: '/pwa/vouchers', icon: Ticket },
+    { name: 'Wallet', href: '/pwa/wallet', icon: Wallet },
+    { name: 'Settings', href: '/pwa/settings', icon: Settings },
+];
+
+const isActive = (href: string) => currentRoute.value.startsWith(href);
+</script>
+
+<template>
+    <nav class="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <div class="flex items-center justify-around py-2">
+            <Link
+                v-for="item in navItems"
+                :key="item.name"
+                :href="item.href"
+                class="flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors"
+                :class="{
+                    'text-primary': isActive(item.href),
+                    'text-muted-foreground hover:text-foreground': !isActive(item.href),
+                }"
+            >
+                <component :is="item.icon" class="h-5 w-5" />
+                <span>{{ item.name }}</span>
+            </Link>
+        </div>
+    </nav>
+</template>
