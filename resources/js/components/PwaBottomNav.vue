@@ -1,1 +1,0 @@
-/Users/rli/PhpstormProjects/redeem-x/packages/pwa-ui/resources/js/components/PwaBottomNav.vue
