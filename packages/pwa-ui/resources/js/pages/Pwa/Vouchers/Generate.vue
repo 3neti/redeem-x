@@ -429,12 +429,12 @@ const estimatedCost = computed(() => totalDeduction.value);
 
 // Group charges by category for display
 const chargesByCategory = computed(() => {
-  if (!breakdown.value || !breakdown.value.charges) return {};
+  if (!breakdown.value || !breakdown.value.breakdown) return {};
   
   const categorized: Record<string, any[]> = {};
   
-  breakdown.value.charges.forEach((charge: any, index: number) => {
-    const category = charge.category || 'Other';
+  breakdown.value.breakdown.forEach((charge: any, index: number) => {
+    const category = charge.category || 'other';
     if (!categorized[category]) {
       categorized[category] = [];
     }
@@ -458,6 +458,9 @@ const categoryLabels: Record<string, string> = {
 // Show modal when cost is clicked
 const showCostModal = () => {
   if (amount.value && amount.value > 0) {
+    console.log('[PWA Generate] Opening cost modal');
+    console.log('[PWA Generate] breakdown.value:', breakdown.value);
+    console.log('[PWA Generate] chargesByCategory:', chargesByCategory.value);
     showCostBreakdownModal.value = true;
   }
 };
@@ -1263,6 +1266,9 @@ watch(payeeType, (newType, oldType) => {
             </div>
             
             <!-- Charges by category -->
+            <div v-if="Object.keys(chargesByCategory).length === 0" class="text-sm text-muted-foreground text-center py-2">
+              No additional charges
+            </div>
             <div
               v-for="(items, category) in chargesByCategory"
               :key="category"
