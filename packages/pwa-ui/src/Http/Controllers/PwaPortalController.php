@@ -22,49 +22,82 @@ class PwaPortalController extends Controller
         $wallet = $user->wallet;
         $balance = $wallet ? $wallet->balanceFloat : 0;
 
-        // Get recent vouchers (last 5)
-        $recentVouchers = $user->vouchers()
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(function ($voucher) {
-                // Helper to extract amount from Money object
-                $extractAmount = function ($moneyOrValue) {
-                    if ($moneyOrValue instanceof \Brick\Money\Money) {
-                        return $moneyOrValue->getAmount()->toFloat();
-                    }
-                    return is_numeric($moneyOrValue) ? (float) $moneyOrValue : 0;
-                };
-                
-                // Extract amount based on voucher type
-                $amount = match ($voucher->voucher_type) {
-                    'payable' => $extractAmount($voucher->target_amount ?? 0),
-                    'settlement' => $extractAmount($voucher->cash?->amount ?? 0), // Show loan amount
-                    default => $extractAmount($voucher->cash?->amount ?? 0), // redeemable
-                };
-                
-                return [
-                    'code' => $voucher->code,
-                    'amount' => $amount,
-                    'target_amount' => $voucher->target_amount ? $extractAmount($voucher->target_amount) : null,
-                    'currency' => $voucher->cash?->currency ?? 'PHP',
-                    'status' => $voucher->status,
-                    'voucher_type' => $voucher->voucher_type,
-                    'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
-                    'created_at' => $voucher->created_at->toIso8601String(),
-                ];
-            });
+        // Get voucher stats
+        $activeVouchersCount = $user->vouchers()
+            ->whereIn('state', ['active', 'locked'])
+            ->count();
+
+        // Redeemed = has redeemed_at date, regardless of state
+        $redeemedThisMonthCount = $user->vouchers()
+            ->whereNotNull('redeemed_at')
+            ->whereMonth('redeemed_at', now()->month)
+            ->whereYear('redeemed_at', now()->year)
+            ->count();
+
+        // Calculate total issued this month
+        // Load voucherEntities relationship to access cash via accessor
+        $vouchersIssuedThisMonth = $user->vouchers()
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->with('voucherEntities.entity')
+            ->get();
+
+        $totalIssuedThisMonth = $vouchersIssuedThisMonth->sum(function ($voucher) {
+            if (!$voucher->cash || !$voucher->cash->amount) {
+                return 0;
+            }
+            $amount = $voucher->cash->amount;
+            if ($amount instanceof \Brick\Money\Money) {
+                return $amount->getAmount()->toFloat();
+            }
+            return is_numeric($amount) ? (float) $amount : 0;
+        });
+
+        // Get expiring vouchers (within 7 days) that are still active
+        $expiringVouchersCount = $user->vouchers()
+            ->where('state', 'active')
+            ->whereBetween('expires_at', [now(), now()->addDays(7)])
+            ->count();
 
         // Check onboarding status
         $hasMobile = $user->mobile !== null;
         $hasMerchant = $user->merchant !== null;
         $hasBalance = $balance > 0;
 
+        // Build alerts array
+        $alerts = [];
+        
+        // Low balance alert
+        if ($balance < 100) {
+            $alerts[] = [
+                'type' => 'low_balance',
+                'message' => 'Wallet balance below ₱100',
+                'action' => '/pwa/topup',
+                'action_label' => 'Add Funds',
+            ];
+        }
+
+        // Expiring vouchers alert
+        if ($expiringVouchersCount > 0) {
+            $alerts[] = [
+                'type' => 'expiring_vouchers',
+                'message' => "{$expiringVouchersCount} voucher(s) expiring within 7 days",
+                'action' => '/pwa/vouchers?filter=active',
+                'action_label' => 'View Vouchers',
+            ];
+        }
+
         return Inertia::render('pwa/Portal', [
             'balance' => $balance,
             'formattedBalance' => number_format($balance, 2),
             'currency' => 'PHP',
-            'recentVouchers' => $recentVouchers,
+            'stats' => [
+                'active_vouchers_count' => $activeVouchersCount,
+                'redeemed_this_month_count' => $redeemedThisMonthCount,
+                'total_issued_this_month' => $totalIssuedThisMonth,
+                'formatted_total_issued_this_month' => number_format($totalIssuedThisMonth, 2),
+            ],
+            'alerts' => $alerts,
             'onboarding' => [
                 'hasMobile' => $hasMobile,
                 'hasMerchant' => $hasMerchant,

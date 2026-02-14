@@ -3,25 +3,27 @@ import { Link } from '@inertiajs/vue3';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import VoucherCard from '@/components/pwa/VoucherCard.vue';
-import { Wallet, Plus, Ticket, AlertCircle } from 'lucide-vue-next';
-
-interface Voucher {
-    code: string;
-    amount: number;
-    target_amount?: number | null;
-    voucher_type: 'redeemable' | 'payable' | 'settlement';
-    currency: string;
-    status: string;
-    redeemed_at: string | null;
-    created_at: string;
-}
+import VoucherStatsCard from '@/components/pwa/VoucherStatsCard.vue';
+import QuickActionsCard from '@/components/pwa/QuickActionsCard.vue';
+import PendingActionsCard from '@/components/pwa/PendingActionsCard.vue';
+import { Wallet, Plus, AlertCircle } from 'lucide-vue-next';
 
 interface Props {
     balance: number | string;
     formattedBalance: string;
     currency: string;
-    recentVouchers: Voucher[];
+    stats: {
+        active_vouchers_count: number;
+        redeemed_this_month_count: number;
+        total_issued_this_month: number;
+        formatted_total_issued_this_month: string;
+    };
+    alerts: Array<{
+        type: string;
+        message: string;
+        action: string;
+        action_label: string;
+    }>;
     onboarding: {
         hasMobile: boolean;
         hasMerchant: boolean;
@@ -31,8 +33,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-// All formatting logic now in VoucherCard component
 </script>
 
 <template>
@@ -122,40 +122,14 @@ const props = defineProps<Props>();
                 </CardContent>
             </Card>
 
-            <!-- Recent Vouchers -->
-            <Card>
-                <CardHeader>
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <Ticket class="h-5 w-5 text-primary" />
-                            <CardTitle class="text-base">Recent Vouchers</CardTitle>
-                        </div>
-                        <Button as-child variant="ghost" size="sm">
-                            <Link href="/pwa/vouchers">View All</Link>
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div v-if="recentVouchers.length === 0" class="py-8 text-center">
-                        <Ticket class="mx-auto h-12 w-12 text-muted-foreground/50" />
-                        <h3 class="mt-4 text-sm font-medium">No vouchers yet</h3>
-                        <p class="mt-2 text-sm text-muted-foreground">
-                            Generate your first voucher to get started.
-                        </p>
-                    </div>
+            <!-- Voucher Stats -->
+            <VoucherStatsCard :stats="stats" />
 
-                    <div v-else class="space-y-3">
-                        <Link
-                            v-for="voucher in recentVouchers"
-                            :key="voucher.code"
-                            :href="`/pwa/vouchers/${voucher.code}`"
-                            class="block"
-                        >
-                            <VoucherCard :voucher="voucher" />
-                        </Link>
-                    </div>
-                </CardContent>
-            </Card>
+            <!-- Quick Actions -->
+            <QuickActionsCard />
+
+            <!-- Pending Actions -->
+            <PendingActionsCard :alerts="alerts" />
         </div>
     </PwaLayout>
 </template>
