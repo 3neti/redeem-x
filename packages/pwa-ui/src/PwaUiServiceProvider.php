@@ -28,11 +28,12 @@ class PwaUiServiceProvider extends ServiceProvider
             __DIR__.'/../config/pwa-ui.php' => config_path('pwa-ui.php'),
         ], 'pwa-config');
 
-        // Publish Vue components (layouts, components, pages)
+        // Publish Vue components (layouts, components, pages, composables)
         $this->publishes([
             __DIR__.'/../resources/js/layouts' => resource_path('js/layouts'),
             __DIR__.'/../resources/js/components' => resource_path('js/components/pwa'),
             __DIR__.'/../resources/js/pages/Pwa' => resource_path('js/pages/Pwa'),
+            __DIR__.'/../resources/js/composables' => resource_path('js/composables/pwa'),
         ], 'pwa-components');
     }
 }
