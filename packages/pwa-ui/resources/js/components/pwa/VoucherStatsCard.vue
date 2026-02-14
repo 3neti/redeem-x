@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { BarChart3, CheckCircle2, TrendingUp, Ticket } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 interface Props {
     stats: {
@@ -13,7 +14,20 @@ interface Props {
     };
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+// Format large numbers with k/M suffix
+const formatCompactNumber = (value: number): string => {
+    if (value >= 1_000_000) {
+        return `₱${(value / 1_000_000).toFixed(1)}M`;
+    }
+    if (value >= 1_000) {
+        return `₱${(value / 1_000).toFixed(1)}k`;
+    }
+    return `₱${value.toFixed(2)}`;
+};
+
+const compactIssuedAmount = computed(() => formatCompactNumber(props.stats.total_issued_this_month));
 </script>
 
 <template>
@@ -54,7 +68,9 @@ defineProps<Props>();
                     <div class="flex justify-center mb-2">
                         <TrendingUp class="h-8 w-8 text-orange-500" />
                     </div>
-                    <div class="text-2xl font-bold">₱{{ stats.formatted_total_issued_this_month }}</div>
+                    <div class="text-2xl font-bold" :title="'₱' + stats.formatted_total_issued_this_month">
+                        {{ compactIssuedAmount }}
+                    </div>
                     <div class="text-xs text-muted-foreground mt-1">Issued</div>
                 </div>
             </div>
