@@ -35,10 +35,11 @@ class PwaPortalController extends Controller
             ->count();
 
         // Calculate total issued this month
+        // Load voucherEntities relationship to access cash via accessor
         $vouchersIssuedThisMonth = $user->vouchers()
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
-            ->with('cash')
+            ->with('voucherEntities.entity')
             ->get();
 
         $totalIssuedThisMonth = $vouchersIssuedThisMonth->sum(function ($voucher) {
