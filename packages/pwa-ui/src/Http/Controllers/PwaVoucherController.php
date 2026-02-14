@@ -88,7 +88,7 @@ class PwaVoucherController extends Controller
         $voucher = $request->user()
             ->vouchers()
             ->where('code', $code)
-            ->with(['owner', 'inputs'])
+            ->with(['owner', 'inputs', 'redeemers'])
             ->firstOrFail();
 
         // Helper to extract numeric amount from Money object or number
@@ -108,6 +108,16 @@ class PwaVoucherController extends Controller
         };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
         
+        // Get collected form flow data from redeemer metadata if voucher has been redeemed
+        $collectedData = null;
+        if ($voucher->isRedeemed()) {
+            $redeemer = $voucher->redeemers->first();
+            if ($redeemer && isset($redeemer->metadata['redemption']['inputs']['_form_flow_collected_data'])) {
+                $collectedJson = $redeemer->metadata['redemption']['inputs']['_form_flow_collected_data'];
+                $collectedData = json_decode($collectedJson, true);
+            }
+        }
+        
         $data = [
             'voucher' => [
                 'code' => $voucher->code,
@@ -126,7 +136,10 @@ class PwaVoucherController extends Controller
                 'redeem_url' => $this->buildRedemptionUrl($voucher),
                 
                 // Full voucher data for details sheet
-                'full_data' => VoucherData::fromModel($voucher),
+                'full_data' => array_merge(
+                    VoucherData::fromModel($voucher)->toArray(),
+                    ['collected_data' => $collectedData]
+                ),
             ],
         ];
 

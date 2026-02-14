@@ -615,9 +615,7 @@ const displayState = computed(() => {
         <!-- Voucher Details Sheet -->
         <VoucherDetailsSheet
             v-model:open="showDetailsSheet"
-            :voucher-data="voucher"
-            :settlement="settlement"
-            :envelope="envelope"
+            :voucher-data="voucher.full_data || voucher"
         />
     </PwaLayout>
 </template>
