@@ -4,10 +4,12 @@ namespace LBHurtado\PwaUi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Settings\VoucherSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Enums\VoucherType;
 
 class PwaVoucherController extends Controller
 {
@@ -119,9 +121,28 @@ class PwaVoucherController extends Controller
                 'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
                 'locked_at' => $voucher->locked_at?->toIso8601String(),
                 'closed_at' => $voucher->closed_at?->toIso8601String(),
-                'redeem_url' => route('redeem.start', ['code' => $code]),
+                'redeem_url' => $this->buildRedemptionUrl($voucher),
             ],
         ]);
+    }
+
+    /**
+     * Build dynamic redemption URL based on voucher type and settings.
+     */
+    private function buildRedemptionUrl($voucher): string
+    {
+        $settings = app(VoucherSettings::class);
+        $baseUrl = rtrim(config('app.url'), '/');
+        $code = $voucher->code;
+
+        $endpoint = match($voucher->voucher_type) {
+            VoucherType::PAYABLE, VoucherType::SETTLEMENT => 
+                $settings->default_settlement_endpoint,
+            default => 
+                $settings->default_redemption_endpoint,
+        };
+
+        return "{$baseUrl}{$endpoint}?code={$code}";
     }
 
     /**
