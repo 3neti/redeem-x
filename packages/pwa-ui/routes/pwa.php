@@ -6,6 +6,7 @@ use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use LBHurtado\PwaUi\Http\Controllers\PwaPortalController;
 use LBHurtado\PwaUi\Http\Controllers\PwaVoucherController;
 use LBHurtado\PwaUi\Http\Controllers\PwaWalletController;
+use LBHurtado\PwaUi\Http\Controllers\PwaTopUpController;
 use LBHurtado\PwaUi\Http\Controllers\PwaSettingsController;
 
 /*
@@ -39,9 +40,32 @@ Route::middleware(['web', 'auth', ValidateSessionWithWorkOS::class])
         Route::get('/vouchers/{code}', [PwaVoucherController::class, 'show'])
             ->name('vouchers.show');
 
+        Route::post('/vouchers/{code}/lock', [PwaVoucherController::class, 'lock'])
+            ->name('vouchers.lock');
+
+        Route::post('/vouchers/{code}/unlock', [PwaVoucherController::class, 'unlock'])
+            ->name('vouchers.unlock');
+
+        Route::post('/vouchers/{code}/close', [PwaVoucherController::class, 'close'])
+            ->name('vouchers.close');
+
+        Route::post('/vouchers/{code}/cancel', [PwaVoucherController::class, 'cancel'])
+            ->name('vouchers.cancel');
+
+        Route::post('/vouchers/{code}/invalidate', [PwaVoucherController::class, 'invalidate'])
+            ->name('vouchers.invalidate');
+
+        Route::post('/vouchers/{code}/extend-expiration', [PwaVoucherController::class, 'extendExpiration'])
+            ->name('vouchers.extend-expiration');
+
         // Wallet
         Route::get('/wallet', [PwaWalletController::class, 'index'])
             ->name('wallet');
+
+        // Top-Up
+        Route::get('/topup', [PwaTopUpController::class, 'index'])
+            ->middleware('requires.mobile')
+            ->name('topup');
 
         // Settings
         Route::get('/settings', [PwaSettingsController::class, 'index'])

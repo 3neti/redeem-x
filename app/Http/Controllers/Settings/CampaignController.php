@@ -64,6 +64,12 @@ class CampaignController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
+        // If request is from Inertia (PWA or SPA), return success without redirect
+        if ($request->header('X-Inertia')) {
+            return back()->with('success', 'Campaign created successfully.');
+        }
+
+        // Otherwise, redirect to index (traditional browser request)
         return redirect()->route('settings.campaigns.index')
             ->with('success', 'Campaign created successfully.');
     }

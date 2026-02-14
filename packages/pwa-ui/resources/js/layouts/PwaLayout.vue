@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, onMounted } from 'vue';
 import PwaBottomNav from '@/components/PwaBottomNav.vue';
+import { Toaster } from '@/components/ui/toast';
 import { usePwa } from '@/composables/pwa/usePwa';
 import { WifiOff } from 'lucide-vue-next';
 
@@ -55,5 +56,8 @@ onMounted(() => {
 
         <!-- Bottom Navigation -->
         <PwaBottomNav />
+        
+        <!-- Toast Notifications -->
+        <Toaster />
     </div>
 </template>

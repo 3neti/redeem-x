@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
-import { Card, CardContent } from '../../../components/ui/card';
+import VoucherCard from '../../../components/VoucherCard.vue';
 import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Ticket, Plus, Filter } from 'lucide-vue-next';
+import { Ticket, Plus } from 'lucide-vue-next';
 
 interface Voucher {
     code: string;
@@ -28,62 +27,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-    });
-};
-
-const formatAmount = (amount: number | string | null | undefined) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    const validNum = typeof num === 'number' && !isNaN(num) ? num : 0;
-    return validNum.toFixed(2);
-};
-
-const getAmountDisplay = (voucher: Voucher) => {
-    if (voucher.voucher_type === 'settlement' && voucher.target_amount) {
-        // Settlement: Show "loan → payback"
-        return `${formatAmount(voucher.amount)} → ${formatAmount(voucher.target_amount)}`;
-    }
-    // Redeemable and Payable: Show single amount
-    return formatAmount(voucher.amount);
-};
-
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'redeemed':
-            return 'success';
-        case 'pending':
-            return 'warning';
-        default:
-            return 'default';
-    }
-};
-
-const getVoucherTypeColor = (type: string) => {
-    switch (type) {
-        case 'payable':
-            return 'default'; // Blue/gray
-        case 'settlement':
-            return 'secondary'; // Purple/muted
-        case 'redeemable':
-        default:
-            return 'outline'; // Border only
-    }
-};
-
-const getVoucherTypeLabel = (type: string) => {
-    switch (type) {
-        case 'payable':
-            return 'Payable';
-        case 'settlement':
-            return 'Settlement';
-        case 'redeemable':
-        default:
-            return 'Redeemable';
-    }
-};
+// All formatting logic now in VoucherCard component
 
 const setFilter = (filter: string) => {
     router.visit(`/pwa/vouchers?filter=${filter}`, {
@@ -111,32 +55,99 @@ const setFilter = (filter: string) => {
         </header>
 
         <!-- Filters -->
-        <div class="sticky top-[52px] z-30 bg-background border-b px-4 py-2">
-            <div class="flex gap-2">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    :class="{ 'bg-primary text-primary-foreground': filter === 'all' }"
-                    @click="setFilter('all')"
-                >
-                    All
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    :class="{ 'bg-primary text-primary-foreground': filter === 'redeemable' }"
-                    @click="setFilter('redeemable')"
-                >
-                    Redeemable
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    :class="{ 'bg-primary text-primary-foreground': filter === 'redeemed' }"
-                    @click="setFilter('redeemed')"
-                >
-                    Redeemed
-                </Button>
+        <div class="sticky top-[52px] z-30 bg-background border-b">
+            <!-- Status Filters -->
+            <div class="px-4 py-2 border-b">
+                <div class="text-xs font-medium text-muted-foreground mb-2">Status</div>
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'all' }"
+                        @click="setFilter('all')"
+                    >
+                        All
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'active' }"
+                        @click="setFilter('active')"
+                    >
+                        Active
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'redeemed' }"
+                        @click="setFilter('redeemed')"
+                    >
+                        Redeemed
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'expired' }"
+                        @click="setFilter('expired')"
+                    >
+                        Expired
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'locked' }"
+                        @click="setFilter('locked')"
+                    >
+                        Locked
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'cancelled' }"
+                        @click="setFilter('cancelled')"
+                    >
+                        Cancelled
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': filter === 'closed' }"
+                        @click="setFilter('closed')"
+                    >
+                        Closed
+                    </Button>
+                </div>
+            </div>
+            
+            <!-- Type Filters -->
+            <div class="px-4 py-2">
+                <div class="text-xs font-medium text-muted-foreground mb-2">Type</div>
+                <div class="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-redeemable' }"
+                        @click="setFilter('type-redeemable')"
+                    >
+                        Redeemable
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-payable' }"
+                        @click="setFilter('type-payable')"
+                    >
+                        Payable
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-settlement' }"
+                        @click="setFilter('type-settlement')"
+                    >
+                        Settlement
+                    </Button>
+                </div>
             </div>
         </div>
 
@@ -163,31 +174,7 @@ const setFilter = (filter: string) => {
                     :href="`/pwa/vouchers/${voucher.code}`"
                     class="block"
                 >
-                    <Card class="hover:bg-muted/50 transition-colors">
-                        <CardContent class="p-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="font-medium text-sm">{{ voucher.code }}</div>
-                                    <div class="text-xs text-muted-foreground">
-                                        {{ formatDate(voucher.created_at) }}
-                                    </div>
-                                </div>
-                                <div class="text-right space-y-1">
-                                    <div class="font-semibold text-sm">
-                                        {{ voucher.currency }} {{ getAmountDisplay(voucher) }}
-                                    </div>
-                                    <div class="flex gap-1 justify-end">
-                                        <Badge :variant="getVoucherTypeColor(voucher.voucher_type)" class="text-xs">
-                                            {{ getVoucherTypeLabel(voucher.voucher_type) }}
-                                        </Badge>
-                                        <Badge v-if="voucher.status" :variant="getStatusColor(voucher.status)" class="text-xs">
-                                            {{ voucher.status }}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <VoucherCard :voucher="voucher" />
                 </Link>
             </div>
         </div>

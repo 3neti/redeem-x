@@ -3,12 +3,14 @@ import { Link } from '@inertiajs/vue3';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Wallet, Plus, Ticket, AlertCircle, Check } from 'lucide-vue-next';
+import VoucherCard from '../../components/VoucherCard.vue';
+import { Wallet, Plus, Ticket, AlertCircle } from 'lucide-vue-next';
 
 interface Voucher {
     code: string;
     amount: number;
+    target_amount?: number | null;
+    voucher_type: 'redeemable' | 'payable' | 'settlement';
     currency: string;
     status: string;
     redeemed_at: string | null;
@@ -30,29 +32,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-    });
-};
-
-const formatAmount = (amount: number | string | null | undefined) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    const validNum = typeof num === 'number' && !isNaN(num) ? num : 0;
-    return validNum.toFixed(2);
-};
-
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'redeemed':
-            return 'success';
-        case 'pending':
-            return 'warning';
-        default:
-            return 'default';
-    }
-};
+// All formatting logic now in VoucherCard component
 </script>
 
 <template>
@@ -82,7 +62,7 @@ const getStatusColor = (status: string) => {
                 <CardContent>
                     <div class="space-y-4">
                         <div>
-                            <div class="text-3xl font-bold">{{ currency }} {{ formattedBalance }}</div>
+                            <div class="text-3xl font-bold">₱{{ formattedBalance }}</div>
                             <p class="text-sm text-muted-foreground mt-1">Available balance</p>
                         </div>
                         <div class="flex gap-2">
@@ -93,7 +73,7 @@ const getStatusColor = (status: string) => {
                                 </Link>
                             </Button>
                             <Button as-child variant="outline" class="flex-1">
-                                <Link href="/pwa/wallet">
+                                <Link href="/pwa/topup">
                                     <Wallet class="mr-2 h-4 w-4" />
                                     Add Funds
                                 </Link>
@@ -169,22 +149,9 @@ const getStatusColor = (status: string) => {
                             v-for="voucher in recentVouchers"
                             :key="voucher.code"
                             :href="`/pwa/vouchers/${voucher.code}`"
-                            class="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                            class="block"
                         >
-                            <div class="flex-1">
-                                <div class="font-medium text-sm">{{ voucher.code }}</div>
-                                <div class="text-xs text-muted-foreground">
-                                    {{ formatDate(voucher.created_at) }}
-                                </div>
-                            </div>
-                            <div class="text-right space-y-1">
-                                <div class="font-semibold text-sm">
-                                    {{ voucher.currency }} {{ formatAmount(voucher.amount) }}
-                                </div>
-                                <Badge :variant="getStatusColor(voucher.status)" class="text-xs">
-                                    {{ voucher.status }}
-                                </Badge>
-                            </div>
+                            <VoucherCard :voucher="voucher" />
                         </Link>
                     </div>
                 </CardContent>

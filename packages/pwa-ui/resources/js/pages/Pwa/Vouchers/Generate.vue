@@ -10,12 +10,16 @@ import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2 } from 'lucide-vue-next';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2, Trash2, Save } from 'lucide-vue-next';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast/use-toast';
 import NumericKeypad from '@/components/NumericKeypad.vue';
 
@@ -32,11 +36,20 @@ interface InputFieldOption {
   icon?: string;
 }
 
+interface EnvelopeDriver {
+  id: string;
+  version: string;
+  title: string;
+  description: string;
+  key: string;
+}
+
 interface Props {
   campaigns?: Campaign[];
   inputFieldOptions?: InputFieldOption[];
   walletBalance?: number;
   formattedBalance?: string;
+  envelopeDrivers?: EnvelopeDriver[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -44,6 +57,7 @@ const props = withDefaults(defineProps<Props>(), {
   inputFieldOptions: () => [],
   walletBalance: 0,
   formattedBalance: '₱0.00',
+  envelopeDrivers: () => [],
 });
 
 const { toast } = useToast();
@@ -83,6 +97,7 @@ const riderSplashTimeout = ref<number | null>(null);
 
 // Settlement envelope
 const envelopeConfig = ref<any>(null);
+const selectedDriverKey = ref<string>('');
 
 // Rail & Fees
 const settlementRail = ref<'auto' | 'INSTAPAY' | 'PESONET' | null>(null);
@@ -135,6 +150,22 @@ const voucherTypeDisplay = computed(() => {
     case 'settlement': return 'Settlement';
     case 'redeemable': return 'Redeemable';
     default: return 'Redeemable';
+  }
+});
+
+// Dynamic button text based on voucher type
+const generateButtonText = computed(() => {
+  const countText = count.value > 1 ? `${count.value} ` : '';
+  const voucherText = count.value > 1 ? 'Vouchers' : 'Voucher';
+  
+  switch (voucherType.value) {
+    case 'payable':
+      return `Generate ${countText}Payable ${voucherText}`;
+    case 'settlement':
+      return `Generate ${countText}Settlement ${voucherText}`;
+    case 'redeemable':
+    default:
+      return `Generate ${countText}Redeemable ${voucherText}`;
   }
 });
 
@@ -216,7 +247,93 @@ const validationSummary = computed(() => {
     : 'None';
 });
 
-// Feedback summary
+// Feedback validation
+const feedbackEmailError = computed(() => {
+  if (!feedbackEmail.value) return '';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(feedbackEmail.value) ? '' : 'Invalid email address';
+});
+
+const feedbackMobileError = computed(() => {
+  if (!feedbackMobile.value) return '';
+  
+  // Extract digits only to handle various formats
+  const digitsOnly = feedbackMobile.value.replace(/\D/g, '');
+  
+  // Valid formats:
+  // - E.164: +639173011987 (12 digits with +63)
+  // - PH format: 09173011987 (11 digits starting with 0)
+  // - Just digits: 9173011987 (10 digits)
+  
+  // Check if E.164 format
+  if (feedbackMobile.value.startsWith('+63') && digitsOnly.length === 12 && digitsOnly.startsWith('63')) {
+    return ''; // Valid E.164
+  }
+  
+  // Check if PH format (09XXXXXXXXX)
+  if (digitsOnly.length === 11 && digitsOnly.startsWith('09')) {
+    return ''; // Valid PH format
+  }
+  
+  // Check if just 10 digits (9XXXXXXXXX)
+  if (digitsOnly.length === 10 && digitsOnly.startsWith('9')) {
+    return ''; // Valid without country code or leading 0
+  }
+  
+  return 'Invalid mobile number';
+});
+
+const feedbackWebhookError = computed(() => {
+  if (!feedbackWebhook.value) return '';
+  try {
+    const url = new URL(feedbackWebhook.value);
+    return (url.protocol === 'http:' || url.protocol === 'https:') ? '' : 'Must be HTTP or HTTPS URL';
+  } catch {
+    return 'Invalid URL format';
+  }
+});
+
+const hasFeedbackErrors = computed(() => {
+  return !!feedbackEmailError.value || !!feedbackMobileError.value || !!feedbackWebhookError.value;
+});
+
+// Feedback badges with actual values
+const feedbackBadges = computed(() => {
+  const badges: { label: string; value: string; variant?: string }[] = [];
+  const { formatForDisplay } = usePhoneFormat();
+  
+  if (feedbackEmail.value && !feedbackEmailError.value) {
+    badges.push({
+      label: 'Email',
+      value: feedbackEmail.value,
+      variant: 'secondary'
+    });
+  }
+  
+  if (feedbackMobile.value && !feedbackMobileError.value) {
+    badges.push({
+      label: 'SMS',
+      value: formatForDisplay(feedbackMobile.value),
+      variant: 'secondary'
+    });
+  }
+  
+  if (feedbackWebhook.value && !feedbackWebhookError.value) {
+    // Truncate long URLs
+    const displayUrl = feedbackWebhook.value.length > 30 
+      ? feedbackWebhook.value.substring(0, 30) + '...' 
+      : feedbackWebhook.value;
+    badges.push({
+      label: 'Webhook',
+      value: displayUrl,
+      variant: 'secondary'
+    });
+  }
+  
+  return badges;
+});
+
+// Feedback summary (for backward compatibility)
 const feedbackSummary = computed(() => {
   const parts = [];
   if (feedbackEmail.value) parts.push('Email');
@@ -265,6 +382,25 @@ const payeeTypeDescription = computed(() => {
   }
 });
 
+// Rider config summary
+const riderConfigSummary = computed(() => {
+  const items = [];
+  if (riderMessage.value) items.push('Message');
+  if (riderUrl.value) items.push('URL');
+  if (riderSplash.value) items.push('Splash');
+  return items.length > 0 ? items.join(', ') : 'Not configured';
+});
+
+// Envelope config summary
+const envelopeConfigSummary = computed(() => {
+  if (!envelopeConfig.value) return 'Not configured';
+  if (selectedDriverKey.value) {
+    const driver = props.envelopeDrivers.find(d => d.key === selectedDriverKey.value);
+    return driver ? `${driver.title} (${driver.version})` : 'Configured';
+  }
+  return 'Configured';
+});
+
 // Campaign display
 const campaignDisplay = computed(() => {
   return selectedCampaign.value?.name || 'No campaign';
@@ -303,6 +439,17 @@ const canGenerate = computed(() => {
     return amount.value !== null && amount.value > 0 && targetAmount.value !== null && targetAmount.value > 0;
   }
   return false;
+});
+
+// ============================================================================
+// WATCHERS
+// ============================================================================
+
+// Auto-select first driver when envelope is enabled
+watch(envelopeConfig, (newValue) => {
+  if (newValue && !selectedDriverKey.value && props.envelopeDrivers.length > 0) {
+    selectedDriverKey.value = props.envelopeDrivers[0].key;
+  }
 });
 
 // ============================================================================
@@ -418,6 +565,17 @@ const handleGenerate = async () => {
     }
     if (feeStrategy.value !== 'absorb') {
       requestData.fee_strategy = feeStrategy.value;
+    }
+    
+    // Add envelope config
+    if (envelopeConfig.value && selectedDriverKey.value) {
+      const [driverId, driverVersion] = selectedDriverKey.value.split('@');
+      requestData.envelope = {
+        enabled: true,
+        driver_id: driverId,
+        driver_version: driverVersion,
+        initial_payload: {},
+      };
     }
     
     const headers: Record<string, string> = {
@@ -559,6 +717,192 @@ const clearRider = () => {
   riderRedirectTimeout.value = null;
   riderSplash.value = '';
   riderSplashTimeout.value = null;
+};
+
+// Clear all instructions
+const clearAllInstructions = () => {
+  // Clear input fields (except auto-added ones)
+  selectedInputFields.value = selectedInputFields.value.filter(field => 
+    autoAddedFields.value.has(field)
+  );
+  
+  // Clear validation
+  validationSecret.value = '';
+  locationValidation.value = { latitude: null, longitude: null, radius: null };
+  timeValidation.value = { start_time: '', end_time: '', timezone: 'Asia/Manila' };
+  payee.value = '';
+  
+  // Clear feedback
+  feedbackEmail.value = '';
+  feedbackMobile.value = '';
+  feedbackWebhook.value = '';
+  
+  // Clear rider
+  clearRider();
+  
+  // Clear envelope
+  envelopeConfig.value = null;
+  selectedDriverKey.value = '';
+  
+  // Clear rail & fees (reset to defaults)
+  settlementRail.value = null;
+  feeStrategy.value = 'absorb';
+  
+  // Clear campaign selection
+  selectedCampaignId.value = '';
+  selectedCampaign.value = null;
+  
+  // Clear localStorage
+  clearSavedState();
+  
+  // Close options menu
+  sheetState.value.options.open = false;
+  
+  toast({
+    title: 'All cleared',
+    description: 'All instructions and settings have been reset',
+  });
+};
+
+// Save as campaign
+const saveCampaignLoading = ref(false);
+const saveCampaignName = ref('');
+const showSaveCampaignDialog = ref(false);
+
+const openSaveCampaignDialog = () => {
+  // Generate default name with timestamp
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  saveCampaignName.value = `Campaign ${dateStr} ${timeStr}`;
+  showSaveCampaignDialog.value = true;
+  sheetState.value.options.open = false;
+};
+
+const saveAsCampaign = async () => {
+  if (!saveCampaignName.value.trim()) {
+    toast({
+      title: 'Name required',
+      description: 'Please enter a campaign name',
+      variant: 'destructive',
+    });
+    return;
+  }
+  
+  saveCampaignLoading.value = true;
+  
+  // Build instructions object - MUST match VoucherInstructionsData::rules() structure
+  const instructions: any = {
+      // Cash section (required)
+      cash: {
+        amount: amount.value || 0,
+        currency: 'PHP',
+        settlement_rail: settlementRail.value || null,
+        fee_strategy: feeStrategy.value || 'absorb',
+        validation: {
+          secret: validationSecret.value || null,
+          mobile: (payeeType.value === 'mobile' ? normalizedPayee.value : null) || null,
+          payable: (payeeType.value === 'vendor' ? normalizedPayee.value : null) || null,
+          country: null,
+          location: null,
+          radius: null,
+        },
+      },
+      
+      // Inputs (required object)
+      inputs: {
+        fields: selectedInputFields.value.filter(f => !autoAddedFields.value.has(f)),
+      },
+      
+      // Feedback (required object)
+      feedback: {
+        email: feedbackEmail.value || null,
+        mobile: feedbackMobile.value || null,
+        webhook: feedbackWebhook.value || null,
+      },
+      
+      // Rider (required object)
+      rider: {
+        message: riderMessage.value || null,
+        url: riderUrl.value || null,
+        redirect_timeout: riderRedirectTimeout.value,
+        splash: riderSplash.value || null,
+        splash_timeout: riderSplashTimeout.value,
+      },
+      
+      // Required fields
+      count: count.value || 1,
+      prefix: null,
+      mask: null,
+      ttl: null,
+      
+      // Optional voucher type fields
+      voucher_type: voucherType.value !== 'redeemable' ? voucherType.value : null,
+      target_amount: targetAmount.value || null,
+      rules: null,
+    };
+    
+    // Add validation section if any rules exist
+    if (locationValidation.value?.latitude && locationValidation.value?.longitude) {
+      if (!instructions.validation) instructions.validation = {};
+      instructions.validation.location = {
+        required: true,
+        target_lat: locationValidation.value.latitude,
+        target_lng: locationValidation.value.longitude,
+        radius_meters: locationValidation.value.radius || 100,
+        on_failure: 'block',
+      };
+    }
+    if (timeValidation.value?.start_time && timeValidation.value?.end_time) {
+      if (!instructions.validation) instructions.validation = {};
+      instructions.validation.time = {
+        window: {
+          start_time: timeValidation.value.start_time,
+          end_time: timeValidation.value.end_time,
+          timezone: timeValidation.value.timezone || 'Asia/Manila',
+        },
+        limit_minutes: null,
+        track_duration: true,
+      };
+    }
+    
+    // Save campaign via Inertia router (handles redirects properly)
+    router.post('/settings/campaigns', 
+      {
+        name: saveCampaignName.value.trim(),
+        status: 'active', // Required: draft, active, or archived
+        instructions,
+      },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+          toast({
+            title: 'Campaign saved',
+            description: `"${saveCampaignName.value}" has been saved`,
+          });
+          
+          showSaveCampaignDialog.value = false;
+          saveCampaignName.value = '';
+          
+          // Reload campaigns list
+          router.reload({ only: ['campaigns'] });
+        },
+        onError: (errors) => {
+          console.error('[Campaign Save Error]', errors);
+          
+          const errorMessage = Object.values(errors).flat().join(', ');
+          toast({
+            title: 'Save failed',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+        },
+        onFinish: () => {
+          saveCampaignLoading.value = false;
+        },
+      }
+    );
 };
 
 // Reset state
@@ -776,12 +1120,24 @@ watch(payeeType, (newType, oldType) => {
           </div>
 
           <!-- Feedback -->
-          <div class="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('feedback')">
-            <div>
+          <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('feedback')">
+            <div class="flex items-center justify-between mb-2">
               <p class="text-xs text-muted-foreground">Notifications</p>
-              <p class="text-sm font-medium">{{ feedbackSummary }}</p>
+              <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
-            <Plus class="h-4 w-4 text-muted-foreground" />
+            <div v-if="feedbackBadges.length === 0" class="text-sm font-medium text-muted-foreground">
+              None
+            </div>
+            <div v-else class="flex flex-wrap gap-1">
+              <Badge 
+                v-for="(badge, index) in feedbackBadges" 
+                :key="index" 
+                :variant="badge.variant || 'secondary'" 
+                class="text-xs"
+              >
+                {{ badge.label }}: {{ badge.value }}
+              </Badge>
+            </div>
           </div>
         </div>
 
@@ -835,7 +1191,7 @@ watch(payeeType, (newType, oldType) => {
           @click="handleGenerate"
         >
           <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Generate {{ count > 1 ? `${count} Vouchers` : 'Voucher' }}
+          {{ generateButtonText }}
         </Button>
       </div>
     </div>
@@ -852,22 +1208,95 @@ watch(payeeType, (newType, oldType) => {
           <SheetDescription>Configure your voucher</SheetDescription>
         </SheetHeader>
         <div class="space-y-2 py-4">
-          <Button variant="ghost" class="w-full justify-start" @click="openSheet('campaign')">
-            Campaign Template
-          </Button>
-          <Button variant="ghost" class="w-full justify-start" @click="openSheet('voucherType')">
-            Voucher Type
-          </Button>
-          <Button variant="ghost" class="w-full justify-start" @click="openSheet('rider')">
-            Rider Config
-          </Button>
-          <Button variant="ghost" class="w-full justify-start" @click="openSheet('envelope')">
-            Settlement Envelope
-          </Button>
-          <Button variant="ghost" class="w-full justify-start" @click="openSheet('railFees')">
-            Rail & Fees
-          </Button>
+          <!-- Campaign Template -->
+          <button
+            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+            @click="openSheet('campaign')"
+          >
+            <div class="flex-1">
+              <div class="font-medium text-sm">Campaign Template</div>
+              <div class="text-xs text-muted-foreground mt-0.5">{{ campaignDisplay }}</div>
+            </div>
+            <Badge v-if="selectedCampaign" variant="secondary" class="ml-2">Selected</Badge>
+          </button>
+          
+          <!-- Voucher Type -->
+          <button
+            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+            @click="openSheet('voucherType')"
+          >
+            <div class="flex-1">
+              <div class="font-medium text-sm">Voucher Type</div>
+              <div class="text-xs text-muted-foreground mt-0.5">{{ voucherTypeDisplay }}</div>
+            </div>
+            <Badge variant="default" class="ml-2">{{ voucherTypeDisplay }}</Badge>
+          </button>
+          
+          <!-- Rider Config -->
+          <button
+            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+            @click="openSheet('rider')"
+          >
+            <div class="flex-1">
+              <div class="font-medium text-sm">Rider Config</div>
+              <div class="text-xs text-muted-foreground mt-0.5">
+                {{ riderConfigSummary }}
+              </div>
+            </div>
+            <Badge v-if="riderMessage || riderUrl || riderSplash" variant="secondary" class="ml-2">Active</Badge>
+          </button>
+          
+          <!-- Settlement Envelope -->
+          <button
+            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+            @click="openSheet('envelope')"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-sm">Settlement Envelope</div>
+              <div class="text-xs text-muted-foreground mt-0.5 truncate">
+                {{ envelopeConfigSummary }}
+              </div>
+            </div>
+            <Badge v-if="envelopeConfig" variant="secondary" class="ml-2 flex-shrink-0">Active</Badge>
+          </button>
+          
+          <!-- Rail & Fees -->
+          <button
+            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+            @click="openSheet('railFees')"
+          >
+            <div class="flex-1">
+              <div class="font-medium text-sm">Rail & Fees</div>
+              <div class="text-xs text-muted-foreground mt-0.5">
+                {{ settlementRail || 'Auto' }} • {{ feeStrategy === 'absorb' ? 'Absorb fees' : feeStrategy === 'include' ? 'Include in amount' : 'Add to amount' }}
+              </div>
+            </div>
+            <Badge variant="outline" class="ml-2">{{ settlementRail || 'Auto' }}</Badge>
+          </button>
         </div>
+        
+        <!-- Action Buttons -->
+        <div class="py-4 px-1 space-y-2 border-t">
+          <div class="grid grid-cols-2 gap-2">
+            <Button 
+              variant="outline" 
+              class="w-full" 
+              @click="openSaveCampaignDialog"
+            >
+              <Save class="mr-2 h-4 w-4" />
+              Save as Campaign
+            </Button>
+            <Button 
+              variant="outline" 
+              class="w-full text-destructive hover:text-destructive" 
+              @click="clearAllInstructions"
+            >
+              <Trash2 class="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+          </div>
+        </div>
+        
         <SheetFooter>
           <Button variant="outline" class="w-full" @click="sheetState.options.open = false">
             Close
@@ -875,6 +1304,48 @@ watch(payeeType, (newType, oldType) => {
         </SheetFooter>
       </SheetContent>
     </Sheet>
+    
+    <!-- Save Campaign Dialog -->
+    <Dialog v-model:open="showSaveCampaignDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save as Campaign</DialogTitle>
+          <DialogDescription>
+            Save your current configuration as a reusable campaign template
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4 py-4">
+          <div class="space-y-2">
+            <Label for="campaign-name">Campaign Name</Label>
+            <Input
+              id="campaign-name"
+              v-model="saveCampaignName"
+              placeholder="Enter campaign name"
+              @keyup.enter="saveAsCampaign"
+            />
+          </div>
+          <div class="text-sm text-muted-foreground">
+            This will save your current inputs, validation, feedback, rider, and other settings.
+          </div>
+        </div>
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            @click="showSaveCampaignDialog = false"
+            :disabled="saveCampaignLoading"
+          >
+            Cancel
+          </Button>
+          <Button 
+            @click="saveAsCampaign"
+            :disabled="saveCampaignLoading"
+          >
+            <Loader2 v-if="saveCampaignLoading" class="mr-2 h-4 w-4 animate-spin" />
+            Save Campaign
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Campaign Selection Sheet (Phase 3) -->
     <Sheet v-model:open="sheetState.campaign.open">
@@ -1367,63 +1838,50 @@ watch(payeeType, (newType, oldType) => {
         <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
           <!-- Email Notification -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <Label for="feedback-email">Email Notification</Label>
-              <Checkbox
-                :checked="!!feedbackEmail"
-                @update:checked="(checked) => !checked && (feedbackEmail = '')"
-              />
-            </div>
+            <Label for="feedback-email">Email Notification</Label>
             <Input
               id="feedback-email"
               v-model="feedbackEmail"
               type="email"
               placeholder="recipient@example.com"
-              :disabled="!feedbackEmail && feedbackEmail === ''"
+              :class="{ 'border-red-500': feedbackEmailError }"
             />
-            <p class="text-xs text-muted-foreground">
+            <p v-if="feedbackEmailError" class="text-xs text-red-600">
+              {{ feedbackEmailError }}
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
               Send redemption notification to this email
             </p>
           </div>
           
           <!-- SMS Notification -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <Label for="feedback-mobile">SMS Notification</Label>
-              <Checkbox
-                :checked="!!feedbackMobile"
-                @update:checked="(checked) => !checked && (feedbackMobile = '')"
-              />
-            </div>
-            <Input
+            <Label for="feedback-mobile">SMS Notification</Label>
+            <PhoneInput
               id="feedback-mobile"
               v-model="feedbackMobile"
-              type="tel"
-              placeholder="09171234567"
-              :disabled="!feedbackMobile && feedbackMobile === ''"
+              placeholder="(917) 301-1987"
+              :error="feedbackMobileError"
             />
-            <p class="text-xs text-muted-foreground">
+            <p v-if="!feedbackMobileError" class="text-xs text-muted-foreground">
               Send SMS notification to this mobile number
             </p>
           </div>
           
           <!-- Webhook Notification -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <Label for="feedback-webhook">Webhook URL</Label>
-              <Checkbox
-                :checked="!!feedbackWebhook"
-                @update:checked="(checked) => !checked && (feedbackWebhook = '')"
-              />
-            </div>
+            <Label for="feedback-webhook">Webhook URL</Label>
             <Input
               id="feedback-webhook"
               v-model="feedbackWebhook"
               type="url"
               placeholder="https://your-server.com/webhook"
-              :disabled="!feedbackWebhook && feedbackWebhook === ''"
+              :class="{ 'border-red-500': feedbackWebhookError }"
             />
-            <p class="text-xs text-muted-foreground">
+            <p v-if="feedbackWebhookError" class="text-xs text-red-600">
+              {{ feedbackWebhookError }}
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
               POST redemption data to this endpoint
             </p>
           </div>
@@ -1458,7 +1916,7 @@ watch(payeeType, (newType, oldType) => {
           <Button variant="outline" @click="sheetState.feedback.open = false" class="flex-1">
             Cancel
           </Button>
-          <Button @click="sheetState.feedback.open = false" class="flex-1">
+          <Button @click="sheetState.feedback.open = false" class="flex-1" :disabled="hasFeedbackErrors">
             Apply
           </Button>
         </SheetFooter>
@@ -1586,45 +2044,129 @@ watch(payeeType, (newType, oldType) => {
     
     <!-- Envelope Sheet (Phase 9 - Conditional for payable/settlement) -->
     <Sheet v-model:open="sheetState.envelope.open">
-      <SheetContent side="bottom" class="h-auto max-h-[70vh] flex flex-col">
+      <SheetContent side="bottom" class="h-auto max-h-[75vh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Settlement Envelope</SheetTitle>
           <SheetDescription>
-            Configure settlement envelope for tracking and documentation
+            Attach an evidence envelope for tracking and documentation
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
           <div v-if="voucherType === 'payable' || voucherType === 'settlement'">
-            <p class="text-sm text-muted-foreground mb-4">
-              Settlement envelopes are automatically created for {{ voucherType }} vouchers.
-              You can configure additional settings here.
-            </p>
-            
-            <!-- Simple envelope toggle -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <Label>Enable Settlement Envelope</Label>
-                <Checkbox
-                  :checked="!!envelopeConfig"
-                  @update:checked="(checked) => envelopeConfig = checked ? {} : null"
-                />
+            <!-- Toggle Card (matching desktop design) -->
+            <div class="border rounded-lg">
+              <!-- Header with toggle -->
+              <div class="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                <div class="flex items-center gap-3 flex-1">
+                  <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span class="text-xl">📋</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-sm">Settlement Envelope</h3>
+                    <p class="text-xs text-muted-foreground truncate">
+                      {{ envelopeConfig ? 'Tracking enabled' : 'Attach an evidence envelope' }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <Label for="envelope-enabled" class="text-xs text-muted-foreground">
+                    {{ envelopeConfig ? 'Enabled' : 'Disabled' }}
+                  </Label>
+                  <Switch
+                    id="envelope-enabled"
+                    :checked="!!envelopeConfig"
+                    @update:checked="(checked) => envelopeConfig = checked ? {} : null"
+                  />
+                </div>
               </div>
-              <p class="text-xs text-muted-foreground">
-                Track payments and documents in a settlement envelope
-              </p>
-            </div>
-            
-            <div v-if="envelopeConfig" class="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <p class="text-sm font-medium mb-1">✓ Envelope Enabled</p>
-              <p class="text-xs text-muted-foreground">
-                Default envelope driver will be used. Configure advanced options in desktop version.
-              </p>
+              
+              <!-- Expanded content when enabled -->
+              <div v-if="envelopeConfig" class="px-4 pb-4 space-y-4 border-t pt-4">
+                <!-- Driver Selection -->
+                <div class="space-y-2">
+                  <Label for="envelope-driver">Envelope Driver</Label>
+                  <Select v-model="selectedDriverKey">
+                    <SelectTrigger id="envelope-driver">
+                      <SelectValue placeholder="Select driver..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="driver in envelopeDrivers"
+                        :key="driver.key"
+                        :value="driver.key"
+                      >
+                        {{ driver.title }} ({{ driver.version }})
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p class="text-xs text-muted-foreground">
+                    {{ envelopeDrivers.find(d => d.key === selectedDriverKey)?.description || 'Select a driver to track payments and documents' }}
+                  </p>
+                </div>
+                
+                <!-- Info Card -->
+                <div v-if="selectedDriverKey" class="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div class="flex items-start gap-2">
+                    <div class="mt-0.5 h-5 w-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs">✓</span>
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium">Envelope Tracking Enabled</p>
+                      <p class="text-xs text-muted-foreground mt-1">
+                        Using {{ envelopeDrivers.find(d => d.key === selectedDriverKey)?.title || 'selected driver' }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Features list -->
+                <div class="space-y-2">
+                  <p class="text-xs font-medium text-muted-foreground">Features:</p>
+                  <div class="space-y-1.5">
+                    <div class="flex items-center gap-2 text-xs">
+                      <div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span class="text-muted-foreground">Automatic payment tracking</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span class="text-muted-foreground">Document upload support</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span class="text-muted-foreground">Settlement status monitoring</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span class="text-muted-foreground">Evidence checklist workflow</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Note -->
+                <div class="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                  <p class="font-medium mb-1">💡 Advanced Configuration</p>
+                  <p>Envelopes track evidence, approvals, and documents before settlement. Configure custom drivers and workflows in the desktop version.</p>
+                </div>
+              </div>
+              
+              <!-- Disabled info -->
+              <div v-else class="px-4 pb-4 pt-4 border-t">
+                <p class="text-sm text-muted-foreground">
+                  Enable to attach a settlement envelope to vouchers. Envelopes track evidence, approvals, and documents before settlement.
+                </p>
+              </div>
             </div>
           </div>
           
-          <div v-else class="py-8 text-center">
-            <p class="text-sm text-muted-foreground">Settlement envelopes are only available for payable and settlement vouchers</p>
+          <div v-else class="py-12 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <span class="text-2xl">📋</span>
+            </div>
+            <p class="text-sm font-medium">Settlement Envelopes Not Available</p>
+            <p class="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
+              Settlement envelopes are only available for payable and settlement vouchers
+            </p>
           </div>
         </div>
         

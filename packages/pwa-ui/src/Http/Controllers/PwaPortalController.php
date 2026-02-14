@@ -28,15 +28,28 @@ class PwaPortalController extends Controller
             ->take(5)
             ->get()
             ->map(function ($voucher) {
-                $amount = $voucher->cash?->amount ?? 0;
-                // Cast to float in case it's a Decimal or Money object
-                $amountFloat = is_numeric($amount) ? (float) $amount : 0;
+                // Helper to extract amount from Money object
+                $extractAmount = function ($moneyOrValue) {
+                    if ($moneyOrValue instanceof \Brick\Money\Money) {
+                        return $moneyOrValue->getAmount()->toFloat();
+                    }
+                    return is_numeric($moneyOrValue) ? (float) $moneyOrValue : 0;
+                };
+                
+                // Extract amount based on voucher type
+                $amount = match ($voucher->voucher_type) {
+                    'payable' => $extractAmount($voucher->target_amount ?? 0),
+                    'settlement' => $extractAmount($voucher->cash?->amount ?? 0), // Show loan amount
+                    default => $extractAmount($voucher->cash?->amount ?? 0), // redeemable
+                };
                 
                 return [
                     'code' => $voucher->code,
-                    'amount' => $amountFloat,
+                    'amount' => $amount,
+                    'target_amount' => $voucher->target_amount ? $extractAmount($voucher->target_amount) : null,
                     'currency' => $voucher->cash?->currency ?? 'PHP',
                     'status' => $voucher->status,
+                    'voucher_type' => $voucher->voucher_type,
                     'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
                     'created_at' => $voucher->created_at->toIso8601String(),
                 ];

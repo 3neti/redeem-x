@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { Ticket, Share2, Copy, ArrowLeft } from 'lucide-vue-next';
+import { Ticket, Share2, Copy, ArrowLeft, Ban, Clock, Calendar } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useVoucherQr } from '@/composables/useVoucherQr';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { useToast } from '@/components/ui/toast/use-toast';
+import VoucherStateManager from '../../../components/VoucherStateManager.vue';
 
 interface Props {
     voucher: {
@@ -17,6 +23,7 @@ interface Props {
         voucher_type: 'redeemable' | 'payable' | 'settlement';
         currency: string;
         status: string;
+        state?: 'active' | 'locked' | 'closed' | 'cancelled' | 'expired';
         created_at: string;
         starts_at: string | null;
         expires_at: string | null;
@@ -30,6 +37,26 @@ interface Props {
 const props = defineProps<Props>();
 const copied = ref(false);
 const page = usePage();
+const { toast } = useToast();
+
+// Invalidate dialog
+const showInvalidateDialog = ref(false);
+const invalidating = ref(false);
+
+// Lock dialog
+const showLockDialog = ref(false);
+const locking = ref(false);
+
+// Close dialog  
+const showCloseDialog = ref(false);
+const closing = ref(false);
+
+// Extend expiration dialog
+const showExtendDialog = ref(false);
+const extending = ref(false);
+const extensionType = ref<'hours' | 'days' | 'weeks' | 'months' | 'years' | 'date'>('days');
+const extensionValue = ref<number>(1);
+const newDate = ref<string>('');
 
 // Get redemption endpoint from shared props (configured in VoucherSettings)
 const redemptionEndpoint = computed(() => 
@@ -102,7 +129,10 @@ const formatDate = (dateString: string) => {
 const formatAmount = (amount: number | string | null | undefined) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     const validNum = typeof num === 'number' && !isNaN(num) ? num : 0;
-    return validNum.toFixed(2);
+    return new Intl.NumberFormat('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(validNum);
 };
 
 const getStatusColor = (status: string) => {
@@ -139,6 +169,183 @@ const getVoucherTypeLabel = (type: string) => {
             return 'Redeemable';
     }
 };
+
+const handleInvalidate = () => {
+    invalidating.value = true;
+    router.post(
+        `/pwa/vouchers/${props.voucher.code}/invalidate`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: 'Voucher invalidated',
+                    description: `${props.voucher.code} has been invalidated`,
+                });
+                showInvalidateDialog.value = false;
+            },
+            onError: (errors) => {
+                toast({
+                    title: 'Failed to invalidate',
+                    description: Object.values(errors).flat().join(', '),
+                    variant: 'destructive',
+                });
+            },
+            onFinish: () => {
+                invalidating.value = false;
+            },
+        }
+    );
+};
+
+const handleLock = () => {
+    locking.value = true;
+    router.post(
+        `/pwa/vouchers/${props.voucher.code}/lock`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: 'Voucher locked',
+                    description: `${props.voucher.code} has been locked`,
+                });
+                showLockDialog.value = false;
+            },
+            onError: (errors) => {
+                toast({
+                    title: 'Failed to lock',
+                    description: Object.values(errors).flat().join(', '),
+                    variant: 'destructive',
+                });
+            },
+            onFinish: () => {
+                locking.value = false;
+            },
+        }
+    );
+};
+
+const handleClose = () => {
+    closing.value = true;
+    router.post(
+        `/pwa/vouchers/${props.voucher.code}/close`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: 'Voucher closed',
+                    description: `${props.voucher.code} has been closed`,
+                });
+                showCloseDialog.value = false;
+            },
+            onError: (errors) => {
+                toast({
+                    title: 'Failed to close',
+                    description: Object.values(errors).flat().join(', '),
+                    variant: 'destructive',
+                });
+            },
+            onFinish: () => {
+                closing.value = false;
+            },
+        }
+    );
+};
+
+const handleExtendExpiration = () => {
+    extending.value = true;
+    
+    const payload: any = {
+        extension_type: extensionType.value,
+    };
+    
+    if (extensionType.value === 'date') {
+        payload.new_date = newDate.value;
+    } else {
+        payload.extension_value = extensionValue.value;
+    }
+    
+    router.post(
+        `/pwa/vouchers/${props.voucher.code}/extend-expiration`,
+        payload,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: 'Expiration extended',
+                    description: `${props.voucher.code} expiration has been updated`,
+                });
+                showExtendDialog.value = false;
+            },
+            onError: (errors) => {
+                toast({
+                    title: 'Failed to extend',
+                    description: Object.values(errors).flat().join(', '),
+                    variant: 'destructive',
+                });
+            },
+            onFinish: () => {
+                extending.value = false;
+            },
+        }
+    );
+};
+
+const canManageVoucher = computed(() => {
+    // Can manage if not redeemed and not closed
+    return !props.voucher.redeemed_at && !props.voucher.closed_at;
+});
+
+const getStateColor = (state?: string) => {
+    switch (state) {
+        case 'active':
+            return 'default'; // Blue/primary
+        case 'locked':
+            return 'secondary'; // Gray/muted (closest to warning)
+        case 'closed':
+            return 'secondary'; // Gray/muted
+        case 'cancelled':
+            return 'destructive'; // Red
+        case 'expired':
+            return 'outline'; // Border only
+        default:
+            return 'default';
+    }
+};
+
+const getStateLabel = (state?: string) => {
+    switch (state) {
+        case 'active':
+            return 'Active';
+        case 'locked':
+            return 'Locked';
+        case 'closed':
+            return 'Closed';
+        case 'cancelled':
+            return 'Cancelled';
+        case 'expired':
+            return 'Expired';
+        default:
+            return state;
+    }
+};
+
+const isExpired = computed(() => {
+    if (!props.voucher.expires_at) return false;
+    return new Date(props.voucher.expires_at) < new Date();
+});
+
+const displayState = computed(() => {
+    // Priority: Manual states (cancelled, locked, closed) > expired > active
+    if (props.voucher.state && props.voucher.state !== 'active') {
+        return props.voucher.state; // Show manual state (cancelled, locked, closed)
+    }
+    // Only show expired if state is still active
+    if (isExpired.value) return 'expired';
+    return 'active';
+});
 </script>
 
 <template>
@@ -168,12 +375,15 @@ const getVoucherTypeLabel = (type: string) => {
                         </div>
                         <div>
                             <div class="text-2xl font-bold">{{ voucher.code }}</div>
-                            <div class="flex gap-2 justify-center mt-2">
+                            <div class="flex gap-2 justify-center mt-2 flex-wrap">
                                 <Badge :variant="getVoucherTypeColor(voucher.voucher_type)">
                                     {{ getVoucherTypeLabel(voucher.voucher_type) }}
                                 </Badge>
-                                <Badge v-if="voucher.status" :variant="getStatusColor(voucher.status)">
-                                    {{ voucher.status }}
+                                <Badge :variant="getStateColor(displayState)">
+                                    {{ getStateLabel(displayState) }}
+                                </Badge>
+                                <Badge v-if="voucher.redeemed_at" variant="default">
+                                    Redeemed
                                 </Badge>
                             </div>
                         </div>
@@ -248,6 +458,24 @@ const getVoucherTypeLabel = (type: string) => {
                 </Button>
             </div>
 
+            <!-- Management Controls -->
+            <div v-if="canManageVoucher" class="flex gap-2">
+                <VoucherStateManager
+                    :voucher-code="voucher.code"
+                    :current-state="voucher.state"
+                    :can-manage="canManageVoucher"
+                    class="flex-1"
+                />
+                <Button
+                    @click="showExtendDialog = true"
+                    variant="outline"
+                    class="flex-1"
+                >
+                    <Clock class="mr-2 h-4 w-4" />
+                    Extend Expiration
+                </Button>
+            </div>
+
             <!-- QR Code -->
             <Card>
                 <CardHeader>
@@ -278,5 +506,95 @@ const getVoucherTypeLabel = (type: string) => {
                 </CardContent>
             </Card>
         </div>
+
+        <!-- Invalidate Dialog -->
+        <Dialog v-model:open="showInvalidateDialog">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Invalidate Voucher?</DialogTitle>
+                    <DialogDescription>
+                        This will mark the voucher as expired immediately. This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        @click="showInvalidateDialog = false"
+                        :disabled="invalidating"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        @click="handleInvalidate"
+                        :disabled="invalidating"
+                    >
+                        {{ invalidating ? 'Invalidating...' : 'Invalidate' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Extend Expiration Dialog -->
+        <Dialog v-model:open="showExtendDialog">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Extend Expiration</DialogTitle>
+                    <DialogDescription>
+                        Choose how to extend the voucher's expiration date.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="space-y-4 py-4">
+                    <div class="space-y-2">
+                        <Label>Extension Type</Label>
+                        <Select v-model="extensionType">
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="hours">Hours</SelectItem>
+                                <SelectItem value="days">Days</SelectItem>
+                                <SelectItem value="weeks">Weeks</SelectItem>
+                                <SelectItem value="months">Months</SelectItem>
+                                <SelectItem value="years">Years</SelectItem>
+                                <SelectItem value="date">Specific Date</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div v-if="extensionType === 'date'" class="space-y-2">
+                        <Label>New Expiration Date</Label>
+                        <Input
+                            type="datetime-local"
+                            v-model="newDate"
+                            :min="new Date().toISOString().slice(0, 16)"
+                        />
+                    </div>
+                    <div v-else class="space-y-2">
+                        <Label>Number of {{ extensionType }}</Label>
+                        <Input
+                            type="number"
+                            v-model="extensionValue"
+                            :min="1"
+                            placeholder="Enter amount"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        @click="showExtendDialog = false"
+                        :disabled="extending"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        @click="handleExtendExpiration"
+                        :disabled="extending"
+                    >
+                        {{ extending ? 'Extending...' : 'Extend' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </PwaLayout>
 </template>

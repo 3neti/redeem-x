@@ -18,29 +18,26 @@ class PwaWalletController extends Controller
         $wallet = $user->wallet;
         $balance = $wallet ? $wallet->balanceFloat : 0;
 
-        // Get recent top-ups
-        $topUps = $user->topUps()
+        // Get recent transactions (last 10)
+        $recentTransactions = $user->walletTransactions()
             ->latest()
-            ->take(10)
+            ->limit(10)
             ->get()
-            ->map(function ($topUp) {
-                $amount = $topUp->amount;
-                $amountFloat = is_numeric($amount) ? (float) $amount : 0;
-                
+            ->map(function ($tx) {
                 return [
-                    'reference' => $topUp->reference,
-                    'amount' => $amountFloat,
-                    'currency' => $topUp->currency,
-                    'status' => $topUp->status,
-                    'created_at' => $topUp->created_at->toIso8601String(),
+                    'id' => $tx->id,
+                    'type' => $tx->type,
+                    'amount' => $tx->amountFloat, // Use Bavix Wallet's built-in accessor
+                    'confirmed' => $tx->confirmed,
+                    'created_at' => $tx->created_at->toIso8601String(),
+                    'meta' => $tx->meta,
                 ];
             });
 
         return Inertia::render('Pwa/Wallet', [
             'balance' => $balance,
             'formattedBalance' => number_format($balance, 2),
-            'currency' => 'PHP',
-            'topUps' => $topUps,
+            'recentTransactions' => $recentTransactions,
         ]);
     }
 }

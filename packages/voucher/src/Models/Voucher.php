@@ -61,6 +61,22 @@ class Voucher extends BaseVoucher implements HasMedia, InputInterface
 
     protected string $dataClass = VoucherData::class;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * Extends parent's fillable array to include state management fields.
+     */
+    protected $fillable = [
+        'code',
+        'metadata',
+        'starts_at',
+        'expires_at',
+        'redeemed_at',
+        'state',  // Allow state to be mass-assigned
+        'locked_at',
+        'closed_at',
+    ];
+
     public ?Redeemer $redeemer = null;
 
     protected function casts(): array
