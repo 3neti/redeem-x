@@ -90,9 +90,6 @@ class PwaVoucherController extends Controller
             ->where('code', $code)
             ->with(['owner', 'inputs'])
             ->firstOrFail();
-        
-        // Load cash relationship for VoucherData
-        $voucher->load('cash');
 
         // Helper to extract numeric amount from Money object or number
         $extractAmount = function ($value) {
