@@ -45,6 +45,16 @@ const isPayableOrSettlement = computed(() => {
 const handleOpenChange = (value: boolean) => {
   emit('update:open', value);
   
+  // Debug logging
+  if (value) {
+    console.log('VoucherDetailsSheet opened with data:', {
+      voucherData: props.voucherData,
+      settlement: props.settlement,
+      envelope: props.envelope,
+      visibleTabs: visibleTabs.value,
+    });
+  }
+  
   // Reset to overview when closing
   if (!value) {
     activeTab.value = 'overview';
@@ -99,19 +109,19 @@ const handleOpenChange = (value: boolean) => {
               />
             </TabsContent>
 
-            <TabsContent value="redemption" class="mt-0">
+            <TabsContent v-if="visibleTabs.some(t => t.value === 'redemption')" value="redemption" class="mt-0">
               <VoucherRedemptionTab 
                 :voucher-data="voucherData"
               />
             </TabsContent>
 
-            <TabsContent value="payments" class="mt-0">
+            <TabsContent v-if="visibleTabs.some(t => t.value === 'payments')" value="payments" class="mt-0">
               <VoucherPaymentsTab 
                 :settlement="settlement"
               />
             </TabsContent>
 
-            <TabsContent value="envelope" class="mt-0">
+            <TabsContent v-if="visibleTabs.some(t => t.value === 'envelope')" value="envelope" class="mt-0">
               <VoucherEnvelopeTab 
                 :envelope="envelope"
               />
