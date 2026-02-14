@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import VoucherCard from '../../components/VoucherCard.vue';
+import VoucherCard from '@/components/pwa/VoucherCard.vue';
 import { Wallet, Plus, Ticket, AlertCircle } from 'lucide-vue-next';
 
 interface Voucher {

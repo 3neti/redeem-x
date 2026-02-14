@@ -34,7 +34,7 @@ class PwaTopUpController extends Controller
             'created_at' => $topUp->created_at->toIso8601String(),
         ]);
 
-        return Inertia::render('Pwa/TopUp', [
+        return Inertia::render('pwa/TopUp', [
             'balance' => $user->balanceFloat,
             'recentTopUps' => $recentTopUps,
             'pendingTopUps' => $pendingTopUps,

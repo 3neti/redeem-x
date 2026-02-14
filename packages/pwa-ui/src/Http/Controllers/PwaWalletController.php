@@ -34,7 +34,7 @@ class PwaWalletController extends Controller
                 ];
             });
 
-        return Inertia::render('Pwa/Wallet', [
+        return Inertia::render('pwa/Wallet', [
             'balance' => $balance,
             'formattedBalance' => number_format($balance, 2),
             'recentTransactions' => $recentTransactions,

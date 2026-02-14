@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toast/use-toast';
-import VoucherPaymentCard from '../../components/VoucherPaymentCard.vue';
+import VoucherPaymentCard from '@/components/pwa/VoucherPaymentCard.vue';
 import { ArrowLeft, Wallet, Plus, ArrowUpRight, Clock, CheckCircle2, XCircle, AlertCircle, QrCode, RefreshCcw, Download, Share2, Copy } from 'lucide-vue-next';
 import QRCode from 'qrcode';
 

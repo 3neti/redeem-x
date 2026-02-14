@@ -60,7 +60,7 @@ class PwaPortalController extends Controller
         $hasMerchant = $user->merchant !== null;
         $hasBalance = $balance > 0;
 
-        return Inertia::render('Pwa/Portal', [
+        return Inertia::render('pwa/Portal', [
             'balance' => $balance,
             'formattedBalance' => number_format($balance, 2),
             'currency' => 'PHP',

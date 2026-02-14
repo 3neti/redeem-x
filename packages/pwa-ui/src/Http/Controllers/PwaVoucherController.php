@@ -71,7 +71,7 @@ class PwaVoucherController extends Controller
             ];
         });
 
-        return Inertia::render('Pwa/Vouchers/Index', [
+        return Inertia::render('pwa/Vouchers/Index', [
             'vouchers' => $vouchers,
             'filter' => $filter,
         ]);
@@ -104,7 +104,7 @@ class PwaVoucherController extends Controller
         };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
         
-        return Inertia::render('Pwa/Vouchers/Show', [
+        return Inertia::render('pwa/Vouchers/Show', [
             'voucher' => [
                 'code' => $voucher->code,
                 'amount' => $amountFloat,
@@ -173,7 +173,7 @@ class PwaVoucherController extends Controller
             // Silently fail if driver service unavailable
         }
         
-        return Inertia::render('Pwa/Vouchers/Generate', [
+        return Inertia::render('pwa/Vouchers/Generate', [
             'campaigns' => $campaigns,
             'inputFieldOptions' => $inputFieldOptions,
             'walletBalance' => $walletBalance,

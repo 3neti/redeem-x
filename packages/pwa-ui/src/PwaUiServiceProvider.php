@@ -32,7 +32,7 @@ class PwaUiServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/js/layouts' => resource_path('js/layouts'),
             __DIR__.'/../resources/js/components' => resource_path('js/components/pwa'),
-            __DIR__.'/../resources/js/pages/Pwa' => resource_path('js/pages/Pwa'),
+            __DIR__.'/../resources/js/pages/Pwa' => resource_path('js/pages/pwa'),
             __DIR__.'/../resources/js/composables' => resource_path('js/composables/pwa'),
         ], 'pwa-components');
     }

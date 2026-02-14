@@ -13,7 +13,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
-import VoucherStateManager from '../../../components/VoucherStateManager.vue';
+import VoucherStateManager from '@/components/pwa/VoucherStateManager.vue';
 
 interface Props {
     voucher: {

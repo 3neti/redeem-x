@@ -27,7 +27,7 @@ class PwaSettingsController extends Controller
             $merchantDisplayName = $templateService->render($template, $merchant, $user);
         }
 
-        return Inertia::render('Pwa/Settings', [
+        return Inertia::render('pwa/Settings', [
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
