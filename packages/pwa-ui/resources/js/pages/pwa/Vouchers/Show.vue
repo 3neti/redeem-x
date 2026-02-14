@@ -14,7 +14,7 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
 import VoucherStateManager from '@/components/pwa/VoucherStateManager.vue';
-import VoucherDetailsSheet from '@/components/pwa/VoucherDetailsSheet.vue';
+import VoucherDetailsSheet from '../../../components/pwa/VoucherDetailsSheet.vue';
 
 interface Props {
     voucher: {

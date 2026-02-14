@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import VoucherOverviewTab from './VoucherOverviewTab.vue';
 import VoucherInstructionsTab from './VoucherInstructionsTab.vue';
 import VoucherRedemptionTab from './VoucherRedemptionTab.vue';
@@ -85,7 +84,7 @@ const handleOpenChange = (value: boolean) => {
         </TabsList>
 
         <!-- Scrollable tab content -->
-        <ScrollArea class="flex-1">
+        <div class="flex-1 overflow-y-auto">
           <div class="p-6">
             <TabsContent value="overview" class="mt-0">
               <VoucherOverviewTab 
@@ -118,7 +117,7 @@ const handleOpenChange = (value: boolean) => {
               />
             </TabsContent>
           </div>
-        </ScrollArea>
+        </div>
       </Tabs>
     </SheetContent>
   </Sheet>
