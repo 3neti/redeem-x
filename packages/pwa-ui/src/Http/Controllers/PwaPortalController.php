@@ -24,11 +24,12 @@ class PwaPortalController extends Controller
 
         // Get voucher stats
         $activeVouchersCount = $user->vouchers()
-            ->whereIn('status', ['active', 'locked'])
+            ->whereIn('state', ['active', 'locked'])
             ->count();
 
+        // Redeemed = has redeemed_at date, regardless of state
         $redeemedThisMonthCount = $user->vouchers()
-            ->where('status', 'redeemed')
+            ->whereNotNull('redeemed_at')
             ->whereMonth('redeemed_at', now()->month)
             ->whereYear('redeemed_at', now()->year)
             ->count();
@@ -51,9 +52,9 @@ class PwaPortalController extends Controller
             return is_numeric($amount) ? (float) $amount : 0;
         });
 
-        // Get expiring vouchers (within 7 days)
+        // Get expiring vouchers (within 7 days) that are still active
         $expiringVouchersCount = $user->vouchers()
-            ->where('status', 'active')
+            ->where('state', 'active')
             ->whereBetween('expires_at', [now(), now()->addDays(7)])
             ->count();
 
