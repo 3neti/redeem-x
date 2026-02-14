@@ -146,8 +146,8 @@ class PwaVoucherController extends Controller
         // Load input field options from VoucherInputField enum
         $inputFieldOptions = VoucherInputField::options();
         
-        // Get wallet balance
-        $walletBalance = $user ? (float) $user->balance : 0;
+        // Get wallet balance (in major currency - pesos)
+        $walletBalance = $user ? $user->balanceFloat : 0;
         $formattedBalance = '₱' . number_format($walletBalance, 2);
         
         // Load envelope drivers
