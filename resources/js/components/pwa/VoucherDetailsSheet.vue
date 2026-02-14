@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoucherOverviewTab from './VoucherOverviewTab.vue';
@@ -23,6 +23,11 @@ const emit = defineEmits<{
 
 // Active tab state
 const activeTab = ref('overview');
+
+// Debug tab changes
+watch(activeTab, (newTab) => {
+  console.log('Active tab changed to:', newTab);
+});
 
 // Determine which tabs to show based on voucher state
 const visibleTabs = computed(() => {
