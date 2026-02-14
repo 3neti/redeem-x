@@ -6,10 +6,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Code, ChevronDown, Banknote } from 'lucide-vue-next';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
+import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
 
 interface Props {
   open: boolean;
   voucherData: any;
+  inputFieldOptions?: any[];
 }
 
 const props = defineProps<Props>();
@@ -41,6 +43,61 @@ const { deductionJson, loading: pricingLoading } = useChargeBreakdown(instructio
   faceValueLabel: 'Voucher Amount (Escrowed)',
 });
 
+// Transform instructions for VoucherInstructionsForm (same logic as Show.vue)
+const instructionsFormData = computed(() => {
+  const inst = props.voucherData.instructions;
+  if (!inst) {
+    return {
+      amount: 0,
+      count: 1,
+      prefix: '',
+      mask: '',
+      ttlDays: null,
+      selectedInputFields: [],
+      validationSecret: '',
+      validationMobile: '',
+      feedbackEmail: '',
+      feedbackMobile: '',
+      feedbackWebhook: '',
+      riderMessage: '',
+      riderUrl: '',
+      riderRedirectTimeout: null,
+      riderSplash: '',
+      riderSplashTimeout: null,
+      locationValidation: null,
+      timeValidation: null,
+    };
+  }
+
+  // Parse TTL from ISO 8601 duration (e.g., P30D)
+  let ttlDays = null;
+  if (inst.ttl) {
+    const match = inst.ttl.match(/P(\\d+)D/);
+    ttlDays = match ? parseInt(match[1]) : null;
+  }
+
+  return {
+    amount: inst.cash?.amount || 0,
+    count: inst.count || 1,
+    prefix: inst.prefix || '',
+    mask: inst.mask || '',
+    ttlDays,
+    selectedInputFields: inst.inputs?.fields || [],
+    validationSecret: inst.cash?.validation?.secret || '',
+    validationMobile: inst.cash?.validation?.mobile || '',
+    feedbackEmail: inst.feedback?.email || '',
+    feedbackMobile: inst.feedback?.mobile || '',
+    feedbackWebhook: inst.feedback?.webhook || '',
+    riderMessage: inst.rider?.message || '',
+    riderUrl: inst.rider?.url || '',
+    riderRedirectTimeout: inst.rider?.redirect_timeout ?? null,
+    riderSplash: inst.rider?.splash || '',
+    riderSplashTimeout: inst.rider?.splash_timeout ?? null,
+    locationValidation: inst.validation?.location || null,
+    timeValidation: inst.validation?.time || null,
+  };
+});
+
 const handleOpenChange = (value: boolean) => {
   emit('update:open', value);
   console.log('Sheet open changed to:', value);
@@ -59,20 +116,11 @@ const formatCurrency = (amount: number) => {
       class="h-[70vh] p-0 flex flex-col"
     >
       <!-- Header with drag handle (30% viewport) -->
-      <div class="flex-shrink-0 h-[30%]">
-        <div class="w-12 h-1 bg-muted rounded-full mx-auto mt-2 mb-4" />
-        <SheetHeader class="px-6 pb-4">
-          <SheetTitle class="text-2xl">Pay Code: {{ voucherData.code }}</SheetTitle>
-          <SheetDescription class="text-lg space-y-1">
-            <div class="font-semibold capitalize">{{ voucherData.voucher_type }}</div>
-            <div v-if="voucherData.target_amount" class="text-primary">
-              {{ formatCurrency(voucherData.amount) }} → {{ formatCurrency(voucherData.target_amount) }}
-            </div>
-            <div v-else class="text-primary">
-              {{ formatCurrency(voucherData.amount) }}
-            </div>
-          </SheetDescription>
-        </SheetHeader>
+      <div class="flex-shrink-0 h-[30%] flex flex-col items-center justify-center">
+        <div class="w-12 h-1 bg-muted rounded-full mx-auto mb-8" />
+        <div class="text-6xl font-bold tracking-wider text-primary">
+          {{ voucherData.code }}
+        </div>
       </div>
 
       <!-- Tabs (70% viewport) -->
@@ -100,30 +148,18 @@ const formatCurrency = (amount: number) => {
         <div class="flex-1 overflow-y-auto">
           <div class="p-6">
             <TabsContent value="instructions" class="mt-0">
-              <!-- Live JSON Preview (always open by default) -->
-              <Collapsible v-model:open="jsonPreviewOpen">
-                <Card>
-                  <CollapsibleTrigger class="w-full">
-                    <CardHeader class="cursor-pointer hover:bg-muted/50">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                          <Code class="h-5 w-5" />
-                          <CardTitle>Live JSON Preview</CardTitle>
-                        </div>
-                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': jsonPreviewOpen }" />
-                      </div>
-                      <CardDescription>
-                        Complete voucher instructions data structure
-                      </CardDescription>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(voucherData.instructions, null, 2) }}</code></pre>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+              <!-- VoucherInstructionsForm (same as desktop /vouchers/{code} view) -->
+              <VoucherInstructionsForm
+                v-if="voucherData.instructions"
+                v-model="instructionsFormData"
+                :input-field-options="inputFieldOptions || []"
+                :readonly="true"
+                :show-count-field="false"
+                :show-json-preview="true"
+              />
+              <div v-else class="text-sm text-muted-foreground text-center py-8">
+                No instructions available for this voucher.
+              </div>
             </TabsContent>
 
             <TabsContent value="deductions" class="mt-0">

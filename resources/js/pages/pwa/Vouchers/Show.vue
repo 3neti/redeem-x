@@ -34,6 +34,7 @@ interface Props {
         redeem_url: string;
         full_data?: any;
     };
+    input_field_options?: any[];
     settlement?: any;
     envelope?: any;
 }
@@ -616,6 +617,7 @@ const displayState = computed(() => {
         <VoucherDetailsSheet
             v-model:open="showDetailsSheet"
             :voucher-data="voucher.full_data || voucher"
+            :input-field-options="input_field_options || []"
         />
     </PwaLayout>
 </template>

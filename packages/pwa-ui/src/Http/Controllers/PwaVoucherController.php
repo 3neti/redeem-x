@@ -141,6 +141,7 @@ class PwaVoucherController extends Controller
                     ['collected_data' => $collectedData]
                 ),
             ],
+            'input_field_options' => VoucherInputField::options(),
         ];
 
         // Add settlement data for payable/settlement vouchers
