@@ -87,33 +87,87 @@ const formatAmount = (tx: WalletTransaction): string => {
   }).format(amount)}`;
 };
 
-// Format date
+// Format date with diff for humans
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffSecs < 60) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+  return `${Math.floor(diffDays / 365)}y ago`;
 };
 
-// Transaction description
-const getTransactionDescription = (tx: WalletTransaction): string => {
-  const type = getTransactionType(tx);
-  switch (type) {
-    case 'payment':
-      return `Payment to voucher ${props.voucherCode}`;
-    case 'redemption':
-      return `Voucher ${props.voucherCode} redeemed`;
-    case 'charge':
-      return `Wallet deduction for voucher generation`;
-    case 'topup':
-      return `Wallet top-up`;
-    default:
-      return 'Transaction';
+// Shorten UUID to last segment (like Git)
+const shortenUuid = (uuid: string): string => {
+  const parts = uuid.split('-');
+  return parts[parts.length - 1]; // Last segment
+};
+
+// Get transaction actor (who)
+const getTransactionActor = (tx: WalletTransaction): string | null => {
+  // For payments: sender name or identifier
+  if (tx.type === 'deposit' && tx.meta?.sender_name) {
+    return tx.meta.sender_name;
   }
+  if (tx.type === 'deposit' && tx.meta?.sender_identifier) {
+    return tx.meta.sender_identifier;
+  }
+  
+  // For redemptions: recipient name or mobile
+  if (tx.type === 'withdraw' && tx.meta?.recipient_name) {
+    return tx.meta.recipient_name;
+  }
+  if (tx.type === 'withdraw' && tx.meta?.recipient_identifier) {
+    return tx.meta.recipient_identifier;
+  }
+  
+  return null;
+};
+
+// Get bank/account info
+const getBankInfo = (tx: WalletTransaction): string | null => {
+  // For payments: payment method or bank
+  if (tx.type === 'deposit' && tx.meta?.payment_method) {
+    return tx.meta.payment_method.replace('_', ' ');
+  }
+  if (tx.type === 'deposit' && tx.meta?.bank_code) {
+    return getBankName(tx.meta.bank_code);
+  }
+  
+  // For withdrawals: bank name and masked account
+  if (tx.type === 'withdraw') {
+    const bankName = tx.meta?.bank_code ? getBankName(tx.meta.bank_code) : null;
+    const account = tx.meta?.recipient_identifier;
+    if (bankName && account) {
+      return `${bankName} •••${account.slice(-4)}`;
+    }
+    if (bankName) return bankName;
+    if (account) return `•••${account.slice(-4)}`;
+  }
+  
+  return null;
+};
+
+// Get bank name from code
+const getBankName = (code: string): string => {
+  const banks: Record<string, string> = {
+    'GXCHPHM2XXX': 'GCash',
+    'PYMAPHM2XXX': 'PayMaya',
+    'BDOPHMMM': 'BDO',
+    'BOPIPHMM': 'BPI',
+    'MBTCPHM2XXX': 'Metrobank',
+  };
+  return banks[code] || code;
 };
 
 // Summary stats
@@ -218,11 +272,20 @@ const formatCurrency = (amount: number) => {
                       Pending
                     </Badge>
                   </div>
-                  <p class="text-sm text-muted-foreground">
-                    {{ getTransactionDescription(tx) }}
+                  
+                  <!-- Actor (Who) -->
+                  <p v-if="getTransactionActor(tx)" class="text-sm font-medium">
+                    {{ getTransactionActor(tx) }}
                   </p>
+                  
+                  <!-- Bank/Account Info -->
+                  <p v-if="getBankInfo(tx)" class="text-xs text-muted-foreground capitalize">
+                    {{ getBankInfo(tx) }}
+                  </p>
+                  
+                  <!-- Shortened UUID -->
                   <p class="text-xs text-muted-foreground mt-1 font-mono">
-                    {{ tx.uuid }}
+                    {{ shortenUuid(tx.uuid) }}
                   </p>
                 </div>
                 
