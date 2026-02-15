@@ -246,3 +246,11 @@ const formatCurrency = (amount: number) => {
     </SheetContent>
   </Sheet>
 </template>
+
+<style scoped>
+/* Hide placeholders in readonly form inputs without modifying shared component */
+:deep(input::placeholder),
+:deep(textarea::placeholder) {
+  opacity: 0;
+}
+</style>
