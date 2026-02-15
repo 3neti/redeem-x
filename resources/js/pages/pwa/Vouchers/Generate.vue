@@ -154,6 +154,27 @@ const voucherTypeDisplay = computed(() => {
   }
 });
 
+// Dynamic amount display label based on voucher type
+const amountDisplayLabel = computed(() => {
+  switch (voucherType.value) {
+    case 'payable':
+      return 'Target Amount';
+    case 'settlement':
+      return 'Loan Amount';
+    case 'redeemable':
+    default:
+      return 'Amount';
+  }
+});
+
+// Get the display value for the main amount card
+const displayAmount = computed(() => {
+  if (voucherType.value === 'payable') {
+    return targetAmount.value;
+  }
+  return amount.value;
+});
+
 // Dynamic button text based on voucher type
 const generateButtonText = computed(() => {
   const countText = count.value > 1 ? `${count.value} ` : '';
@@ -502,6 +523,11 @@ const openSheet = (sheet: keyof typeof sheetState.value) => {
 
 // Numeric keypad handlers
 const openAmountKeypad = () => {
+  // For settlement, show the voucher type sheet instead (complex dual-amount UI)
+  if (voucherType.value === 'settlement') {
+    sheetState.value.voucherType.open = true;
+    return;
+  }
   showAmountKeypad.value = true;
 };
 
@@ -510,7 +536,14 @@ const openCountKeypad = () => {
 };
 
 const confirmAmount = (value: number) => {
-  amount.value = value;
+  // Type-aware amount setting
+  if (voucherType.value === 'payable') {
+    targetAmount.value = value;
+    amount.value = 0; // Payable always has amount=0
+  } else if (voucherType.value === 'redeemable') {
+    amount.value = value;
+  }
+  // Settlement is handled in the sheet modal
   showAmountKeypad.value = false;
 };
 
@@ -964,13 +997,29 @@ const resetState = () => {
   autoAddedFields.value.clear();
 };
 
-// Watch for settlement type changes (from Portal.vue)
-watch(voucherType, (newType) => {
-  if (newType === 'settlement' && amount.value && interestRate.value >= 0) {
-    targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
-  }
+// Watch for voucher type changes - preserve amounts intelligently
+watch(voucherType, (newType, oldType) => {
   if (newType === 'payable') {
+    // Switching TO payable: move amount to targetAmount, set amount=0
+    if (oldType === 'redeemable' && amount.value && amount.value > 0) {
+      targetAmount.value = amount.value;
+    }
     amount.value = 0;
+  } else if (newType === 'redeemable') {
+    // Switching TO redeemable: move targetAmount to amount, clear targetAmount
+    if (oldType === 'payable' && targetAmount.value && targetAmount.value > 0) {
+      amount.value = targetAmount.value;
+      targetAmount.value = null;
+    } else if (oldType === 'settlement') {
+      // Keep loan amount as-is, clear target
+      targetAmount.value = null;
+      interestRate.value = 0;
+    }
+  } else if (newType === 'settlement') {
+    // Switching TO settlement: calculate target from amount + interest
+    if (amount.value && interestRate.value >= 0) {
+      targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
+    }
   }
 });
 
@@ -1180,14 +1229,23 @@ watch(payeeType, (newType, oldType) => {
           </div>
         </div>
 
-        <!-- Amount Display (Large) - Clickable -->
+        <!-- Amount Display (Large) - Clickable with validation feedback -->
         <div class="text-center py-8">
-          <p class="text-sm text-muted-foreground mb-2">Amount</p>
-          <p 
-            class="text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+          <p class="text-sm text-muted-foreground mb-2">{{ amountDisplayLabel }}</p>
+          <div 
+            :class="[
+              'text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors',
+              voucherType === 'payable' && (!targetAmount || targetAmount <= 0) ? 'text-destructive' : ''
+            ]"
             @click="openAmountKeypad"
           >
-            {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+            {{ displayAmount ? `₱${displayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+          </div>
+          <p 
+            v-if="voucherType === 'payable' && (!targetAmount || targetAmount <= 0)"
+            class="text-xs text-destructive mt-2"
+          >
+            Tap to set target amount
           </p>
           <p 
             v-if="count > 1" 
@@ -1198,14 +1256,14 @@ watch(payeeType, (newType, oldType) => {
           </p>
         </div>
 
-        <!-- Quick Amount Grid -->
+        <!-- Quick Amount Grid - Type-aware -->
         <div class="grid grid-cols-3 gap-2">
-          <Button variant="outline" @click="amount = 100">₱100</Button>
-          <Button variant="outline" @click="amount = 500">₱500</Button>
-          <Button variant="outline" @click="amount = 1000">₱1K</Button>
-          <Button variant="outline" @click="amount = 2000">₱2K</Button>
-          <Button variant="outline" @click="amount = 5000">₱5K</Button>
-          <Button variant="outline" @click="amount = 10000">₱10K</Button>
+          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 100, amount = 0) : amount = 100">₱100</Button>
+          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 500, amount = 0) : amount = 500">₱500</Button>
+          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 1000, amount = 0) : amount = 1000">₱1K</Button>
+          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 2000, amount = 0) : amount = 2000">₱2K</Button>
+          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 5000, amount = 0) : amount = 5000">₱5K</Button>
+          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 10000, amount = 0) : amount = 10000">₱10K</Button>
         </div>
       </div>
 
@@ -1608,24 +1666,6 @@ watch(payeeType, (newType, oldType) => {
               </div>
             </div>
           </RadioGroup>
-          
-          <!-- Conditional Fields for Payable -->
-          <div v-if="voucherType === 'payable'" class="space-y-3 pt-4 border-t">
-            <div class="space-y-2">
-              <Label for="target-amount">Target Amount</Label>
-              <Input
-                id="target-amount"
-                v-model.number="targetAmount"
-                type="number"
-                placeholder="Enter target amount"
-                min="1"
-                step="0.01"
-              />
-              <p class="text-xs text-muted-foreground">
-                Total amount to collect before voucher closes
-              </p>
-            </div>
-          </div>
           
           <!-- Conditional Fields for Settlement -->
           <div v-if="voucherType === 'settlement'" class="space-y-3 pt-4 border-t">
