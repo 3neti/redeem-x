@@ -170,7 +170,10 @@ const formatCurrency = (amount: number) => {
               </div>
               <div v-else class="space-y-6">
                 <!-- Formatted Deduction Breakdown -->
-                <DeductionBreakdown :deduction-data="deductionJson" />
+                <DeductionBreakdown 
+                  :deduction-data="deductionJson" 
+                  :voucher-status="voucherData.status"
+                />
                 
                 <!-- Raw JSON Data (Collapsible) -->
                 <Collapsible v-model:open="deductionPreviewOpen">

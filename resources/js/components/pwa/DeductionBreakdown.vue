@@ -43,9 +43,53 @@ interface DeductionData {
 
 interface Props {
   deductionData: DeductionData | null;
+  voucherStatus: string;
 }
 
 const props = defineProps<Props>();
+
+// Dynamic tense based on voucher status
+const tense = computed(() => {
+  const status = props.voucherStatus?.toLowerCase();
+  
+  if (status === 'redeemed' || status === 'disbursed') {
+    return 'past'; // "Amount disbursed", "Charges deducted"
+  }
+  
+  if (status === 'cancelled' || status === 'expired') {
+    return 'conditional'; // "Amount that would have been disbursed"
+  }
+  
+  return 'future'; // "Amount to be disbursed" (active, pending, etc.)
+});
+
+// Dynamic labels based on tense
+const labels = computed(() => {
+  switch (tense.value) {
+    case 'past':
+      return {
+        faceValueDescription: 'Amount disbursed to redeemer',
+        chargesDescription: 'Processing fees deducted from wallet',
+        summaryTitle: 'Total Wallet Deducted',
+        summaryNote: 'All amounts deducted from wallet upon redemption',
+      };
+    case 'conditional':
+      return {
+        faceValueDescription: 'Amount that would have been disbursed to redeemer',
+        chargesDescription: 'Processing fees that would have been charged',
+        summaryTitle: 'Total That Would Have Been Deducted',
+        summaryNote: 'Estimated amounts if voucher had been redeemed',
+      };
+    case 'future':
+    default:
+      return {
+        faceValueDescription: 'Amount to be disbursed to redeemer (escrowed)',
+        chargesDescription: 'Processing fees and add-on charges',
+        summaryTitle: 'Total Wallet Deduction',
+        summaryNote: 'All amounts in major units (PHP pesos). Minor units (centavos) stored in database only.',
+      };
+  }
+});
 
 // Category labels for display
 const categoryLabels: Record<string, string> = {
@@ -97,7 +141,7 @@ const chargesByCategory = computed(() => {
         </div>
         
         <div class="text-xs text-muted-foreground pt-2 border-t">
-          {{ deductionData.face_value.description }}
+          {{ labels.faceValueDescription }}
         </div>
       </CardContent>
     </Card>
@@ -144,7 +188,7 @@ const chargesByCategory = computed(() => {
         </div>
         
         <div class="text-xs text-muted-foreground">
-          {{ deductionData.charges.description }}
+          {{ labels.chargesDescription }}
         </div>
       </CardContent>
     </Card>
@@ -152,7 +196,7 @@ const chargesByCategory = computed(() => {
     <!-- Summary Card -->
     <Card class="border-2 border-primary/20">
       <CardHeader>
-        <CardTitle>Total Wallet Deduction</CardTitle>
+        <CardTitle>{{ labels.summaryTitle }}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         <div class="flex justify-between text-sm">
@@ -171,7 +215,7 @@ const chargesByCategory = computed(() => {
         </div>
         
         <div class="text-xs text-muted-foreground pt-2 border-t">
-          {{ deductionData.summary.note }}
+          {{ labels.summaryNote }}
         </div>
       </CardContent>
     </Card>
