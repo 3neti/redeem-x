@@ -118,6 +118,37 @@ class PwaVoucherController extends Controller
             }
         }
         
+        // Get wallet transactions for this voucher
+        $walletTransactions = [];
+        if ($voucher->cash && $voucher->cash->wallet) {
+            $walletTransactions = $voucher->cash->wallet->transactions()
+                ->whereJsonContains('meta->voucher_code', $voucher->code)
+                ->orWhere(function ($query) use ($voucher) {
+                    // Also include redemption/disbursement transactions
+                    $query->where('type', 'withdraw')
+                          ->whereJsonContains('meta->flow', 'redeem');
+                })
+                ->orWhere(function ($query) use ($voucher) {
+                    // Also include payment transactions
+                    $query->where('type', 'deposit')
+                          ->whereJsonContains('meta->flow', 'pay');
+                })
+                ->latest()
+                ->get()
+                ->map(function ($tx) {
+                    return [
+                        'id' => $tx->id,
+                        'uuid' => $tx->uuid,
+                        'type' => $tx->type,
+                        'amount' => $tx->amount / 100, // Convert to major units (pesos)
+                        'currency' => 'PHP',
+                        'confirmed' => $tx->confirmed,
+                        'meta' => $tx->meta ?? [],
+                        'created_at' => $tx->created_at->toIso8601String(),
+                    ];
+                })->toArray();
+        }
+        
         $data = [
             'voucher' => [
                 'code' => $voucher->code,
@@ -138,7 +169,10 @@ class PwaVoucherController extends Controller
                 // Full voucher data for details sheet
                 'full_data' => array_merge(
                     VoucherData::fromModel($voucher)->toArray(),
-                    ['collected_data' => $collectedData]
+                    [
+                        'collected_data' => $collectedData,
+                        'wallet_transactions' => $walletTransactions,
+                    ]
                 ),
             ],
             'input_field_options' => VoucherInputField::options(),
