@@ -8,6 +8,7 @@ use App\Settings\VoucherSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Enums\VoucherType;
 
@@ -87,6 +88,7 @@ class PwaVoucherController extends Controller
         $voucher = $request->user()
             ->vouchers()
             ->where('code', $code)
+            ->with(['owner', 'inputs', 'redeemers'])
             ->firstOrFail();
 
         // Helper to extract numeric amount from Money object or number
@@ -106,7 +108,68 @@ class PwaVoucherController extends Controller
         };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
         
-        return Inertia::render('pwa/Vouchers/Show', [
+        // Get collected form flow data from redeemer metadata if voucher has been redeemed
+        $collectedData = null;
+        if ($voucher->isRedeemed()) {
+            $redeemer = $voucher->redeemers->first();
+            if ($redeemer && isset($redeemer->metadata['redemption']['inputs']['_form_flow_collected_data'])) {
+                $collectedJson = $redeemer->metadata['redemption']['inputs']['_form_flow_collected_data'];
+                $collectedData = json_decode($collectedJson, true);
+            }
+        }
+        
+        // Get wallet transactions for this voucher
+        $walletTransactions = [];
+        if ($voucher->cash && $voucher->cash->wallet) {
+            $disbursementMeta = $voucher->metadata['disbursement'] ?? null;
+            $redeemer = $voucher->redeemers->first();
+            $contact = $redeemer?->redeemer;
+            
+            $walletTransactions = $voucher->cash->wallet->transactions()
+                ->whereJsonContains('meta->voucher_code', $voucher->code)
+                ->orWhere(function ($query) use ($voucher) {
+                    // Also include redemption/disbursement transactions
+                    $query->where('type', 'withdraw')
+                          ->whereJsonContains('meta->flow', 'redeem');
+                })
+                ->orWhere(function ($query) use ($voucher) {
+                    // Also include payment transactions
+                    $query->where('type', 'deposit')
+                          ->whereJsonContains('meta->flow', 'pay');
+                })
+                ->latest()
+                ->get()
+                ->map(function ($tx) use ($disbursementMeta, $contact) {
+                    $meta = $tx->meta ?? [];
+                    
+                    // Enhance withdrawal (redemption) transactions with disbursement data
+                    if ($tx->type === 'withdraw' && ($meta['flow'] ?? null) === 'redeem' && $disbursementMeta) {
+                        $meta['recipient_name'] = $disbursementMeta['recipient_name'] ?? null;
+                        $meta['recipient_identifier'] = $disbursementMeta['recipient_identifier'] ?? null;
+                        $meta['bank_code'] = $disbursementMeta['metadata']['bank_code'] ?? null;
+                        $meta['bank_name'] = $disbursementMeta['metadata']['bank_name'] ?? null;
+                        $meta['settlement_rail'] = $disbursementMeta['settlement_rail'] ?? null;
+                    }
+                    
+                    // Add contact mobile if available
+                    if ($contact && $contact->mobile) {
+                        $meta['contact_mobile'] = $contact->mobile;
+                    }
+                    
+                    return [
+                        'id' => $tx->id,
+                        'uuid' => $tx->uuid,
+                        'type' => $tx->type,
+                        'amount' => $tx->amount / 100, // Convert to major units (pesos)
+                        'currency' => 'PHP',
+                        'confirmed' => $tx->confirmed,
+                        'meta' => $meta,
+                        'created_at' => $tx->created_at->toIso8601String(),
+                    ];
+                })->toArray();
+        }
+        
+        $data = [
             'voucher' => [
                 'code' => $voucher->code,
                 'amount' => $amountFloat,
@@ -122,8 +185,75 @@ class PwaVoucherController extends Controller
                 'locked_at' => $voucher->locked_at?->toIso8601String(),
                 'closed_at' => $voucher->closed_at?->toIso8601String(),
                 'redeem_url' => $this->buildRedemptionUrl($voucher),
+                
+                // Full voucher data for details sheet
+                'full_data' => array_merge(
+                    VoucherData::fromModel($voucher)->toArray(),
+                    [
+                        'collected_data' => $collectedData,
+                        'wallet_transactions' => $walletTransactions,
+                    ]
+                ),
             ],
-        ]);
+            'input_field_options' => VoucherInputField::options(),
+        ];
+
+        // Add settlement data for payable/settlement vouchers
+        if ($voucher->voucher_type && in_array($voucher->voucher_type->value, ['payable', 'settlement'])) {
+            $data['settlement'] = [
+                'type' => $voucher->voucher_type->value,
+                'state' => $voucher->state->value,
+                'target_amount' => $voucher->target_amount,
+                'paid_total' => $voucher->getPaidTotal(),
+                'redeemed_total' => $voucher->getRedeemedTotal(),
+                'remaining' => $voucher->getRemaining(),
+                'available_balance' => $voucher->cash?->balanceFloat ?? 0,
+                'can_accept_payment' => $voucher->canAcceptPayment(),
+                'can_redeem' => $voucher->canRedeem(),
+                'is_locked' => $voucher->isLocked(),
+                'is_closed' => $voucher->isClosed(),
+                'is_expired' => $voucher->isExpired(),
+            ];
+        }
+
+        // Add envelope data if exists
+        if (method_exists($voucher, 'envelope')) {
+            $envelope = $voucher->envelope;
+            if ($envelope) {
+                $envelope->load(['checklistItems', 'attachments', 'signals', 'auditLogs']);
+                
+                $data['envelope'] = [
+                    'id' => $envelope->id,
+                    'reference_code' => $envelope->reference_code,
+                    'driver_id' => $envelope->driver_id,
+                    'driver_version' => $envelope->driver_version,
+                    'status' => $envelope->status->value,
+                    'payload' => $envelope->payload,
+                    'created_at' => $envelope->created_at->toIso8601String(),
+                    'updated_at' => $envelope->updated_at->toIso8601String(),
+                    
+                    'attachments' => $envelope->attachments->map(fn ($att) => [
+                        'id' => $att->id,
+                        'doc_type' => $att->doc_type,
+                        'original_filename' => $att->original_filename,
+                        'mime_type' => $att->mime_type,
+                        'size' => $att->size ?? null,
+                        'review_status' => $att->review_status,
+                        'url' => $att->file_path ? \Storage::disk($att->disk ?? 'public')->url($att->file_path) : null,
+                        'created_at' => $att->created_at->toIso8601String(),
+                    ])->toArray(),
+                    
+                    'audit_logs' => $envelope->auditLogs->sortBy('id')->values()->map(fn ($log) => [
+                        'id' => $log->id,
+                        'action' => $log->action,
+                        'actor_email' => $log->actor?->email ?? null,
+                        'created_at' => $log->created_at->toIso8601String(),
+                    ])->toArray(),
+                ];
+            }
+        }
+        
+        return Inertia::render('pwa/Vouchers/Show', $data);
     }
 
     /**

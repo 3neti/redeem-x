@@ -4,7 +4,7 @@ import PwaLayout from '../../../layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { Ticket, Share2, Copy, ArrowLeft, Ban, Clock, Calendar } from 'lucide-vue-next';
+import { Ticket, Share2, Copy, ArrowLeft, Ban, Clock, Calendar, Info } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useVoucherQr } from '@/composables/useVoucherQr';
@@ -14,6 +14,7 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
 import VoucherStateManager from '@/components/pwa/VoucherStateManager.vue';
+import VoucherDetailsSheet from '../../../components/pwa/VoucherDetailsSheet.vue';
 
 interface Props {
     voucher: {
@@ -31,13 +32,19 @@ interface Props {
         locked_at: string | null;
         closed_at: string | null;
         redeem_url: string;
+        full_data?: any;
     };
+    settlement?: any;
+    envelope?: any;
 }
 
 const props = defineProps<Props>();
 const copied = ref(false);
 const page = usePage();
 const { toast } = useToast();
+
+// Details sheet state
+const showDetailsSheet = ref(false);
 
 // Invalidate dialog
 const showInvalidateDialog = ref(false);
@@ -432,6 +439,14 @@ const displayState = computed(() => {
             <!-- Actions -->
             <div class="space-y-2">
                 <Button
+                    @click="showDetailsSheet = true"
+                    variant="default"
+                    class="w-full"
+                >
+                    <Info class="mr-2 h-4 w-4" />
+                    View Details
+                </Button>
+                <Button
                     @click="copyToClipboard(voucher.code)"
                     variant="outline"
                     class="w-full"
@@ -596,5 +611,13 @@ const displayState = computed(() => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <!-- Voucher Details Sheet -->
+        <VoucherDetailsSheet
+            v-model:open="showDetailsSheet"
+            :voucher-data="voucher"
+            :settlement="settlement"
+            :envelope="envelope"
+        />
     </PwaLayout>
 </template>
