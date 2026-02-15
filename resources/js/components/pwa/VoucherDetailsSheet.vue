@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Banknote, ChevronDown, Code } from 'lucide-vue-next';
 import RedemptionSummary from './RedemptionSummary.vue';
+import DeductionBreakdown from './DeductionBreakdown.vue';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
 
@@ -26,7 +27,7 @@ const activeTab = ref('instructions');
 
 // Collapsible state for JSON Preview (open by default)
 const jsonPreviewOpen = ref(true);
-const deductionPreviewOpen = ref(true);
+const deductionPreviewOpen = ref(false);
 const redemptionPreviewOpen = ref(false);
 
 // Compute charges from voucher instructions
@@ -164,36 +165,38 @@ const formatCurrency = (amount: number) => {
             </TabsContent>
 
             <TabsContent value="deductions" class="mt-0">
-              <!-- Wallet Deduction JSON Preview (open by default) -->
-              <Collapsible v-model:open="deductionPreviewOpen">
-                <Card>
-                  <CollapsibleTrigger class="w-full">
-                    <CardHeader class="cursor-pointer hover:bg-muted/50">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                          <Banknote class="h-5 w-5" />
-                          <CardTitle>Wallet Deduction JSON</CardTitle>
+              <div v-if="pricingLoading" class="text-sm text-muted-foreground text-center py-8">
+                Calculating charges...
+              </div>
+              <div v-else class="space-y-6">
+                <!-- Formatted Deduction Breakdown -->
+                <DeductionBreakdown :deduction-data="deductionJson" />
+                
+                <!-- Raw JSON Data (Collapsible) -->
+                <Collapsible v-model:open="deductionPreviewOpen">
+                  <Card>
+                    <CollapsibleTrigger class="w-full">
+                      <CardHeader class="cursor-pointer hover:bg-muted/50">
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <Code class="h-5 w-5" />
+                            <CardTitle>Raw Deduction Data (JSON)</CardTitle>
+                          </div>
+                          <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': deductionPreviewOpen }" />
                         </div>
-                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': deductionPreviewOpen }" />
-                      </div>
-                      <CardDescription>
-                        Wallet deduction breakdown (all amounts in pesos)
-                      </CardDescription>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <div v-if="pricingLoading" class="text-sm text-muted-foreground text-center py-4">
-                        Calculating charges...
-                      </div>
-                      <div v-else-if="!deductionJson" class="text-sm text-muted-foreground text-center py-4">
-                        No deduction data available
-                      </div>
-                      <pre v-else class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(deductionJson, null, 2) }}</code></pre>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+                        <CardDescription>
+                          Technical data from pricing API
+                        </CardDescription>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(deductionJson, null, 2) }}</code></pre>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              </div>
             </TabsContent>
 
             <TabsContent value="redemption" class="mt-0">
