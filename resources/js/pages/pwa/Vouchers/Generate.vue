@@ -1696,7 +1696,7 @@ watch(payeeType, (newType, oldType) => {
             </div>
             <p class="text-xs text-muted-foreground">
               Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} 
-              (principal + {{ interestRate.toFixed(2) }}% interest)
+              (principal + {{ (interestRate || 0).toFixed(2) }}% interest)
             </p>
           </div>
         </div>
