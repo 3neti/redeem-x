@@ -123,12 +123,14 @@ const getTransactionActor = (tx: WalletTransaction): string | null => {
     return tx.meta.sender_identifier;
   }
   
-  // For redemptions: recipient name or mobile
-  if (tx.type === 'withdraw' && tx.meta?.recipient_name) {
-    return tx.meta.recipient_name;
-  }
-  if (tx.type === 'withdraw' && tx.meta?.recipient_identifier) {
-    return tx.meta.recipient_identifier;
+  // For redemptions: contact mobile (redeemer) or recipient identifier
+  if (tx.type === 'withdraw') {
+    if (tx.meta?.contact_mobile) {
+      return tx.meta.contact_mobile;
+    }
+    if (tx.meta?.recipient_identifier) {
+      return tx.meta.recipient_identifier;
+    }
   }
   
   return null;
@@ -144,15 +146,19 @@ const getBankInfo = (tx: WalletTransaction): string | null => {
     return getBankName(tx.meta.bank_code);
   }
   
-  // For withdrawals: bank name and masked account
+  // For withdrawals (redemptions): bank name with full account number
   if (tx.type === 'withdraw') {
-    const bankName = tx.meta?.bank_code ? getBankName(tx.meta.bank_code) : null;
+    const bankName = tx.meta?.bank_name || (tx.meta?.bank_code ? getBankName(tx.meta.bank_code) : null);
     const account = tx.meta?.recipient_identifier;
+    const rail = tx.meta?.settlement_rail;
+    
     if (bankName && account) {
-      return `${bankName} •••${account.slice(-4)}`;
+      // Format: "GCash: 09171234567" or "GCash: 09171234567 (INSTAPAY)"
+      const railSuffix = rail ? ` (${rail})` : '';
+      return `${bankName}: ${account}${railSuffix}`;
     }
     if (bankName) return bankName;
-    if (account) return `•••${account.slice(-4)}`;
+    if (account) return account;
   }
   
   return null;

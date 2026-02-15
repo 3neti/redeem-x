@@ -121,6 +121,10 @@ class PwaVoucherController extends Controller
         // Get wallet transactions for this voucher
         $walletTransactions = [];
         if ($voucher->cash && $voucher->cash->wallet) {
+            $disbursementMeta = $voucher->metadata['disbursement'] ?? null;
+            $redeemer = $voucher->redeemers->first();
+            $contact = $redeemer?->redeemer;
+            
             $walletTransactions = $voucher->cash->wallet->transactions()
                 ->whereJsonContains('meta->voucher_code', $voucher->code)
                 ->orWhere(function ($query) use ($voucher) {
@@ -135,7 +139,23 @@ class PwaVoucherController extends Controller
                 })
                 ->latest()
                 ->get()
-                ->map(function ($tx) {
+                ->map(function ($tx) use ($disbursementMeta, $contact) {
+                    $meta = $tx->meta ?? [];
+                    
+                    // Enhance withdrawal (redemption) transactions with disbursement data
+                    if ($tx->type === 'withdraw' && ($meta['flow'] ?? null) === 'redeem' && $disbursementMeta) {
+                        $meta['recipient_name'] = $disbursementMeta['recipient_name'] ?? null;
+                        $meta['recipient_identifier'] = $disbursementMeta['recipient_identifier'] ?? null;
+                        $meta['bank_code'] = $disbursementMeta['metadata']['bank_code'] ?? null;
+                        $meta['bank_name'] = $disbursementMeta['metadata']['bank_name'] ?? null;
+                        $meta['settlement_rail'] = $disbursementMeta['settlement_rail'] ?? null;
+                    }
+                    
+                    // Add contact mobile if available
+                    if ($contact && $contact->mobile) {
+                        $meta['contact_mobile'] = $contact->mobile;
+                    }
+                    
                     return [
                         'id' => $tx->id,
                         'uuid' => $tx->uuid,
@@ -143,7 +163,7 @@ class PwaVoucherController extends Controller
                         'amount' => $tx->amount / 100, // Convert to major units (pesos)
                         'currency' => 'PHP',
                         'confirmed' => $tx->confirmed,
-                        'meta' => $tx->meta ?? [],
+                        'meta' => $meta,
                         'created_at' => $tx->created_at->toIso8601String(),
                     ];
                 })->toArray();
