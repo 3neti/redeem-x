@@ -4,7 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Code, ChevronDown, Banknote } from 'lucide-vue-next';
+import { Banknote, ChevronDown, Code } from 'lucide-vue-next';
+import RedemptionSummary from './RedemptionSummary.vue';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
 
@@ -26,7 +27,7 @@ const activeTab = ref('instructions');
 // Collapsible state for JSON Preview (open by default)
 const jsonPreviewOpen = ref(true);
 const deductionPreviewOpen = ref(true);
-const redemptionPreviewOpen = ref(true);
+const redemptionPreviewOpen = ref(false);
 
 // Compute charges from voucher instructions
 const instructionsForPricing = computed(() => {
@@ -196,33 +197,38 @@ const formatCurrency = (amount: number) => {
             </TabsContent>
 
             <TabsContent value="redemption" class="mt-0">
-              <!-- Collected Form-Flow Data (open by default) -->
               <div v-if="!voucherData.collected_data || voucherData.collected_data.length === 0" class="text-sm text-muted-foreground text-center py-8">
                 No redemption data available. This voucher has not been redeemed yet.
               </div>
-              <Collapsible v-else v-model:open="redemptionPreviewOpen">
-                <Card>
-                  <CollapsibleTrigger class="w-full">
-                    <CardHeader class="cursor-pointer hover:bg-muted/50">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                          <Code class="h-5 w-5" />
-                          <CardTitle>Collected Form-Flow Data</CardTitle>
+              <div v-else class="space-y-6">
+                <!-- Formatted Redemption Summary (Confirmation Page Style) -->
+                <RedemptionSummary :collected-data="voucherData.collected_data" />
+                
+                <!-- Raw JSON Data (Collapsible) -->
+                <Collapsible v-model:open="redemptionPreviewOpen">
+                  <Card>
+                    <CollapsibleTrigger class="w-full">
+                      <CardHeader class="cursor-pointer hover:bg-muted/50">
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <Code class="h-5 w-5" />
+                            <CardTitle>Raw Form-Flow Data (JSON)</CardTitle>
+                          </div>
+                          <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': redemptionPreviewOpen }" />
                         </div>
-                        <ChevronDown class="h-4 w-4 transition-transform" :class="{ 'rotate-180': redemptionPreviewOpen }" />
-                      </div>
-                      <CardDescription>
-                        Data collected during voucher redemption
-                      </CardDescription>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(voucherData.collected_data, null, 2) }}</code></pre>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+                        <CardDescription>
+                          Technical data collected during redemption
+                        </CardDescription>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs"><code>{{ JSON.stringify(voucherData.collected_data, null, 2) }}</code></pre>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              </div>
             </TabsContent>
 
             <TabsContent value="payments" class="mt-0">
