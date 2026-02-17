@@ -53,8 +53,8 @@ const getStatusColor = (status: string) => {
     switch (status) {
         case 'redeemed':
             return 'success';
-        case 'pending':
-            return 'warning';
+        case 'scheduled':
+            return 'secondary'; // Muted color for future activation
         default:
             return 'default';
     }
@@ -113,6 +113,10 @@ const getStateLabel = (state?: string) => {
             return 'Cancelled';
         case 'expired':
             return 'Expired';
+        case 'scheduled':
+            return 'Scheduled';
+        case 'redeemed':
+            return 'Redeemed';
         default:
             return state;
     }
@@ -124,6 +128,11 @@ const isExpired = (expiresAt?: string | null) => {
 };
 
 const shouldShowStateBadge = (voucher: Voucher) => {
+    // CRITICAL: Check redeemed_at FIRST - redeemed vouchers should never show other states
+    if (voucher.redeemed_at) {
+        return false; // Show redeemed badge instead (handled separately)
+    }
+    
     // Show state badge if: cancelled, locked, closed, or expired
     return voucher.state === 'cancelled' || 
            voucher.state === 'locked' || 
@@ -132,14 +141,24 @@ const shouldShowStateBadge = (voucher: Voucher) => {
 };
 
 const getDisplayState = (voucher: Voucher) => {
-    // Priority: Manual states (cancelled, locked, closed) > expired > active
+    // CRITICAL: Redeemed takes precedence over ALL other states
+    if (voucher.redeemed_at) {
+        return 'redeemed';
+    }
+    
+    // Priority: Manual states (cancelled, locked, closed) > expired > scheduled > active
     if (voucher.state && voucher.state !== 'active') {
         return voucher.state; // Show manual state (cancelled, locked, closed)
     }
-    // Only show expired if state is still active
-    if (isExpired(voucher.expires_at)) {
+    
+    // Use backend computed status for time-based states (more reliable than client-side checks)
+    if (voucher.status === 'expired') {
         return 'expired';
     }
+    if (voucher.status === 'scheduled') {
+        return 'scheduled';
+    }
+    
     return 'active';
 };
 </script>
