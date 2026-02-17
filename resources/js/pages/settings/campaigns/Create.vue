@@ -41,6 +41,8 @@ const instructionsFormData = ref({
     timeValidation: null as any,
     settlementRail: null as string | null,
     feeStrategy: 'absorb' as string,
+    voucherType: 'redeemable' as string,
+    targetAmount: null as number | null,
 });
 
 // Envelope configuration - MUST be before useForm
@@ -89,6 +91,8 @@ const form = useForm({
             location: instructionsFormData.value.locationValidation || null,
             time: instructionsFormData.value.timeValidation || null,
         },
+        voucher_type: instructionsFormData.value.voucherType || null,
+        target_amount: instructionsFormData.value.targetAmount || null,
         count: instructionsFormData.value.count,
         prefix: instructionsFormData.value.prefix || null,
         mask: instructionsFormData.value.mask || null,
