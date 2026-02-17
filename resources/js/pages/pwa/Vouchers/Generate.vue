@@ -707,6 +707,14 @@ const applyCampaign = (campaign: Campaign | null) => {
   
   const instructions = campaign.instructions;
   if (instructions) {
+    // Apply voucher type and target amount
+    if (instructions.voucher_type) {
+      voucherType.value = instructions.voucher_type;
+    }
+    if (instructions.target_amount) {
+      targetAmount.value = instructions.target_amount;
+    }
+    
     // Apply cash amount
     if (instructions.cash?.amount) {
       amount.value = instructions.cash.amount;
