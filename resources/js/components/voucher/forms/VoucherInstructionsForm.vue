@@ -24,7 +24,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Code, Settings, DollarSign } from 'lucide-vue-next';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Code, Settings, DollarSign, FileText } from 'lucide-vue-next';
 import CashInstructionForm from './CashInstructionForm.vue';
 import InputFieldsForm from './InputFieldsForm.vue';
 import FeedbackInstructionForm from './FeedbackInstructionForm.vue';
@@ -79,6 +80,8 @@ interface Props {
         timeValidation: TimeValidation | null;
         settlementRail: string | null;
         feeStrategy: string;
+        voucherType: string;
+        targetAmount: number | null;
     };
     inputFieldOptions: VoucherInputFieldOption[];
     validationErrors?: Record<string, string>;
@@ -411,6 +414,97 @@ const { breakdown, loading: pricingLoading, error: pricingError } = props.readon
             :validation-errors="validationErrors"
             :readonly="readonly"
         />
+
+        <!-- Voucher Type -->
+        <Card>
+            <CardHeader>
+                <div class="flex items-center gap-2">
+                    <FileText class="h-5 w-5" />
+                    <CardTitle>Voucher Type</CardTitle>
+                </div>
+                <CardDescription>
+                    Choose the type of voucher and configure type-specific settings
+                </CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-4">
+                <RadioGroup v-model="localValue.voucherType" :disabled="readonly">
+                    <div
+                        :class="[
+                            'flex items-start space-x-3 p-4 rounded-lg border-2 transition-all',
+                            localValue.voucherType === 'redeemable' ? 'border-primary bg-primary/5' : 'border-border',
+                            !readonly && 'cursor-pointer hover:bg-muted/50'
+                        ]"
+                        @click="!readonly && (localValue.voucherType = 'redeemable')"
+                    >
+                        <RadioGroupItem value="redeemable" id="type-redeemable" class="mt-1" />
+                        <div class="flex-1">
+                            <Label for="type-redeemable" :class="!readonly && 'cursor-pointer'" class="font-semibold">
+                                Redeemable
+                            </Label>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                Standard one-time redemption voucher. Redeemer receives the full amount.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        :class="[
+                            'flex items-start space-x-3 p-4 rounded-lg border-2 transition-all',
+                            localValue.voucherType === 'payable' ? 'border-primary bg-primary/5' : 'border-border',
+                            !readonly && 'cursor-pointer hover:bg-muted/50'
+                        ]"
+                        @click="!readonly && (localValue.voucherType = 'payable')"
+                    >
+                        <RadioGroupItem value="payable" id="type-payable" class="mt-1" />
+                        <div class="flex-1">
+                            <Label for="type-payable" :class="!readonly && 'cursor-pointer'" class="font-semibold">
+                                Payable
+                            </Label>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                Accepts payments until target amount is reached. Anyone can contribute.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        :class="[
+                            'flex items-start space-x-3 p-4 rounded-lg border-2 transition-all',
+                            localValue.voucherType === 'settlement' ? 'border-primary bg-primary/5' : 'border-border',
+                            !readonly && 'cursor-pointer hover:bg-muted/50'
+                        ]"
+                        @click="!readonly && (localValue.voucherType = 'settlement')"
+                    >
+                        <RadioGroupItem value="settlement" id="type-settlement" class="mt-1" />
+                        <div class="flex-1">
+                            <Label for="type-settlement" :class="!readonly && 'cursor-pointer'" class="font-semibold">
+                                Settlement
+                            </Label>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                Enterprise settlement instrument. Supports multi-payment with interest calculation.
+                            </p>
+                        </div>
+                    </div>
+                </RadioGroup>
+
+                <!-- Target Amount (for payable/settlement) -->
+                <div v-if="localValue.voucherType !== 'redeemable'" class="space-y-2 pt-4 border-t">
+                    <Label for="target-amount">Target Amount</Label>
+                    <Input
+                        id="target-amount"
+                        v-model.number="localValue.targetAmount"
+                        type="number"
+                        placeholder="Enter target amount"
+                        :min="1"
+                        step="0.01"
+                        :readonly="readonly"
+                    />
+                    <InputError :message="validationErrors.target_amount" />
+                    <p class="text-xs text-muted-foreground">
+                        {{ localValue.voucherType === 'payable' ? 'Total amount to be collected from contributors' : 'Target settlement amount (principal + interest)' }}
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
 
         <!-- Input Fields -->
         <InputFieldsForm

@@ -62,6 +62,8 @@ const parseInstructions = (inst: any) => {
         timeValidation: inst.validation?.time || null,
         settlementRail: inst.cash?.settlement_rail || null,
         feeStrategy: inst.cash?.fee_strategy || 'absorb',
+        voucherType: inst.voucher_type || 'redeemable',
+        targetAmount: inst.target_amount || null,
     };
 };
 
@@ -122,6 +124,8 @@ const form = useForm({
             location: instructionsFormData.value.locationValidation || null,
             time: instructionsFormData.value.timeValidation || null,
         },
+        voucher_type: instructionsFormData.value.voucherType || null,
+        target_amount: instructionsFormData.value.targetAmount || null,
         count: instructionsFormData.value.count,
         prefix: instructionsFormData.value.prefix || null,
         mask: instructionsFormData.value.mask || null,
