@@ -196,6 +196,7 @@ class PwaVoucherController extends Controller
                     [
                         'collected_data' => $collectedData,
                         'wallet_transactions' => $walletTransactions,
+                        'envelope' => null, // Placeholder, will be set below if exists
                     ]
                 ),
             ],
@@ -298,6 +299,9 @@ class PwaVoucherController extends Controller
                         'created_at' => $log->created_at->toIso8601String(),
                     ])->toArray(),
                 ];
+                
+                // Also add to full_data for VoucherDetailsSheet
+                $data['voucher']['full_data']['envelope'] = $data['envelope'];
             }
         }
         
