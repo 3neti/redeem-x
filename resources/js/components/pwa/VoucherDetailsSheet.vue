@@ -119,6 +119,14 @@ const formatCurrency = (amount: number) => {
       side="bottom" 
       class="h-[70vh] p-0 flex flex-col"
     >
+      <!-- Hidden accessibility header -->
+      <SheetHeader class="sr-only">
+        <SheetTitle>Voucher {{ voucherData.code }} Details</SheetTitle>
+        <SheetDescription>
+          View voucher instructions, deductions, redemption data, payments, and envelope information
+        </SheetDescription>
+      </SheetHeader>
+      
       <!-- Header with drag handle (30% viewport) -->
       <div class="flex-shrink-0 h-[30%] flex flex-col items-center justify-center">
         <div class="w-12 h-1 bg-muted rounded-full mx-auto mb-8" />
