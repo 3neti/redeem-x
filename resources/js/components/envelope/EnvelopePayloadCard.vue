@@ -35,7 +35,6 @@ const emit = defineEmits<{
 
 const { toast } = useToast()
 
-const showRaw = ref(false)
 const copied = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
@@ -274,37 +273,12 @@ const addField = () => {
                 </Button>
             </div>
             
-            <!-- Formatted view -->
-            <div v-else class="space-y-2">
-                <div 
-                    v-for="(value, key) in payload" 
-                    :key="key"
-                    class="flex flex-col gap-1 rounded-lg border p-3"
-                >
-                    <span class="text-sm text-muted-foreground">{{ key }}</span>
-                    <span class="text-sm font-medium break-words">
-                        {{ formatValue(value) }}
-                    </span>
-                </div>
+            <!-- Collapsible JSON view -->
+            <div v-else>
                 <div v-if="!payload || Object.keys(payload).length === 0" class="text-center text-muted-foreground py-4">
                     No payload data
                 </div>
-                
-                <!-- Raw JSON chevron dropdown -->
-                <button 
-                    v-if="payload && Object.keys(payload).length > 0"
-                    @click="showRaw = !showRaw"
-                    class="flex items-center gap-2 w-full justify-center py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <component :is="showRaw ? ChevronUp : ChevronDown" class="h-4 w-4" />
-                    <span>{{ showRaw ? 'Hide' : 'Show' }} Raw JSON</span>
-                </button>
-                
-                <!-- Raw JSON view with syntax highlighting -->
-                <div 
-                    v-if="showRaw" 
-                    class="rounded-lg border overflow-hidden"
-                >
+                <div v-else class="rounded-lg border overflow-hidden">
                     <VueJsonPretty 
                         :data="payload" 
                         :deep="1"
@@ -320,15 +294,16 @@ const addField = () => {
             <!-- Context section -->
             <div v-if="context && Object.keys(context).length > 0" class="pt-3 border-t space-y-2">
                 <p class="text-sm font-medium">Context</p>
-                <div class="flex flex-wrap gap-2">
-                    <Badge 
-                        v-for="(value, key) in context" 
-                        :key="key"
-                        variant="outline"
-                        class="text-xs"
-                    >
-                        {{ key }}: {{ formatValue(value) }}
-                    </Badge>
+                <div class="rounded-lg border overflow-hidden">
+                    <VueJsonPretty 
+                        :data="context" 
+                        :deep="1"
+                        :show-length="true"
+                        :show-line="false"
+                        :show-double-quotes="true"
+                        :collapsed-on-click-brackets="true"
+                        class="text-xs p-3"
+                    />
                 </div>
             </div>
         </CardContent>
