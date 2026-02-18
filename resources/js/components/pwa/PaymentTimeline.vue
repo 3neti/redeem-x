@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowDownLeft, ArrowUpRight, Wallet, Loader2, Clock } from 'lucide-vue-next';
+import { ArrowDownLeft, ArrowUpRight, Wallet, Loader2, Clock, Target, TrendingUp } from 'lucide-vue-next';
 import PaymentConfirmSheet from './PaymentConfirmSheet.vue';
 
 interface WalletTransaction {
@@ -37,10 +37,14 @@ interface Props {
   transactions: WalletTransaction[];
   voucherCode: string;
   isOwner?: boolean;
+  targetAmount?: number | null;
+  voucherType?: 'redeemable' | 'payable' | 'settlement';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isOwner: false,
+  targetAmount: null,
+  voucherType: 'redeemable',
 });
 
 const emit = defineEmits<{
@@ -225,6 +229,30 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+// Target amount tracking (for payable/settlement vouchers)
+const showTargetProgress = computed(() => {
+  return props.targetAmount && props.targetAmount > 0 && 
+    (props.voucherType === 'payable' || props.voucherType === 'settlement');
+});
+
+const targetProgress = computed(() => {
+  if (!props.targetAmount || props.targetAmount <= 0) return null;
+  
+  const paid = summary.value.totalPayments;
+  const target = props.targetAmount;
+  const remaining = Math.max(0, target - paid);
+  const percentage = Math.min(100, (paid / target) * 100);
+  const isComplete = paid >= target;
+  
+  return {
+    paid,
+    target,
+    remaining,
+    percentage,
+    isComplete,
+  };
+});
+
 // Fetch pending payments
 const fetchPendingPayments = async () => {
   if (!props.isOwner) return;
@@ -317,6 +345,62 @@ onMounted(() => {
             >
               ✓ Confirm Payment
             </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+    
+    <!-- Target Amount Progress (Payable/Settlement Only) -->
+    <Card v-if="showTargetProgress && targetProgress" class="overflow-hidden">
+      <CardHeader class="pb-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <Target class="h-5 w-5 text-primary" />
+            <CardTitle class="text-base">Payment Target</CardTitle>
+          </div>
+          <Badge v-if="targetProgress.isComplete" variant="default" class="bg-green-600">
+            ✓ Complete
+          </Badge>
+          <Badge v-else variant="secondary">
+            {{ Math.round(targetProgress.percentage) }}%
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <!-- Progress Bar -->
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-muted-foreground">Collected</span>
+            <span class="font-medium">{{ formatCurrency(targetProgress.paid) }}</span>
+          </div>
+          <div class="w-full h-3 bg-muted rounded-full overflow-hidden">
+            <div 
+              class="h-full transition-all duration-500 ease-out"
+              :class="targetProgress.isComplete ? 'bg-green-600' : 'bg-primary'"
+              :style="{ width: `${targetProgress.percentage}%` }"
+            />
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-muted-foreground">Target</span>
+            <span class="font-medium">{{ formatCurrency(targetProgress.target) }}</span>
+          </div>
+        </div>
+        
+        <!-- Remaining Amount (if not complete) -->
+        <div v-if="!targetProgress.isComplete" class="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+          <div class="flex items-center gap-2">
+            <TrendingUp class="h-4 w-4 text-amber-600" />
+            <span class="text-sm font-medium text-amber-900 dark:text-amber-100">Remaining</span>
+          </div>
+          <span class="text-base font-bold text-amber-900 dark:text-amber-100">
+            {{ formatCurrency(targetProgress.remaining) }}
+          </span>
+        </div>
+        
+        <!-- Completion Message -->
+        <div v-else class="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+          <div class="flex-1 text-sm font-medium text-green-900 dark:text-green-100">
+            🎉 Target amount reached!
           </div>
         </div>
       </CardContent>

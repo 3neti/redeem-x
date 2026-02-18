@@ -252,6 +252,8 @@ const formatCurrency = (amount: number) => {
                 :transactions="voucherData.wallet_transactions || []" 
                 :voucher-code="voucherData.code"
                 :is-owner="true"
+                :target-amount="voucherData.target_amount"
+                :voucher-type="voucherData.voucher_type"
                 @payment-confirmed="emit('paymentConfirmed')"
               />
             </TabsContent>
