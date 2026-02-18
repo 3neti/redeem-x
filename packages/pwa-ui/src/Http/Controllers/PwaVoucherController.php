@@ -126,16 +126,20 @@ class PwaVoucherController extends Controller
             $contact = $redeemer?->redeemer;
             
             $walletTransactions = $voucher->cash->wallet->transactions()
-                ->whereJsonContains('meta->voucher_code', $voucher->code)
-                ->orWhere(function ($query) use ($voucher) {
-                    // Also include redemption/disbursement transactions
-                    $query->where('type', 'withdraw')
-                          ->whereJsonContains('meta->flow', 'redeem');
-                })
-                ->orWhere(function ($query) use ($voucher) {
-                    // Also include payment transactions
-                    $query->where('type', 'deposit')
-                          ->whereJsonContains('meta->flow', 'pay');
+                ->where(function ($query) use ($voucher) {
+                    $query->whereJsonContains('meta->voucher_code', $voucher->code)
+                          ->orWhere(function ($q) use ($voucher) {
+                              // Redemption transactions for THIS voucher
+                              $q->where('type', 'withdraw')
+                                ->whereJsonContains('meta->flow', 'redeem')
+                                ->whereJsonContains('meta->voucher_code', $voucher->code);
+                          })
+                          ->orWhere(function ($q) use ($voucher) {
+                              // Payment transactions for THIS voucher
+                              $q->where('type', 'deposit')
+                                ->whereJsonContains('meta->flow', 'pay')
+                                ->whereJsonContains('meta->voucher_code', $voucher->code);
+                          });
                 })
                 ->latest()
                 ->get()
