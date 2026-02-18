@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ref, reactive } from 'vue'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Database, ChevronDown, ChevronUp, Copy, Check, Pencil, X, Save, Loader2 } from 'lucide-vue-next'
+import { ChevronDown, ChevronUp, Copy, Check, Pencil, X, Save, Loader2, MoreVertical } from 'lucide-vue-next'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/toast/use-toast'
 
 interface Props {
@@ -31,6 +37,9 @@ const showRaw = ref(false)
 const copied = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
+const showAddField = ref(false)
+const newFieldName = ref('')
+const newFieldValue = ref('')
 const editData = reactive<Record<string, string>>({})
 
 const copyPayload = async () => {
@@ -61,6 +70,9 @@ const startEditing = () => {
 
 const cancelEditing = () => {
     isEditing.value = false
+    showAddField.value = false
+    newFieldName.value = ''
+    newFieldValue.value = ''
     // Reset edit data
     Object.keys(editData).forEach(key => delete editData[key])
 }
@@ -131,9 +143,13 @@ const savePayload = async () => {
 }
 
 const addField = () => {
-    const key = prompt('Enter field name:')
-    if (key && key.trim() && !editData[key]) {
-        editData[key] = ''
+    if (newFieldName.value.trim() && !editData[newFieldName.value]) {
+        editData[newFieldName.value] = newFieldValue.value
+        newFieldName.value = ''
+        newFieldValue.value = ''
+        showAddField.value = false
+    } else if (editData[newFieldName.value]) {
+        toast({ title: 'Error', description: 'Field already exists', variant: 'destructive' })
     }
 }
 </script>
@@ -142,73 +158,53 @@ const addField = () => {
     <Card>
         <CardHeader>
             <div class="flex items-center justify-between">
-                <div>
-                    <CardTitle class="flex items-center gap-2">
-                        <Database class="h-5 w-5" />
-                        Payload
-                    </CardTitle>
-                    <CardDescription>
-                        Version {{ version }}
-                    </CardDescription>
-                </div>
+                <CardTitle>Payload</CardTitle>
                 <div class="flex items-center gap-2">
                     <!-- Edit/Save buttons -->
-                    <template v-if="!readonly && voucherCode">
-                        <template v-if="isEditing">
-                            <Button 
-                                variant="ghost" 
-                                size="sm"
-                                @click="cancelEditing"
-                                :disabled="isSaving"
-                            >
-                                <X class="h-4 w-4 mr-1" />
-                                Cancel
-                            </Button>
-                            <Button 
-                                variant="default" 
-                                size="sm"
-                                @click="savePayload"
-                                :disabled="isSaving"
-                            >
-                                <Loader2 v-if="isSaving" class="h-4 w-4 mr-1 animate-spin" />
-                                <Save v-else class="h-4 w-4 mr-1" />
-                                Save
-                            </Button>
-                        </template>
+                    <template v-if="!readonly && voucherCode && isEditing">
                         <Button 
-                            v-else
-                            variant="outline" 
+                            variant="ghost" 
                             size="sm"
-                            @click="startEditing"
+                            @click="cancelEditing"
+                            :disabled="isSaving"
                         >
-                            <Pencil class="h-4 w-4 mr-1" />
-                            Edit
+                            <X class="h-4 w-4" />
+                        </Button>
+                        <Button 
+                            variant="default" 
+                            size="sm"
+                            @click="savePayload"
+                            :disabled="isSaving"
+                        >
+                            <Loader2 v-if="isSaving" class="h-4 w-4 mr-1 animate-spin" />
+                            <Save v-else class="h-4 w-4" />
                         </Button>
                     </template>
-                    <Button 
-                        variant="ghost" 
-                        size="sm"
-                        @click="copyPayload"
-                    >
-                        <Check v-if="copied" class="h-4 w-4" />
-                        <Copy v-else class="h-4 w-4" />
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm"
-                        @click="showRaw = !showRaw"
-                        v-if="!isEditing"
-                    >
-                        <ChevronUp v-if="showRaw" class="h-4 w-4" />
-                        <ChevronDown v-else class="h-4 w-4" />
-                        {{ showRaw ? 'Hide' : 'Show' }} Raw
-                    </Button>
+                    <!-- Dropdown menu for Copy/Edit -->
+                    <DropdownMenu v-else-if="!isEditing">
+                        <DropdownMenuTrigger as-child>
+                            <Button variant="ghost" size="sm">
+                                <MoreVertical class="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem @click="copyPayload">
+                                <Check v-if="copied" class="mr-2 h-4 w-4" />
+                                <Copy v-else class="mr-2 h-4 w-4" />
+                                Copy
+                            </DropdownMenuItem>
+                            <DropdownMenuItem v-if="!readonly && voucherCode" @click="startEditing">
+                                <Pencil class="mr-2 h-4 w-4" />
+                                Edit
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
         </CardHeader>
-        <CardContent class="space-y-4">
+        <CardContent class="space-y-3">
             <!-- Edit mode -->
-            <div v-if="isEditing" class="space-y-4">
+            <div v-if="isEditing" class="space-y-3">
                 <div 
                     v-for="(value, key) in editData" 
                     :key="key"
@@ -221,16 +217,55 @@ const addField = () => {
                         :placeholder="`Enter ${key}...`"
                     />
                 </div>
-                <div v-if="Object.keys(editData).length === 0" class="space-y-4">
-                    <p class="text-sm text-muted-foreground text-center py-4">
-                        No fields defined. Add a field to start.
-                    </p>
+                <div v-if="Object.keys(editData).length === 0" class="text-center text-muted-foreground py-4">
+                    No fields defined. Add a field to start.
+                </div>
+                
+                <!-- Add field inline form -->
+                <div v-if="showAddField" class="space-y-3 rounded-lg border p-3">
+                    <div class="space-y-2">
+                        <Label for="new-field-name" class="text-sm font-medium">Field Name</Label>
+                        <Input 
+                            id="new-field-name"
+                            v-model="newFieldName"
+                            placeholder="Enter field name..."
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="new-field-value" class="text-sm font-medium">Field Value</Label>
+                        <Input 
+                            id="new-field-value"
+                            v-model="newFieldValue"
+                            placeholder="Enter field value..."
+                        />
+                    </div>
+                    <div class="flex gap-2">
+                        <Button 
+                            type="button" 
+                            variant="default" 
+                            size="sm"
+                            @click="addField"
+                            class="flex-1"
+                        >
+                            Add
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            @click="showAddField = false"
+                            class="flex-1"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
                 </div>
                 <Button 
+                    v-else
                     type="button" 
                     variant="outline" 
                     size="sm" 
-                    @click="addField"
+                    @click="showAddField = true"
                     class="w-full"
                 >
                     + Add Field
@@ -238,40 +273,41 @@ const addField = () => {
             </div>
             
             <!-- Formatted view -->
-            <div v-else-if="!showRaw" class="space-y-2">
+            <div v-else class="space-y-2">
                 <div 
                     v-for="(value, key) in payload" 
                     :key="key"
-                    class="flex justify-between py-2 border-b last:border-0"
+                    class="flex flex-col gap-1 rounded-lg border p-3"
                 >
                     <span class="text-sm text-muted-foreground">{{ key }}</span>
-                    <span class="text-sm font-medium text-right max-w-[60%] truncate">
+                    <span class="text-sm font-medium break-words">
                         {{ formatValue(value) }}
                     </span>
                 </div>
                 <div v-if="!payload || Object.keys(payload).length === 0" class="text-center text-muted-foreground py-4">
                     No payload data
-                    <Button 
-                        v-if="!readonly && voucherCode"
-                        variant="link" 
-                        size="sm"
-                        @click="startEditing"
-                        class="block mx-auto mt-2"
-                    >
-                        + Add payload data
-                    </Button>
                 </div>
+                
+                <!-- Raw JSON chevron dropdown -->
+                <button 
+                    v-if="payload && Object.keys(payload).length > 0"
+                    @click="showRaw = !showRaw"
+                    class="flex items-center gap-2 w-full justify-center py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    <component :is="showRaw ? ChevronUp : ChevronDown" class="h-4 w-4" />
+                    <span>{{ showRaw ? 'Hide' : 'Show' }} Raw JSON</span>
+                </button>
+                
+                <!-- Raw JSON view -->
+                <pre 
+                    v-if="showRaw" 
+                    class="rounded-lg bg-muted p-4 text-xs overflow-auto max-h-64"
+                >{{ JSON.stringify(payload, null, 2) }}</pre>
             </div>
 
-            <!-- Raw JSON view -->
-            <pre 
-                v-else 
-                class="rounded-lg bg-muted p-4 text-xs overflow-auto max-h-64"
-            >{{ JSON.stringify(payload, null, 2) }}</pre>
-
             <!-- Context section -->
-            <div v-if="context && Object.keys(context).length > 0" class="pt-4 border-t">
-                <p class="text-sm font-medium mb-2">Context</p>
+            <div v-if="context && Object.keys(context).length > 0" class="pt-3 border-t space-y-2">
+                <p class="text-sm font-medium">Context</p>
                 <div class="flex flex-wrap gap-2">
                     <Badge 
                         v-for="(value, key) in context" 
