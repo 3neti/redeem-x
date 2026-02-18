@@ -176,7 +176,7 @@ const formatCurrency = (amount: number) => {
               <!-- VoucherInstructionsForm (same as desktop /vouchers/{code} view) -->
               <VoucherInstructionsForm
                 v-if="voucherData.instructions"
-                v-model="instructionsFormData"
+                :model-value="instructionsFormData"
                 :input-field-options="inputFieldOptions || []"
                 :readonly="true"
                 :show-count-field="false"
