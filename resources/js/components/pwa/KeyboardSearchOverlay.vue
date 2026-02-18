@@ -8,6 +8,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+    close: []
+}>();
 </script>
 
 <template>
@@ -23,7 +27,7 @@ const props = defineProps<Props>();
             <div
                 v-if="show"
                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm"
-                @click="$emit('close')"
+                @click="emit('close')"
             >
                 <div class="text-center space-y-4 p-8">
                     <!-- Search Query Display -->
