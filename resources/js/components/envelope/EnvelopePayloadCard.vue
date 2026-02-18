@@ -307,10 +307,12 @@ const addField = () => {
                 >
                     <VueJsonPretty 
                         :data="payload" 
-                        :deep="3"
+                        :deep="1"
                         :show-length="true"
                         :show-line="false"
-                        class="text-xs"
+                        :show-double-quotes="true"
+                        :collapsed-on-click-brackets="true"
+                        class="text-xs p-3"
                     />
                 </div>
             </div>
