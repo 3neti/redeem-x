@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownLeft, ArrowUpRight, Wallet } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import { ArrowDownLeft, ArrowUpRight, Wallet, Loader2, Clock } from 'lucide-vue-next';
+import PaymentConfirmSheet from './PaymentConfirmSheet.vue';
 
 interface WalletTransaction {
   id: number;
@@ -20,12 +23,31 @@ interface WalletTransaction {
   created_at: string;
 }
 
+interface PendingPaymentRequest {
+  id: number;
+  reference_id: string;
+  amount: number;
+  currency: string;
+  payer_info: Record<string, any> | null;
+  status: string;
+  created_at: string;
+}
+
 interface Props {
   transactions: WalletTransaction[];
   voucherCode: string;
+  isOwner?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isOwner: false,
+});
+
+// Pending payments state
+const pendingPayments = ref<PendingPaymentRequest[]>([]);
+const loadingPending = ref(false);
+const showConfirmSheet = ref(false);
+const selectedPayment = ref<PendingPaymentRequest | null>(null);
 
 // Transaction type detection
 type TransactionType = 'payment' | 'redemption' | 'charge' | 'topup' | 'unknown';
@@ -198,10 +220,104 @@ const formatCurrency = (amount: number) => {
     currency: 'PHP' 
   }).format(amount);
 };
+
+// Fetch pending payments
+const fetchPendingPayments = async () => {
+  if (!props.isOwner) return;
+  
+  loadingPending.value = true;
+  try {
+    const { data } = await axios.get(`/api/v1/vouchers/${props.voucherCode}/pending-payments`);
+    if (data.success && Array.isArray(data.data)) {
+      pendingPayments.value = data.data;
+    }
+  } catch (err: any) {
+    console.error('Failed to fetch pending payments:', err);
+  } finally {
+    loadingPending.value = false;
+  }
+};
+
+// Open confirm sheet
+const handleConfirmPayment = (payment: PendingPaymentRequest) => {
+  selectedPayment.value = payment;
+  showConfirmSheet.value = true;
+};
+
+// Handle payment confirmed
+const handlePaymentConfirmed = () => {
+  // Refresh pending payments and trigger parent refresh
+  fetchPendingPayments();
+  // Reload the page to update transaction list
+  window.location.reload();
+};
+
+// Load pending payments on mount
+onMounted(() => {
+  if (props.isOwner) {
+    fetchPendingPayments();
+  }
+});
 </script>
 
 <template>
   <div class="space-y-6">
+    <!-- Pending Payment Requests (Owner Only) -->
+    <Card v-if="isOwner && (loadingPending || pendingPayments.length > 0)">
+      <CardHeader>
+        <CardTitle class="flex items-center gap-2">
+          <Clock class="h-5 w-5" />
+          Pending Payment Requests
+        </CardTitle>
+        <CardDescription>
+          Awaiting confirmation
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <!-- Loading State -->
+        <div v-if="loadingPending" class="text-center py-4">
+          <Loader2 class="h-6 w-6 mx-auto mb-2 animate-spin text-muted-foreground" />
+          <p class="text-sm text-muted-foreground">Loading pending payments...</p>
+        </div>
+        
+        <!-- Pending Requests List -->
+        <div v-else-if="pendingPayments.length > 0" class="space-y-3">
+          <div 
+            v-for="request in pendingPayments" 
+            :key="request.id"
+            class="p-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20 space-y-3"
+          >
+            <div class="flex items-start justify-between">
+              <div class="space-y-1 flex-1">
+                <p class="text-lg font-semibold">{{ formatCurrency(request.amount) }}</p>
+                <p class="text-xs text-muted-foreground font-mono">{{ request.reference_id }}</p>
+                <p class="text-xs text-muted-foreground">{{ formatDate(request.created_at) }}</p>
+                <div v-if="request.payer_info" class="flex flex-wrap gap-2 text-xs mt-2">
+                  <span v-if="request.payer_info.name" class="text-muted-foreground">
+                    From: {{ request.payer_info.name }}
+                  </span>
+                  <span v-if="request.payer_info.mobile" class="text-muted-foreground">
+                    {{ request.payer_info.mobile }}
+                  </span>
+                </div>
+              </div>
+              <Badge variant="secondary" class="text-xs">
+                Awaiting Confirmation
+              </Badge>
+            </div>
+            
+            <Button 
+              @click="handleConfirmPayment(request)"
+              class="w-full"
+              size="sm"
+            >
+              ✓ Confirm Payment
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+    
     <!-- Summary Stats -->
     <div v-if="transactions.length > 0" class="grid grid-cols-2 gap-4">
       <Card>
@@ -310,5 +426,15 @@ const formatCurrency = (amount: number) => {
         </div>
       </CardContent>
     </Card>
+    
+    <!-- Payment Confirmation Sheet -->
+    <PaymentConfirmSheet
+      v-if="selectedPayment"
+      v-model:open="showConfirmSheet"
+      :voucher-code="voucherCode"
+      :amount="selectedPayment.amount"
+      :payment-request-id="selectedPayment.id"
+      @confirmed="handlePaymentConfirmed"
+    />
   </div>
 </template>

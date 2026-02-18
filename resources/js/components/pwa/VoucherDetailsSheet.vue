@@ -242,6 +242,7 @@ const formatCurrency = (amount: number) => {
               <PaymentTimeline 
                 :transactions="voucherData.wallet_transactions || []" 
                 :voucher-code="voucherData.code"
+                :is-owner="true"
               />
             </TabsContent>
 

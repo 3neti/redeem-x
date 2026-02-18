@@ -78,6 +78,11 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     Route::get('{code}/pending-payments', \App\Actions\Api\Vouchers\GetPendingPaymentRequests::class)
         ->name('pending-payments');
 
+    // Get payment history (confirmed payments)
+    // GET /api/v1/vouchers/{code}/payments
+    Route::get('{code}/payments', \App\Actions\Api\Vouchers\GetPaymentHistory::class)
+        ->name('payments');
+
     // State management actions (owner only)
     // POST /api/v1/vouchers/lock
     Route::post('lock', \App\Actions\Api\Vouchers\LockVoucher::class)
