@@ -233,8 +233,52 @@ class PwaVoucherController extends Controller
                     'driver_version' => $envelope->driver_version,
                     'status' => $envelope->status->value,
                     'payload' => $envelope->payload,
+                    'payload_version' => $envelope->payload_version,
+                    'context' => $envelope->context,
+                    'gates_cache' => $envelope->gates_cache ?? [],
                     'created_at' => $envelope->created_at->toIso8601String(),
                     'updated_at' => $envelope->updated_at->toIso8601String(),
+                    
+                    'status_helpers' => [
+                        'can_edit' => $envelope->status->canEdit(),
+                        'can_lock' => $envelope->status->canLock(),
+                        'can_settle' => $envelope->status->canSettle(),
+                        'can_cancel' => $envelope->status->canCancel(),
+                        'can_reopen' => $envelope->status->canReopen(),
+                        'is_terminal' => $envelope->status->isTerminal(),
+                    ],
+                    
+                    'computed_flags' => [
+                        'required_present' => $envelope->computed_flags['required_present'] ?? false,
+                        'required_accepted' => $envelope->computed_flags['required_accepted'] ?? false,
+                        'blocking_signals' => $envelope->computed_flags['blocking_signals'] ?? [],
+                        'all_signals_satisfied' => $envelope->computed_flags['all_signals_satisfied'] ?? true,
+                        'settleable' => $envelope->gates_cache['settleable'] ?? false,
+                    ],
+                    
+                    'checklist_items' => $envelope->checklistItems->map(fn ($item) => [
+                        'id' => $item->id,
+                        'key' => $item->key,
+                        'label' => $item->label,
+                        'kind' => $item->kind,
+                        'status' => $item->status->value,
+                        'required' => $item->required,
+                        'doc_type' => $item->doc_type,
+                        'payload_pointer' => $item->payload_pointer,
+                        'signal_key' => $item->signal_key,
+                        'review_mode' => $item->review_mode,
+                    ])->toArray(),
+                    
+                    'signals' => $envelope->signals->map(fn ($signal) => [
+                        'id' => $signal->id,
+                        'key' => $signal->key,
+                        'type' => $signal->type,
+                        'value' => $signal->value,
+                        'source' => $signal->source,
+                        'required' => $signal->driver_metadata['required'] ?? false,
+                        'signal_category' => $signal->driver_metadata['signal_category'] ?? null,
+                        'system_settable' => $signal->driver_metadata['system_settable'] ?? false,
+                    ])->toArray(),
                     
                     'attachments' => $envelope->attachments->map(fn ($att) => [
                         'id' => $att->id,

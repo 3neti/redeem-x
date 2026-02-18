@@ -10,6 +10,14 @@ import DeductionBreakdown from './DeductionBreakdown.vue';
 import PaymentTimeline from './PaymentTimeline.vue';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
+import { 
+  EnvelopeStatusCard, 
+  EnvelopeChecklistCard, 
+  EnvelopeAttachmentsCard,
+  EnvelopeSignalsCard,
+  EnvelopePayloadCard,
+  EnvelopeAuditLog,
+} from '@/components/envelope';
 
 interface Props {
   open: boolean;
@@ -106,6 +114,11 @@ const handleOpenChange = (value: boolean) => {
   emit('update:open', value);
   console.log('Sheet open changed to:', value);
 };
+
+// Envelope computed properties
+const hasEnvelope = computed(() => !!props.voucherData.envelope);
+const envelope = computed(() => props.voucherData.envelope);
+const canUpload = computed(() => envelope.value?.status_helpers?.can_edit ?? false);
 
 // Format currency
 const formatCurrency = (amount: number) => {
@@ -259,10 +272,48 @@ const formatCurrency = (amount: number) => {
             </TabsContent>
 
             <TabsContent value="envelope" class="mt-0">
-              <div class="prose prose-sm">
-                <h3>Envelope</h3>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+              <div v-if="!hasEnvelope" class="text-center py-8">
+                <p class="text-sm text-muted-foreground">No settlement envelope attached</p>
+              </div>
+              
+              <div v-else class="space-y-4">
+                <!-- Status Card (mobile-optimized, no action buttons) -->
+                <EnvelopeStatusCard :envelope="envelope" :show-actions="false" />
+                
+                <!-- Checklist (full width on mobile) -->
+                <EnvelopeChecklistCard 
+                  v-if="envelope.checklist_items?.length" 
+                  :items="envelope.checklist_items" 
+                />
+                
+                <!-- Signals (full width on mobile, read-only) -->
+                <EnvelopeSignalsCard 
+                  v-if="envelope.signals?.length" 
+                  :signals="envelope.signals"
+                  :blocking-signals="envelope.computed_flags?.blocking_signals ?? []"
+                  :readonly="true"
+                />
+                
+                <!-- Attachments (read-only, no upload button) -->
+                <EnvelopeAttachmentsCard 
+                  :attachments="envelope.attachments ?? []"
+                  :readonly="true"
+                />
+                
+                <!-- Payload (read-only) -->
+                <EnvelopePayloadCard 
+                  :payload="envelope.payload || {}" 
+                  :version="envelope.payload_version"
+                  :context="envelope.context"
+                  :voucher-code="voucherData.code"
+                  :readonly="true"
+                />
+                
+                <!-- Audit Log -->
+                <EnvelopeAuditLog 
+                  v-if="envelope.audit_logs?.length" 
+                  :entries="envelope.audit_logs" 
+                />
               </div>
             </TabsContent>
           </div>
