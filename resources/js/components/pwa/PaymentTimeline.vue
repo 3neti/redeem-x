@@ -43,6 +43,10 @@ const props = withDefaults(defineProps<Props>(), {
   isOwner: false,
 });
 
+const emit = defineEmits<{
+  paymentConfirmed: [];
+}>();
+
 // Pending payments state
 const pendingPayments = ref<PendingPaymentRequest[]>([]);
 const loadingPending = ref(false);
@@ -246,10 +250,10 @@ const handleConfirmPayment = (payment: PendingPaymentRequest) => {
 
 // Handle payment confirmed
 const handlePaymentConfirmed = () => {
-  // Refresh pending payments and trigger parent refresh
+  // Refresh pending payments (removes confirmed payment from list)
   fetchPendingPayments();
-  // Reload the page to update transaction list
-  window.location.reload();
+  // Emit event to parent to refresh transaction list
+  emit('paymentConfirmed');
 };
 
 // Load pending payments on mount

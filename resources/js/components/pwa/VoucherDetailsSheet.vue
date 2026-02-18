@@ -21,6 +21,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
+  (e: 'paymentConfirmed'): void;
 }>();
 
 // Active tab state
@@ -243,6 +244,7 @@ const formatCurrency = (amount: number) => {
                 :transactions="voucherData.wallet_transactions || []" 
                 :voucher-code="voucherData.code"
                 :is-owner="true"
+                @payment-confirmed="emit('paymentConfirmed')"
               />
             </TabsContent>
 
