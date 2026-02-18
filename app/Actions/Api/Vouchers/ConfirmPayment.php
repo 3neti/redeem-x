@@ -47,16 +47,29 @@ class ConfirmPayment
     #[BodyParameter('remember_choice', description: 'Remember disbursement choice for future payments (optional)', type: 'boolean', example: false)]
     public function __invoke(Request $request, DisbursementService $disbursementService, VoucherSettings $settings): JsonResponse
     {
-        $request->validate([
-            'payment_request_id' => ['nullable', 'integer', 'exists:payment_requests,id'],
-            'voucher_code' => ['required_without:payment_request_id', 'string'],
-            'amount' => ['required_without:payment_request_id', 'numeric', 'min:0.01'],
-            'payment_id' => ['nullable', 'string'],
-            'payer' => ['nullable', 'string'],
-            'disburse_now' => ['nullable', 'boolean'],
-            'bank_account_id' => ['required_if:disburse_now,true', 'nullable', 'string'],
-            'remember_choice' => ['nullable', 'boolean'],
+        Log::info('[ConfirmPayment] Request received', [
+            'all_input' => $request->all(),
+            'user_id' => $request->user()?->id,
         ]);
+
+        try {
+            $request->validate([
+                'payment_request_id' => ['nullable', 'integer', 'exists:payment_requests,id'],
+                'voucher_code' => ['required_without:payment_request_id', 'string'],
+                'amount' => ['required_without:payment_request_id', 'numeric', 'min:0.01'],
+                'payment_id' => ['nullable', 'string'],
+                'payer' => ['nullable', 'string'],
+                'disburse_now' => ['nullable', 'boolean'],
+                'bank_account_id' => ['required_if:disburse_now,true', 'nullable', 'string'],
+                'remember_choice' => ['nullable', 'boolean'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('[ConfirmPayment] Validation failed', [
+                'errors' => $e->errors(),
+                'input' => $request->all(),
+            ]);
+            throw $e;
+        }
 
         $user = $request->user();
         $paymentRequestId = $request->input('payment_request_id');
@@ -249,6 +262,13 @@ class ConfirmPayment
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
+            Log::error('[ConfirmPayment] Exception caught', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return response()->json([
                 'success' => false,
