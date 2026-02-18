@@ -82,16 +82,11 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                         rel="noopener noreferrer"
                         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10 p-3 hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20 transition-colors cursor-pointer"
                     >
-                        <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                                <component :is="isImage(attachment.mime_type) ? Image : FileText" class="h-6 w-6 text-primary" />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
-                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{{ formatDate(attachment.created_at) }}</span>
-                                    <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
-                                </div>
+                        <div class="flex flex-col gap-1 min-w-0 flex-1">
+                            <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{{ formatDate(attachment.created_at) }}</span>
+                                <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
@@ -120,23 +115,18 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                         rel="noopener noreferrer"
                         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer"
                     >
-                        <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                                <component :is="isImage(attachment.mime_type) ? Image : FileText" class="h-6 w-6 text-primary" />
+                        <div class="flex flex-col gap-1 min-w-0 flex-1">
+                            <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{{ formatDate(attachment.created_at) }}</span>
+                                <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                             </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
-                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{{ formatDate(attachment.created_at) }}</span>
-                                    <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
-                                </div>
-                                <!-- Show rejection reason if rejected -->
-                                <p v-if="attachment.review_status === 'rejected' && attachment.rejection_reason" 
-                                   class="text-xs text-red-500 mt-1 flex items-center gap-1">
-                                    <AlertCircle class="h-3 w-3" />
-                                    {{ attachment.rejection_reason }}
-                                </p>
-                            </div>
+                            <!-- Show rejection reason if rejected -->
+                            <p v-if="attachment.review_status === 'rejected' && attachment.rejection_reason" 
+                               class="text-xs text-red-500 mt-1 flex items-center gap-1">
+                                <AlertCircle class="h-3 w-3" />
+                                {{ attachment.rejection_reason }}
+                            </p>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <Badge :variant="getStatusConfig(attachment.review_status).variant" class="whitespace-nowrap">
