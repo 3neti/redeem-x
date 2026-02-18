@@ -195,7 +195,7 @@ class ConfirmPayment
             ]);
 
             // Check if this is from a PaymentRequest with unconfirmed transaction
-            if (isset($paymentRequest) && $paymentRequest->meta['transaction_uuid'] ?? null) {
+            if (isset($paymentRequest) && (($paymentRequest->meta ?? [])['transaction_uuid'] ?? null)) {
                 // Payment via QR - transaction may already exist
                 $this->confirmExistingTransaction($paymentRequest, $cash, $user);
             } else {
