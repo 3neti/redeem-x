@@ -413,9 +413,27 @@ const riderConfigSummary = computed(() => {
   return items.length > 0 ? items.join(', ') : 'Not configured';
 });
 
+// Find default envelope driver for payable/settlement vouchers
+const defaultEnvelopeDriver = computed(() => {
+  return props.envelopeDrivers.find(
+    d => d.id === 'payable.default' && d.version === '1.0.0'
+  );
+});
+
+const defaultEnvelopeDriverKey = computed(() => {
+  return defaultEnvelopeDriver.value?.key || null;
+});
+
 // Envelope config summary
 const envelopeConfigSummary = computed(() => {
-  if (!envelopeConfig.value) return 'Not configured';
+  if (!envelopeConfig.value) {
+    // Check if payable/settlement (auto-creation applies)
+    const isPayableOrSettlement = voucherType.value === 'payable' || voucherType.value === 'settlement';
+    if (isPayableOrSettlement) {
+      return 'Auto-created (default driver)';
+    }
+    return 'Not configured';
+  }
   if (selectedDriverKey.value) {
     const driver = props.envelopeDrivers.find(d => d.key === selectedDriverKey.value);
     return driver ? `${driver.title} (${driver.version})` : 'Configured';
@@ -1007,6 +1025,7 @@ const resetState = () => {
 
 // Watch for voucher type changes - preserve amounts intelligently
 watch(voucherType, (newType, oldType) => {
+  // Handle amount transitions
   if (newType === 'payable') {
     // Switching TO payable: move amount to targetAmount, set amount=0
     if (oldType === 'redeemable' && amount.value && amount.value > 0) {
@@ -1029,6 +1048,27 @@ watch(voucherType, (newType, oldType) => {
       targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
     }
   }
+  
+  // Auto-enable/disable envelope based on voucher type
+  const isPayableOrSettlement = newType === 'payable' || newType === 'settlement';
+  const wasRedeemable = oldType === 'redeemable';
+  const wasPayableOrSettlement = oldType === 'payable' || oldType === 'settlement';
+  
+  if (isPayableOrSettlement && wasRedeemable && defaultEnvelopeDriverKey.value) {
+    // Switching FROM redeemable TO payable/settlement - auto-enable envelope
+    envelopeConfig.value = {};
+    selectedDriverKey.value = defaultEnvelopeDriverKey.value;
+    
+    toast({
+      title: 'Settlement envelope enabled',
+      description: 'Using default driver for payable/settlement vouchers',
+    });
+  } else if (newType === 'redeemable' && wasPayableOrSettlement) {
+    // Switching FROM payable/settlement TO redeemable - auto-disable envelope
+    envelopeConfig.value = null;
+    selectedDriverKey.value = '';
+  }
+  // When switching BETWEEN payable/settlement - keep current envelope state
 });
 
 watch([amount, interestRate], ([newAmount, newRate]) => {
@@ -2219,6 +2259,20 @@ watch(payeeType, (newType, oldType) => {
         </SheetHeader>
         
         <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
+          <!-- Info banner for payable/settlement auto-creation -->
+          <div v-if="voucherType === 'payable' || voucherType === 'settlement'" 
+               class="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div class="flex items-start gap-2">
+              <span class="text-blue-600 dark:text-blue-400 text-lg">ℹ️</span>
+              <div class="flex-1 text-sm text-blue-900 dark:text-blue-100">
+                <p class="font-medium mb-1">Auto-Created by Default</p>
+                <p class="text-xs text-blue-700 dark:text-blue-300">
+                  Payable and settlement vouchers automatically get an envelope with the default driver. You can customize it here or keep the default.
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <div v-if="voucherType === 'payable' || voucherType === 'settlement'">
             <!-- Toggle Card (matching desktop design) -->
             <div class="border rounded-lg">
