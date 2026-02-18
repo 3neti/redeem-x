@@ -70,7 +70,7 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
 
     // Manually confirm payment (owner only)
     // POST /api/v1/vouchers/confirm-payment
-    Route::post('confirm-payment', \App\Actions\Api\Vouchers\ConfirmPayment::class)
+    Route::post('confirm-payment', [\App\Actions\Api\Vouchers\ConfirmPayment::class, '__invoke'])
         ->name('confirm-payment');
 
     // Get pending payment requests (owner only)
