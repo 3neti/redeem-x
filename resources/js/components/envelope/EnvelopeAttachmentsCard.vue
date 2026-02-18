@@ -83,24 +83,24 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10 p-3 hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20 transition-colors cursor-pointer"
                     >
                         <div class="flex flex-col gap-1 min-w-0 flex-1">
-                            <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                                <Badge variant="warning" class="whitespace-nowrap flex-shrink-0">
+                                    <Eye class="mr-1 h-3 w-3" />
+                                    Pending Review
+                                </Badge>
+                            </div>
                             <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span>{{ formatDate(attachment.created_at) }}</span>
                                 <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <Badge variant="warning" class="whitespace-nowrap">
-                                <Eye class="mr-1 h-3 w-3" />
-                                Pending Review
-                            </Badge>
-                            <!-- Action slot for Phase 5 review buttons -->
-                            <slot 
-                                name="review-actions" 
-                                :attachment="attachment"
-                                :can-review="true"
-                            />
-                        </div>
+                        <!-- Action slot for Phase 5 review buttons -->
+                        <slot 
+                            name="review-actions" 
+                            :attachment="attachment"
+                            :can-review="true"
+                        />
                     </a>
                 </div>
 
@@ -116,7 +116,16 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer"
                     >
                         <div class="flex flex-col gap-1 min-w-0 flex-1">
-                            <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                                <Badge :variant="getStatusConfig(attachment.review_status).variant" class="whitespace-nowrap flex-shrink-0">
+                                    <component 
+                                        :is="getStatusConfig(attachment.review_status).icon" 
+                                        class="mr-1 h-3 w-3" 
+                                    />
+                                    {{ getStatusConfig(attachment.review_status).label }}
+                                </Badge>
+                            </div>
                             <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span>{{ formatDate(attachment.created_at) }}</span>
                                 <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
@@ -127,15 +136,6 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                                 <AlertCircle class="h-3 w-3" />
                                 {{ attachment.rejection_reason }}
                             </p>
-                        </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <Badge :variant="getStatusConfig(attachment.review_status).variant" class="whitespace-nowrap">
-                                <component 
-                                    :is="getStatusConfig(attachment.review_status).icon" 
-                                    class="mr-1 h-3 w-3" 
-                                />
-                                {{ getStatusConfig(attachment.review_status).label }}
-                            </Badge>
                         </div>
                     </a>
                 </div>
