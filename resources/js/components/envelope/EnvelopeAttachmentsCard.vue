@@ -77,15 +77,15 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                     <div 
                         v-for="attachment in pendingAttachments" 
                         :key="attachment.id"
-                        class="flex items-center justify-between rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10 p-3"
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10 p-3"
                     >
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
                                 <component :is="isImage(attachment.mime_type) ? Image : FileText" class="h-5 w-5 text-muted-foreground" />
                             </div>
-                            <div>
-                                <p class="text-sm font-medium">{{ attachment.original_filename }}</p>
-                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium truncate">{{ attachment.original_filename }}</p>
+                                <div class="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                                     <span>{{ attachment.doc_type }}</span>
                                     <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                                     <span>•</span>
@@ -93,8 +93,8 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                                 </div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Badge variant="warning">
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <Badge variant="warning" class="whitespace-nowrap">
                                 <Eye class="mr-1 h-3 w-3" />
                                 Pending Review
                             </Badge>
@@ -127,15 +127,15 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                     <div 
                         v-for="attachment in reviewedAttachments" 
                         :key="attachment.id"
-                        class="flex items-center justify-between rounded-lg border p-3"
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-3"
                     >
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
                                 <component :is="isImage(attachment.mime_type) ? Image : FileText" class="h-5 w-5 text-muted-foreground" />
                             </div>
-                            <div>
-                                <p class="text-sm font-medium">{{ attachment.original_filename }}</p>
-                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium truncate">{{ attachment.original_filename }}</p>
+                                <div class="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                                     <span>{{ attachment.doc_type }}</span>
                                     <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                                     <span>•</span>
@@ -149,8 +149,8 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                                 </p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Badge :variant="getStatusConfig(attachment.review_status).variant">
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <Badge :variant="getStatusConfig(attachment.review_status).variant" class="whitespace-nowrap">
                                 <component 
                                     :is="getStatusConfig(attachment.review_status).icon" 
                                     class="mr-1 h-3 w-3" 
