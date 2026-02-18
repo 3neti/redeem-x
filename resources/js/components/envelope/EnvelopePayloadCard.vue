@@ -13,6 +13,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/toast/use-toast'
+import VueJsonPretty from 'vue-json-pretty'
+import 'vue-json-pretty/lib/styles.css'
 
 interface Props {
     payload: Record<string, any>
@@ -298,11 +300,19 @@ const addField = () => {
                     <span>{{ showRaw ? 'Hide' : 'Show' }} Raw JSON</span>
                 </button>
                 
-                <!-- Raw JSON view -->
-                <pre 
+                <!-- Raw JSON view with syntax highlighting -->
+                <div 
                     v-if="showRaw" 
-                    class="rounded-lg bg-muted p-4 text-xs overflow-auto max-h-64"
-                >{{ JSON.stringify(payload, null, 2) }}</pre>
+                    class="rounded-lg border overflow-hidden"
+                >
+                    <VueJsonPretty 
+                        :data="payload" 
+                        :deep="3"
+                        :show-length="true"
+                        :show-line="false"
+                        class="text-xs"
+                    />
+                </div>
             </div>
 
             <!-- Context section -->
