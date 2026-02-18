@@ -4,12 +4,21 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Banknote, ChevronDown, Code } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import { Banknote, ChevronDown, Code, Lock, Send, Ban, RotateCcw, Loader2 } from 'lucide-vue-next';
 import RedemptionSummary from './RedemptionSummary.vue';
 import DeductionBreakdown from './DeductionBreakdown.vue';
 import PaymentTimeline from './PaymentTimeline.vue';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
 import VoucherInstructionsForm from '@/components/voucher/forms/VoucherInstructionsForm.vue';
+import { 
+  EnvelopeStatusCard, 
+  EnvelopeChecklistCard, 
+  EnvelopeAttachmentsCard,
+  EnvelopeSignalsCard,
+  EnvelopePayloadCard,
+  EnvelopeAuditLog,
+} from '@/components/envelope';
 
 interface Props {
   open: boolean;
@@ -107,6 +116,60 @@ const handleOpenChange = (value: boolean) => {
   console.log('Sheet open changed to:', value);
 };
 
+// Envelope computed properties
+const hasEnvelope = computed(() => !!props.voucherData.envelope);
+const envelope = computed(() => props.voucherData.envelope);
+const canUpload = computed(() => envelope.value?.status_helpers?.can_edit ?? false);
+
+// Envelope actions
+const envelopeLoading = ref(false);
+
+const handleLock = async () => {
+  if (!confirm('Lock this envelope? This will freeze all changes.')) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#lock`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
+const handleSettle = async () => {
+  if (!confirm('Settle this envelope? This action is final and cannot be undone.')) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#settle`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
+const handleCancel = async () => {
+  const reason = prompt('Enter cancellation reason:');
+  if (!reason) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#cancel`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
+const handleReopen = async () => {
+  const reason = prompt('Enter reason for reopening:');
+  if (!reason) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#reopen`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
 // Format currency
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -163,7 +226,7 @@ const formatCurrency = (amount: number) => {
               <!-- VoucherInstructionsForm (same as desktop /vouchers/{code} view) -->
               <VoucherInstructionsForm
                 v-if="voucherData.instructions"
-                v-model="instructionsFormData"
+                :model-value="instructionsFormData"
                 :input-field-options="inputFieldOptions || []"
                 :readonly="true"
                 :show-count-field="false"
@@ -259,10 +322,106 @@ const formatCurrency = (amount: number) => {
             </TabsContent>
 
             <TabsContent value="envelope" class="mt-0">
-              <div class="prose prose-sm">
-                <h3>Envelope</h3>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+              <div v-if="!hasEnvelope" class="text-center py-8">
+                <p class="text-sm text-muted-foreground">No settlement envelope attached</p>
+              </div>
+              
+              <div v-else class="space-y-4">
+                <!-- Status Card with action buttons -->
+                <EnvelopeStatusCard :envelope="envelope" :show-actions="true">
+                  <template #actions="{ canLock, canSettle, canCancel, canReopen, isTerminal }">
+                    <div v-if="!isTerminal" class="flex flex-wrap gap-2 pt-3 border-t">
+                      <!-- Lock Button -->
+                      <Button 
+                        v-if="canLock" 
+                        variant="default" 
+                        size="sm"
+                        @click="handleLock"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <Loader2 v-if="envelopeLoading" class="mr-2 h-4 w-4 animate-spin" />
+                        <Lock v-else class="mr-2 h-4 w-4" />
+                        Lock
+                      </Button>
+                      
+                      <!-- Settle Button -->
+                      <Button 
+                        v-if="canSettle" 
+                        variant="default" 
+                        size="sm"
+                        @click="handleSettle"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <Loader2 v-if="envelopeLoading" class="mr-2 h-4 w-4 animate-spin" />
+                        <Send v-else class="mr-2 h-4 w-4" />
+                        Settle
+                      </Button>
+                      
+                      <!-- Cancel Button -->
+                      <Button 
+                        v-if="canCancel" 
+                        variant="outline" 
+                        size="sm"
+                        @click="handleCancel"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <Ban class="mr-2 h-4 w-4" />
+                        Cancel
+                      </Button>
+                      
+                      <!-- Reopen Button -->
+                      <Button 
+                        v-if="canReopen" 
+                        variant="outline" 
+                        size="sm"
+                        @click="handleReopen"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <RotateCcw class="mr-2 h-4 w-4" />
+                        Reopen
+                      </Button>
+                    </div>
+                  </template>
+                </EnvelopeStatusCard>
+                
+                <!-- Checklist (full width on mobile) -->
+                <EnvelopeChecklistCard 
+                  v-if="envelope.checklist_items?.length" 
+                  :items="envelope.checklist_items" 
+                />
+                
+                <!-- Signals (full width on mobile, read-only) -->
+                <EnvelopeSignalsCard 
+                  v-if="envelope.signals?.length" 
+                  :signals="envelope.signals"
+                  :blocking-signals="envelope.computed_flags?.blocking_signals ?? []"
+                  :readonly="true"
+                />
+                
+                <!-- Attachments (read-only, no upload button) -->
+                <EnvelopeAttachmentsCard 
+                  :attachments="envelope.attachments ?? []"
+                  :readonly="true"
+                />
+                
+                <!-- Payload (read-only) -->
+                <EnvelopePayloadCard 
+                  :payload="envelope.payload || {}" 
+                  :version="envelope.payload_version"
+                  :context="envelope.context"
+                  :voucher-code="voucherData.code"
+                  :readonly="true"
+                />
+                
+                <!-- Audit Log -->
+                <EnvelopeAuditLog 
+                  v-if="envelope.audit_logs?.length" 
+                  :entries="envelope.audit_logs" 
+                />
               </div>
             </TabsContent>
           </div>

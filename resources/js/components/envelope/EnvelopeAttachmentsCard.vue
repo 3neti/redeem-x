@@ -74,104 +74,70 @@ const isImage = (mimeType?: string) => mimeType?.startsWith('image/')
                 <!-- Pending Review Section -->
                 <div v-if="pendingAttachments.length > 0" class="space-y-2">
                     <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Review</p>
-                    <div 
+                    <a 
                         v-for="attachment in pendingAttachments" 
                         :key="attachment.id"
-                        class="flex items-center justify-between rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10 p-3"
+                        :href="attachment.url || '#'"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10 p-3 hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20 transition-colors cursor-pointer"
                     >
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                                <component :is="isImage(attachment.mime_type) ? Image : FileText" class="h-5 w-5 text-muted-foreground" />
+                        <div class="flex flex-col gap-1 min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                                <Badge variant="warning" class="whitespace-nowrap flex-shrink-0">
+                                    <Eye class="mr-1 h-3 w-3" />
+                                    Pending Review
+                                </Badge>
                             </div>
-                            <div>
-                                <p class="text-sm font-medium">{{ attachment.original_filename }}</p>
-                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{{ attachment.doc_type }}</span>
-                                    <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
-                                    <span>•</span>
-                                    <span>{{ formatDate(attachment.created_at) }}</span>
-                                </div>
+                            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{{ formatDate(attachment.created_at) }}</span>
+                                <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Badge variant="warning">
-                                <Eye class="mr-1 h-3 w-3" />
-                                Pending Review
-                            </Badge>
-                            <Button
-                                v-if="attachment.url"
-                                variant="ghost"
-                                size="sm"
-                                as="a"
-                                :href="attachment.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="h-8 w-8 p-0"
-                                :title="isImage(attachment.mime_type) ? 'View image' : 'Download file'"
-                            >
-                                <component :is="isImage(attachment.mime_type) ? Image : Download" class="h-4 w-4" />
-                            </Button>
-                            <!-- Action slot for Phase 5 review buttons -->
-                            <slot 
-                                name="review-actions" 
-                                :attachment="attachment"
-                                :can-review="true"
-                            />
-                        </div>
-                    </div>
+                        <!-- Action slot for Phase 5 review buttons -->
+                        <slot 
+                            name="review-actions" 
+                            :attachment="attachment"
+                            :can-review="true"
+                        />
+                    </a>
                 </div>
 
                 <!-- Reviewed Section -->
                 <div v-if="reviewedAttachments.length > 0" class="space-y-2">
                     <p v-if="pendingAttachments.length > 0" class="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-4">Reviewed</p>
-                    <div 
+                    <a 
                         v-for="attachment in reviewedAttachments" 
                         :key="attachment.id"
-                        class="flex items-center justify-between rounded-lg border p-3"
+                        :href="attachment.url || '#'"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer"
                     >
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                                <component :is="isImage(attachment.mime_type) ? Image : FileText" class="h-5 w-5 text-muted-foreground" />
+                        <div class="flex flex-col gap-1 min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-base font-medium capitalize">{{ attachment.doc_type.toLowerCase().replace(/_/g, ' ') }}</p>
+                                <Badge :variant="getStatusConfig(attachment.review_status).variant" class="whitespace-nowrap flex-shrink-0">
+                                    <component 
+                                        :is="getStatusConfig(attachment.review_status).icon" 
+                                        class="mr-1 h-3 w-3" 
+                                    />
+                                    {{ getStatusConfig(attachment.review_status).label }}
+                                </Badge>
                             </div>
-                            <div>
-                                <p class="text-sm font-medium">{{ attachment.original_filename }}</p>
-                                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{{ attachment.doc_type }}</span>
-                                    <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
-                                    <span>•</span>
-                                    <span>{{ formatDate(attachment.created_at) }}</span>
-                                </div>
-                                <!-- Show rejection reason if rejected -->
-                                <p v-if="attachment.review_status === 'rejected' && attachment.rejection_reason" 
-                                   class="text-xs text-red-500 mt-1 flex items-center gap-1">
-                                    <AlertCircle class="h-3 w-3" />
-                                    {{ attachment.rejection_reason }}
-                                </p>
+                            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{{ formatDate(attachment.created_at) }}</span>
+                                <span v-if="attachment.size">• {{ formatSize(attachment.size) }}</span>
                             </div>
+                            <!-- Show rejection reason if rejected -->
+                            <p v-if="attachment.review_status === 'rejected' && attachment.rejection_reason" 
+                               class="text-xs text-red-500 mt-1 flex items-center gap-1">
+                                <AlertCircle class="h-3 w-3" />
+                                {{ attachment.rejection_reason }}
+                            </p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Badge :variant="getStatusConfig(attachment.review_status).variant">
-                                <component 
-                                    :is="getStatusConfig(attachment.review_status).icon" 
-                                    class="mr-1 h-3 w-3" 
-                                />
-                                {{ getStatusConfig(attachment.review_status).label }}
-                            </Badge>
-                            <Button
-                                v-if="attachment.url"
-                                variant="ghost"
-                                size="sm"
-                                as="a"
-                                :href="attachment.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="h-8 w-8 p-0"
-                                :title="isImage(attachment.mime_type) ? 'View image' : 'Download file'"
-                            >
-                                <component :is="isImage(attachment.mime_type) ? Image : Download" class="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
+                    </a>
                 </div>
             </div>
         </CardContent>
