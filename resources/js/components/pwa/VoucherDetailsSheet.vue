@@ -4,7 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Banknote, ChevronDown, Code } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import { Banknote, ChevronDown, Code, Lock, Send, Ban, RotateCcw, Loader2 } from 'lucide-vue-next';
 import RedemptionSummary from './RedemptionSummary.vue';
 import DeductionBreakdown from './DeductionBreakdown.vue';
 import PaymentTimeline from './PaymentTimeline.vue';
@@ -119,6 +120,55 @@ const handleOpenChange = (value: boolean) => {
 const hasEnvelope = computed(() => !!props.voucherData.envelope);
 const envelope = computed(() => props.voucherData.envelope);
 const canUpload = computed(() => envelope.value?.status_helpers?.can_edit ?? false);
+
+// Envelope actions
+const envelopeLoading = ref(false);
+
+const handleLock = async () => {
+  if (!confirm('Lock this envelope? This will freeze all changes.')) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#lock`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
+const handleSettle = async () => {
+  if (!confirm('Settle this envelope? This action is final and cannot be undone.')) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#settle`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
+const handleCancel = async () => {
+  const reason = prompt('Enter cancellation reason:');
+  if (!reason) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#cancel`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
+
+const handleReopen = async () => {
+  const reason = prompt('Enter reason for reopening:');
+  if (!reason) return;
+  
+  envelopeLoading.value = true;
+  try {
+    await window.location.assign(`/vouchers/${props.voucherData.code}#reopen`);
+  } finally {
+    envelopeLoading.value = false;
+  }
+};
 
 // Format currency
 const formatCurrency = (amount: number) => {
@@ -277,8 +327,66 @@ const formatCurrency = (amount: number) => {
               </div>
               
               <div v-else class="space-y-4">
-                <!-- Status Card (mobile-optimized, no action buttons) -->
-                <EnvelopeStatusCard :envelope="envelope" :show-actions="false" />
+                <!-- Status Card with action buttons -->
+                <EnvelopeStatusCard :envelope="envelope" :show-actions="true">
+                  <template #actions="{ canLock, canSettle, canCancel, canReopen, isTerminal }">
+                    <div v-if="!isTerminal" class="flex flex-wrap gap-2 pt-3 border-t">
+                      <!-- Lock Button -->
+                      <Button 
+                        v-if="canLock" 
+                        variant="default" 
+                        size="sm"
+                        @click="handleLock"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <Loader2 v-if="envelopeLoading" class="mr-2 h-4 w-4 animate-spin" />
+                        <Lock v-else class="mr-2 h-4 w-4" />
+                        Lock
+                      </Button>
+                      
+                      <!-- Settle Button -->
+                      <Button 
+                        v-if="canSettle" 
+                        variant="default" 
+                        size="sm"
+                        @click="handleSettle"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <Loader2 v-if="envelopeLoading" class="mr-2 h-4 w-4 animate-spin" />
+                        <Send v-else class="mr-2 h-4 w-4" />
+                        Settle
+                      </Button>
+                      
+                      <!-- Cancel Button -->
+                      <Button 
+                        v-if="canCancel" 
+                        variant="outline" 
+                        size="sm"
+                        @click="handleCancel"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <Ban class="mr-2 h-4 w-4" />
+                        Cancel
+                      </Button>
+                      
+                      <!-- Reopen Button -->
+                      <Button 
+                        v-if="canReopen" 
+                        variant="outline" 
+                        size="sm"
+                        @click="handleReopen"
+                        :disabled="envelopeLoading"
+                        class="flex-1"
+                      >
+                        <RotateCcw class="mr-2 h-4 w-4" />
+                        Reopen
+                      </Button>
+                    </div>
+                  </template>
+                </EnvelopeStatusCard>
                 
                 <!-- Checklist (full width on mobile) -->
                 <EnvelopeChecklistCard 
