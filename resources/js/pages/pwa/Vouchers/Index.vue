@@ -30,19 +30,27 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Keyboard search
-const search = useKeyboardSearch();
-
 // Filter vouchers based on search query
 const displayedVouchers = computed(() => {
     return search.filterByCode(props.vouchers.data);
+});
+
+// Navigate to voucher
+const navigateToVoucher = (voucher: Voucher) => {
+    router.visit(`/pwa/vouchers/${voucher.code}`);
+};
+
+// Keyboard search with auto-navigation
+const search = useKeyboardSearch({
+    onBeforeClear: () => displayedVouchers.value,
+    onAutoNavigate: navigateToVoucher,
 });
 
 // Handle Enter key navigation
 const handleEnterKey = (event: KeyboardEvent) => {
     if (event.key === 'Enter' && search.isSearching.value) {
         if (displayedVouchers.value.length === 1) {
-            router.visit(`/pwa/vouchers/${displayedVouchers.value[0].code}`);
+            navigateToVoucher(displayedVouchers.value[0]);
         }
     }
 };
