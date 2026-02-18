@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, watch, onMounted, onUnmounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
 import VoucherCard from '@/components/pwa/VoucherCard.vue';
@@ -30,20 +30,38 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Filter vouchers based on search query
-const displayedVouchers = computed(() => {
-    return search.filterByCode(props.vouchers.data);
-});
-
 // Navigate to voucher
 const navigateToVoucher = (voucher: Voucher) => {
     router.visit(`/pwa/vouchers/${voucher.code}`);
 };
 
-// Keyboard search with auto-navigation
-const search = useKeyboardSearch({
-    onBeforeClear: () => displayedVouchers.value,
-    onAutoNavigate: navigateToVoucher,
+// Keyboard search
+const search = useKeyboardSearch();
+
+// Filter vouchers based on search query
+const displayedVouchers = computed(() => {
+    return search.filterByCode(props.vouchers.data);
+});
+
+// Auto-navigate after 2 seconds of showing single match
+let autoNavigateTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch([() => displayedVouchers.value.length, () => search.isSearching.value], ([matchCount, isSearching]) => {
+    // Clear existing timer
+    if (autoNavigateTimer) {
+        clearTimeout(autoNavigateTimer);
+        autoNavigateTimer = null;
+    }
+    
+    // If searching and exactly one match, set timer for auto-navigation
+    if (isSearching && matchCount === 1) {
+        autoNavigateTimer = setTimeout(() => {
+            if (displayedVouchers.value.length === 1) {
+                navigateToVoucher(displayedVouchers.value[0]);
+                search.clearSearch();
+            }
+        }, 2000);
+    }
 });
 
 // Handle Enter key navigation

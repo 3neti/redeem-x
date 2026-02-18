@@ -5,16 +5,6 @@ export interface KeyboardSearchOptions {
      * Auto-clear timeout in milliseconds (default: 2000)
      */
     timeout?: number;
-    
-    /**
-     * Callback to get current filtered matches before auto-clear
-     */
-    onBeforeClear?: () => any[];
-    
-    /**
-     * Callback when auto-navigating to single match
-     */
-    onAutoNavigate?: (match: any) => void;
 }
 
 /**
@@ -27,7 +17,7 @@ export interface KeyboardSearchOptions {
  * @returns Search state and controls
  */
 export function useKeyboardSearch(options: KeyboardSearchOptions = {}) {
-    const { timeout = 2000, onBeforeClear, onAutoNavigate } = options;
+    const { timeout = 2000 } = options;
     
     const query = ref('');
     const isSearching = computed(() => query.value.length > 0);
@@ -54,15 +44,6 @@ export function useKeyboardSearch(options: KeyboardSearchOptions = {}) {
         }
         
         clearTimer = setTimeout(() => {
-            // Check if we have exactly one match before clearing
-            if (onBeforeClear && onAutoNavigate) {
-                const matches = onBeforeClear();
-                if (matches.length === 1) {
-                    onAutoNavigate(matches[0]);
-                    clearSearch();
-                    return;
-                }
-            }
             clearSearch();
         }, timeout);
     };
