@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed, onMounted, onUnmounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
 import VoucherCard from '@/components/pwa/VoucherCard.vue';
+import KeyboardSearchOverlay from '@/components/pwa/KeyboardSearchOverlay.vue';
 import { Button } from '../../../components/ui/button';
 import { Ticket, Plus } from 'lucide-vue-next';
+import { useKeyboardSearch } from '@/composables/useKeyboardSearch';
 
 interface Voucher {
     code: string;
@@ -26,6 +29,33 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Keyboard search
+const search = useKeyboardSearch();
+
+// Filter vouchers based on search query
+const displayedVouchers = computed(() => {
+    return search.filterByCode(props.vouchers.data);
+});
+
+// Handle Enter key navigation
+const handleEnterKey = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && search.isSearching.value) {
+        if (displayedVouchers.value.length === 1) {
+            router.visit(`/pwa/vouchers/${displayedVouchers.value[0].code}`);
+        }
+    }
+};
+
+onMounted(() => {
+    search.attachListener();
+    window.addEventListener('keydown', handleEnterKey);
+});
+
+onUnmounted(() => {
+    search.detachListener();
+    window.removeEventListener('keydown', handleEnterKey);
+});
 
 // All formatting logic now in VoucherCard component
 
@@ -151,6 +181,14 @@ const setFilter = (filter: string) => {
             </div>
         </div>
 
+        <!-- Keyboard Search Overlay -->
+        <KeyboardSearchOverlay
+            :show="search.isSearching.value"
+            :query="search.query.value"
+            :match-count="displayedVouchers.length"
+            @close="search.clearSearch()"
+        />
+
         <!-- Content -->
         <div class="p-4">
             <div v-if="vouchers.data.length === 0" class="py-12 text-center">
@@ -169,10 +207,14 @@ const setFilter = (filter: string) => {
 
             <div v-else class="space-y-3">
                 <Link
-                    v-for="voucher in vouchers.data"
+                    v-for="voucher in displayedVouchers"
                     :key="voucher.code"
                     :href="`/pwa/vouchers/${voucher.code}`"
-                    class="block"
+                    class="block transition-opacity duration-300"
+                    :class="{
+                        'opacity-30': search.isSearching.value && !displayedVouchers.includes(voucher),
+                        'ring-2 ring-primary': search.isSearching.value && displayedVouchers.includes(voucher),
+                    }"
                 >
                     <VoucherCard :voucher="voucher" />
                 </Link>
