@@ -50,13 +50,22 @@ const formatRelativeTime = (dateString: string) => {
 
 const getTransactionLabel = (tx: Transaction) => {
     if (tx.type === 'deposit') {
-        if (tx.meta?.payment_method) {
-            return tx.meta.payment_method;
-        }
+        // Check for voucher payment first
         if (tx.meta?.type === 'voucher_payment' || tx.meta?.deposit_type === 'voucher_payment') {
             return 'Voucher Payment';
         }
-        return 'Bank Top-Up';
+        // Check explicit payment method
+        if (tx.meta?.payment_method === 'Bank') {
+            return 'Bank Top-Up';
+        }
+        if (tx.meta?.payment_method) {
+            return tx.meta.payment_method;
+        }
+        // Fallback to gateway-based detection
+        if (tx.meta?.gateway === 'netbank') {
+            return 'Bank Top-Up';
+        }
+        return 'Top-Up';
     }
     
     if (tx.type === 'withdraw') {

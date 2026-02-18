@@ -139,8 +139,9 @@ trait HasTopUps
      * Expects model to have wallet functionality (Bavix Wallet).
      *
      * @param  mixed|null  $initiatedBy  User who initiated the top-up (for audit trail)
+     * @param  string  $paymentMethod  Payment method used (e.g., 'Bank', 'Manual')
      */
-    public function creditWalletFromTopUp(TopUpInterface $topUp, $initiatedBy = null): void
+    public function creditWalletFromTopUp(TopUpInterface $topUp, $initiatedBy = null, string $paymentMethod = 'Manual'): void
     {
         if (! $topUp->isPaid()) {
             return;
@@ -153,7 +154,7 @@ trait HasTopUps
             $metadata = [
                 'type' => 'top_up', // Legacy compatibility
                 'deposit_type' => 'manual_topup',
-                'payment_method' => 'Manual',
+                'payment_method' => $paymentMethod,
                 'reference_no' => $topUp->getReferenceNo(),
                 'gateway' => $topUp->getGateway(),
             ];

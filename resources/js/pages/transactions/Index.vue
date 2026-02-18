@@ -938,9 +938,9 @@ onMounted(async () => {
                                             </div>
                                         </td>
                                         <td class="px-4 py-3">
-                                            <div v-if="tx.type === 'deposit' && tx.payment_method">
+                                            <div v-if="tx.type === 'deposit' && (tx.payment_method || tx.gateway)">
                                                 <Badge variant="outline" class="text-xs capitalize">
-                                                    {{ tx.payment_method.replace('_', ' ') }}
+                                                    {{ (tx.payment_method || (tx.gateway === 'netbank' ? 'Bank' : tx.gateway))?.replace('_', ' ') }}
                                                 </Badge>
                                             </div>
                                             <div v-else-if="tx.type === 'withdraw' && tx.disbursement">
