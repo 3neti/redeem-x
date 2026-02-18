@@ -73,59 +73,38 @@ const formatDate = (dateStr?: string) => {
 <template>
     <Card>
         <CardHeader>
-            <div class="flex items-center justify-between">
-                <div>
-                    <CardTitle class="flex items-center gap-2">
-                        <component :is="statusConfig.icon" class="h-5 w-5" />
-                        Settlement Envelope
-                    </CardTitle>
-                    <CardDescription>
-                        {{ envelope.driver_id }}@{{ envelope.driver_version }}
-                    </CardDescription>
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-3">
+                    <CardTitle>Settlement Envelope</CardTitle>
+                    <Badge :variant="statusConfig.variant" class="whitespace-nowrap">
+                        {{ statusConfig.label }}
+                    </Badge>
                 </div>
-                <Badge :variant="statusConfig.variant">
-                    {{ statusConfig.label }}
-                </Badge>
+                <CardDescription>
+                    Driver: {{ envelope.driver_id }}
+                </CardDescription>
             </div>
         </CardHeader>
-        <CardContent class="space-y-4">
-            <!-- Key Info Grid -->
-            <div class="grid gap-4 md:grid-cols-3">
-                <div class="space-y-1">
-                    <p class="text-sm text-muted-foreground">Reference</p>
-                    <p class="font-mono font-medium">{{ envelope.reference_code }}</p>
+        <CardContent class="space-y-3">
+            <!-- Simple Status Indicator -->
+            <div>
+                <div v-if="isSettleable" class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <CheckCircle2 class="h-4 w-4" />
+                    <span>Ready to settle</span>
                 </div>
-                <div class="space-y-1">
-                    <p class="text-sm text-muted-foreground">Payload Version</p>
-                    <p class="font-medium">v{{ envelope.payload_version }}</p>
-                </div>
-                <div class="space-y-1">
-                    <p class="text-sm text-muted-foreground">Settleable</p>
-                    <Badge :variant="isSettleable ? 'success' : 'secondary'">
-                        {{ isSettleable ? 'Yes' : 'No' }}
-                    </Badge>
-                </div>
-            </div>
-
-            <!-- State Machine Progress (computed flags) -->
-            <div class="space-y-2">
-                <p class="text-sm font-medium">Progress</p>
-                <div class="flex flex-wrap gap-2">
-                    <Badge :variant="requiredPresent ? 'success' : 'outline'" class="text-xs">
-                        <CheckCircle2 v-if="requiredPresent" class="mr-1 h-3 w-3" />
-                        <Clock v-else class="mr-1 h-3 w-3" />
-                        Required Present
-                    </Badge>
-                    <Badge :variant="requiredAccepted ? 'success' : 'outline'" class="text-xs">
-                        <CheckCircle2 v-if="requiredAccepted" class="mr-1 h-3 w-3" />
-                        <Clock v-else class="mr-1 h-3 w-3" />
-                        Required Accepted
-                    </Badge>
-                    <Badge :variant="isSettleable ? 'success' : 'outline'" class="text-xs">
-                        <CheckCircle2 v-if="isSettleable" class="mr-1 h-3 w-3" />
-                        <Clock v-else class="mr-1 h-3 w-3" />
-                        Settleable
-                    </Badge>
+                <div v-else class="space-y-2">
+                    <div v-if="!requiredPresent" class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock class="h-4 w-4" />
+                        <span>Waiting for required documents</span>
+                    </div>
+                    <div v-if="requiredPresent && !requiredAccepted" class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock class="h-4 w-4" />
+                        <span>Waiting for document review</span>
+                    </div>
+                    <div v-if="blockingSignals.length > 0" class="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
+                        <AlertCircle class="h-4 w-4" />
+                        <span>Blocked by {{ blockingSignals.length }} signal{{ blockingSignals.length > 1 ? 's' : '' }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -141,23 +120,6 @@ const formatDate = (dateStr?: string) => {
                     >
                         <AlertCircle class="mr-1 h-3 w-3" />
                         {{ signal }}
-                    </Badge>
-                </div>
-            </div>
-
-            <!-- Gates -->
-            <div class="space-y-2">
-                <p class="text-sm font-medium">Gates</p>
-                <div class="flex flex-wrap gap-2">
-                    <Badge 
-                        v-for="(value, key) in envelope.gates_cache" 
-                        :key="key"
-                        :variant="value ? 'success' : 'outline'"
-                        class="text-xs"
-                    >
-                        <CheckCircle2 v-if="value" class="mr-1 h-3 w-3" />
-                        <XCircle v-else class="mr-1 h-3 w-3" />
-                        {{ key }}
                     </Badge>
                 </div>
             </div>
