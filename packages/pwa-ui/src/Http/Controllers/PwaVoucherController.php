@@ -88,7 +88,7 @@ class PwaVoucherController extends Controller
         $voucher = $request->user()
             ->vouchers()
             ->where('code', $code)
-            ->with(['owner', 'inputs', 'redeemers'])
+            ->with(['owner', 'inputs', 'redeemers', 'envelope'])
             ->firstOrFail();
 
         // Helper to extract numeric amount from Money object or number
