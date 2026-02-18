@@ -86,25 +86,19 @@ const formatDate = (dateStr?: string) => {
             </div>
         </CardHeader>
         <CardContent class="space-y-3">
-            <!-- Simple Status Indicator -->
-            <div>
-                <div v-if="isSettleable" class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                    <CheckCircle2 class="h-4 w-4" />
-                    <span>Ready to settle</span>
+            <!-- Simple Status Indicator (only show when not settleable) -->
+            <div v-if="!isSettleable" class="space-y-2">
+                <div v-if="!requiredPresent" class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock class="h-4 w-4" />
+                    <span>Waiting for required documents</span>
                 </div>
-                <div v-else class="space-y-2">
-                    <div v-if="!requiredPresent" class="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock class="h-4 w-4" />
-                        <span>Waiting for required documents</span>
-                    </div>
-                    <div v-if="requiredPresent && !requiredAccepted" class="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock class="h-4 w-4" />
-                        <span>Waiting for document review</span>
-                    </div>
-                    <div v-if="blockingSignals.length > 0" class="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-                        <AlertCircle class="h-4 w-4" />
-                        <span>Blocked by {{ blockingSignals.length }} signal{{ blockingSignals.length > 1 ? 's' : '' }}</span>
-                    </div>
+                <div v-if="requiredPresent && !requiredAccepted" class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock class="h-4 w-4" />
+                    <span>Waiting for document review</span>
+                </div>
+                <div v-if="blockingSignals.length > 0" class="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
+                    <AlertCircle class="h-4 w-4" />
+                    <span>Blocked by {{ blockingSignals.length }} signal{{ blockingSignals.length > 1 ? 's' : '' }}</span>
                 </div>
             </div>
 
