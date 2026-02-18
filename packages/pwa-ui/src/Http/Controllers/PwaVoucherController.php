@@ -298,7 +298,7 @@ class PwaVoucherController extends Controller
         $inputFieldOptions = VoucherInputField::options();
         
         // Get wallet balance (in major currency - pesos)
-        $walletBalance = $user ? $user->balanceFloat : 0;
+        $walletBalance = $user ? (float) $user->balanceFloat : 0.0;
         $formattedBalance = '₱' . number_format($walletBalance, 2);
         
         // Load envelope drivers
