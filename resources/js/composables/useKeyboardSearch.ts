@@ -1,51 +1,42 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
-export interface KeyboardSearchOptions {
-    /**
-     * Auto-clear timeout in milliseconds (default: 2000)
-     */
-    timeout?: number;
-}
-
 /**
  * Composable for keyboard-driven incremental search
  * 
  * Captures alphanumeric keystrokes and provides search query state.
- * Auto-clears after timeout period of inactivity.
+ * Filter stays active until explicitly cleared with ESC.
  * 
- * @param options - Configuration options
  * @returns Search state and controls
  */
-export function useKeyboardSearch(options: KeyboardSearchOptions = {}) {
-    const { timeout = 2000 } = options;
-    
+export function useKeyboardSearch() {
     const query = ref('');
     const isSearching = computed(() => query.value.length > 0);
-    
-    let clearTimer: ReturnType<typeof setTimeout> | null = null;
+    const showOverlay = ref(false);
+    let overlayTimer: ReturnType<typeof setTimeout> | null = null;
     
     /**
      * Clear the search query
      */
     const clearSearch = () => {
         query.value = '';
-        if (clearTimer) {
-            clearTimeout(clearTimer);
-            clearTimer = null;
+        showOverlay.value = false;
+        if (overlayTimer) {
+            clearTimeout(overlayTimer);
+            overlayTimer = null;
         }
     };
     
     /**
-     * Reset the auto-clear timer
+     * Show overlay and auto-hide after delay
      */
-    const resetTimer = () => {
-        if (clearTimer) {
-            clearTimeout(clearTimer);
+    const showOverlayWithTimeout = () => {
+        showOverlay.value = true;
+        if (overlayTimer) {
+            clearTimeout(overlayTimer);
         }
-        
-        clearTimer = setTimeout(() => {
-            clearSearch();
-        }, timeout);
+        overlayTimer = setTimeout(() => {
+            showOverlay.value = false;
+        }, 1500); // Hide overlay after 1.5s of inactivity
     };
     
     /**
@@ -89,11 +80,7 @@ export function useKeyboardSearch(options: KeyboardSearchOptions = {}) {
             if (isSearching.value) {
                 event.preventDefault();
                 query.value = query.value.slice(0, -1);
-                if (query.value.length > 0) {
-                    resetTimer();
-                } else {
-                    clearSearch();
-                }
+                showOverlayWithTimeout();
             }
             return;
         }
@@ -102,7 +89,7 @@ export function useKeyboardSearch(options: KeyboardSearchOptions = {}) {
         if (event.key.length === 1 && /^[a-zA-Z0-9-]$/.test(event.key)) {
             event.preventDefault();
             query.value += event.key.toUpperCase();
-            resetTimer();
+            showOverlayWithTimeout();
         }
     };
     
@@ -138,6 +125,7 @@ export function useKeyboardSearch(options: KeyboardSearchOptions = {}) {
     return {
         query,
         isSearching,
+        showOverlay,
         clearSearch,
         filterByCode,
         attachListener,

@@ -15,6 +15,75 @@ use LBHurtado\Voucher\Enums\VoucherType;
 class PwaVoucherController extends Controller
 {
     /**
+     * Search vouchers across all pages by code prefix, respecting current filters.
+     */
+    public function search(Request $request)
+    {
+        $user = $request->user();
+        $filter = $request->query('filter', 'all');
+        $q = strtoupper(trim((string) $request->query('q', '')));
+
+        if ($q === '') {
+            return response()->json(['data' => []]);
+        }
+
+        $query = $user->vouchers()->latest();
+
+        // Reuse same filter mapping as index()
+        match($filter) {
+            'active' => $query->where('state', 'active')->whereNull('redeemed_at'),
+            'redeemed' => $query->whereNotNull('redeemed_at'),
+            'expired' => $query->where(function($q2) {
+                $q2->where('expires_at', '<', now())
+                   ->where('state', 'active');
+            }),
+            'locked' => $query->where('state', 'locked'),
+            'cancelled' => $query->where('state', 'cancelled'),
+            'closed' => $query->where('state', 'closed'),
+            // Type filters
+            'type-redeemable' => $query->where('voucher_type', 'redeemable'),
+            'type-payable' => $query->where('voucher_type', 'payable'),
+            'type-settlement' => $query->where('voucher_type', 'settlement'),
+            default => null,
+        };
+
+        // Prefix match on code (codes are uppercase)
+        $query->where('code', 'like', $q.'%');
+
+        $vouchers = $query->limit(20)->get()->map(function ($voucher) {
+            // Helper to extract numeric amount from Money object or number
+            $extractAmount = function ($value) {
+                if (is_object($value) && method_exists($value, 'getAmount')) {
+                    return $value->getAmount()->toFloat();
+                }
+                return is_numeric($value) ? (float) $value : 0;
+            };
+
+            $amount = match($voucher->voucher_type->value) {
+                'payable' => $voucher->target_amount ?? 0,
+                'settlement' => $extractAmount($voucher->cash?->amount),
+                default => $extractAmount($voucher->cash?->amount),
+            };
+            $amountFloat = is_numeric($amount) ? (float) $amount : 0;
+
+            return [
+                'code' => $voucher->code,
+                'amount' => $amountFloat,
+                'target_amount' => $voucher->target_amount ? (float) $voucher->target_amount : null,
+                'voucher_type' => $voucher->voucher_type->value,
+                'currency' => $voucher->cash?->currency ?? 'PHP',
+                'status' => $voucher->status,
+                'state' => $voucher->state?->value,
+                'expires_at' => $voucher->expires_at?->toIso8601String(),
+                'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
+                'created_at' => $voucher->created_at->toIso8601String(),
+            ];
+        })->values();
+
+        return response()->json(['data' => $vouchers]);
+    }
+
+    /**
      * Display voucher list.
      */
     public function index(Request $request): Response

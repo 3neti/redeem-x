@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
 import VoucherCard from '@/components/pwa/VoucherCard.vue';
@@ -7,6 +7,7 @@ import KeyboardSearchOverlay from '@/components/pwa/KeyboardSearchOverlay.vue';
 import { Button } from '../../../components/ui/button';
 import { Ticket, Plus } from 'lucide-vue-next';
 import { useKeyboardSearch } from '@/composables/useKeyboardSearch';
+import { useDebounceFn } from '@/composables/useDebounce';
 
 interface Voucher {
     code: string;
@@ -38,38 +39,66 @@ const navigateToVoucher = (voucher: Voucher) => {
 // Keyboard search
 const search = useKeyboardSearch();
 
-// Filter vouchers based on search query
-const displayedVouchers = computed(() => {
-    return search.filterByCode(props.vouchers.data);
-});
+// Remote matches (server-backed search across pages)
+const remoteMatches = ref<Voucher[]>([]);
+const isFetching = ref(false);
 
-// Auto-navigate after 2 seconds of showing single match
-let autoNavigateTimer: ReturnType<typeof setTimeout> | null = null;
-
-watch([() => displayedVouchers.value.length, () => search.isSearching.value], ([matchCount, isSearching]) => {
-    // Clear existing timer
-    if (autoNavigateTimer) {
-        clearTimeout(autoNavigateTimer);
-        autoNavigateTimer = null;
+// Debounced server search
+const fetchMatches = useDebounceFn(async () => {
+    if (!search.isSearching.value || !search.query.value) {
+        remoteMatches.value = [];
+        return;
     }
-    
-    // If searching and exactly one match, set timer for auto-navigation
-    if (isSearching && matchCount === 1) {
-        autoNavigateTimer = setTimeout(() => {
-            if (displayedVouchers.value.length === 1) {
-                navigateToVoucher(displayedVouchers.value[0]);
-                search.clearSearch();
-            }
-        }, 2000);
-    }
-});
-
-// Handle Enter key navigation
-const handleEnterKey = (event: KeyboardEvent) => {
-    if (event.key === 'Enter' && search.isSearching.value) {
-        if (displayedVouchers.value.length === 1) {
-            navigateToVoucher(displayedVouchers.value[0]);
+    try {
+        isFetching.value = true;
+        const params = new URLSearchParams({ q: search.query.value, filter: props.filter || 'all' });
+        const res = await fetch(`/pwa/vouchers/search?${params.toString()}`, {
+            headers: { 'Accept': 'application/json' },
+        });
+        if (res.ok) {
+            const json = await res.json();
+            remoteMatches.value = Array.isArray(json.data) ? json.data : [];
+        } else {
+            remoteMatches.value = [];
         }
+    } catch {
+        remoteMatches.value = [];
+    } finally {
+        isFetching.value = false;
+    }
+}, 300);
+
+// When query changes, trigger fetch
+watch([() => search.query.value, () => search.isSearching.value, () => props.filter], () => {
+    fetchMatches();
+});
+
+// Combine results: prefer remote matches when searching; fallback to local page filter; else show page data
+const displayedVouchers = computed(() => {
+    if (search.isSearching.value) {
+        if (remoteMatches.value.length > 0) return remoteMatches.value;
+        return search.filterByCode(props.vouchers.data);
+    }
+    return props.vouchers.data;
+});
+
+// Debug logging (can be removed in production)
+watch([() => displayedVouchers.value.length, () => search.isSearching.value, () => search.query.value], ([matchCount, isSearching, query]) => {
+    console.log('Search state:', {
+        query: query,
+        isSearching: isSearching,
+        matchCount: matchCount,
+        remoteMatchesCount: remoteMatches.value.length,
+        isFetching: isFetching.value,
+    });
+});
+
+// Handle Enter key navigation to first result
+const handleEnterKey = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && search.isSearching.value && displayedVouchers.value.length > 0) {
+        event.preventDefault();
+        navigateToVoucher(displayedVouchers.value[0]);
+        search.clearSearch();
     }
 };
 
@@ -209,8 +238,8 @@ const setFilter = (filter: string) => {
 
         <!-- Keyboard Search Overlay -->
         <KeyboardSearchOverlay
-            :show="search.isSearching.value"
-            :query="search.query.value"
+            :show="search.showOverlay.value"
+            :query="search.query.value + (isFetching ? ' …' : '')"
             :match-count="displayedVouchers.length"
             @close="search.clearSearch()"
         />
@@ -236,11 +265,7 @@ const setFilter = (filter: string) => {
                     v-for="voucher in displayedVouchers"
                     :key="voucher.code"
                     :href="`/pwa/vouchers/${voucher.code}`"
-                    class="block transition-opacity duration-300"
-                    :class="{
-                        'opacity-30': search.isSearching.value && !displayedVouchers.includes(voucher),
-                        'ring-2 ring-primary': search.isSearching.value && displayedVouchers.includes(voucher),
-                    }"
+                    class="block"
                 >
                     <VoucherCard :voucher="voucher" />
                 </Link>

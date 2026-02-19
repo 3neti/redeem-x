@@ -30,6 +30,8 @@ Route::middleware(['web', 'auth', ValidateSessionWithWorkOS::class])
         // Vouchers
         Route::get('/vouchers', [PwaVoucherController::class, 'index'])
             ->name('vouchers.index');
+        Route::get('/vouchers/search', [PwaVoucherController::class, 'search'])
+            ->name('vouchers.search');
 
         Route::get('/vouchers/generate', [PwaVoucherController::class, 'create'])
             ->name('vouchers.create');
