@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "294b49e1de6c2bdaa476c1242c14b6c3",
+    "content-hash": "96516441d901b088445f479b9c66cab9",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -416,7 +416,7 @@
         },
         {
             "name": "3neti/pwa-ui",
-            "version": "dev-main",
+            "version": "dev-feature/messaging-bot",
             "dist": {
                 "type": "path",
                 "url": "./packages/pwa-ui",
@@ -3784,6 +3784,61 @@
             }
         },
         {
+            "name": "lbhurtado/messaging-bot",
+            "version": "dev-feature/messaging-bot",
+            "dist": {
+                "type": "path",
+                "url": "./packages/messaging-bot",
+                "reference": "c24390b0c2cd6fa6508a49eec85b1f0d98db7dc5"
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.0",
+                "illuminate/cache": "^11.0|^12.0",
+                "illuminate/http": "^11.0|^12.0",
+                "illuminate/routing": "^11.0|^12.0",
+                "illuminate/support": "^11.0|^12.0",
+                "lbhurtado/voucher": "dev-main",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.0",
+                "pestphp/pest": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\MessagingBot\\MessagingBotServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\MessagingBot\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\MessagingBot\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Multi-channel messaging bot for PayCode voucher operations (Telegram, WhatsApp, Viber)",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "lbhurtado/money-issuer",
             "version": "dev-main",
             "dist": {
@@ -3844,7 +3899,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
+            "version": "dev-feature/messaging-bot",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -15370,6 +15425,7 @@
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
         "lbhurtado/merchant": 20,
+        "lbhurtado/messaging-bot": 20,
         "lbhurtado/money-issuer": 20,
         "lbhurtado/omnichannel": 20,
         "lbhurtado/payment-gateway": 20,

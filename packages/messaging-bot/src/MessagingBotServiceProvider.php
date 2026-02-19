@@ -6,6 +6,8 @@ namespace LBHurtado\MessagingBot;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use LBHurtado\MessagingBot\Console\Commands\PollCommand;
+use LBHurtado\MessagingBot\Console\Commands\WebhookCommand;
 use LBHurtado\MessagingBot\Contracts\MessagingDriverInterface;
 use LBHurtado\MessagingBot\Drivers\Telegram\TelegramDriver;
 use LBHurtado\MessagingBot\Engine\IntentRouter;
@@ -117,5 +119,10 @@ class MessagingBotServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/messaging-bot.php' => config_path('messaging-bot.php'),
         ], 'messaging-bot-config');
+
+        $this->commands([
+            PollCommand::class,
+            WebhookCommand::class,
+        ]);
     }
 }

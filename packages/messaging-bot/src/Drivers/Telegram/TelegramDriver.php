@@ -147,10 +147,22 @@ class TelegramDriver implements MessagingDriverInterface
      */
     public function getUpdates(int $offset = 0, int $timeout = 30): array
     {
-        return $this->request('getUpdates', [
-            'offset' => $offset,
-            'timeout' => $timeout,
+        // Use a separate client with extended timeout for long polling
+        $response = $this->client->post("/bot{$this->token}/getUpdates", [
+            'json' => [
+                'offset' => $offset,
+                'timeout' => $timeout,
+            ],
+            'timeout' => $timeout + 5, // Allow extra time for HTTP overhead
         ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        if (! ($data['ok'] ?? false)) {
+            throw new \RuntimeException($data['description'] ?? 'Unknown Telegram API error');
+        }
+
+        return $data['result'] ?? [];
     }
 
     /**
