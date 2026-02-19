@@ -120,6 +120,15 @@ const setFilter = (filter: string) => {
         preserveScroll: true,
     });
 };
+
+const toggleTypeFilter = (typeFilter: string) => {
+    // If clicking the same type filter, clear it (go to 'all')
+    if (props.filter === typeFilter) {
+        setFilter('all');
+    } else {
+        setFilter(typeFilter);
+    }
+};
 </script>
 
 <template>
@@ -206,13 +215,13 @@ const setFilter = (filter: string) => {
             
             <!-- Type Filters -->
             <div class="px-4 py-2">
-                <div class="text-xs font-medium text-muted-foreground mb-2">Type</div>
+                <div class="text-xs font-medium text-muted-foreground mb-2">Type (click again to clear)</div>
                 <div class="flex gap-2">
                     <Button
                         variant="outline"
                         size="sm"
                         :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-redeemable' }"
-                        @click="setFilter('type-redeemable')"
+                        @click="toggleTypeFilter('type-redeemable')"
                     >
                         Redeemable
                     </Button>
@@ -220,7 +229,7 @@ const setFilter = (filter: string) => {
                         variant="outline"
                         size="sm"
                         :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-payable' }"
-                        @click="setFilter('type-payable')"
+                        @click="toggleTypeFilter('type-payable')"
                     >
                         Payable
                     </Button>
@@ -228,7 +237,7 @@ const setFilter = (filter: string) => {
                         variant="outline"
                         size="sm"
                         :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-settlement' }"
-                        @click="setFilter('type-settlement')"
+                        @click="toggleTypeFilter('type-settlement')"
                     >
                         Settlement
                     </Button>
