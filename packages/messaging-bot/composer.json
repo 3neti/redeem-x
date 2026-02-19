@@ -1,0 +1,57 @@
+{
+    "name": "lbhurtado/messaging-bot",
+    "description": "Multi-channel messaging bot for PayCode voucher operations (Telegram, WhatsApp, Viber)",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/http": "^11.0|^12.0",
+        "illuminate/cache": "^11.0|^12.0",
+        "illuminate/routing": "^11.0|^12.0",
+        "spatie/laravel-data": "^4.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "lbhurtado/voucher": "dev-main"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\MessagingBot\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\MessagingBot\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\MessagingBot\\MessagingBotServiceProvider"
+            ]
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./../voucher"
+        }
+    ],
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
