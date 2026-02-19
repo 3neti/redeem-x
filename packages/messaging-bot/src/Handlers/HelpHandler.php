@@ -24,6 +24,7 @@ class HelpHandler extends BaseMessagingHandler
         $text .= "<b>General</b>\n";
         $text .= "/start - Welcome message\n";
         $text .= "/help - Show this help\n";
+        $text .= "/link - Link your account\n";
         $text .= "/cancel - Cancel current operation\n\n";
 
         $text .= "<b>Vouchers</b>\n";

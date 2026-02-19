@@ -75,6 +75,7 @@ return [
     'handlers' => [
         'start' => \LBHurtado\MessagingBot\Handlers\StartHandler::class,
         'help' => \LBHurtado\MessagingBot\Handlers\HelpHandler::class,
+        'link' => \LBHurtado\MessagingBot\Handlers\LinkHandler::class,
         'balance' => \LBHurtado\MessagingBot\Handlers\BalanceHandler::class,
     ],
 

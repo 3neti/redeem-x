@@ -30,10 +30,10 @@ enum Platform: string
     public function channelName(): string
     {
         return match ($this) {
-            self::Telegram => 'telegram_id',
-            self::WhatsApp => 'whatsapp_id',
-            self::Viber => 'viber_id',
-            self::Messenger => 'messenger_id',
+            self::Telegram => 'telegram',
+            self::WhatsApp => 'whatsapp',
+            self::Viber => 'viber',
+            self::Messenger => 'messenger',
         };
     }
 }

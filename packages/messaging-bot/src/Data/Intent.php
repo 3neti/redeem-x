@@ -8,6 +8,7 @@ enum Intent: string
 {
     case Start = 'start';
     case Help = 'help';
+    case Link = 'link';
     case Balance = 'balance';
     case Redeem = 'redeem';
     case Generate = 'generate';
@@ -45,6 +46,7 @@ enum Intent: string
         return match ($this) {
             self::Start => ['/start', 'start', 'hi', 'hello'],
             self::Help => ['/help', 'help', '?'],
+            self::Link => ['/link', 'link'],
             self::Balance => ['/balance', 'balance', 'bal'],
             self::Redeem => ['/redeem', 'redeem'],
             self::Generate => ['/generate', 'generate', 'gen'],
@@ -61,8 +63,13 @@ enum Intent: string
     {
         $normalized = strtolower(trim($text));
 
+        // Extract just the command part (first word)
+        $command = explode(' ', $normalized, 2)[0];
+
         foreach (self::cases() as $intent) {
-            if (in_array($normalized, $intent->patterns(), true)) {
+            // Check both full text and just the command
+            if (in_array($normalized, $intent->patterns(), true) ||
+                in_array($command, $intent->patterns(), true)) {
                 return $intent;
             }
         }

@@ -8,6 +8,9 @@ enum Channel: string
 {
     case MOBILE = 'mobile';
     case WEBHOOK = 'webhook';
+    case TELEGRAM = 'telegram';
+    case WHATSAPP = 'whatsapp';
+    case VIBER = 'viber';
 
     public function rules(): array
     {
