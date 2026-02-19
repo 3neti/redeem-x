@@ -113,7 +113,7 @@ class TelegramDriver implements MessagingDriverInterface
     /**
      * Set the webhook URL for this bot.
      */
-    public function setWebhook(string $url): array
+    public function setWebhook(string $url): bool
     {
         $payload = [
             'url' => $url,
@@ -123,15 +123,19 @@ class TelegramDriver implements MessagingDriverInterface
             $payload['secret_token'] = $this->webhookSecret;
         }
 
-        return $this->request('setWebhook', $payload);
+        $this->requestRaw('setWebhook', $payload);
+
+        return true;
     }
 
     /**
      * Delete the webhook for this bot.
      */
-    public function deleteWebhook(): array
+    public function deleteWebhook(): bool
     {
-        return $this->request('deleteWebhook');
+        $this->requestRaw('deleteWebhook');
+
+        return true;
     }
 
     /**
@@ -166,9 +170,19 @@ class TelegramDriver implements MessagingDriverInterface
     }
 
     /**
-     * Make a request to the Telegram Bot API.
+     * Make a request to the Telegram Bot API (expects array result).
      */
     protected function request(string $method, array $payload = []): array
+    {
+        $result = $this->requestRaw($method, $payload);
+
+        return is_array($result) ? $result : [];
+    }
+
+    /**
+     * Make a raw request to the Telegram Bot API.
+     */
+    protected function requestRaw(string $method, array $payload = []): mixed
     {
         $response = $this->client->post("/bot{$this->token}/{$method}", [
             'json' => $payload,
@@ -180,6 +194,6 @@ class TelegramDriver implements MessagingDriverInterface
             throw new \RuntimeException($data['description'] ?? 'Unknown Telegram API error');
         }
 
-        return $data['result'] ?? [];
+        return $data['result'] ?? null;
     }
 }
