@@ -18,29 +18,29 @@ class HelpHandler extends BaseMessagingHandler
     {
         $isAdmin = $this->isAdmin($update);
 
-        $text = "📋 *Available Commands*\n\n";
+        $text = "📋 <b>Available Commands</b>\n\n";
 
         // Public commands
-        $text .= "*General*\n";
+        $text .= "<b>General</b>\n";
         $text .= "/start - Welcome message\n";
         $text .= "/help - Show this help\n";
         $text .= "/cancel - Cancel current operation\n\n";
 
-        $text .= "*Vouchers*\n";
+        $text .= "<b>Vouchers</b>\n";
         $text .= "/redeem - Redeem a voucher code\n";
         $text .= "/balance - Check your wallet balance\n";
 
         // Admin commands
         if ($isAdmin) {
-            $text .= "\n*Admin Commands* 🔐\n";
+            $text .= "\n<b>Admin Commands</b> 🔐\n";
             $text .= "/generate - Generate new vouchers\n";
             $text .= "/disburse - Quick single voucher creation\n";
         }
 
-        $text .= "\n💡 *Tips*\n";
+        $text .= "\n💡 <b>Tips</b>\n";
         $text .= "• Send /cancel anytime to stop a flow\n";
         $text .= "• Send SKIP to skip optional fields";
 
-        return NormalizedResponse::markdown($text);
+        return NormalizedResponse::html($text);
     }
 }

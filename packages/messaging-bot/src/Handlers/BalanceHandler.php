@@ -38,8 +38,8 @@ class BalanceHandler extends BaseMessagingHandler
         $balance = $user->balanceInt ?? 0;
         $formattedBalance = $this->formatMoney($balance / 100);
 
-        $text = "💰 *Your Balance*\n\n";
-        $text .= "Available: *{$formattedBalance}*\n\n";
+        $text = "💰 <b>Your Balance</b>\n\n";
+        $text .= "Available: <b>{$formattedBalance}</b>\n\n";
 
         // Add recent transactions summary if available
         if (method_exists($user, 'transactions')) {
@@ -47,7 +47,7 @@ class BalanceHandler extends BaseMessagingHandler
             $text .= "📊 {$recentCount} transactions this week";
         }
 
-        return NormalizedResponse::markdown($text);
+        return NormalizedResponse::html($text);
     }
 
     /**
