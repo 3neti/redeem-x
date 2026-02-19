@@ -1313,6 +1313,28 @@ watch(payeeType, (newType, oldType) => {
           <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 5000, amount = 0) : amount = 5000">₱5K</Button>
           <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 10000, amount = 0) : amount = 10000">₱10K</Button>
         </div>
+        
+        <!-- Rider Configuration -->
+        <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('rider')">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs text-muted-foreground">Redemption Experience</p>
+            <Plus class="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div v-if="riderConfigSummary === 'Not configured'" class="text-sm font-medium text-muted-foreground">
+            Not configured
+          </div>
+          <div v-else class="flex flex-wrap gap-1">
+            <Badge v-if="riderMessage" variant="secondary" class="text-xs">
+              Message
+            </Badge>
+            <Badge v-if="riderUrl" variant="secondary" class="text-xs">
+              URL
+            </Badge>
+            <Badge v-if="riderSplash" variant="secondary" class="text-xs">
+              Splash
+            </Badge>
+          </div>
+        </div>
       </div>
 
       <!-- Fixed Bottom Section -->
