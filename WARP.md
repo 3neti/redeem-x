@@ -2,6 +2,21 @@
 
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
+## AI Session Safety Protocol
+
+⚠️ **MANDATORY:** Before starting any AI-assisted session, follow the safety protocol documented in `docs/AI_SESSION_SAFETY_PROTOCOL.md`.
+
+**Quick Pre-Session Check:**
+```bash
+git status                    # Must be clean
+git branch --show-current     # Usually 'main'
+git pull origin main          # Sync with remote
+```
+
+**If uncommitted changes exist:** Alert user immediately and ask what to do (commit/stash/discard). Do NOT proceed with new work.
+
+See full protocol: `docs/AI_SESSION_SAFETY_PROTOCOL.md`
+
 ## Development Environment
 
 This project uses **Laravel Herd** for local development.
