@@ -47,6 +47,13 @@ class RedeemFlow extends BaseFlow
 
     protected function handlePromptCode(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
+        // Handle exit request
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
         // Validate code format
         if (! preg_match('/^[A-Z0-9-]{4,20}$/i', $input)) {
             return [
@@ -67,28 +74,19 @@ class RedeemFlow extends BaseFlow
 
         // Validate voucher status
         if ($voucher->isRedeemed()) {
-            return [
-                'response' => NormalizedResponse::text('❌ This voucher has already been redeemed.'),
-                'state' => null,
-            ];
+            return $this->retryableError('This voucher has already been redeemed.', $state);
         }
 
         if ($voucher->isExpired()) {
-            return [
-                'response' => NormalizedResponse::text('❌ This voucher has expired.'),
-                'state' => null,
-            ];
+            return $this->retryableError('This voucher has expired.', $state);
         }
 
         // Check voucher type - only REDEEMABLE supported
         if ($voucher->voucher_type !== VoucherType::REDEEMABLE) {
-            return [
-                'response' => NormalizedResponse::text(
-                    "⚠️ This voucher type ({$voucher->voucher_type->value}) cannot be redeemed via bot.\n\n".
-                    'Please use the web interface to process this voucher.'
-                ),
-                'state' => null,
-            ];
+            return $this->retryableError(
+                "This voucher type ({$voucher->voucher_type->value}) cannot be redeemed via bot.",
+                $state
+            );
         }
 
         // Check if voucher requires user interaction (inputs/validation)
@@ -99,9 +97,12 @@ class RedeemFlow extends BaseFlow
                 'response' => NormalizedResponse::html(
                     "⚠️ <b>Web Redemption Required</b>\n\n".
                     "This voucher requires additional information.\n".
-                    "Please redeem at:\n<code>{$url}</code>"
-                ),
-                'state' => null,
+                    "Please redeem at:\n<code>{$url}</code>\n\n".
+                    "Enter another code or tap Exit."
+                )->withInlineButtons([
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
             ];
         }
 
@@ -436,6 +437,22 @@ class RedeemFlow extends BaseFlow
         }
 
         return $mobile;
+    }
+
+    /**
+     * Return a retryable error that keeps the user in the flow.
+     */
+    protected function retryableError(string $message, ConversationState $state): array
+    {
+        return [
+            'response' => NormalizedResponse::html(
+                "❌ {$message}\n\n".
+                "Enter another code or tap Exit."
+            )->withInlineButtons([
+                ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+            ]),
+            'state' => $state,
+        ];
     }
 
     /**
