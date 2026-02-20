@@ -214,6 +214,37 @@ class TelegramDriver implements MessagingDriverInterface
     }
 
     /**
+     * Answer a callback query (acknowledge inline button press).
+     *
+     * This removes the "loading" spinner on the button and optionally
+     * shows a notification to the user.
+     */
+    public function answerCallbackQuery(?string $callbackQueryId, ?string $text = null, bool $showAlert = false): void
+    {
+        if (! $callbackQueryId) {
+            return;
+        }
+
+        $payload = [
+            'callback_query_id' => $callbackQueryId,
+        ];
+
+        if ($text) {
+            $payload['text'] = $text;
+            $payload['show_alert'] = $showAlert;
+        }
+
+        try {
+            $this->requestRaw('answerCallbackQuery', $payload);
+        } catch (GuzzleException $e) {
+            Log::warning('[TelegramDriver] Failed to answer callback query', [
+                'callback_query_id' => $callbackQueryId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Get updates using long polling (for local development).
      */
     public function getUpdates(int $offset = 0, int $timeout = 30): array

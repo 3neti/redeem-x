@@ -82,24 +82,30 @@ class NormalizedUpdate extends Data
      */
     public static function fromTelegram(array $payload): self
     {
-        $message = $payload['message'] ?? $payload['callback_query']['message'] ?? [];
-        $from = $message['from'] ?? $payload['callback_query']['from'] ?? [];
+        $callbackQuery = $payload['callback_query'] ?? null;
+        $message = $payload['message'] ?? $callbackQuery['message'] ?? [];
+        
+        // For callback queries, 'from' is the user who pressed the button
+        $from = $callbackQuery['from'] ?? $message['from'] ?? [];
+        
+        // Chat ID: prefer callback_query.message.chat.id, then message.chat.id, then from.id
         $chat = $message['chat'] ?? [];
-        $contact = $message['contact'] ?? null;
-
+        $chatId = $chat['id'] ?? $from['id'] ?? '';
+        
         // Extract phone number from shared contact
-        $phoneNumber = null;
-        if ($contact) {
-            $phoneNumber = $contact['phone_number'] ?? null;
-        }
+        $contact = $message['contact'] ?? null;
+        $phoneNumber = $contact['phone_number'] ?? null;
+
+        // Text: callback_query.data takes precedence (button press), then message.text
+        $text = $callbackQuery['data'] ?? $message['text'] ?? null;
 
         return new self(
             platform: Platform::Telegram,
-            chatId: (string) ($chat['id'] ?? $from['id'] ?? ''),
+            chatId: (string) $chatId,
             userId: isset($from['id']) ? (string) $from['id'] : null,
             username: $from['username'] ?? null,
             firstName: $from['first_name'] ?? null,
-            text: $message['text'] ?? $payload['callback_query']['data'] ?? null,
+            text: $text,
             messageId: isset($message['message_id']) ? (string) $message['message_id'] : null,
             phoneNumber: $phoneNumber,
             rawPayload: $payload,
@@ -107,6 +113,22 @@ class NormalizedUpdate extends Data
                 ? CarbonImmutable::createFromTimestamp($message['date'])
                 : CarbonImmutable::now(),
         );
+    }
+
+    /**
+     * Check if this update is from a callback query (inline button press).
+     */
+    public function isCallbackQuery(): bool
+    {
+        return isset($this->rawPayload['callback_query']);
+    }
+
+    /**
+     * Get the callback query ID (for answering).
+     */
+    public function callbackQueryId(): ?string
+    {
+        return $this->rawPayload['callback_query']['id'] ?? null;
     }
 
     /**

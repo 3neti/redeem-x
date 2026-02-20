@@ -50,7 +50,14 @@ class TelegramWebhookController
             Log::info('[TelegramWebhook] Processing update', [
                 'chat_id' => $update->chatId,
                 'text' => $update->text,
+                'is_callback' => $update->isCallbackQuery(),
+                'has_phone' => $update->hasPhoneNumber(),
             ]);
+
+            // Answer callback query immediately (removes loading spinner)
+            if ($update->isCallbackQuery()) {
+                $this->driver->answerCallbackQuery($update->callbackQueryId());
+            }
 
             // Process through kernel
             $response = $this->kernel->handle($update);
@@ -76,12 +83,17 @@ class TelegramWebhookController
      */
     protected function hasValidMessage(array $payload): bool
     {
-        // Regular message
+        // Regular text message
         if (isset($payload['message']['text'])) {
             return true;
         }
 
-        // Callback query (button press)
+        // Contact shared (phone number)
+        if (isset($payload['message']['contact'])) {
+            return true;
+        }
+
+        // Callback query (inline button press)
         if (isset($payload['callback_query'])) {
             return true;
         }
