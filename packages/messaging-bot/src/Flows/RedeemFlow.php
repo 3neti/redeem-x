@@ -246,12 +246,17 @@ class RedeemFlow extends BaseFlow
         $cachedPhone = $this->getCachedPhone($update->chatId);
 
         if ($cachedPhone) {
-            // Skip to confirmation with cached phone (default to GCash)
+            // Load cached bank account or default to GCash with mobile
+            $cachedBankAccount = $this->getCachedBankAccount($update->chatId);
+            $bankCode = $cachedBankAccount['code'] ?? BankService::DEFAULT_BANK_CODE;
+            $bankName = $cachedBankAccount['name'] ?? BankService::DEFAULT_BANK_NAME;
+            $bankAccount = $cachedBankAccount['account'] ?? $this->formatMobileForAccount($cachedPhone);
+
             $newState = $state
                 ->set('mobile', $cachedPhone)
-                ->set('bank_code', BankService::DEFAULT_BANK_CODE)
-                ->set('bank_name', BankService::DEFAULT_BANK_NAME)
-                ->set('bank_account', $this->formatMobileForAccount($cachedPhone))
+                ->set('bank_code', $bankCode)
+                ->set('bank_name', $bankName)
+                ->set('bank_account', $bankAccount)
                 ->advanceTo('confirm');
 
             return [
@@ -359,12 +364,11 @@ class RedeemFlow extends BaseFlow
     protected function promptConfirm(ConversationState $state): NormalizedResponse
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
-        $bankName = $state->get('bank_name') ?? BankService::DEFAULT_BANK_NAME;
-        $bankAccount = $state->get('bank_account') ?? $this->formatMobileForDisplay($state->get('mobile'));
+        $bankDisplay = $this->formatBankDisplay($state);
 
         return NormalizedResponse::html(
             "📋 <b>Confirm Redemption</b>\n\n".
-            "<b>{$amount}</b> → <b>{$bankName}:{$bankAccount}</b>"
+            "<b>{$amount}</b> → {$bankDisplay}"
         )->withInlineButtons([
             ['text' => '✅ Accept', 'callback_data' => 'accept'],
             ['text' => '✏️ Edit', 'callback_data' => 'edit'],
@@ -377,12 +381,11 @@ class RedeemFlow extends BaseFlow
     protected function promptConfirmWithCachedPhone(ConversationState $state): NormalizedResponse
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
-        $bankName = $state->get('bank_name') ?? BankService::DEFAULT_BANK_NAME;
-        $bankAccount = $state->get('bank_account') ?? $this->formatMobileForDisplay($state->get('mobile'));
+        $bankDisplay = $this->formatBankDisplay($state);
 
         return NormalizedResponse::html(
             "✅ <b>{$amount}</b> voucher ready!\n\n".
-            "Send to <b>{$bankName}:{$bankAccount}</b>?"
+            "Send to {$bankDisplay}?"
         )->withInlineButtons([
             ['text' => '✅ Accept', 'callback_data' => 'accept'],
             ['text' => '✏️ Edit', 'callback_data' => 'edit'],
@@ -390,16 +393,33 @@ class RedeemFlow extends BaseFlow
     }
 
     /**
+     * Format bank display with red highlight if account differs from mobile.
+     */
+    protected function formatBankDisplay(ConversationState $state): string
+    {
+        $bankName = $state->get('bank_name') ?? BankService::DEFAULT_BANK_NAME;
+        $bankAccount = $state->get('bank_account') ?? $this->formatMobileForDisplay($state->get('mobile'));
+        $mobileAsAccount = $this->formatMobileForAccount($state->get('mobile'));
+
+        // If account matches mobile, show in normal bold
+        if ($bankAccount === $mobileAsAccount) {
+            return "<b>{$bankName}:{$bankAccount}</b>";
+        }
+
+        // Account differs from mobile - highlight in red (using <code> with emoji indicator)
+        return "⚠️ <b>{$bankName}:<u>{$bankAccount}</u></b>";
+    }
+
+    /**
      * Show edit options menu.
      */
     protected function promptEditOptions(ConversationState $state): NormalizedResponse
     {
-        $bankName = $state->get('bank_name') ?? BankService::DEFAULT_BANK_NAME;
-        $bankAccount = $state->get('bank_account');
+        $bankDisplay = $this->formatBankDisplay($state);
 
         return NormalizedResponse::html(
             "✏️ <b>What would you like to change?</b>\n\n".
-            "Current: <b>{$bankName}:{$bankAccount}</b>"
+            "Current: {$bankDisplay}"
         )->withInlineButtons([
             ['text' => '🏦 Bank', 'callback_data' => 'change_bank'],
             ['text' => '💳 Acct', 'callback_data' => 'change_account'],
@@ -743,8 +763,9 @@ class RedeemFlow extends BaseFlow
             $voucherData = $result['data']['voucher'] ?? [];
             $amount = $this->formatMoney($voucherData['amount'] ?? $state->get('voucher_amount'));
 
-            // Cache phone number for future redemptions (30 days)
+            // Cache phone and bank account for future redemptions (30 days)
             $this->cachePhone($update->chatId, $mobile);
+            $this->cacheBankAccount($update->chatId, $bankCode, $bankName, $bankAccount);
 
             Log::info('[RedeemFlow] Redemption successful via messaging', [
                 'voucher' => $voucherCode,
@@ -896,5 +917,33 @@ class RedeemFlow extends BaseFlow
     protected function phoneCacheKey(string $chatId): string
     {
         return "messaging:phone:{$chatId}";
+    }
+
+    /**
+     * Get cached bank account for a chat.
+     */
+    protected function getCachedBankAccount(string $chatId): ?array
+    {
+        return Cache::get($this->bankAccountCacheKey($chatId));
+    }
+
+    /**
+     * Cache bank account for a chat.
+     */
+    protected function cacheBankAccount(string $chatId, string $code, string $name, string $account): void
+    {
+        Cache::put($this->bankAccountCacheKey($chatId), [
+            'code' => $code,
+            'name' => $name,
+            'account' => $account,
+        ], now()->addDays(30));
+    }
+
+    /**
+     * Get cache key for bank account.
+     */
+    protected function bankAccountCacheKey(string $chatId): string
+    {
+        return "messaging:bank_account:{$chatId}";
     }
 }
