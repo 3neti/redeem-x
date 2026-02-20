@@ -68,7 +68,7 @@ class DisburseFlow extends BaseFlow
         }
 
         $newState = $state
-            ->with('amount', $amount)
+            ->set('amount', $amount)
             ->advanceTo('promptMemo');
 
         return [
@@ -94,7 +94,7 @@ class DisburseFlow extends BaseFlow
         $memo = $this->isSkipCommand($input) ? null : trim($input);
 
         $newState = $state
-            ->with('memo', $memo)
+            ->set('memo', $memo)
             ->advanceTo('confirm');
 
         return [

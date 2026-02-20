@@ -93,8 +93,8 @@ class RedeemFlow extends BaseFlow
 
         // Store voucher info and advance
         $newState = $state
-            ->with('voucher_code', $voucher->code)
-            ->with('voucher_amount', $voucher->cash->amount)
+            ->set('voucher_code', $voucher->code)
+            ->set('voucher_amount', $voucher->cash->amount)
             ->advanceTo('promptMobile');
 
         return [
@@ -137,7 +137,7 @@ class RedeemFlow extends BaseFlow
 
         // Store mobile and advance to confirm
         $newState = $state
-            ->with('mobile', $mobile)
+            ->set('mobile', $mobile)
             ->advanceTo('confirm');
 
         return [

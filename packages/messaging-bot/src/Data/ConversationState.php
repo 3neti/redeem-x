@@ -52,7 +52,7 @@ class ConversationState extends Data
     /**
      * Store a value in the context.
      */
-    public function with(string $key, mixed $value): self
+    public function set(string $key, mixed $value): self
     {
         $context = $this->context;
         $context[$key] = $value;

@@ -69,7 +69,7 @@ class GenerateFlow extends BaseFlow
         }
 
         $newState = $state
-            ->with('amount', $amount)
+            ->set('amount', $amount)
             ->advanceTo('promptCount');
 
         return [
@@ -106,7 +106,7 @@ class GenerateFlow extends BaseFlow
         }
 
         $newState = $state
-            ->with('count', $count)
+            ->set('count', $count)
             ->advanceTo('promptCampaign');
 
         return [
@@ -129,7 +129,7 @@ class GenerateFlow extends BaseFlow
         $campaign = $this->isSkipCommand($input) ? null : trim($input);
 
         $newState = $state
-            ->with('campaign', $campaign)
+            ->set('campaign', $campaign)
             ->advanceTo('confirm');
 
         return [
