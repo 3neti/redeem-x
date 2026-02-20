@@ -69,7 +69,21 @@ class TelegramDriver implements MessagingDriverInterface
             $payload['disable_notification'] = true;
         }
 
-        if ($response->hasButtons()) {
+        // Handle contact request keyboard
+        if ($response->wantsContactRequest()) {
+            $payload['reply_markup'] = [
+                'keyboard' => [
+                    [
+                        [
+                            'text' => '📱 Share Phone Number',
+                            'request_contact' => true,
+                        ],
+                    ],
+                ],
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ];
+        } elseif ($response->hasButtons()) {
             $payload['reply_markup'] = [
                 'inline_keyboard' => [$response->buttons],
             ];
@@ -144,6 +158,59 @@ class TelegramDriver implements MessagingDriverInterface
     public function getWebhookInfo(): array
     {
         return $this->request('getWebhookInfo');
+    }
+
+    /**
+     * Send a message with a contact request keyboard button.
+     *
+     * The keyboard shows a button that, when tapped, prompts the user
+     * to share their phone number with the bot.
+     */
+    public function requestContact(string $chatId, string $text, string $buttonText = '📱 Share Phone Number'): void
+    {
+        $payload = [
+            'chat_id' => $chatId,
+            'text' => $text,
+            'reply_markup' => [
+                'keyboard' => [
+                    [
+                        [
+                            'text' => $buttonText,
+                            'request_contact' => true,
+                        ],
+                    ],
+                ],
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ],
+        ];
+
+        try {
+            $this->request('sendMessage', $payload);
+        } catch (GuzzleException $e) {
+            Log::error('[TelegramDriver] Failed to request contact', [
+                'chat_id' => $chatId,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Remove custom keyboard and return to default.
+     */
+    public function removeKeyboard(string $chatId, string $text): void
+    {
+        $payload = [
+            'chat_id' => $chatId,
+            'text' => $text,
+            'reply_markup' => [
+                'remove_keyboard' => true,
+            ],
+        ];
+
+        $this->request('sendMessage', $payload);
     }
 
     /**

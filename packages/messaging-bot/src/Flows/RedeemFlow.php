@@ -7,6 +7,7 @@ namespace LBHurtado\MessagingBot\Flows;
 use App\Actions\Api\Redemption\RedeemViaSms;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\Log;
+use Lorisleiva\Actions\ActionRequest;
 use LBHurtado\MessagingBot\Data\ConversationState;
 use LBHurtado\MessagingBot\Data\NormalizedResponse;
 use LBHurtado\MessagingBot\Data\NormalizedUpdate;
@@ -125,34 +126,67 @@ class RedeemFlow extends BaseFlow
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
 
+        // Response includes hint about share button (actual button sent by driver)
         return NormalizedResponse::html(
             "✅ Voucher found!\n\n".
             "Code: <b>{$state->get('voucher_code')}</b>\n".
             "Amount: <b>{$amount}</b>\n\n".
-            "Please send the mobile number for payout (e.g., 09171234567)"
-        );
+            "Tap the button below to share your phone number,\n".
+            "or type it manually (e.g., 09171234567)"
+        )->withContactRequest();
     }
 
     protected function handlePromptMobile(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
-        // Normalize and validate mobile
+        // Check if user shared their contact (phone number from Telegram)
+        if ($update->hasPhoneNumber()) {
+            $mobile = $this->normalizePhone($update->phoneNumber);
+
+            $this->log('info', 'Received phone from contact share', [
+                'phone' => $mobile,
+            ]);
+
+            return $this->advanceToConfirm($state, $mobile);
+        }
+
+        // Handle manual text input
         $mobile = preg_replace('/[^0-9+]/', '', $input);
 
         if (! preg_match('/^(\+?63|0)?9\d{9}$/', $mobile)) {
             return [
-                'response' => $this->validationError('Invalid mobile number. Please enter a valid PH mobile number.'),
+                'response' => $this->validationError('Invalid mobile number. Please enter a valid PH mobile number or tap the Share button.'),
                 'state' => $state,
             ];
         }
 
-        // Normalize to +63 format
-        if (str_starts_with($mobile, '0')) {
-            $mobile = '+63'.substr($mobile, 1);
-        } elseif (! str_starts_with($mobile, '+')) {
-            $mobile = '+'.$mobile;
+        $mobile = $this->normalizePhone($mobile);
+
+        return $this->advanceToConfirm($state, $mobile);
+    }
+
+    /**
+     * Normalize phone to +63 format.
+     */
+    protected function normalizePhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+
+        if (str_starts_with($phone, '0')) {
+            return '+63'.substr($phone, 1);
         }
 
-        // Store mobile and advance to confirm
+        if (! str_starts_with($phone, '+')) {
+            return '+'.$phone;
+        }
+
+        return $phone;
+    }
+
+    /**
+     * Advance to confirmation step with mobile number.
+     */
+    protected function advanceToConfirm(ConversationState $state, string $mobile): array
+    {
         $newState = $state
             ->set('mobile', $mobile)
             ->advanceTo('confirm');
@@ -222,15 +256,14 @@ class RedeemFlow extends BaseFlow
                 );
             }
 
-            // Call the redemption action via HTTP simulation
-            // This reuses the existing SMS redemption logic
-            request()->merge([
+            // Call the redemption action
+            $actionRequest = ActionRequest::create('', 'POST', [
                 'voucher_code' => $voucherCode,
                 'mobile' => $mobile,
                 'bank_spec' => null, // Will use default (GCASH)
             ]);
 
-            $response = app(RedeemViaSms::class)->asController(request());
+            $response = app(RedeemViaSms::class)->asController($actionRequest);
             $result = json_decode($response->getContent(), true);
 
             if (! ($result['success'] ?? false)) {

@@ -19,6 +19,7 @@ class NormalizedResponse extends Data
         public array $buttons = [],
         public ?string $parseMode = null,
         public bool $disableNotification = false,
+        public bool $requestContact = false,
     ) {}
 
     /**
@@ -77,6 +78,30 @@ class NormalizedResponse extends Data
     public function hasButtons(): bool
     {
         return ! empty($this->buttons);
+    }
+
+    /**
+     * Request the user to share their contact (phone number).
+     *
+     * This flag tells the driver to show a "Share Phone" keyboard button.
+     */
+    public function withContactRequest(): self
+    {
+        return new self(
+            text: $this->text,
+            buttons: $this->buttons,
+            parseMode: $this->parseMode,
+            disableNotification: $this->disableNotification,
+            requestContact: true,
+        );
+    }
+
+    /**
+     * Determine if this response requests contact sharing.
+     */
+    public function wantsContactRequest(): bool
+    {
+        return $this->requestContact;
     }
 
     /**

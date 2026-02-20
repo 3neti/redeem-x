@@ -24,10 +24,19 @@ class NormalizedUpdate extends Data
         public ?string $firstName = null,
         public ?string $text = null,
         public ?string $messageId = null,
+        public ?string $phoneNumber = null,
         public array $rawPayload = [],
         public ?CarbonImmutable $timestamp = null,
     ) {
         $this->timestamp ??= CarbonImmutable::now();
+    }
+
+    /**
+     * Check if this update contains a shared contact with phone number.
+     */
+    public function hasPhoneNumber(): bool
+    {
+        return filled($this->phoneNumber);
     }
 
     /**
@@ -76,6 +85,13 @@ class NormalizedUpdate extends Data
         $message = $payload['message'] ?? $payload['callback_query']['message'] ?? [];
         $from = $message['from'] ?? $payload['callback_query']['from'] ?? [];
         $chat = $message['chat'] ?? [];
+        $contact = $message['contact'] ?? null;
+
+        // Extract phone number from shared contact
+        $phoneNumber = null;
+        if ($contact) {
+            $phoneNumber = $contact['phone_number'] ?? null;
+        }
 
         return new self(
             platform: Platform::Telegram,
@@ -85,10 +101,35 @@ class NormalizedUpdate extends Data
             firstName: $from['first_name'] ?? null,
             text: $message['text'] ?? $payload['callback_query']['data'] ?? null,
             messageId: isset($message['message_id']) ? (string) $message['message_id'] : null,
+            phoneNumber: $phoneNumber,
             rawPayload: $payload,
             timestamp: isset($message['date'])
                 ? CarbonImmutable::createFromTimestamp($message['date'])
                 : CarbonImmutable::now(),
+        );
+    }
+
+    /**
+     * Create a fake update for testing.
+     */
+    public static function fake(
+        string $text,
+        string $chatId = '12345',
+        Platform $platform = Platform::Telegram,
+        ?string $phoneNumber = null,
+        ?string $firstName = 'TestUser',
+    ): self {
+        return new self(
+            platform: $platform,
+            chatId: $chatId,
+            userId: $chatId,
+            username: 'testuser',
+            firstName: $firstName,
+            text: $text,
+            messageId: (string) time(),
+            phoneNumber: $phoneNumber,
+            rawPayload: [],
+            timestamp: CarbonImmutable::now(),
         );
     }
 }

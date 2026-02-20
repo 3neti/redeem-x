@@ -7,6 +7,7 @@ namespace LBHurtado\MessagingBot;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use LBHurtado\MessagingBot\Console\Commands\PollCommand;
+use LBHurtado\MessagingBot\Console\Commands\TestMessagingCommand;
 use LBHurtado\MessagingBot\Console\Commands\WebhookCommand;
 use LBHurtado\MessagingBot\Contracts\MessagingDriverInterface;
 use LBHurtado\MessagingBot\Drivers\Telegram\TelegramDriver;
@@ -122,6 +123,7 @@ class MessagingBotServiceProvider extends ServiceProvider
 
         $this->commands([
             PollCommand::class,
+            TestMessagingCommand::class,
             WebhookCommand::class,
         ]);
     }
