@@ -280,13 +280,22 @@ class RedeemFlow extends BaseFlow
                 'voucher' => $voucherCode,
                 'mobile' => $mobile,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
+            // Show detailed error in non-production
+            $errorMessage = "❌ Redemption failed. Please try again later.\n\n";
+            
+            if (! app()->isProduction()) {
+                $errorMessage .= "Error: {$e->getMessage()}\n";
+                $errorMessage .= "File: {$e->getFile()}:{$e->getLine()}\n\n";
+            }
+            
+            $errorMessage .= "If the problem persists, contact support.";
+
             return $this->complete(
-                NormalizedResponse::text(
-                    "❌ Redemption failed. Please try again later.\n\n".
-                    "If the problem persists, contact support."
-                )
+                NormalizedResponse::text($errorMessage)
             );
         }
     }

@@ -151,10 +151,17 @@ abstract class BaseFlow implements FlowInterface
      */
     protected function errorResponse(\Throwable $e): NormalizedResponse
     {
-        return NormalizedResponse::text(
-            "❌ Something went wrong. Please try again.\n\n".
-            'Send /cancel to exit this flow.'
-        );
+        $message = "❌ Something went wrong. Please try again.\n\n";
+        
+        // Show detailed error in non-production
+        if (! app()->isProduction()) {
+            $message .= "Error: {$e->getMessage()}\n";
+            $message .= "File: ".basename($e->getFile()).":{$e->getLine()}\n\n";
+        }
+        
+        $message .= 'Send /cancel to exit this flow.';
+        
+        return NormalizedResponse::text($message);
     }
 
     /**
