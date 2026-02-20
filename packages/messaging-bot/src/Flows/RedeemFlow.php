@@ -596,25 +596,21 @@ class RedeemFlow extends BaseFlow
     protected function promptPromptBankAccount(ConversationState $state): NormalizedResponse
     {
         $bankName = $state->get('bank_name');
-        $mobile = $state->get('mobile');
-        $defaultAccount = $this->formatMobileForAccount($mobile);
+        $currentAccount = $state->get('bank_account');
 
-        // For EMIs (GCash, Maya, etc.), suggest using mobile number
-        $isEmi = in_array($state->get('bank_code'), [
-            'GXCHPHM2XXX', 'PAPHPHM1XXX', 'GHPESGSGXXX', 'SHPHPHM2XXX', 'DCPHPHM1XXX',
-        ]);
-
-        if ($isEmi) {
+        // If we have a current account, offer to keep it
+        if ($currentAccount) {
             return NormalizedResponse::html(
-                "📝 <b>Enter {$bankName} account number</b>\n\n".
-                "Your mobile: <code>{$defaultAccount}</code>\n".
-                "Tap below to use it, or type a different number."
+                "📝 <b>Enter account number</b>\n\n".
+                "Current: <code>{$currentAccount}</code>\n".
+                "Tap below to keep it, or type a different number."
             )->withInlineButtons([
-                ['text' => "📱 Use {$defaultAccount}", 'callback_data' => 'use_mobile'],
+                ['text' => "✅ Keep {$currentAccount}", 'callback_data' => 'keep_account'],
                 ['text' => '↩️ Back', 'callback_data' => 'back'],
             ]);
         }
 
+        // No current account - just ask for one
         return NormalizedResponse::html(
             "📝 <b>Enter {$bankName} account number</b>\n\n".
             "Type your account number:"
@@ -643,14 +639,9 @@ class RedeemFlow extends BaseFlow
             );
         }
 
-        // Handle "use mobile" for EMIs
-        if ($response === 'use_mobile') {
-            $mobile = $state->get('mobile');
-            $account = $this->formatMobileForAccount($mobile);
-            $newState = $state
-                ->set('bank_account', $account)
-                ->advanceTo('confirm');
-
+        // Handle "keep account" - user wants to keep current account
+        if ($response === 'keep_account') {
+            $newState = $state->advanceTo('confirm');
             return [
                 'response' => $this->promptConfirm($newState),
                 'state' => $newState,
