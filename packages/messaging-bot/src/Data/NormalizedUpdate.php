@@ -111,9 +111,11 @@ class NormalizedUpdate extends Data
 
     /**
      * Create a fake update for testing.
+     *
+     * @param  ?string  $text  Message text (null for contact-only shares)
      */
     public static function fake(
-        string $text,
+        ?string $text,
         string $chatId = '12345',
         Platform $platform = Platform::Telegram,
         ?string $phoneNumber = null,

@@ -114,4 +114,20 @@ class NormalizedResponse extends Data
             ['text' => '❌ No', 'callback_data' => 'confirm_no'],
         ]);
     }
+
+    /**
+     * Add inline keyboard buttons.
+     *
+     * @param  array<array{text: string, callback_data: string}>  $buttons
+     */
+    public function withInlineButtons(array $buttons): self
+    {
+        return new self(
+            text: $this->text,
+            buttons: $buttons,
+            parseMode: $this->parseMode,
+            disableNotification: $this->disableNotification,
+            requestContact: $this->requestContact,
+        );
+    }
 }

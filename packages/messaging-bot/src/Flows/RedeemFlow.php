@@ -6,6 +6,7 @@ namespace LBHurtado\MessagingBot\Flows;
 
 use App\Actions\Api\Redemption\RedeemViaSms;
 use Brick\Money\Money;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Lorisleiva\Actions\ActionRequest;
 use LBHurtado\MessagingBot\Data\ConversationState;
@@ -40,9 +41,7 @@ class RedeemFlow extends BaseFlow
     protected function promptPromptCode(ConversationState $state): NormalizedResponse
     {
         return NormalizedResponse::html(
-            "💳 <b>Redeem Voucher</b>\n\n".
-            "Please send the voucher code you want to redeem.\n\n".
-            "Send /cancel to exit."
+            "💳 <b>Enter Pay Code:</b>"
         );
     }
 
@@ -109,11 +108,28 @@ class RedeemFlow extends BaseFlow
         // Get display amount from instructions (stored as float in instructions)
         $amount = $voucher->instructions->cash->amount ?? 0;
 
-        // Store voucher info and advance
+        // Store voucher info
         $newState = $state
             ->set('voucher_code', $voucher->code)
-            ->set('voucher_amount', $amount)
-            ->advanceTo('promptMobile');
+            ->set('voucher_amount', $amount);
+
+        // Check for cached phone number (returning user)
+        $cachedPhone = $this->getCachedPhone($update->chatId);
+
+        if ($cachedPhone) {
+            // Skip to confirmation with cached phone
+            $newState = $newState
+                ->set('mobile', $cachedPhone)
+                ->advanceTo('confirm');
+
+            return [
+                'response' => $this->promptConfirmWithCachedPhone($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // First-time user - ask for phone
+        $newState = $newState->advanceTo('promptMobile');
 
         return [
             'response' => $this->promptPromptMobile($newState),
@@ -121,18 +137,14 @@ class RedeemFlow extends BaseFlow
         ];
     }
 
-    // Step 2: Prompt for mobile number
+    // Step 2: Prompt for mobile number (combined with voucher found message)
     protected function promptPromptMobile(ConversationState $state): NormalizedResponse
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
 
-        // Response includes hint about share button (actual button sent by driver)
         return NormalizedResponse::html(
-            "✅ Voucher found!\n\n".
-            "Code: <b>{$state->get('voucher_code')}</b>\n".
-            "Amount: <b>{$amount}</b>\n\n".
-            "Tap the button below to share your phone number,\n".
-            "or type it manually (e.g., 09171234567)"
+            "✅ <b>{$amount}</b> found!\n\n".
+            "We need your mobile number to send the funds."
         )->withContactRequest();
     }
 
@@ -197,33 +209,68 @@ class RedeemFlow extends BaseFlow
         ];
     }
 
-    // Step 3: Confirm redemption
+    // Step 3: Confirm redemption with inline buttons
     protected function promptConfirm(ConversationState $state): NormalizedResponse
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
+        $mobile = $state->get('mobile');
+        $bankName = $this->getBankName($mobile);
+        $displayMobile = $this->formatMobileForDisplay($mobile);
 
         return NormalizedResponse::html(
-            "📋 <b>Confirm Redemption</b>\n\n".
-            "Voucher: <b>{$state->get('voucher_code')}</b>\n".
-            "Amount: <b>{$amount}</b>\n".
-            "Payout to: <b>{$state->get('mobile')}</b>\n\n".
-            "Send <b>YES</b> to confirm or <b>NO</b> to cancel."
-        );
+            "📋 You will receive:\n\n".
+            "<b>{$amount}</b> → <b>{$bankName}:{$displayMobile}</b>"
+        )->withInlineButtons([
+            ['text' => '✅ Accept', 'callback_data' => 'accept'],
+            ['text' => '✏️ Change Account', 'callback_data' => 'change'],
+        ]);
+    }
+
+    /**
+     * Confirm prompt for returning users (with cached phone).
+     * Shows a "Use Different Number" option instead of "Change Account".
+     */
+    protected function promptConfirmWithCachedPhone(ConversationState $state): NormalizedResponse
+    {
+        $amount = $this->formatMoney($state->get('voucher_amount'));
+        $mobile = $state->get('mobile');
+        $bankName = $this->getBankName($mobile);
+        $displayMobile = $this->formatMobileForDisplay($mobile);
+
+        return NormalizedResponse::html(
+            "✅ <b>{$amount}</b> found!\n\n".
+            "Send to <b>{$bankName}:{$displayMobile}</b>?"
+        )->withInlineButtons([
+            ['text' => '✅ Accept', 'callback_data' => 'accept'],
+            ['text' => '📱 Different Number', 'callback_data' => 'change'],
+        ]);
     }
 
     protected function handleConfirm(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
         $response = strtolower($input);
 
-        if (in_array($response, ['no', 'n', 'cancel'])) {
-            return $this->complete(
-                NormalizedResponse::text("❌ Redemption cancelled.\n\nSend /help to see available commands.")
-            );
+        // Handle inline button callbacks or text responses
+        if (in_array($response, ['change', 'no', 'n', 'cancel'])) {
+            // User wants to change account - go back to mobile prompt
+            $newState = $state->advanceTo('promptMobile');
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "✏️ Enter your mobile number:"
+                )->withContactRequest(),
+                'state' => $newState,
+            ];
         }
 
-        if (! in_array($response, ['yes', 'y', 'confirm'])) {
+        if (! in_array($response, ['accept', 'yes', 'y', 'confirm'])) {
             return [
-                'response' => $this->validationError("Please send YES to confirm or NO to cancel."),
+                'response' => NormalizedResponse::html(
+                    "Please tap <b>Accept</b> or <b>Change Account</b>."
+                )->withInlineButtons([
+                    ['text' => '✅ Accept', 'callback_data' => 'accept'],
+                    ['text' => '✏️ Change Account', 'callback_data' => 'change'],
+                ]),
                 'state' => $state,
             ];
         }
@@ -289,7 +336,11 @@ class RedeemFlow extends BaseFlow
             // Success!
             $voucherData = $result['data']['voucher'] ?? [];
             $amount = $this->formatMoney($voucherData['amount'] ?? $state->get('voucher_amount'));
-            $bankAccount = $result['data']['bank_account'] ?? 'your account';
+            $bankName = $this->getBankName($mobile);
+            $displayMobile = $this->formatMobileForDisplay($mobile);
+
+            // Cache phone number for future redemptions (30 days)
+            $this->cachePhone($update->chatId, $mobile);
 
             Log::info('[RedeemFlow] Redemption successful via messaging', [
                 'voucher' => $voucherCode,
@@ -300,11 +351,9 @@ class RedeemFlow extends BaseFlow
 
             return $this->complete(
                 NormalizedResponse::html(
-                    "✅ <b>Redemption Successful!</b>\n\n".
-                    "Amount: <b>{$amount}</b>\n".
-                    "Sent to: <b>{$bankAccount}</b>\n\n".
-                    "The funds will be transferred shortly.\n\n".
-                    "Thank you for using PayCode! 🎉"
+                    "🎉 <b>Done!</b>\n\n".
+                    "{$amount} is on the way to your {$bankName}.\n".
+                    "Account: {$displayMobile}"
                 )
             );
 
@@ -360,5 +409,56 @@ class RedeemFlow extends BaseFlow
         } catch (\Throwable $e) {
             return '₱'.number_format($amount, 2);
         }
+    }
+
+    /**
+     * Get friendly bank name from mobile number.
+     *
+     * For PH mobile numbers, default to GCash (most common e-wallet).
+     */
+    protected function getBankName(string $mobile): string
+    {
+        // In the future, we could look up the user's preferred bank
+        // For now, default to GCash for PH mobile numbers
+        return 'GCash';
+    }
+
+    /**
+     * Format mobile number for display (e.g., 0917xxxxxxx format).
+     */
+    protected function formatMobileForDisplay(string $mobile): string
+    {
+        // Remove + prefix and convert +63 to 0 for PH numbers
+        $mobile = ltrim($mobile, '+');
+
+        if (str_starts_with($mobile, '63')) {
+            return '0'.substr($mobile, 2);
+        }
+
+        return $mobile;
+    }
+
+    /**
+     * Get cached phone number for a chat.
+     */
+    protected function getCachedPhone(string $chatId): ?string
+    {
+        return Cache::get($this->phoneCacheKey($chatId));
+    }
+
+    /**
+     * Cache phone number for a chat.
+     */
+    protected function cachePhone(string $chatId, string $phone): void
+    {
+        Cache::put($this->phoneCacheKey($chatId), $phone, now()->addDays(30));
+    }
+
+    /**
+     * Get cache key for phone number.
+     */
+    protected function phoneCacheKey(string $chatId): string
+    {
+        return "messaging:phone:{$chatId}";
     }
 }

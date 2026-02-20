@@ -83,26 +83,32 @@ $driver->setWebhook('https://yourdomain.com/messaging/telegram/webhook');
 
 ### 3. Local Development
 
-For local development without a public URL, use long polling:
+For local development, use the test command to simulate messages:
 
-```php
-// In a custom command or tinker
-$driver = app(TelegramDriver::class);
-$offset = 0;
+```bash
+# Simulate a message
+php artisan test:messaging "/redeem"
 
-while (true) {
-    $updates = $driver->getUpdates($offset);
-    
-    foreach ($updates as $update) {
-        $kernel = app(MessagingKernel::class);
-        $normalized = $driver->parseUpdate($update);
-        $response = $kernel->handle($normalized);
-        $driver->sendMessage($normalized->chatId, $response);
-        $offset = $update['update_id'] + 1;
-    }
-    
-    sleep(1);
-}
+# Continue the conversation
+php artisan test:messaging "VOUCHER-CODE"
+
+# Simulate contact sharing (phone number)
+php artisan test:messaging "" --contact
+
+# Test deep link (as if user clicked t.me/bot?start=redeem_CODE)
+php artisan test:messaging "/start redeem_ABCD"
+
+# Use different chat ID (for separate conversation state)
+php artisan test:messaging "/redeem" --chat-id=99999
+
+# Specify mobile number for contact sharing
+php artisan test:messaging "" --contact --mobile=09181234567
+```
+
+Alternatively, use long polling for real Telegram interaction:
+
+```bash
+php artisan messaging:poll
 ```
 
 ## Available Commands
@@ -123,6 +129,58 @@ while (true) {
 |---------|-------------|
 | `/generate` | Generate multiple vouchers |
 | `/disburse` | Quick single-voucher creation |
+
+## Deep Links
+
+Telegram deep links allow users to start redemption with a single click:
+
+```
+https://t.me/your_bot?start=redeem_VOUCHER-CODE
+https://t.me/your_bot?start=disburse_VOUCHER-CODE
+```
+
+**Format:** `start=action_param` (underscore separator)
+
+**Examples:**
+```
+https://t.me/xchange_paycode_bot?start=redeem_3LGB-GX8S
+https://t.me/xchange_paycode_bot?start=disburse_ABCD-1234
+```
+
+When a user clicks a deep link:
+1. Telegram opens and starts the bot
+2. Bot automatically validates the voucher code
+3. User sees amount and is prompted to share phone (or confirm if returning user)
+
+## Redemption UX Flow
+
+### First-Time User (3 steps)
+```
+Click: t.me/bot?start=redeem_ABCD
+→ ✅ ₱100.00 found!
+  We need your mobile number to send the funds.
+  [📱 Share Phone Number]
+
+*taps share*
+→ 📋 You will receive:
+  ₱100.00 → GCash:09173011987
+  [✅ Accept] [✏️ Change Account]
+
+*taps accept*
+→ 🎉 Done!
+```
+
+### Returning User (2 steps)
+Phone number is cached for 30 days after successful redemption:
+```
+Click: t.me/bot?start=redeem_EFGH
+→ ✅ ₱100.00 found!
+  Send to GCash:09173011987?
+  [✅ Accept] [📱 Different Number]
+
+*taps accept*
+→ 🎉 Done!
+```
 
 ## Architecture
 
@@ -226,6 +284,7 @@ class MyFlow extends BaseFlow
 
 ## Testing
 
+### Unit Tests
 ```bash
 # Run package tests
 cd packages/messaging-bot
@@ -233,6 +292,20 @@ composer test
 
 # Or from root
 php artisan test packages/messaging-bot/tests
+```
+
+### Manual Testing
+```bash
+# Test the full redemption flow
+php artisan cache:clear
+php artisan test:messaging "/start redeem_VOUCHER-CODE"
+php artisan test:messaging "" --contact
+php artisan test:messaging "accept"
+
+# Test returning user (with cached phone)
+php artisan tinker --execute="Cache::put('messaging:phone:12345', '+639173011987', now()->addDays(30));"
+php artisan test:messaging "/start redeem_ANOTHER-CODE"
+php artisan test:messaging "accept"
 ```
 
 ## License

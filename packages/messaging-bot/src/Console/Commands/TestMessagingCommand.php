@@ -82,6 +82,12 @@ class TestMessagingCommand extends Command
                 $this->line("   {$line}");
             }
 
+            // Show contact request button if present
+            if ($response->wantsContactRequest()) {
+                $this->newLine();
+                $this->line('   [📱 Share Phone Number]');
+            }
+
             if ($response->hasButtons()) {
                 $this->newLine();
                 $this->line('   Buttons:');
