@@ -401,9 +401,8 @@ class RedeemFlow extends BaseFlow
             "✏️ <b>What would you like to change?</b>\n\n".
             "Current: <b>{$bankName}:{$bankAccount}</b>"
         )->withInlineButtons([
-            ['text' => '🏦 Change Bank', 'callback_data' => 'change_bank'],
-            ['text' => '💳 Change Account #', 'callback_data' => 'change_account'],
-            ['text' => '📱 Change Phone', 'callback_data' => 'change_number'],
+            ['text' => '🏦 Bank', 'callback_data' => 'change_bank'],
+            ['text' => '💳 Acct', 'callback_data' => 'change_account'],
             ['text' => '↩️ Back', 'callback_data' => 'back'],
         ]);
     }
