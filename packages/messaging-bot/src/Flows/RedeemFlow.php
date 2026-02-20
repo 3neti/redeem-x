@@ -80,7 +80,7 @@ class RedeemFlow extends BaseFlow
             ];
         }
 
-        // Check voucher type
+        // Check voucher type - only REDEEMABLE supported
         if ($voucher->voucher_type !== VoucherType::REDEEMABLE) {
             return [
                 'response' => NormalizedResponse::text(
@@ -91,8 +91,22 @@ class RedeemFlow extends BaseFlow
             ];
         }
 
-        // Get the voucher amount safely
-        $amount = $voucher->cash?->amount ?? $voucher->getAttribute('amount') ?? 0;
+        // Check if voucher requires user interaction (inputs/validation)
+        if ($this->requiresUserInteraction($voucher)) {
+            $url = config('app.url')."/redeem?code={$voucher->code}";
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "⚠️ <b>Web Redemption Required</b>\n\n".
+                    "This voucher requires additional information.\n".
+                    "Please redeem at:\n<code>{$url}</code>"
+                ),
+                'state' => null,
+            ];
+        }
+
+        // Get display amount from instructions (stored as float in instructions)
+        $amount = $voucher->instructions->cash->amount ?? 0;
 
         // Store voucher info and advance
         $newState = $state
@@ -275,6 +289,23 @@ class RedeemFlow extends BaseFlow
                 )
             );
         }
+    }
+
+    /**
+     * Check if voucher requires user interaction.
+     *
+     * Returns true if:
+     * - Voucher has input fields to collect
+     * - Voucher has secret validation
+     * - Voucher has location validation
+     */
+    protected function requiresUserInteraction(Voucher $voucher): bool
+    {
+        $hasInputs = ! empty($voucher->instructions->inputs->fields ?? []);
+        $hasValidation = ($voucher->instructions->cash->validation->secret ?? false)
+                      || ($voucher->instructions->cash->validation->location ?? false);
+
+        return $hasInputs || $hasValidation;
     }
 
     /**
