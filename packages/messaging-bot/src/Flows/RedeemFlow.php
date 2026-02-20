@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace LBHurtado\MessagingBot\Flows;
 
+use App\Actions\Api\Redemption\RedeemViaSms;
 use Brick\Money\Money;
+use Illuminate\Support\Facades\Log;
 use LBHurtado\MessagingBot\Data\ConversationState;
 use LBHurtado\MessagingBot\Data\NormalizedResponse;
 use LBHurtado\MessagingBot\Data\NormalizedUpdate;
@@ -36,8 +38,8 @@ class RedeemFlow extends BaseFlow
     // Step 1: Prompt for voucher code
     protected function promptPromptCode(ConversationState $state): NormalizedResponse
     {
-        return NormalizedResponse::text(
-            "💳 *Redeem Voucher*\n\n".
+        return NormalizedResponse::html(
+            "💳 <b>Redeem Voucher</b>\n\n".
             "Please send the voucher code you want to redeem.\n\n".
             "Send /cancel to exit."
         );
@@ -106,10 +108,10 @@ class RedeemFlow extends BaseFlow
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
 
-        return NormalizedResponse::text(
+        return NormalizedResponse::html(
             "✅ Voucher found!\n\n".
-            "Code: *{$state->get('voucher_code')}*\n".
-            "Amount: *{$amount}*\n\n".
+            "Code: <b>{$state->get('voucher_code')}</b>\n".
+            "Amount: <b>{$amount}</b>\n\n".
             "Please send the mobile number for payout (e.g., 09171234567)"
         );
     }
@@ -149,12 +151,12 @@ class RedeemFlow extends BaseFlow
     {
         $amount = $this->formatMoney($state->get('voucher_amount'));
 
-        return NormalizedResponse::text(
-            "📋 *Confirm Redemption*\n\n".
-            "Voucher: *{$state->get('voucher_code')}*\n".
-            "Amount: *{$amount}*\n".
-            "Payout to: *{$state->get('mobile')}*\n\n".
-            "Send *YES* to confirm or *NO* to cancel."
+        return NormalizedResponse::html(
+            "📋 <b>Confirm Redemption</b>\n\n".
+            "Voucher: <b>{$state->get('voucher_code')}</b>\n".
+            "Amount: <b>{$amount}</b>\n".
+            "Payout to: <b>{$state->get('mobile')}</b>\n\n".
+            "Send <b>YES</b> to confirm or <b>NO</b> to cancel."
         );
     }
 
@@ -184,15 +186,18 @@ class RedeemFlow extends BaseFlow
     // Step 4: Execute redemption
     protected function handleFinalize(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
+        $voucherCode = $state->get('voucher_code');
+        $mobile = $state->get('mobile');
+
         $this->log('info', 'Executing redemption', [
-            'code' => $state->get('voucher_code'),
-            'mobile' => $state->get('mobile'),
+            'code' => $voucherCode,
+            'mobile' => $mobile,
+            'platform' => $update->platform->value,
         ]);
 
         try {
-            // Call the redemption action
-            // In a real implementation, this would call RedeemViaSms or similar action
-            $voucher = Voucher::where('code', $state->get('voucher_code'))->first();
+            // Re-validate voucher before redemption
+            $voucher = Voucher::where('code', $voucherCode)->first();
 
             if (! $voucher || $voucher->isRedeemed()) {
                 return $this->complete(
@@ -200,23 +205,65 @@ class RedeemFlow extends BaseFlow
                 );
             }
 
-            // TODO: Call actual redemption action
-            // $result = RedeemViaSms::run($voucher, $state->get('mobile'));
+            // Call the redemption action via HTTP simulation
+            // This reuses the existing SMS redemption logic
+            request()->merge([
+                'voucher_code' => $voucherCode,
+                'mobile' => $mobile,
+                'bank_spec' => null, // Will use default (GCASH)
+            ]);
 
-            $amount = $this->formatMoney($state->get('voucher_amount'));
+            $response = app(RedeemViaSms::class)->asController(request());
+            $result = json_decode($response->getContent(), true);
+
+            if (! ($result['success'] ?? false)) {
+                $errorMessage = $result['message'] ?? 'Redemption failed';
+
+                // Handle specific error cases
+                if (($result['error'] ?? '') === 'requires_web') {
+                    return $this->complete(
+                        NormalizedResponse::html(
+                            "⚠️ <b>Web Redemption Required</b>\n\n".
+                            "This voucher needs additional information.\n".
+                            "Please redeem at:\n".
+                            "<code>{$result['redemption_url']}</code>"
+                        )
+                    );
+                }
+
+                return $this->complete(
+                    NormalizedResponse::text("❌ {$errorMessage}")
+                );
+            }
+
+            // Success!
+            $voucherData = $result['data']['voucher'] ?? [];
+            $amount = $this->formatMoney($voucherData['amount'] ?? $state->get('voucher_amount'));
+            $bankAccount = $result['data']['bank_account'] ?? 'your account';
+
+            Log::info('[RedeemFlow] Redemption successful via messaging', [
+                'voucher' => $voucherCode,
+                'mobile' => $mobile,
+                'platform' => $update->platform->value,
+                'chat_id' => $update->chatId,
+            ]);
 
             return $this->complete(
-                NormalizedResponse::text(
-                    "✅ *Redemption Successful!*\n\n".
-                    "Amount: *{$amount}*\n".
-                    "Sent to: *{$state->get('mobile')}*\n\n".
+                NormalizedResponse::html(
+                    "✅ <b>Redemption Successful!</b>\n\n".
+                    "Amount: <b>{$amount}</b>\n".
+                    "Sent to: <b>{$bankAccount}</b>\n\n".
                     "The funds will be transferred shortly.\n\n".
                     "Thank you for using PayCode! 🎉"
                 )
             );
 
         } catch (\Throwable $e) {
-            $this->log('error', 'Redemption failed', ['error' => $e->getMessage()]);
+            Log::error('[RedeemFlow] Redemption failed', [
+                'voucher' => $voucherCode,
+                'mobile' => $mobile,
+                'error' => $e->getMessage(),
+            ]);
 
             return $this->complete(
                 NormalizedResponse::text(
