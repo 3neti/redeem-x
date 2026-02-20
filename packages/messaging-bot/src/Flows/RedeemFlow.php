@@ -275,7 +275,8 @@ class RedeemFlow extends BaseFlow
             $lines[] = '';
             $lines[] = '<b>Required Info:</b>';
             foreach ($textInputFields as $field) {
-                $label = $field instanceof VoucherInputField ? $field->label() : ucfirst(str_replace('_', ' ', $field));
+                $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+                $label = $this->getFieldLabel($fieldValue);
                 $lines[] = "• {$label}";
             }
         }
@@ -534,6 +535,28 @@ class RedeemFlow extends BaseFlow
         return match ($field) {
             'gross_monthly_income' => (float) str_replace([',', ' '], '', $value),
             default => $value,
+        };
+    }
+
+    /**
+     * Get human-readable label for a field.
+     */
+    protected function getFieldLabel(string $field): string
+    {
+        return match ($field) {
+            'name' => 'Full Name',
+            'email' => 'Email Address',
+            'mobile' => 'Mobile Number',
+            'reference_code' => 'Reference Code',
+            'address' => 'Residential Address',
+            'birth_date' => 'Birth Date',
+            'gross_monthly_income' => 'Gross Monthly Income',
+            'otp' => 'OTP',
+            'location' => 'Location',
+            'selfie' => 'Selfie Photo',
+            'signature' => 'Signature',
+            'kyc' => 'Identity Verification',
+            default => ucfirst(str_replace('_', ' ', $field)),
         };
     }
 
