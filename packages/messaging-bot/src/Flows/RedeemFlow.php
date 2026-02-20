@@ -367,7 +367,7 @@ class RedeemFlow extends BaseFlow
             "<b>{$amount}</b> → <b>{$bankName}:{$bankAccount}</b>"
         )->withInlineButtons([
             ['text' => '✅ Accept', 'callback_data' => 'accept'],
-            ['text' => '🏦 Change Bank', 'callback_data' => 'change_bank'],
+            ['text' => '✏️ Edit', 'callback_data' => 'edit'],
         ]);
     }
 
@@ -385,8 +385,26 @@ class RedeemFlow extends BaseFlow
             "Send to <b>{$bankName}:{$bankAccount}</b>?"
         )->withInlineButtons([
             ['text' => '✅ Accept', 'callback_data' => 'accept'],
+            ['text' => '✏️ Edit', 'callback_data' => 'edit'],
+        ]);
+    }
+
+    /**
+     * Show edit options menu.
+     */
+    protected function promptEditOptions(ConversationState $state): NormalizedResponse
+    {
+        $bankName = $state->get('bank_name') ?? BankService::DEFAULT_BANK_NAME;
+        $bankAccount = $state->get('bank_account');
+
+        return NormalizedResponse::html(
+            "✏️ <b>What would you like to change?</b>\n\n".
+            "Current: <b>{$bankName}:{$bankAccount}</b>"
+        )->withInlineButtons([
             ['text' => '🏦 Change Bank', 'callback_data' => 'change_bank'],
-            ['text' => '📱 Different Number', 'callback_data' => 'change_number'],
+            ['text' => '💳 Change Account #', 'callback_data' => 'change_account'],
+            ['text' => '📱 Change Phone', 'callback_data' => 'change_number'],
+            ['text' => '↩️ Back', 'callback_data' => 'back'],
         ]);
     }
 
@@ -401,17 +419,33 @@ class RedeemFlow extends BaseFlow
             );
         }
 
-        // User wants to change bank
+        // User wants to edit - show options menu
+        if ($response === 'edit') {
+            return [
+                'response' => $this->promptEditOptions($state),
+                'state' => $state,
+            ];
+        }
+
+        // User wants to change bank (from edit menu)
         if ($response === 'change_bank') {
             $newState = $state->advanceTo('promptBankName');
-
             return [
                 'response' => $this->promptPromptBankName($newState),
                 'state' => $newState,
             ];
         }
 
-        // User wants to change phone number (returning user)
+        // User wants to change just the account number (from edit menu)
+        if ($response === 'change_account') {
+            $newState = $state->advanceTo('promptBankAccount');
+            return [
+                'response' => $this->promptPromptBankAccount($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // User wants to change phone number (from edit menu)
         if (in_array($response, ['change_number', 'change', 'no', 'n', 'cancel'])) {
             // Clear cached phone and bank info
             $newState = $state
@@ -427,6 +461,14 @@ class RedeemFlow extends BaseFlow
             ];
         }
 
+        // Back from edit menu
+        if ($response === 'back') {
+            return [
+                'response' => $this->promptConfirm($state),
+                'state' => $state,
+            ];
+        }
+
         // Accept - proceed to finalize
         if (in_array($response, ['accept', 'yes', 'y', 'confirm'])) {
             $newState = $state->advanceTo('finalize');
@@ -436,10 +478,10 @@ class RedeemFlow extends BaseFlow
         // Invalid response - show buttons again
         return [
             'response' => NormalizedResponse::html(
-                "Please tap <b>Accept</b> or <b>Change Bank</b>."
+                "Please tap <b>Accept</b> or <b>Edit</b>."
             )->withInlineButtons([
                 ['text' => '✅ Accept', 'callback_data' => 'accept'],
-                ['text' => '🏦 Change Bank', 'callback_data' => 'change_bank'],
+                ['text' => '✏️ Edit', 'callback_data' => 'edit'],
             ]),
             'state' => $state,
         ];
