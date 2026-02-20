@@ -34,6 +34,7 @@ class RedeemViaSms
             $voucherCode = strtoupper(trim($request->input('voucher_code')));
             $mobile = $request->input('mobile');
             $bankSpec = $request->input('bank_spec'); // null, "MAYA", "GCASH:09181111111"
+            $inputs = $request->input('inputs', []); // Collected inputs from bot (Phase 2)
 
             // Format mobile to E.164
             $mobile = $this->formatMobile($mobile);
@@ -42,6 +43,7 @@ class RedeemViaSms
                 'voucher' => $voucherCode,
                 'mobile' => $mobile,
                 'bank_spec' => $bankSpec,
+                'inputs' => array_keys($inputs),
             ]);
 
             // Find voucher
@@ -130,7 +132,7 @@ class RedeemViaSms
                     'country' => 'PH',
                     'bank_code' => $bankCode,
                     'account_number' => $accountNumber,
-                    'inputs' => [],
+                    'inputs' => $inputs,
                 ]);
 
                 $result = (new ConfirmRedemption)->asController();
@@ -210,18 +212,23 @@ class RedeemViaSms
             'voucher_code' => ['required', 'string', 'min:4'],
             'mobile' => ['required', 'string'],
             'bank_spec' => ['nullable', 'string'],
+            'inputs' => ['nullable', 'array'],
         ];
     }
 
     /**
-     * Check if voucher has validation or input requirements
+     * Check if voucher has web-only requirements (secret, location validation, or web-only input fields).
+     * Text input fields (name, email, address, etc.) can be collected via bot and don't require web.
      */
     private function checkVoucherRequirements(Voucher $voucher): bool
     {
+        // Fields that require web interaction (not collectible via bot)
+        $webOnlyFields = ['location', 'selfie', 'signature', 'kyc'];
+
         try {
             $instructions = $voucher->instructions;
 
-            // Check validation requirements (except mobile - always allowed)
+            // Check validation requirements (secret and location validation require web)
             if ($instructions->cash->validation) {
                 $validation = $instructions->cash->validation;
 
@@ -230,9 +237,17 @@ class RedeemViaSms
                 }
             }
 
-            // Check input fields
+            // Check for web-only input fields
             if ($instructions->inputs && $instructions->inputs->fields) {
-                return count($instructions->inputs->fields) > 0;
+                foreach ($instructions->inputs->fields as $field) {
+                    $fieldValue = $field instanceof \LBHurtado\Voucher\Enums\VoucherInputField
+                        ? $field->value
+                        : (string) $field;
+
+                    if (in_array($fieldValue, $webOnlyFields, true)) {
+                        return true;
+                    }
+                }
             }
 
             return false;

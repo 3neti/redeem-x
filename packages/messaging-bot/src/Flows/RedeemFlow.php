@@ -45,7 +45,116 @@ class RedeemFlow extends BaseFlow
 
     public function steps(): array
     {
-        return ['promptCode', 'xray', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+        return ['promptCode', 'xray', 'promptTextInput', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+    }
+
+    /**
+     * Text input fields the bot can collect (Phase 2).
+     */
+    protected const TEXT_INPUT_FIELDS = [
+        'name',
+        'email',
+        'address',
+        'birth_date',
+        'gross_monthly_income',
+        'reference_code',
+        'otp',
+    ];
+
+    /**
+     * Fields that require web interaction (not collectible via bot).
+     */
+    protected const WEB_ONLY_FIELDS = [
+        'location',
+        'selfie',
+        'signature',
+        'kyc',
+    ];
+
+    /**
+     * Get configuration for a text input field.
+     */
+    protected function getTextInputConfig(VoucherInputField $field): ?array
+    {
+        return match ($field) {
+            VoucherInputField::NAME => [
+                'prompt' => "👤 <b>Enter your full name:</b>",
+                'validation' => fn($v) => mb_strlen(trim($v)) >= 2,
+                'error' => 'Name must be at least 2 characters.',
+            ],
+            VoucherInputField::EMAIL => [
+                'prompt' => "📧 <b>Enter your email address:</b>",
+                'validation' => fn($v) => filter_var(trim($v), FILTER_VALIDATE_EMAIL) !== false,
+                'error' => 'Please enter a valid email address.',
+            ],
+            VoucherInputField::ADDRESS => [
+                'prompt' => "🏠 <b>Enter your address:</b>",
+                'validation' => fn($v) => mb_strlen(trim($v)) >= 10,
+                'error' => 'Address must be at least 10 characters.',
+            ],
+            VoucherInputField::BIRTH_DATE => [
+                'prompt' => "📅 <b>Enter your birth date:</b>\n<i>Format: YYYY-MM-DD (e.g., 1990-05-15)</i>",
+                'validation' => fn($v) => preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($v)) && strtotime(trim($v)) !== false,
+                'error' => 'Please enter a valid date in YYYY-MM-DD format.',
+            ],
+            VoucherInputField::GROSS_MONTHLY_INCOME => [
+                'prompt' => "💰 <b>Enter your gross monthly income:</b>\n<i>Numbers only (e.g., 25000)</i>",
+                'validation' => fn($v) => is_numeric(str_replace([',', ' '], '', trim($v))) && (float) str_replace([',', ' '], '', trim($v)) > 0,
+                'error' => 'Please enter a valid amount (numbers only).',
+            ],
+            VoucherInputField::REFERENCE_CODE => [
+                'prompt' => "🔖 <b>Enter reference code:</b>",
+                'validation' => fn($v) => mb_strlen(trim($v)) >= 3,
+                'error' => 'Reference code must be at least 3 characters.',
+            ],
+            VoucherInputField::OTP => [
+                'prompt' => "🔐 <b>Enter OTP:</b>\n<i>4-6 digit code</i>",
+                'validation' => fn($v) => preg_match('/^\d{4,6}$/', trim($v)),
+                'error' => 'Please enter a valid 4-6 digit OTP.',
+            ],
+            default => null,
+        };
+    }
+
+    /**
+     * Get text input fields required by voucher.
+     */
+    protected function getTextInputFields(Voucher $voucher): array
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        return array_filter($fields, function ($field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            return in_array($fieldValue, self::TEXT_INPUT_FIELDS, true);
+        });
+    }
+
+    /**
+     * Check if voucher requires web-only interaction.
+     */
+    protected function requiresWebInteraction(Voucher $voucher): bool
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        // Check for web-only input fields
+        foreach ($fields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            if (in_array($fieldValue, self::WEB_ONLY_FIELDS, true)) {
+                return true;
+            }
+        }
+        
+        // Check for secret validation
+        if ($voucher->instructions->cash->validation->secret ?? false) {
+            return true;
+        }
+        
+        // Check for location validation
+        if ($voucher->instructions->cash->validation->location ?? false) {
+            return true;
+        }
+        
+        return false;
     }
 
     // Step 1: Prompt for voucher code
@@ -100,8 +209,8 @@ class RedeemFlow extends BaseFlow
             );
         }
 
-        // Check if voucher requires user interaction (inputs/validation)
-        if ($this->requiresUserInteraction($voucher)) {
+        // Check if voucher requires web-only interaction (location, selfie, signature, kyc, secret)
+        if ($this->requiresWebInteraction($voucher)) {
             $url = config('app.url')."/redeem?code={$voucher->code}";
 
             return [
@@ -120,6 +229,13 @@ class RedeemFlow extends BaseFlow
         // Get display amount from instructions (stored as float in instructions)
         $amount = $voucher->instructions->cash->amount ?? 0;
 
+        // Get text input fields that need to be collected
+        $textInputFields = $this->getTextInputFields($voucher);
+        $pendingInputs = array_values(array_map(
+            fn($f) => $f instanceof VoucherInputField ? $f->value : (string) $f,
+            $textInputFields
+        ));
+
         // Store voucher info for X-Ray display
         $newState = $state
             ->set('voucher_code', $voucher->code)
@@ -127,6 +243,8 @@ class RedeemFlow extends BaseFlow
             ->set('voucher_expiry', $voucher->expires_at?->format('M d, Y'))
             ->set('voucher_rider_message', $voucher->instructions->rider->message ?? null)
             ->set('voucher_rider_url', $voucher->instructions->rider->url ?? null)
+            ->set('pending_inputs', $pendingInputs)
+            ->set('collected_inputs', [])
             ->advanceTo('xray');
 
         // Show X-Ray display
@@ -150,6 +268,17 @@ class RedeemFlow extends BaseFlow
             "<b>Amount:</b> {$amount}",
             "<b>Expires:</b> {$expiry}",
         ];
+
+        // Add required inputs info
+        $textInputFields = $this->getTextInputFields($voucher);
+        if (! empty($textInputFields)) {
+            $lines[] = '';
+            $lines[] = '<b>Required Info:</b>';
+            foreach ($textInputFields as $field) {
+                $label = $field instanceof VoucherInputField ? $field->label() : ucfirst(str_replace('_', ' ', $field));
+                $lines[] = "• {$label}";
+            }
+        }
 
         // Add validation info
         $validations = $this->getValidationInfo($voucher);
@@ -242,6 +371,25 @@ class RedeemFlow extends BaseFlow
             ];
         }
 
+        // Check if there are pending text inputs to collect
+        $pendingInputs = $state->get('pending_inputs', []);
+        if (! empty($pendingInputs)) {
+            $newState = $state->advanceTo('promptTextInput');
+            return [
+                'response' => $this->promptPromptTextInput($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // No text inputs needed - proceed to mobile/confirmation
+        return $this->advanceToMobileOrConfirm($update, $state);
+    }
+
+    /**
+     * Advance to mobile prompt or confirmation (for returning users).
+     */
+    protected function advanceToMobileOrConfirm(NormalizedUpdate $update, ConversationState $state): array
+    {
         // Check for cached phone number (returning user)
         $cachedPhone = $this->getCachedPhone($update->chatId);
 
@@ -272,6 +420,121 @@ class RedeemFlow extends BaseFlow
             'response' => $this->promptPromptMobile($newState),
             'state' => $newState,
         ];
+    }
+
+    // ==================== TEXT INPUT COLLECTION (Phase 2) ====================
+
+    /**
+     * Prompt for the current text input field.
+     */
+    protected function promptPromptTextInput(ConversationState $state): NormalizedResponse
+    {
+        $pendingInputs = $state->get('pending_inputs', []);
+        
+        if (empty($pendingInputs)) {
+            // Shouldn't happen, but fallback gracefully
+            return NormalizedResponse::text("No inputs required. Continuing...");
+        }
+
+        $currentField = $pendingInputs[0];
+        $fieldEnum = VoucherInputField::tryFrom($currentField);
+        $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
+
+        if (! $config) {
+            // Skip unknown field type
+            return NormalizedResponse::text("Unknown field: {$currentField}");
+        }
+
+        return NormalizedResponse::html($config['prompt'])
+            ->withInlineButtons([
+                ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+            ]);
+    }
+
+    /**
+     * Handle text input submission.
+     */
+    protected function handlePromptTextInput(NormalizedUpdate $update, ConversationState $state, string $input): array
+    {
+        // Handle exit
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
+        $pendingInputs = $state->get('pending_inputs', []);
+        $collectedInputs = $state->get('collected_inputs', []);
+
+        if (empty($pendingInputs)) {
+            // All inputs collected - advance to mobile
+            return $this->advanceToMobileOrConfirm($update, $state);
+        }
+
+        $currentField = $pendingInputs[0];
+        $fieldEnum = VoucherInputField::tryFrom($currentField);
+        $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
+
+        if (! $config) {
+            // Skip unknown field
+            array_shift($pendingInputs);
+            $newState = $state->set('pending_inputs', $pendingInputs);
+            
+            if (empty($pendingInputs)) {
+                return $this->advanceToMobileOrConfirm($update, $newState);
+            }
+            
+            return [
+                'response' => $this->promptPromptTextInput($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // Validate input
+        $value = trim($input);
+        $isValid = ($config['validation'])($value);
+
+        if (! $isValid) {
+            return [
+                'response' => NormalizedResponse::html(
+                    "❌ {$config['error']}\n\n".
+                    $config['prompt']
+                )->withInlineButtons([
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
+            ];
+        }
+
+        // Store the collected input and move to next
+        $collectedInputs[$currentField] = $this->normalizeInputValue($currentField, $value);
+        array_shift($pendingInputs);
+
+        $newState = $state
+            ->set('pending_inputs', $pendingInputs)
+            ->set('collected_inputs', $collectedInputs);
+
+        // Check if more inputs to collect
+        if (! empty($pendingInputs)) {
+            return [
+                'response' => $this->promptPromptTextInput($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // All inputs collected - advance to mobile/confirm
+        return $this->advanceToMobileOrConfirm($update, $newState);
+    }
+
+    /**
+     * Normalize input value based on field type.
+     */
+    protected function normalizeInputValue(string $field, string $value): string|float
+    {
+        return match ($field) {
+            'gross_monthly_income' => (float) str_replace([',', ' '], '', $value),
+            default => $value,
+        };
     }
 
     // Step 2: Prompt for mobile number via contact share (HARD STOP - no text fallback)
@@ -707,12 +970,14 @@ class RedeemFlow extends BaseFlow
         $bankCode = $state->get('bank_code') ?? BankService::DEFAULT_BANK_CODE;
         $bankName = $state->get('bank_name') ?? BankService::DEFAULT_BANK_NAME;
         $bankAccount = $state->get('bank_account') ?? $this->formatMobileForAccount($mobile);
+        $collectedInputs = $state->get('collected_inputs', []);
 
         $this->log('info', 'Executing redemption', [
             'code' => $voucherCode,
             'mobile' => $mobile,
             'bank_code' => $bankCode,
             'bank_account' => $bankAccount,
+            'collected_inputs' => array_keys($collectedInputs),
             'platform' => $update->platform->value,
         ]);
 
@@ -729,11 +994,12 @@ class RedeemFlow extends BaseFlow
             // Build bank_spec for redemption action
             $bankSpec = "{$bankCode}:{$bankAccount}";
 
-            // Call the redemption action
+            // Call the redemption action with collected inputs
             $actionRequest = ActionRequest::create('', 'POST', [
                 'voucher_code' => $voucherCode,
                 'mobile' => $mobile,
                 'bank_spec' => $bankSpec,
+                'inputs' => $collectedInputs,
             ]);
 
             $response = app(RedeemViaSms::class)->asController($actionRequest);
@@ -826,30 +1092,6 @@ class RedeemFlow extends BaseFlow
                 NormalizedResponse::text($errorMessage)
             );
         }
-    }
-
-    /**
-     * Check if voucher requires user interaction.
-     *
-     * Returns true if:
-     * - Voucher has input fields to collect (excluding mobile which we collect via contact share)
-     * - Voucher has secret validation
-     * - Voucher has location validation
-     */
-    protected function requiresUserInteraction(Voucher $voucher): bool
-    {
-        $fields = $voucher->instructions->inputs->fields ?? [];
-        
-        // Filter out 'mobile' since we collect that via contact share
-        $otherFields = array_filter($fields, fn ($field) => 
-            $field !== VoucherInputField::MOBILE && $field->value !== 'mobile'
-        );
-        
-        $hasOtherInputs = ! empty($otherFields);
-        $hasValidation = ($voucher->instructions->cash->validation->secret ?? false)
-                      || ($voucher->instructions->cash->validation->location ?? false);
-
-        return $hasOtherInputs || $hasValidation;
     }
 
     /**
