@@ -91,10 +91,13 @@ class RedeemFlow extends BaseFlow
             ];
         }
 
+        // Get the voucher amount safely
+        $amount = $voucher->cash?->amount ?? $voucher->getAttribute('amount') ?? 0;
+
         // Store voucher info and advance
         $newState = $state
             ->set('voucher_code', $voucher->code)
-            ->set('voucher_amount', $voucher->cash->amount)
+            ->set('voucher_amount', $amount)
             ->advanceTo('promptMobile');
 
         return [

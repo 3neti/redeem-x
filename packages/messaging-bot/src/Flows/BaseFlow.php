@@ -64,6 +64,8 @@ abstract class BaseFlow implements FlowInterface
             $this->log('error', 'Flow step failed', [
                 'step' => $step,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
