@@ -69,8 +69,14 @@ class TelegramDriver implements MessagingDriverInterface
             $payload['disable_notification'] = true;
         }
 
-        // Handle contact request keyboard
-        if ($response->wantsContactRequest()) {
+        // Handle keyboard options
+        if ($response->wantsKeyboardRemoved()) {
+            // Remove custom keyboard
+            $payload['reply_markup'] = [
+                'remove_keyboard' => true,
+            ];
+        } elseif ($response->wantsContactRequest()) {
+            // Contact request keyboard
             $payload['reply_markup'] = [
                 'keyboard' => [
                     [
@@ -84,7 +90,7 @@ class TelegramDriver implements MessagingDriverInterface
                 'one_time_keyboard' => true,
             ];
         } elseif ($response->wantsLocationRequest()) {
-            // Handle location request keyboard
+            // Location request keyboard
             $payload['reply_markup'] = [
                 'keyboard' => [
                     [
@@ -98,6 +104,7 @@ class TelegramDriver implements MessagingDriverInterface
                 'one_time_keyboard' => true,
             ];
         } elseif ($response->hasButtons()) {
+            // Inline keyboard buttons
             $payload['reply_markup'] = [
                 'inline_keyboard' => [$response->buttons],
             ];

@@ -763,7 +763,7 @@ class RedeemFlow extends BaseFlow
         return NormalizedResponse::html(
             "📋 <b>Confirm Redemption</b>\n\n".
             "<b>{$amount}</b> → {$bankDisplay}"
-        )->withInlineButtons([
+        )->withKeyboardRemoved()->withInlineButtons([
             ['text' => '✅ Accept', 'callback_data' => 'accept'],
             ['text' => '✏️ Edit', 'callback_data' => 'edit'],
         ]);
@@ -780,7 +780,7 @@ class RedeemFlow extends BaseFlow
         return NormalizedResponse::html(
             "✅ <b>{$amount}</b> voucher ready!\n\n".
             "Send to {$bankDisplay}?"
-        )->withInlineButtons([
+        )->withKeyboardRemoved()->withInlineButtons([
             ['text' => '✅ Accept', 'callback_data' => 'accept'],
             ['text' => '✏️ Edit', 'callback_data' => 'edit'],
         ]);

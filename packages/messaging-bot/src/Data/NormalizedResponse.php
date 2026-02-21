@@ -21,6 +21,7 @@ class NormalizedResponse extends Data
         public bool $disableNotification = false,
         public bool $requestContact = false,
         public bool $requestLocation = false,
+        public bool $removeKeyboard = false,
     ) {}
 
     /**
@@ -59,6 +60,7 @@ class NormalizedResponse extends Data
             disableNotification: $this->disableNotification,
             requestContact: $this->requestContact,
             requestLocation: $this->requestLocation,
+            removeKeyboard: $this->removeKeyboard,
         );
     }
 
@@ -74,6 +76,7 @@ class NormalizedResponse extends Data
             disableNotification: true,
             requestContact: $this->requestContact,
             requestLocation: $this->requestLocation,
+            removeKeyboard: $this->removeKeyboard,
         );
     }
 
@@ -99,6 +102,7 @@ class NormalizedResponse extends Data
             disableNotification: $this->disableNotification,
             requestContact: true,
             requestLocation: false,
+            removeKeyboard: false,
         );
     }
 
@@ -124,7 +128,32 @@ class NormalizedResponse extends Data
             disableNotification: $this->disableNotification,
             requestContact: false,
             requestLocation: true,
+            removeKeyboard: false,
         );
+    }
+
+    /**
+     * Remove the custom keyboard and return to default.
+     */
+    public function withKeyboardRemoved(): self
+    {
+        return new self(
+            text: $this->text,
+            buttons: $this->buttons,
+            parseMode: $this->parseMode,
+            disableNotification: $this->disableNotification,
+            requestContact: false,
+            requestLocation: false,
+            removeKeyboard: true,
+        );
+    }
+
+    /**
+     * Determine if this response should remove the keyboard.
+     */
+    public function wantsKeyboardRemoved(): bool
+    {
+        return $this->removeKeyboard;
     }
 
     /**
@@ -160,6 +189,7 @@ class NormalizedResponse extends Data
             disableNotification: $this->disableNotification,
             requestContact: $this->requestContact,
             requestLocation: $this->requestLocation,
+            removeKeyboard: $this->removeKeyboard,
         );
     }
 }
