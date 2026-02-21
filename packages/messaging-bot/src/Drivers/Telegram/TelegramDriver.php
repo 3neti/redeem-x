@@ -117,9 +117,10 @@ class TelegramDriver implements MessagingDriverInterface
                 'one_time_keyboard' => true,
             ];
         } elseif ($response->wantsWebAppButton()) {
-            // WebApp keyboard button (opens Mini App in WebView)
+            // WebApp inline button (opens Mini App in WebView)
+            // Using inline_keyboard instead of reply keyboard so sendData() works
             $payload['reply_markup'] = [
-                'keyboard' => [
+                'inline_keyboard' => [
                     [
                         [
                             'text' => $response->webAppButtonText,
@@ -129,8 +130,6 @@ class TelegramDriver implements MessagingDriverInterface
                         ],
                     ],
                 ],
-                'resize_keyboard' => true,
-                'one_time_keyboard' => true,
             ];
         } elseif ($response->wantsKeyboardRemoved()) {
             // Remove reply keyboard (only when no other keyboard is being shown)

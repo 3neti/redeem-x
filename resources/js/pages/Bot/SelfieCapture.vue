@@ -204,8 +204,9 @@ async function uploadSelfie() {
             throw new Error(data.message || 'Upload failed');
         }
         
-        // Success - send data to bot (this also closes the Mini App)
-        // The bot will receive this as a web_app_data message and check the cache
+        // Success - send data to bot and close Mini App
+        // This triggers a web_app_data message to the bot webhook
+        // Note: sendData() only works with inline keyboard buttons (not reply keyboard)
         window.Telegram?.WebApp?.sendData('selfie_uploaded');
         
     } catch (err: any) {
