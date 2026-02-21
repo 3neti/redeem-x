@@ -63,6 +63,7 @@ const stream = ref<MediaStream | null>(null);
 const hasCaptured = ref(false);
 const capturedImage = ref('');
 const uploading = ref(false);
+const uploadSuccess = ref(false);
 const uploadError = ref<string | null>(null);
 const cameraError = ref<string | null>(null);
 const showInstructions = ref(false);
@@ -204,10 +205,9 @@ async function uploadSelfie() {
             throw new Error(data.message || 'Upload failed');
         }
         
-        // Success - send data to bot and close Mini App
-        // This triggers a web_app_data message to the bot webhook
-        // Note: sendData() only works with inline keyboard buttons (not reply keyboard)
-        window.Telegram?.WebApp?.sendData('selfie_uploaded');
+        // Success - show success state
+        uploadSuccess.value = true;
+        window.Telegram?.WebApp?.MainButton?.hideProgress();
         
     } catch (err: any) {
         console.error('Upload error:', err);
@@ -216,6 +216,12 @@ async function uploadSelfie() {
     } finally {
         uploading.value = false;
     }
+}
+
+function completeAndClose() {
+    // Send data to bot and close Mini App
+    // This triggers a web_app_data message to the bot webhook
+    window.Telegram?.WebApp?.sendData('selfie_uploaded');
 }
 
 function exitWithoutPhoto() {
@@ -263,15 +269,33 @@ onUnmounted(() => {
         :style="{ backgroundColor: themeColors.bgColor, color: themeColors.textColor }"
     >
         <div class="max-w-md mx-auto">
-            <!-- Header -->
-            <div class="text-center mb-6">
-                <h1 class="text-xl font-semibold mb-2">📸 Take a Selfie</h1>
-                <p :style="{ color: themeColors.hintColor }">
-                    {{ supportsDirectCamera && !showInstructions ? 'Position your face and tap capture' : 'Select or take a photo of yourself' }}
+            <!-- Success State -->
+            <div v-if="uploadSuccess" class="text-center py-8">
+                <div class="text-6xl mb-4">✅</div>
+                <h1 class="text-xl font-semibold mb-2">Selfie Uploaded!</h1>
+                <p class="mb-6" :style="{ color: themeColors.hintColor }">
+                    Tap Done to continue with your redemption.
                 </p>
+                <button
+                    @click="completeAndClose"
+                    class="w-full py-4 px-6 rounded-lg font-semibold text-lg"
+                    :style="{ backgroundColor: themeColors.buttonColor, color: themeColors.buttonTextColor }"
+                >
+                    ✓ Done
+                </button>
             </div>
 
-            <!-- Error Alert -->
+            <!-- Normal Flow (when not success) -->
+            <template v-else>
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <h1 class="text-xl font-semibold mb-2">📸 Take a Selfie</h1>
+                    <p :style="{ color: themeColors.hintColor }">
+                        {{ supportsDirectCamera && !showInstructions ? 'Position your face and tap capture' : 'Select or take a photo of yourself' }}
+                    </p>
+                </div>
+
+                <!-- Error Alert -->
             <div 
                 v-if="uploadError || cameraError" 
                 class="mb-4 p-3 rounded-lg"
@@ -406,8 +430,9 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <!-- Hidden canvas for capture -->
-            <canvas ref="canvasRef" class="hidden"></canvas>
+                <!-- Hidden canvas for capture -->
+                <canvas ref="canvasRef" class="hidden"></canvas>
+            </template>
         </div>
     </div>
 </template>
