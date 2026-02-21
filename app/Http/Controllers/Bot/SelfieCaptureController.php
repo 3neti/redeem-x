@@ -74,9 +74,15 @@ class SelfieCaptureController extends Controller
         $cacheKey = self::CACHE_PREFIX.$chatId;
         Cache::put($cacheKey, $selfieBase64, self::CACHE_TTL);
 
+        // Verify it was actually stored
+        $verified = Cache::has($cacheKey);
+
         Log::info('[SelfieCaptureController] Selfie stored in cache', [
             'chat_id' => $chatId,
+            'cache_key' => $cacheKey,
             'size' => strlen($selfieBase64),
+            'verified' => $verified,
+            'cache_driver' => config('cache.default'),
         ]);
 
         return response()->json([

@@ -738,11 +738,17 @@ class RedeemFlow extends BaseFlow
      * Handle selfie photo response.
      *
      * Checks for:
-     * 1. Cached selfie from Mini App
+     * 1. Cached selfie from Mini App (triggered by selfie_uploaded message)
      * 2. Direct photo message
      */
     protected function handlePromptSelfie(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
+        $this->log('info', 'handlePromptSelfie called', [
+            'chat_id' => $update->chatId,
+            'input' => $input,
+            'has_photo' => $update->hasPhoto(),
+        ]);
+
         // Handle exit
         if (strtolower($input) === 'exit') {
             return $this->complete(
@@ -750,8 +756,16 @@ class RedeemFlow extends BaseFlow
             );
         }
 
-        // First, check for cached selfie from Mini App
+        // Check for cached selfie from Mini App
+        // This is triggered when Mini App sends 'selfie_uploaded' via sendData()
         $cachedSelfie = $this->getCachedSelfie($update->chatId);
+        
+        $this->log('info', 'Checking cached selfie', [
+            'chat_id' => $update->chatId,
+            'has_cached' => $cachedSelfie !== null,
+            'cached_size' => $cachedSelfie ? strlen($cachedSelfie) : 0,
+        ]);
+
         if ($cachedSelfie) {
             $this->log('info', 'Retrieved selfie from Mini App cache', [
                 'chat_id' => $update->chatId,
