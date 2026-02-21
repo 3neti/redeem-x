@@ -83,8 +83,26 @@ class TelegramDriver implements MessagingDriverInterface
             $payload['reply_markup'] = [
                 'inline_keyboard' => [$response->buttons],
             ];
+        } elseif ($response->wantsWebAppButton() && $response->hasButtons()) {
+            // Both WebApp button AND regular inline buttons - combine into one keyboard
+            // WebApp button on first row, regular buttons on second row
+            $payload['reply_markup'] = [
+                'inline_keyboard' => [
+                    // Row 1: WebApp button
+                    [
+                        [
+                            'text' => $response->webAppButtonText,
+                            'web_app' => [
+                                'url' => $response->webAppUrl,
+                            ],
+                        ],
+                    ],
+                    // Row 2: Regular inline buttons
+                    $response->buttons,
+                ],
+            ];
         } elseif ($response->hasButtons()) {
-            // Inline keyboard buttons (appears inline with message)
+            // Inline keyboard buttons only (appears inline with message)
             $payload['reply_markup'] = [
                 'inline_keyboard' => [$response->buttons],
             ];

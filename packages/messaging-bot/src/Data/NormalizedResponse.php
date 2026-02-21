@@ -220,6 +220,8 @@ class NormalizedResponse extends Data
             requestContact: $this->requestContact,
             requestLocation: $this->requestLocation,
             removeKeyboard: $this->removeKeyboard,
+            webAppUrl: $this->webAppUrl,
+            webAppButtonText: $this->webAppButtonText,
         );
     }
 }

@@ -701,20 +701,22 @@ class RedeemFlow extends BaseFlow
     /**
      * Prompt for selfie via Mini App button or direct photo.
      *
-     * Shows a WebApp keyboard button that opens the selfie capture Mini App.
-     * Users can also send photos directly as a fallback.
+     * Shows inline buttons:
+     * - WebApp button to open selfie capture Mini App
+     * - Continue button to check if selfie was uploaded via Mini App
      */
     protected function promptPromptSelfie(ConversationState $state): NormalizedResponse
     {
         $miniAppUrl = $this->getSelfieCaptureMiniAppUrl($state);
 
-        // Always use Mini App button for better UX
+        // Use inline keyboard with WebApp button and Continue button
         return NormalizedResponse::html(
             "📸 <b>Take a selfie</b>\n\n".
-            "Tap the button below to open the camera.\n".
-            "This is required for verification.\n\n".
+            "1️⃣ Tap <b>Take Selfie</b> to open the camera\n".
+            "2️⃣ After uploading, tap <b>Continue</b>\n\n".
             "<i>You can also send a photo directly, or type 'exit' to cancel.</i>"
-        )->withWebAppButton('📸 Take Selfie', $miniAppUrl);
+        )->withWebAppButton('📸 Take Selfie', $miniAppUrl)
+         ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'selfie_continue']]);
     }
 
     /**
@@ -757,7 +759,7 @@ class RedeemFlow extends BaseFlow
         }
 
         // Check for cached selfie from Mini App
-        // This is triggered when Mini App sends 'selfie_uploaded' via sendData()
+        // This is triggered when user taps "Continue" after using the Mini App
         $cachedSelfie = $this->getCachedSelfie($update->chatId);
         
         $this->log('info', 'Checking cached selfie', [
@@ -823,27 +825,31 @@ class RedeemFlow extends BaseFlow
             }
         }
 
-        // User typed text instead of sending photo - re-prompt
+        // User typed text or tapped Continue but no cached selfie found
+        // Re-prompt with instructions
         $miniAppUrl = $this->getSelfieCaptureMiniAppUrl($state);
 
-        if ($miniAppUrl) {
+        // Check if user tapped Continue without uploading
+        if ($input === 'selfie_continue') {
             return [
                 'response' => NormalizedResponse::html(
-                    "⚠️ <b>Please take a selfie</b>\n\n".
-                    "Tap the button below to open the camera, or send a photo directly.\n\n".
+                    "⚠️ <b>No selfie found</b>\n\n".
+                    "Please take a selfie first, then tap Continue.\n\n".
                     "<i>Type 'exit' to cancel.</i>"
-                )->withWebAppButton('📸 Take Selfie', $miniAppUrl),
+                )->withWebAppButton('📸 Take Selfie', $miniAppUrl)
+                 ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'selfie_continue']]),
                 'state' => $state,
             ];
         }
 
         return [
             'response' => NormalizedResponse::html(
-                "⚠️ <b>Please send a photo</b>\n\n".
-                "We need a selfie for verification.\n".
-                "Tap 📎 → 📷 Camera to take a photo.\n\n".
-                "<i>Type 'exit' to cancel.</i>"
-            ),
+                "⚠️ <b>Please take a selfie</b>\n\n".
+                "1️⃣ Tap <b>Take Selfie</b> to open the camera\n".
+                "2️⃣ After uploading, tap <b>Continue</b>\n\n".
+                "<i>You can also send a photo directly, or type 'exit' to cancel.</i>"
+            )->withWebAppButton('📸 Take Selfie', $miniAppUrl)
+             ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'selfie_continue']]),
             'state' => $state,
         ];
     }
