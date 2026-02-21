@@ -166,6 +166,14 @@ class NormalizedUpdate extends Data
     }
 
     /**
+     * Check if this update is from a Mini App (web_app_data).
+     */
+    public function isWebAppData(): bool
+    {
+        return isset($this->rawPayload['message']['web_app_data']);
+    }
+
+    /**
      * Create a fake update for testing.
      *
      * @param  ?string  $text  Message text (null for contact-only shares)

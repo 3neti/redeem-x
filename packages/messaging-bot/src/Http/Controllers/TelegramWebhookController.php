@@ -51,10 +51,20 @@ class TelegramWebhookController
                 'chat_id' => $update->chatId,
                 'text' => $update->text,
                 'is_callback' => $update->isCallbackQuery(),
+                'is_web_app_data' => isset($payload['message']['web_app_data']),
                 'has_phone' => $update->hasPhoneNumber(),
                 'has_location' => $update->hasLocation(),
                 'has_photo' => $update->hasPhoto(),
             ]);
+
+            // Log web_app_data specifically for debugging
+            if (isset($payload['message']['web_app_data'])) {
+                Log::info('[TelegramWebhook] Received web_app_data from Mini App', [
+                    'chat_id' => $update->chatId,
+                    'data' => $payload['message']['web_app_data']['data'] ?? null,
+                    'button_text' => $payload['message']['web_app_data']['button_text'] ?? null,
+                ]);
+            }
 
             // Answer callback query immediately (removes loading spinner)
             if ($update->isCallbackQuery()) {
