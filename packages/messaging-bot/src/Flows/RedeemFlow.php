@@ -699,20 +699,58 @@ class RedeemFlow extends BaseFlow
     // ==================== SELFIE COLLECTION (Phase 4) ====================
 
     /**
-     * Prompt for selfie via Telegram photo.
+     * Prompt for selfie via Mini App button or direct photo.
+     *
+     * Shows a WebApp keyboard button that opens the selfie capture Mini App.
+     * Users can also send photos directly as a fallback.
      */
     protected function promptPromptSelfie(ConversationState $state): NormalizedResponse
     {
+        $miniAppUrl = $this->getSelfieCaptureMiniAppUrl($state);
+
+        if ($miniAppUrl) {
+            // Use Mini App button for better UX
+            return NormalizedResponse::html(
+                "📸 <b>Take a selfie</b>\n\n".
+                "Tap the button below to open the camera.\n".
+                "This is required for verification.\n\n".
+                "<i>You can also send a photo directly, or type 'exit' to cancel.</i>"
+            )->withWebAppButton('📸 Take Selfie', $miniAppUrl);
+        }
+
+        // Fallback to text-only prompt if Mini App not configured
         return NormalizedResponse::html(
             "📸 <b>Take a selfie</b>\n\n".
-            "Please send a photo of yourself.\n".
-            "This is required for verification.\n\n".
+            "Tap the 📎 button → Select 📷 Camera → Take your photo\n\n".
+            "Alternatively, you can send any existing photo of yourself.\n\n".
             "<i>Type 'exit' to cancel.</i>"
         )->withKeyboardRemoved();
     }
 
     /**
+     * Get the selfie capture Mini App URL with chat_id parameter.
+     */
+    protected function getSelfieCaptureMiniAppUrl(ConversationState $state): ?string
+    {
+        $baseUrl = config('messaging-bot.mini_app.selfie_url');
+
+        if (! $baseUrl) {
+            return null;
+        }
+
+        // Append chat_id as query parameter
+        $chatId = $state->chatId;
+        $separator = str_contains($baseUrl, '?') ? '&' : '?';
+
+        return $baseUrl.$separator.'chat_id='.$chatId;
+    }
+
+    /**
      * Handle selfie photo response.
+     *
+     * Checks for:
+     * 1. Cached selfie from Mini App
+     * 2. Direct photo message
      */
     protected function handlePromptSelfie(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
@@ -723,7 +761,27 @@ class RedeemFlow extends BaseFlow
             );
         }
 
-        // Check if user sent a photo
+        // First, check for cached selfie from Mini App
+        $cachedSelfie = $this->getCachedSelfie($update->chatId);
+        if ($cachedSelfie) {
+            $this->log('info', 'Retrieved selfie from Mini App cache', [
+                'chat_id' => $update->chatId,
+                'size' => strlen($cachedSelfie),
+            ]);
+
+            // Clear the cache
+            $this->clearCachedSelfie($update->chatId);
+
+            $collectedInputs = $state->get('collected_inputs', []);
+            $collectedInputs['selfie'] = $cachedSelfie;
+
+            $newState = $state->set('collected_inputs', $collectedInputs);
+
+            // Proceed to mobile/confirm
+            return $this->advanceToMobileOrConfirm($update, $newState);
+        }
+
+        // Check if user sent a photo directly
         if ($update->hasPhoto()) {
             $this->log('info', 'Received photo from Telegram', [
                 'file_id' => $update->photoFileId,
@@ -762,16 +820,45 @@ class RedeemFlow extends BaseFlow
             }
         }
 
-        // User typed text instead of sending photo
+        // User typed text instead of sending photo - re-prompt
+        $miniAppUrl = $this->getSelfieCaptureMiniAppUrl($state);
+
+        if ($miniAppUrl) {
+            return [
+                'response' => NormalizedResponse::html(
+                    "⚠️ <b>Please take a selfie</b>\n\n".
+                    "Tap the button below to open the camera, or send a photo directly.\n\n".
+                    "<i>Type 'exit' to cancel.</i>"
+                )->withWebAppButton('📸 Take Selfie', $miniAppUrl),
+                'state' => $state,
+            ];
+        }
+
         return [
             'response' => NormalizedResponse::html(
                 "⚠️ <b>Please send a photo</b>\n\n".
                 "We need a selfie for verification.\n".
-                "Tap the camera icon to take a photo.\n\n".
+                "Tap 📎 → 📷 Camera to take a photo.\n\n".
                 "<i>Type 'exit' to cancel.</i>"
             ),
             'state' => $state,
         ];
+    }
+
+    /**
+     * Get cached selfie from Mini App.
+     */
+    protected function getCachedSelfie(string $chatId): ?string
+    {
+        return \App\Http\Controllers\Bot\SelfieCaptureController::getCachedSelfie($chatId);
+    }
+
+    /**
+     * Clear cached selfie from Mini App.
+     */
+    protected function clearCachedSelfie(string $chatId): void
+    {
+        \App\Http\Controllers\Bot\SelfieCaptureController::clearCachedSelfie($chatId);
     }
 
     // ==================== MOBILE COLLECTION ====================

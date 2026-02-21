@@ -22,6 +22,8 @@ class NormalizedResponse extends Data
         public bool $requestContact = false,
         public bool $requestLocation = false,
         public bool $removeKeyboard = false,
+        public ?string $webAppUrl = null,
+        public ?string $webAppButtonText = null,
     ) {}
 
     /**
@@ -162,6 +164,34 @@ class NormalizedResponse extends Data
     public function wantsLocationRequest(): bool
     {
         return $this->requestLocation;
+    }
+
+    /**
+     * Request to show a WebApp keyboard button.
+     *
+     * This flag tells the driver to show a keyboard button that opens a Mini App.
+     */
+    public function withWebAppButton(string $text, string $url): self
+    {
+        return new self(
+            text: $this->text,
+            buttons: $this->buttons,
+            parseMode: $this->parseMode,
+            disableNotification: $this->disableNotification,
+            requestContact: false,
+            requestLocation: false,
+            removeKeyboard: false,
+            webAppUrl: $url,
+            webAppButtonText: $text,
+        );
+    }
+
+    /**
+     * Determine if this response wants a WebApp button.
+     */
+    public function wantsWebAppButton(): bool
+    {
+        return filled($this->webAppUrl) && filled($this->webAppButtonText);
     }
 
     /**

@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')->group(base_path('routes/pay.php'));
             Route::middleware('web')->group(base_path('routes/auth.php'));
             Route::middleware('web')->group(base_path('routes/settings.php'));
+            Route::middleware('web')->group(base_path('routes/bot.php'));
 
             // Test routes for KYC (only in non-production)
             if (! app()->environment('production')) {
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // CSRF exemptions for server-to-server callbacks
         $middleware->validateCsrfTokens(except: [
             'disburse/*/complete',  // Form flow completion callback
+            'api/bot/selfie-upload',  // Telegram Mini App selfie upload
         ]);
 
         $middleware->web(append: [

@@ -109,4 +109,19 @@ return [
         'middleware' => ['api', 'throttle:60,1'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mini App Configuration
+    |--------------------------------------------------------------------------
+    |
+    | URLs for Telegram Mini Apps that open in WebView for enhanced UX.
+    | These must be HTTPS URLs in production.
+    |
+    */
+
+    'mini_app' => [
+        // URL for selfie capture Mini App (opens camera for iOS, file picker for Android)
+        'selfie_url' => env('TELEGRAM_MINI_APP_SELFIE_URL'),
+    ],
+
 ];

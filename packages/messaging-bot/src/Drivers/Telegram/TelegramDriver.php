@@ -116,6 +116,22 @@ class TelegramDriver implements MessagingDriverInterface
                 'resize_keyboard' => true,
                 'one_time_keyboard' => true,
             ];
+        } elseif ($response->wantsWebAppButton()) {
+            // WebApp keyboard button (opens Mini App in WebView)
+            $payload['reply_markup'] = [
+                'keyboard' => [
+                    [
+                        [
+                            'text' => $response->webAppButtonText,
+                            'web_app' => [
+                                'url' => $response->webAppUrl,
+                            ],
+                        ],
+                    ],
+                ],
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ];
         } elseif ($response->wantsKeyboardRemoved()) {
             // Remove reply keyboard (only when no other keyboard is being shown)
             $payload['reply_markup'] = [
