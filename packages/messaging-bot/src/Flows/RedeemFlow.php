@@ -616,6 +616,15 @@ class RedeemFlow extends BaseFlow
      */
     protected function handlePromptLocation(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
+        // Debug: Log what we received
+        $this->log('info', 'handlePromptLocation called', [
+            'input' => $input,
+            'hasLocation' => $update->hasLocation(),
+            'latitude' => $update->latitude,
+            'longitude' => $update->longitude,
+            'rawPayload' => $update->rawPayload,
+        ]);
+
         // Handle exit
         if (strtolower($input) === 'exit') {
             return $this->complete(
