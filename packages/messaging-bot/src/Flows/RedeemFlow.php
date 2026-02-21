@@ -605,10 +605,9 @@ class RedeemFlow extends BaseFlow
         return NormalizedResponse::html(
             "📍 <b>Share your location</b>\n\n".
             "Tap the button below to share your GPS location.\n".
-            "This is required for verification."
-        )->withLocationRequest()->withInlineButtons([
-            ['text' => '🚪 Exit', 'callback_data' => 'exit'],
-        ]);
+            "This is required for verification.\n\n".
+            "<i>Type 'exit' to cancel.</i>"
+        )->withLocationRequest();
     }
 
     /**
@@ -658,10 +657,9 @@ class RedeemFlow extends BaseFlow
             'response' => NormalizedResponse::html(
                 "⚠️ <b>Please use the Share Location button</b>\n\n".
                 "For verification, we need your GPS location.\n".
-                "Tap <b>📍 Share Location</b> below."
-            )->withLocationRequest()->withInlineButtons([
-                ['text' => '🚪 Exit', 'callback_data' => 'exit'],
-            ]),
+                "Tap <b>📍 Share Location</b> below.\n\n".
+                "<i>Type 'exit' to cancel.</i>"
+            )->withLocationRequest(),
             'state' => $state,
         ];
     }
