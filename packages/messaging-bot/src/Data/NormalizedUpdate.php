@@ -27,6 +27,7 @@ class NormalizedUpdate extends Data
         public ?string $phoneNumber = null,
         public ?float $latitude = null,
         public ?float $longitude = null,
+        public ?string $photoFileId = null,
         public array $rawPayload = [],
         public ?CarbonImmutable $timestamp = null,
     ) {
@@ -47,6 +48,14 @@ class NormalizedUpdate extends Data
     public function hasLocation(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    /**
+     * Check if this update contains a photo.
+     */
+    public function hasPhoto(): bool
+    {
+        return $this->photoFileId !== null;
     }
 
     /**
@@ -111,6 +120,10 @@ class NormalizedUpdate extends Data
         $latitude = $location['latitude'] ?? null;
         $longitude = $location['longitude'] ?? null;
 
+        // Extract photo file_id (use largest size - last element)
+        $photos = $message['photo'] ?? [];
+        $photoFileId = ! empty($photos) ? end($photos)['file_id'] ?? null : null;
+
         // Text: callback_query.data takes precedence (button press), then message.text
         $text = $callbackQuery['data'] ?? $message['text'] ?? null;
 
@@ -125,6 +138,7 @@ class NormalizedUpdate extends Data
             phoneNumber: $phoneNumber,
             latitude: $latitude,
             longitude: $longitude,
+            photoFileId: $photoFileId,
             rawPayload: $payload,
             timestamp: isset($message['date'])
                 ? CarbonImmutable::createFromTimestamp($message['date'])
@@ -161,6 +175,7 @@ class NormalizedUpdate extends Data
         ?string $firstName = 'TestUser',
         ?float $latitude = null,
         ?float $longitude = null,
+        ?string $photoFileId = null,
     ): self {
         return new self(
             platform: $platform,
@@ -173,6 +188,7 @@ class NormalizedUpdate extends Data
             phoneNumber: $phoneNumber,
             latitude: $latitude,
             longitude: $longitude,
+            photoFileId: $photoFileId,
             rawPayload: [],
             timestamp: CarbonImmutable::now(),
         );

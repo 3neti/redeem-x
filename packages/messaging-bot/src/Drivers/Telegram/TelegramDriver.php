@@ -302,6 +302,35 @@ class TelegramDriver implements MessagingDriverInterface
     }
 
     /**
+     * Get the download URL for a file by its file_id.
+     */
+    public function getFileUrl(string $fileId): string
+    {
+        $result = $this->request('getFile', ['file_id' => $fileId]);
+        $filePath = $result['file_path'] ?? null;
+
+        if (! $filePath) {
+            throw new \RuntimeException('Failed to get file path from Telegram');
+        }
+
+        return "{$this->baseUrl}/file/bot{$this->token}/{$filePath}";
+    }
+
+    /**
+     * Download a file and return as base64 data URL.
+     */
+    public function downloadFileAsBase64(string $fileId): string
+    {
+        $url = $this->getFileUrl($fileId);
+
+        $response = $this->client->get($url);
+        $content = $response->getBody()->getContents();
+        $contentType = $response->getHeaderLine('Content-Type') ?: 'image/jpeg';
+
+        return "data:{$contentType};base64," . base64_encode($content);
+    }
+
+    /**
      * Make a request to the Telegram Bot API (expects array result).
      */
     protected function request(string $method, array $payload = []): array

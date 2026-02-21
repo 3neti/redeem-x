@@ -53,6 +53,7 @@ class TelegramWebhookController
                 'is_callback' => $update->isCallbackQuery(),
                 'has_phone' => $update->hasPhoneNumber(),
                 'has_location' => $update->hasLocation(),
+                'has_photo' => $update->hasPhoto(),
             ]);
 
             // Answer callback query immediately (removes loading spinner)
@@ -96,6 +97,11 @@ class TelegramWebhookController
 
         // Location shared
         if (isset($payload['message']['location'])) {
+            return true;
+        }
+
+        // Photo shared
+        if (isset($payload['message']['photo'])) {
             return true;
         }
 

@@ -220,12 +220,14 @@ class RedeemViaSms
      * Check if voucher has web-only requirements (secret, location validation, or web-only input fields).
      * Text input fields (name, email, address, etc.) can be collected via bot and don't require web.
      * Location input can now be collected via Telegram's native location sharing (Phase 3).
+     * Selfie input can now be collected via Telegram photo (Phase 4).
      */
     private function checkVoucherRequirements(Voucher $voucher): bool
     {
         // Fields that require web interaction (not collectible via bot)
         // Note: 'location' removed - can now be collected via Telegram native location sharing
-        $webOnlyFields = ['selfie', 'signature', 'kyc'];
+        // Note: 'selfie' removed - can now be collected via Telegram photo
+        $webOnlyFields = ['signature', 'kyc'];
 
         try {
             $instructions = $voucher->instructions;

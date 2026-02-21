@@ -45,7 +45,7 @@ class RedeemFlow extends BaseFlow
 
     public function steps(): array
     {
-        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
     }
 
     /**
@@ -65,7 +65,6 @@ class RedeemFlow extends BaseFlow
      * Fields that require web interaction (not collectible via bot).
      */
     protected const WEB_ONLY_FIELDS = [
-        'selfie',
         'signature',
         'kyc',
     ];
@@ -171,6 +170,23 @@ class RedeemFlow extends BaseFlow
         return false;
     }
 
+    /**
+     * Check if voucher requires selfie input.
+     */
+    protected function requiresSelfieInput(Voucher $voucher): bool
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        foreach ($fields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            if ($fieldValue === 'selfie') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Step 1: Prompt for voucher code
     protected function promptPromptCode(ConversationState $state): NormalizedResponse
     {
@@ -250,8 +266,9 @@ class RedeemFlow extends BaseFlow
             $textInputFields
         ));
 
-        // Check if location input is required
+        // Check if location/selfie inputs are required
         $requiresLocation = $this->requiresLocationInput($voucher);
+        $requiresSelfie = $this->requiresSelfieInput($voucher);
 
         // Store voucher info for X-Ray display
         $newState = $state
@@ -262,6 +279,7 @@ class RedeemFlow extends BaseFlow
             ->set('voucher_rider_url', $voucher->instructions->rider->url ?? null)
             ->set('pending_inputs', $pendingInputs)
             ->set('requires_location', $requiresLocation)
+            ->set('requires_selfie', $requiresSelfie)
             ->set('collected_inputs', [])
             ->advanceTo('xray');
 
@@ -287,11 +305,12 @@ class RedeemFlow extends BaseFlow
             "<b>Expires:</b> {$expiry}",
         ];
 
-        // Add required inputs info (text fields + location)
+        // Add required inputs info (text fields + location + selfie)
         $textInputFields = $this->getTextInputFields($voucher);
         $requiresLocation = $this->requiresLocationInput($voucher);
+        $requiresSelfie = $this->requiresSelfieInput($voucher);
         
-        if (! empty($textInputFields) || $requiresLocation) {
+        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie) {
             $lines[] = '';
             $lines[] = '<b>Required Info:</b>';
             foreach ($textInputFields as $field) {
@@ -301,6 +320,9 @@ class RedeemFlow extends BaseFlow
             }
             if ($requiresLocation) {
                 $lines[] = "• 📍 Location";
+            }
+            if ($requiresSelfie) {
+                $lines[] = "• 📸 Selfie";
             }
         }
 
@@ -410,18 +432,28 @@ class RedeemFlow extends BaseFlow
     }
 
     /**
-     * Advance to location, mobile prompt, or confirmation.
+     * Advance to location, selfie, mobile prompt, or confirmation.
      */
     protected function advanceToMobileOrConfirm(NormalizedUpdate $update, ConversationState $state): array
     {
+        $collectedInputs = $state->get('collected_inputs', []);
+
         // Check if location is required and not yet collected
         $requiresLocation = $state->get('requires_location', false);
-        $collectedInputs = $state->get('collected_inputs', []);
-        
         if ($requiresLocation && !isset($collectedInputs['location'])) {
             $newState = $state->advanceTo('promptLocation');
             return [
                 'response' => $this->promptPromptLocation($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // Check if selfie is required and not yet collected
+        $requiresSelfie = $state->get('requires_selfie', false);
+        if ($requiresSelfie && !isset($collectedInputs['selfie'])) {
+            $newState = $state->advanceTo('promptSelfie');
+            return [
+                'response' => $this->promptPromptSelfie($newState),
                 'state' => $newState,
             ];
         }
@@ -660,6 +692,84 @@ class RedeemFlow extends BaseFlow
                 "Tap <b>📍 Share Location</b> below.\n\n".
                 "<i>Type 'exit' to cancel.</i>"
             )->withLocationRequest(),
+            'state' => $state,
+        ];
+    }
+
+    // ==================== SELFIE COLLECTION (Phase 4) ====================
+
+    /**
+     * Prompt for selfie via Telegram photo.
+     */
+    protected function promptPromptSelfie(ConversationState $state): NormalizedResponse
+    {
+        return NormalizedResponse::html(
+            "📸 <b>Take a selfie</b>\n\n".
+            "Please send a photo of yourself.\n".
+            "This is required for verification.\n\n".
+            "<i>Type 'exit' to cancel.</i>"
+        )->withKeyboardRemoved();
+    }
+
+    /**
+     * Handle selfie photo response.
+     */
+    protected function handlePromptSelfie(NormalizedUpdate $update, ConversationState $state, string $input): array
+    {
+        // Handle exit
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
+        // Check if user sent a photo
+        if ($update->hasPhoto()) {
+            $this->log('info', 'Received photo from Telegram', [
+                'file_id' => $update->photoFileId,
+            ]);
+
+            try {
+                // Download photo and convert to base64
+                $driver = app(\LBHurtado\MessagingBot\Drivers\Telegram\TelegramDriver::class);
+                $base64 = $driver->downloadFileAsBase64($update->photoFileId);
+
+                $collectedInputs = $state->get('collected_inputs', []);
+                $collectedInputs['selfie'] = $base64;
+
+                $this->log('info', 'Selfie captured and stored', [
+                    'size' => strlen($base64),
+                ]);
+
+                $newState = $state->set('collected_inputs', $collectedInputs);
+
+                // Proceed to mobile/confirm
+                return $this->advanceToMobileOrConfirm($update, $newState);
+
+            } catch (\Throwable $e) {
+                $this->log('error', 'Failed to download selfie', [
+                    'error' => $e->getMessage(),
+                ]);
+
+                return [
+                    'response' => NormalizedResponse::html(
+                        "❌ <b>Failed to process photo</b>\n\n".
+                        "Please try sending another photo.\n\n".
+                        "<i>Type 'exit' to cancel.</i>"
+                    ),
+                    'state' => $state,
+                ];
+            }
+        }
+
+        // User typed text instead of sending photo
+        return [
+            'response' => NormalizedResponse::html(
+                "⚠️ <b>Please send a photo</b>\n\n".
+                "We need a selfie for verification.\n".
+                "Tap the camera icon to take a photo.\n\n".
+                "<i>Type 'exit' to cancel.</i>"
+            ),
             'state' => $state,
         ];
     }
