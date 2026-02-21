@@ -105,6 +105,11 @@ class TelegramWebhookController
             return true;
         }
 
+        // Web app data (sent from Mini Apps via sendData())
+        if (isset($payload['message']['web_app_data'])) {
+            return true;
+        }
+
         // Callback query (inline button press)
         if (isset($payload['callback_query'])) {
             return true;

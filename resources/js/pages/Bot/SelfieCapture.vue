@@ -28,6 +28,7 @@ declare global {
                 ready: () => void;
                 close: () => void;
                 expand: () => void;
+                sendData: (data: string) => void;
                 MainButton: {
                     text: string;
                     color: string;
@@ -203,8 +204,9 @@ async function uploadSelfie() {
             throw new Error(data.message || 'Upload failed');
         }
         
-        // Success - close the Mini App
-        window.Telegram?.WebApp?.close();
+        // Success - send data to bot (this also closes the Mini App)
+        // The bot will receive this as a web_app_data message and check the cache
+        window.Telegram?.WebApp?.sendData('selfie_uploaded');
         
     } catch (err: any) {
         console.error('Upload error:', err);

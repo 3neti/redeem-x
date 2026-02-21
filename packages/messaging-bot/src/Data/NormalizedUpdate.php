@@ -124,8 +124,11 @@ class NormalizedUpdate extends Data
         $photos = $message['photo'] ?? [];
         $photoFileId = ! empty($photos) ? end($photos)['file_id'] ?? null : null;
 
-        // Text: callback_query.data takes precedence (button press), then message.text
-        $text = $callbackQuery['data'] ?? $message['text'] ?? null;
+        // Extract web_app_data (sent from Mini Apps via sendData())
+        $webAppData = $message['web_app_data']['data'] ?? null;
+
+        // Text: callback_query.data takes precedence, then web_app_data, then message.text
+        $text = $callbackQuery['data'] ?? $webAppData ?? $message['text'] ?? null;
 
         return new self(
             platform: Platform::Telegram,
