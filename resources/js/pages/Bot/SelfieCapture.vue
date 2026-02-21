@@ -219,9 +219,18 @@ async function uploadSelfie() {
 }
 
 function completeAndClose() {
-    // Send data to bot and close Mini App
-    // This triggers a web_app_data message to the bot webhook
-    window.Telegram?.WebApp?.sendData('selfie_uploaded');
+    // Try to send data to bot (may not work depending on how Mini App was opened)
+    // Then close the Mini App regardless
+    try {
+        window.Telegram?.WebApp?.sendData('selfie_uploaded');
+    } catch (e) {
+        // sendData might fail, but we still want to close
+        console.log('sendData failed:', e);
+    }
+    // Ensure the Mini App closes (sendData should auto-close, but add fallback)
+    setTimeout(() => {
+        window.Telegram?.WebApp?.close();
+    }, 100);
 }
 
 function exitWithoutPhoto() {
