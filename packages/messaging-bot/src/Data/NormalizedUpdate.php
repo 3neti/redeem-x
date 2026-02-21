@@ -25,6 +25,8 @@ class NormalizedUpdate extends Data
         public ?string $text = null,
         public ?string $messageId = null,
         public ?string $phoneNumber = null,
+        public ?float $latitude = null,
+        public ?float $longitude = null,
         public array $rawPayload = [],
         public ?CarbonImmutable $timestamp = null,
     ) {
@@ -37,6 +39,14 @@ class NormalizedUpdate extends Data
     public function hasPhoneNumber(): bool
     {
         return filled($this->phoneNumber);
+    }
+
+    /**
+     * Check if this update contains a shared location.
+     */
+    public function hasLocation(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 
     /**
@@ -96,6 +106,11 @@ class NormalizedUpdate extends Data
         $contact = $message['contact'] ?? null;
         $phoneNumber = $contact['phone_number'] ?? null;
 
+        // Extract location from shared location
+        $location = $message['location'] ?? null;
+        $latitude = $location['latitude'] ?? null;
+        $longitude = $location['longitude'] ?? null;
+
         // Text: callback_query.data takes precedence (button press), then message.text
         $text = $callbackQuery['data'] ?? $message['text'] ?? null;
 
@@ -108,6 +123,8 @@ class NormalizedUpdate extends Data
             text: $text,
             messageId: isset($message['message_id']) ? (string) $message['message_id'] : null,
             phoneNumber: $phoneNumber,
+            latitude: $latitude,
+            longitude: $longitude,
             rawPayload: $payload,
             timestamp: isset($message['date'])
                 ? CarbonImmutable::createFromTimestamp($message['date'])
@@ -142,6 +159,8 @@ class NormalizedUpdate extends Data
         Platform $platform = Platform::Telegram,
         ?string $phoneNumber = null,
         ?string $firstName = 'TestUser',
+        ?float $latitude = null,
+        ?float $longitude = null,
     ): self {
         return new self(
             platform: $platform,
@@ -152,6 +171,8 @@ class NormalizedUpdate extends Data
             text: $text,
             messageId: (string) time(),
             phoneNumber: $phoneNumber,
+            latitude: $latitude,
+            longitude: $longitude,
             rawPayload: [],
             timestamp: CarbonImmutable::now(),
         );

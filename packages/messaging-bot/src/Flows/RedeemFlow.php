@@ -45,7 +45,7 @@ class RedeemFlow extends BaseFlow
 
     public function steps(): array
     {
-        return ['promptCode', 'xray', 'promptTextInput', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
     }
 
     /**
@@ -65,7 +65,6 @@ class RedeemFlow extends BaseFlow
      * Fields that require web interaction (not collectible via bot).
      */
     protected const WEB_ONLY_FIELDS = [
-        'location',
         'selfie',
         'signature',
         'kyc',
@@ -149,9 +148,24 @@ class RedeemFlow extends BaseFlow
             return true;
         }
         
-        // Check for location validation
-        if ($voucher->instructions->cash->validation->location ?? false) {
-            return true;
+        // Note: Location input is now collectible via Telegram native (Phase 3)
+        // Geofence validation (cash.validation.location) still works - user provides location
+        
+        return false;
+    }
+
+    /**
+     * Check if voucher requires location input.
+     */
+    protected function requiresLocationInput(Voucher $voucher): bool
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        foreach ($fields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            if ($fieldValue === 'location') {
+                return true;
+            }
         }
         
         return false;
@@ -236,6 +250,9 @@ class RedeemFlow extends BaseFlow
             $textInputFields
         ));
 
+        // Check if location input is required
+        $requiresLocation = $this->requiresLocationInput($voucher);
+
         // Store voucher info for X-Ray display
         $newState = $state
             ->set('voucher_code', $voucher->code)
@@ -244,6 +261,7 @@ class RedeemFlow extends BaseFlow
             ->set('voucher_rider_message', $voucher->instructions->rider->message ?? null)
             ->set('voucher_rider_url', $voucher->instructions->rider->url ?? null)
             ->set('pending_inputs', $pendingInputs)
+            ->set('requires_location', $requiresLocation)
             ->set('collected_inputs', [])
             ->advanceTo('xray');
 
@@ -269,15 +287,20 @@ class RedeemFlow extends BaseFlow
             "<b>Expires:</b> {$expiry}",
         ];
 
-        // Add required inputs info
+        // Add required inputs info (text fields + location)
         $textInputFields = $this->getTextInputFields($voucher);
-        if (! empty($textInputFields)) {
+        $requiresLocation = $this->requiresLocationInput($voucher);
+        
+        if (! empty($textInputFields) || $requiresLocation) {
             $lines[] = '';
             $lines[] = '<b>Required Info:</b>';
             foreach ($textInputFields as $field) {
                 $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
                 $label = $this->getFieldLabel($fieldValue);
                 $lines[] = "• {$label}";
+            }
+            if ($requiresLocation) {
+                $lines[] = "• 📍 Location";
             }
         }
 
@@ -387,10 +410,22 @@ class RedeemFlow extends BaseFlow
     }
 
     /**
-     * Advance to mobile prompt or confirmation (for returning users).
+     * Advance to location, mobile prompt, or confirmation.
      */
     protected function advanceToMobileOrConfirm(NormalizedUpdate $update, ConversationState $state): array
     {
+        // Check if location is required and not yet collected
+        $requiresLocation = $state->get('requires_location', false);
+        $collectedInputs = $state->get('collected_inputs', []);
+        
+        if ($requiresLocation && !isset($collectedInputs['location'])) {
+            $newState = $state->advanceTo('promptLocation');
+            return [
+                'response' => $this->promptPromptLocation($newState),
+                'state' => $newState,
+            ];
+        }
+
         // Check for cached phone number (returning user)
         $cachedPhone = $this->getCachedPhone($update->chatId);
 
@@ -560,7 +595,71 @@ class RedeemFlow extends BaseFlow
         };
     }
 
-    // Step 2: Prompt for mobile number via contact share (HARD STOP - no text fallback)
+    // ==================== LOCATION COLLECTION (Phase 3) ====================
+
+    /**
+     * Prompt for location via Telegram's native location sharing.
+     */
+    protected function promptPromptLocation(ConversationState $state): NormalizedResponse
+    {
+        return NormalizedResponse::html(
+            "📍 <b>Share your location</b>\n\n".
+            "Tap the button below to share your GPS location.\n".
+            "This is required for verification."
+        )->withLocationRequest()->withInlineButtons([
+            ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+        ]);
+    }
+
+    /**
+     * Handle location sharing response.
+     */
+    protected function handlePromptLocation(NormalizedUpdate $update, ConversationState $state, string $input): array
+    {
+        // Handle exit
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
+        // Check if user shared their location
+        if ($update->hasLocation()) {
+            $collectedInputs = $state->get('collected_inputs', []);
+            
+            // Store as {lat, lng} format (matches LocationSpecification expectation)
+            $collectedInputs['location'] = [
+                'lat' => $update->latitude,
+                'lng' => $update->longitude,
+            ];
+
+            $this->log('info', 'Received location from Telegram', [
+                'latitude' => $update->latitude,
+                'longitude' => $update->longitude,
+            ]);
+
+            $newState = $state->set('collected_inputs', $collectedInputs);
+
+            // Proceed to mobile/confirm
+            return $this->advanceToMobileOrConfirm($update, $newState);
+        }
+
+        // User typed text instead of sharing location
+        return [
+            'response' => NormalizedResponse::html(
+                "⚠️ <b>Please use the Share Location button</b>\n\n".
+                "For verification, we need your GPS location.\n".
+                "Tap <b>📍 Share Location</b> below."
+            )->withLocationRequest()->withInlineButtons([
+                ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+            ]),
+            'state' => $state,
+        ];
+    }
+
+    // ==================== MOBILE COLLECTION ====================
+
+    // Step: Prompt for mobile number via contact share (HARD STOP - no text fallback)
     protected function promptPromptMobile(ConversationState $state): NormalizedResponse
     {
         return NormalizedResponse::html(

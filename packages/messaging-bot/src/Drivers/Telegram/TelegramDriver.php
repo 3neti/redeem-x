@@ -83,6 +83,20 @@ class TelegramDriver implements MessagingDriverInterface
                 'resize_keyboard' => true,
                 'one_time_keyboard' => true,
             ];
+        } elseif ($response->wantsLocationRequest()) {
+            // Handle location request keyboard
+            $payload['reply_markup'] = [
+                'keyboard' => [
+                    [
+                        [
+                            'text' => '📍 Share Location',
+                            'request_location' => true,
+                        ],
+                    ],
+                ],
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ];
         } elseif ($response->hasButtons()) {
             $payload['reply_markup'] = [
                 'inline_keyboard' => [$response->buttons],

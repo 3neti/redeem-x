@@ -20,6 +20,7 @@ class NormalizedResponse extends Data
         public ?string $parseMode = null,
         public bool $disableNotification = false,
         public bool $requestContact = false,
+        public bool $requestLocation = false,
     ) {}
 
     /**
@@ -56,6 +57,8 @@ class NormalizedResponse extends Data
             buttons: $buttons,
             parseMode: $this->parseMode,
             disableNotification: $this->disableNotification,
+            requestContact: $this->requestContact,
+            requestLocation: $this->requestLocation,
         );
     }
 
@@ -69,6 +72,8 @@ class NormalizedResponse extends Data
             buttons: $this->buttons,
             parseMode: $this->parseMode,
             disableNotification: true,
+            requestContact: $this->requestContact,
+            requestLocation: $this->requestLocation,
         );
     }
 
@@ -93,6 +98,7 @@ class NormalizedResponse extends Data
             parseMode: $this->parseMode,
             disableNotification: $this->disableNotification,
             requestContact: true,
+            requestLocation: false,
         );
     }
 
@@ -102,6 +108,31 @@ class NormalizedResponse extends Data
     public function wantsContactRequest(): bool
     {
         return $this->requestContact;
+    }
+
+    /**
+     * Request the user to share their location.
+     *
+     * This flag tells the driver to show a "Share Location" keyboard button.
+     */
+    public function withLocationRequest(): self
+    {
+        return new self(
+            text: $this->text,
+            buttons: $this->buttons,
+            parseMode: $this->parseMode,
+            disableNotification: $this->disableNotification,
+            requestContact: false,
+            requestLocation: true,
+        );
+    }
+
+    /**
+     * Determine if this response requests location sharing.
+     */
+    public function wantsLocationRequest(): bool
+    {
+        return $this->requestLocation;
     }
 
     /**
@@ -128,6 +159,7 @@ class NormalizedResponse extends Data
             parseMode: $this->parseMode,
             disableNotification: $this->disableNotification,
             requestContact: $this->requestContact,
+            requestLocation: $this->requestLocation,
         );
     }
 }
