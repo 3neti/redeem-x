@@ -708,35 +708,24 @@ class RedeemFlow extends BaseFlow
     {
         $miniAppUrl = $this->getSelfieCaptureMiniAppUrl($state);
 
-        if ($miniAppUrl) {
-            // Use Mini App button for better UX
-            return NormalizedResponse::html(
-                "📸 <b>Take a selfie</b>\n\n".
-                "Tap the button below to open the camera.\n".
-                "This is required for verification.\n\n".
-                "<i>You can also send a photo directly, or type 'exit' to cancel.</i>"
-            )->withWebAppButton('📸 Take Selfie', $miniAppUrl);
-        }
-
-        // Fallback to text-only prompt if Mini App not configured
+        // Always use Mini App button for better UX
         return NormalizedResponse::html(
             "📸 <b>Take a selfie</b>\n\n".
-            "Tap the 📎 button → Select 📷 Camera → Take your photo\n\n".
-            "Alternatively, you can send any existing photo of yourself.\n\n".
-            "<i>Type 'exit' to cancel.</i>"
-        )->withKeyboardRemoved();
+            "Tap the button below to open the camera.\n".
+            "This is required for verification.\n\n".
+            "<i>You can also send a photo directly, or type 'exit' to cancel.</i>"
+        )->withWebAppButton('📸 Take Selfie', $miniAppUrl);
     }
 
     /**
      * Get the selfie capture Mini App URL with chat_id parameter.
+     *
+     * Falls back to APP_URL/bot/selfie-capture if not explicitly configured.
      */
-    protected function getSelfieCaptureMiniAppUrl(ConversationState $state): ?string
+    protected function getSelfieCaptureMiniAppUrl(ConversationState $state): string
     {
-        $baseUrl = config('messaging-bot.mini_app.selfie_url');
-
-        if (! $baseUrl) {
-            return null;
-        }
+        $baseUrl = config('messaging-bot.mini_app.selfie_url')
+            ?? rtrim(config('app.url'), '/').'/bot/selfie-capture';
 
         // Append chat_id as query parameter
         $chatId = $state->chatId;
