@@ -70,13 +70,26 @@ class TelegramDriver implements MessagingDriverInterface
         }
 
         // Handle keyboard options
-        if ($response->wantsKeyboardRemoved()) {
-            // Remove custom keyboard
+        // If we want to remove keyboard AND show inline buttons, we need to send
+        // a separate message first to remove the reply keyboard
+        if ($response->wantsKeyboardRemoved() && $response->hasButtons()) {
+            // Send a quick message to remove the reply keyboard
+            $this->request('sendMessage', [
+                'chat_id' => $chatId,
+                'text' => '✓',
+                'reply_markup' => ['remove_keyboard' => true],
+            ]);
+            // Then show inline buttons with the actual message
             $payload['reply_markup'] = [
-                'remove_keyboard' => true,
+                'inline_keyboard' => [$response->buttons],
+            ];
+        } elseif ($response->hasButtons()) {
+            // Inline keyboard buttons (appears inline with message)
+            $payload['reply_markup'] = [
+                'inline_keyboard' => [$response->buttons],
             ];
         } elseif ($response->wantsContactRequest()) {
-            // Contact request keyboard
+            // Contact request keyboard (reply keyboard at bottom)
             $payload['reply_markup'] = [
                 'keyboard' => [
                     [
@@ -90,7 +103,7 @@ class TelegramDriver implements MessagingDriverInterface
                 'one_time_keyboard' => true,
             ];
         } elseif ($response->wantsLocationRequest()) {
-            // Location request keyboard
+            // Location request keyboard (reply keyboard at bottom)
             $payload['reply_markup'] = [
                 'keyboard' => [
                     [
@@ -103,10 +116,10 @@ class TelegramDriver implements MessagingDriverInterface
                 'resize_keyboard' => true,
                 'one_time_keyboard' => true,
             ];
-        } elseif ($response->hasButtons()) {
-            // Inline keyboard buttons
+        } elseif ($response->wantsKeyboardRemoved()) {
+            // Remove reply keyboard (only when no other keyboard is being shown)
             $payload['reply_markup'] = [
-                'inline_keyboard' => [$response->buttons],
+                'remove_keyboard' => true,
             ];
         }
 
