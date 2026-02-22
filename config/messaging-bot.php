@@ -30,6 +30,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Telegram Bot Username
+    |--------------------------------------------------------------------------
+    |
+    | The username of your Telegram bot (without the @ symbol).
+    | Used for generating deep links like t.me/{username}?start=...
+    |
+    */
+
+    'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Messaging Drivers
     |--------------------------------------------------------------------------
     |
