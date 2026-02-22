@@ -50,6 +50,7 @@ class RedeemFlow extends BaseFlow
 
     /**
      * Text input fields the bot can collect (Phase 2).
+     * Note: 'secret_pin' is a special field for validation.secret, not an input field.
      */
     protected const TEXT_INPUT_FIELDS = [
         'name',
@@ -59,6 +60,7 @@ class RedeemFlow extends BaseFlow
         'gross_monthly_income',
         'reference_code',
         'otp',
+        'secret_pin', // For cash.validation.secret
     ];
 
     /**
@@ -115,6 +117,18 @@ class RedeemFlow extends BaseFlow
     }
 
     /**
+     * Get configuration for secret PIN (validation.secret, not an input field).
+     */
+    protected function getSecretPinConfig(): array
+    {
+        return [
+            'prompt' => "🔐 <b>Enter PIN code:</b>",
+            'validation' => fn($v) => mb_strlen(trim($v)) >= 4,
+            'error' => 'PIN must be at least 4 characters.',
+        ];
+    }
+
+    /**
      * Get text input fields required by voucher.
      */
     protected function getTextInputFields(Voucher $voucher): array
@@ -142,13 +156,9 @@ class RedeemFlow extends BaseFlow
             }
         }
         
-        // Check for secret validation
-        if ($voucher->instructions->cash->validation->secret ?? false) {
-            return true;
-        }
-        
+        // Note: Secret PIN validation is now collectible via bot (Phase 6)
         // Note: Location input is now collectible via Telegram native (Phase 3)
-        // Geofence validation (cash.validation.location) still works - user provides location
+        // Note: Selfie input is now collectible via Telegram photo (Phase 4)
         
         return false;
     }
@@ -265,6 +275,14 @@ class RedeemFlow extends BaseFlow
             fn($f) => $f instanceof VoucherInputField ? $f->value : (string) $f,
             $textInputFields
         ));
+
+        // Check if secret PIN validation is required (Phase 6)
+        // Add 'secret_pin' to pending inputs if voucher has validation.secret
+        $requiresSecretPin = (bool) ($voucher->instructions->cash->validation->secret ?? false);
+        if ($requiresSecretPin && !in_array('secret_pin', $pendingInputs, true)) {
+            // Add secret_pin at the beginning (ask for PIN first)
+            array_unshift($pendingInputs, 'secret_pin');
+        }
 
         // Check if location/selfie inputs are required
         $requiresLocation = $this->requiresLocationInput($voucher);
@@ -505,8 +523,14 @@ class RedeemFlow extends BaseFlow
         }
 
         $currentField = $pendingInputs[0];
-        $fieldEnum = VoucherInputField::tryFrom($currentField);
-        $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
+        
+        // Handle secret_pin specially (not a VoucherInputField enum)
+        if ($currentField === 'secret_pin') {
+            $config = $this->getSecretPinConfig();
+        } else {
+            $fieldEnum = VoucherInputField::tryFrom($currentField);
+            $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
+        }
 
         if (! $config) {
             // Skip unknown field type
@@ -540,8 +564,14 @@ class RedeemFlow extends BaseFlow
         }
 
         $currentField = $pendingInputs[0];
-        $fieldEnum = VoucherInputField::tryFrom($currentField);
-        $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
+        
+        // Handle secret_pin specially (not a VoucherInputField enum)
+        if ($currentField === 'secret_pin') {
+            $config = $this->getSecretPinConfig();
+        } else {
+            $fieldEnum = VoucherInputField::tryFrom($currentField);
+            $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
+        }
 
         if (! $config) {
             // Skip unknown field
@@ -623,6 +653,7 @@ class RedeemFlow extends BaseFlow
             'selfie' => 'Selfie Photo',
             'signature' => 'Signature',
             'kyc' => 'Identity Verification',
+            'secret_pin' => '🔐 PIN Code',
             default => ucfirst(str_replace('_', ' ', $field)),
         };
     }
@@ -1329,12 +1360,21 @@ class RedeemFlow extends BaseFlow
             // Build bank_spec for redemption action
             $bankSpec = "{$bankCode}:{$bankAccount}";
 
+            // Extract secret_pin from collected inputs (passed separately, not in inputs array)
+            $secret = $collectedInputs['secret_pin'] ?? null;
+            $inputsWithoutSecret = array_filter(
+                $collectedInputs,
+                fn($key) => $key !== 'secret_pin',
+                ARRAY_FILTER_USE_KEY
+            );
+
             // Call the redemption action with collected inputs
             $actionRequest = ActionRequest::create('', 'POST', [
                 'voucher_code' => $voucherCode,
                 'mobile' => $mobile,
                 'bank_spec' => $bankSpec,
-                'inputs' => $collectedInputs,
+                'secret' => $secret, // Pass secret separately for SecretSpecification
+                'inputs' => $inputsWithoutSecret,
             ]);
 
             $response = app(RedeemViaSms::class)->asController($actionRequest);

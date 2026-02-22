@@ -133,6 +133,7 @@ class RedeemViaSms
                     'bank_code' => $bankCode,
                     'account_number' => $accountNumber,
                     'inputs' => $inputs,
+                    'secret' => $request->input('secret'),
                 ]);
 
                 $result = (new ConfirmRedemption)->asController();
@@ -213,6 +214,7 @@ class RedeemViaSms
             'mobile' => ['required', 'string'],
             'bank_spec' => ['nullable', 'string'],
             'inputs' => ['nullable', 'array'],
+            'secret' => ['nullable', 'string'],
         ];
     }
 
@@ -232,11 +234,12 @@ class RedeemViaSms
         try {
             $instructions = $voucher->instructions;
 
-            // Check validation requirements (secret and location validation require web)
+            // Check validation requirements (location validation requires web)
+            // Note: secret PIN can now be collected via bot (Phase 6)
             if ($instructions->cash->validation) {
                 $validation = $instructions->cash->validation;
 
-                if ($validation->secret || $validation->location) {
+                if ($validation->location) {
                     return true;
                 }
             }
