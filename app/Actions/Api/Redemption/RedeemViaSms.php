@@ -223,13 +223,15 @@ class RedeemViaSms
      * Text input fields (name, email, address, etc.) can be collected via bot and don't require web.
      * Location input can now be collected via Telegram's native location sharing (Phase 3).
      * Selfie input can now be collected via Telegram photo (Phase 4).
+     * Signature input can now be collected via Telegram Mini App (Phase 5).
      */
     private function checkVoucherRequirements(Voucher $voucher): bool
     {
         // Fields that require web interaction (not collectible via bot)
         // Note: 'location' removed - can now be collected via Telegram native location sharing
         // Note: 'selfie' removed - can now be collected via Telegram photo
-        $webOnlyFields = ['signature', 'kyc'];
+        // Note: 'signature' removed - can now be collected via Telegram Mini App
+        $webOnlyFields = ['kyc'];
 
         try {
             $instructions = $voucher->instructions;
