@@ -88,7 +88,7 @@ class HandleInertiaRequests extends Middleware
             'settlement_endpoint' => $this->getVoucherSetting('default_settlement_endpoint', '/pay'),
             'portal_endpoint' => $this->getVoucherSetting('default_portal_endpoint', '/portal'),
             'settlement_enabled' => Feature::active('settlement-vouchers'),
-            'telegram_bot_username' => config('messaging-bot.drivers.telegram.bot_username'),
+            'telegram_bot_username' => config('messaging-bot.bot_username'),
         ]);
     }
 
