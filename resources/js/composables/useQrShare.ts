@@ -8,6 +8,7 @@ export interface UseQrShareReturn {
     getSmsLink: (text: string) => string;
     getWhatsAppLink: (text: string) => string;
     getTelegramLink: (url: string, text?: string) => string;
+    getTelegramBotDeepLink: (botUsername: string, voucherCode: string) => string;
     shareNative: (data: ShareData) => Promise<boolean>;
     isShareSupported: () => boolean;
 }
@@ -145,6 +146,14 @@ export function useQrShare(): UseQrShareReturn {
     };
 
     /**
+     * Generate Telegram bot deep link for auto-redemption
+     * Format: https://t.me/{botUsername}?start=redeem_{voucherCode}
+     */
+    const getTelegramBotDeepLink = (botUsername: string, voucherCode: string): string => {
+        return `https://t.me/${botUsername}?start=redeem_${voucherCode}`;
+    };
+
+    /**
      * Use native Web Share API (mobile)
      */
     const shareNative = async (data: ShareData): Promise<boolean> => {
@@ -191,6 +200,7 @@ export function useQrShare(): UseQrShareReturn {
         getSmsLink,
         getWhatsAppLink,
         getTelegramLink,
+        getTelegramBotDeepLink,
         shareNative,
         isShareSupported,
     };

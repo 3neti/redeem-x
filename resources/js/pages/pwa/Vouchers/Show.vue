@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useToast } from '@/components/ui/toast/use-toast';
 import VoucherStateManager from '@/components/pwa/VoucherStateManager.vue';
 import VoucherDetailsSheet from '@/components/pwa/VoucherDetailsSheet.vue';
+import VoucherShareDialog from '@/components/pwa/VoucherShareDialog.vue';
 
 interface Props {
     voucher: {
@@ -66,6 +67,9 @@ const extensionType = ref<'hours' | 'days' | 'weeks' | 'months' | 'years' | 'dat
 const extensionValue = ref<number>(1);
 const newDate = ref<string>('');
 
+// Share dialog
+const showShareDialog = ref(false);
+
 // Get redemption endpoint from shared props (configured in VoucherSettings)
 const redemptionEndpoint = computed(() => 
     (page.props as any).redemption_endpoint || '/disburse'
@@ -110,19 +114,14 @@ const copyToClipboard = async (text: string) => {
     }
 };
 
-const shareVoucher = async () => {
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: `Voucher ${props.voucher.code}`,
-                text: `Redeem this voucher: ${props.voucher.code}`,
-                url: props.voucher.redeem_url,
-            });
-        } catch (err) {
-            console.error('Share failed:', err);
-        }
-    }
+const openShareDialog = () => {
+    showShareDialog.value = true;
 };
+
+// Formatted amount for share message
+const formattedShareAmount = computed(() => 
+    `${props.voucher.currency} ${formatAmount(props.voucher.amount)}`
+);
 
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -466,8 +465,7 @@ const handlePaymentConfirmed = () => {
                     {{ copied ? 'Copied!' : 'Copy Code' }}
                 </Button>
                 <Button
-                    v-if="canShare"
-                    @click="shareVoucher"
+                    @click="openShareDialog"
                     variant="outline"
                     class="w-full"
                 >
@@ -629,6 +627,14 @@ const handlePaymentConfirmed = () => {
             :voucher-data="voucher.full_data || voucher"
             :input-field-options="input_field_options || []"
             @payment-confirmed="handlePaymentConfirmed"
+        />
+
+        <!-- Share Dialog -->
+        <VoucherShareDialog
+            v-model:open="showShareDialog"
+            :voucher-code="voucher.code"
+            :redeem-url="voucher.redeem_url"
+            :voucher-amount="formattedShareAmount"
         />
     </PwaLayout>
 </template>

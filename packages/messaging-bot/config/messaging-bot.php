@@ -45,6 +45,7 @@ return [
             'enabled' => env('TELEGRAM_BOT_ENABLED', true),
             'token' => env('TELEGRAM_BOT_TOKEN'),
             'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+            'bot_username' => env('TELEGRAM_BOT_USERNAME'),
             'admin_chat_ids' => array_filter(
                 explode(',', env('TELEGRAM_ADMIN_CHAT_IDS', ''))
             ),
