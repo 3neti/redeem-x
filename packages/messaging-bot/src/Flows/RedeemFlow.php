@@ -118,13 +118,26 @@ class RedeemFlow extends BaseFlow
 
     /**
      * Get configuration for secret PIN (validation.secret, not an input field).
+     * 
+     * @param string|null $expectedSecret The expected secret from voucher.instructions.cash.validation.secret
      */
-    protected function getSecretPinConfig(): array
+    protected function getSecretPinConfig(?string $expectedSecret = null): array
     {
         return [
             'prompt' => "🔐 <b>Enter PIN code:</b>",
-            'validation' => fn($v) => mb_strlen(trim($v)) >= 4,
-            'error' => 'PIN must be at least 4 characters.',
+            'validation' => function($v) use ($expectedSecret) {
+                $value = trim($v);
+                // Basic length validation
+                if (mb_strlen($value) < 4) {
+                    return false;
+                }
+                // If expected secret provided, compare against it
+                if ($expectedSecret !== null) {
+                    return $value === $expectedSecret;
+                }
+                return true;
+            },
+            'error' => $expectedSecret !== null ? 'Invalid PIN code. Please try again.' : 'PIN must be at least 4 characters.',
         ];
     }
 
@@ -278,8 +291,8 @@ class RedeemFlow extends BaseFlow
 
         // Check if secret PIN validation is required (Phase 6)
         // Add 'secret_pin' to pending inputs if voucher has validation.secret
-        $requiresSecretPin = (bool) ($voucher->instructions->cash->validation->secret ?? false);
-        if ($requiresSecretPin && !in_array('secret_pin', $pendingInputs, true)) {
+        $expectedSecret = $voucher->instructions->cash->validation->secret ?? null;
+        if ($expectedSecret && !in_array('secret_pin', $pendingInputs, true)) {
             // Add secret_pin at the beginning (ask for PIN first)
             array_unshift($pendingInputs, 'secret_pin');
         }
@@ -299,6 +312,7 @@ class RedeemFlow extends BaseFlow
             ->set('requires_location', $requiresLocation)
             ->set('requires_selfie', $requiresSelfie)
             ->set('collected_inputs', [])
+            ->set('expected_secret', $expectedSecret) // Store for validation in handlePromptTextInput
             ->advanceTo('xray');
 
         // Show X-Ray display
@@ -526,7 +540,7 @@ class RedeemFlow extends BaseFlow
         
         // Handle secret_pin specially (not a VoucherInputField enum)
         if ($currentField === 'secret_pin') {
-            $config = $this->getSecretPinConfig();
+            $config = $this->getSecretPinConfig($state->get('expected_secret'));
         } else {
             $fieldEnum = VoucherInputField::tryFrom($currentField);
             $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
@@ -567,7 +581,7 @@ class RedeemFlow extends BaseFlow
         
         // Handle secret_pin specially (not a VoucherInputField enum)
         if ($currentField === 'secret_pin') {
-            $config = $this->getSecretPinConfig();
+            $config = $this->getSecretPinConfig($state->get('expected_secret'));
         } else {
             $fieldEnum = VoucherInputField::tryFrom($currentField);
             $config = $fieldEnum ? $this->getTextInputConfig($fieldEnum) : null;
