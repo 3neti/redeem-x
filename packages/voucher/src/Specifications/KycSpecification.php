@@ -33,7 +33,15 @@ class KycSpecification implements RedemptionSpecificationInterface
         }
 
         // Check KYC status from context inputs
+        // Support both formats:
+        // - 'kyc_status' => 'approved' (web flow)
+        // - 'kyc' => ['status' => 'approved', ...] (bot flow)
         $kycStatus = $context->inputs['kyc_status'] ?? null;
+        
+        // Also check nested format from bot flow
+        if ($kycStatus === null && isset($context->inputs['kyc']['status'])) {
+            $kycStatus = $context->inputs['kyc']['status'];
+        }
 
         return $kycStatus === 'approved';
     }
