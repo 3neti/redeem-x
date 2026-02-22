@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Bot\SelfieCaptureController;
+use App\Http\Controllers\Bot\SignatureCaptureController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,3 +21,11 @@ Route::get('/bot/selfie-capture', [SelfieCaptureController::class, 'show'])
 // Selfie upload API endpoint (CSRF exempt - called from Mini App)
 Route::post('/api/bot/selfie-upload', [SelfieCaptureController::class, 'store'])
     ->name('bot.selfie.store');
+
+// Signature capture Mini App
+Route::get('/bot/signature-capture', [SignatureCaptureController::class, 'show'])
+    ->name('bot.signature.show');
+
+// Signature upload API endpoint (CSRF exempt - called from Mini App)
+Route::post('/api/bot/signature-upload', [SignatureCaptureController::class, 'store'])
+    ->name('bot.signature.store');

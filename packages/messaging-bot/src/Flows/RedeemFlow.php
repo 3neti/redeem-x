@@ -46,7 +46,7 @@ class RedeemFlow extends BaseFlow
 
     public function steps(): array
     {
-        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptMobile', 'promptOtp', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptSignature', 'promptMobile', 'promptOtp', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
     }
 
     /**
@@ -68,7 +68,6 @@ class RedeemFlow extends BaseFlow
      * Fields that require web interaction (not collectible via bot).
      */
     protected const WEB_ONLY_FIELDS = [
-        'signature',
         'kyc',
     ];
 
@@ -224,6 +223,23 @@ class RedeemFlow extends BaseFlow
         return false;
     }
 
+    /**
+     * Check if voucher requires signature input (Phase 5).
+     */
+    protected function requiresSignatureInput(Voucher $voucher): bool
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        foreach ($fields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            if ($fieldValue === 'signature') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Step 1: Prompt for voucher code
     protected function promptPromptCode(ConversationState $state): NormalizedResponse
     {
@@ -311,9 +327,10 @@ class RedeemFlow extends BaseFlow
             array_unshift($pendingInputs, 'secret_pin');
         }
 
-        // Check if location/selfie/otp inputs are required
+        // Check if location/selfie/signature/otp inputs are required
         $requiresLocation = $this->requiresLocationInput($voucher);
         $requiresSelfie = $this->requiresSelfieInput($voucher);
+        $requiresSignature = $this->requiresSignatureInput($voucher);
         $requiresOtp = $this->requiresOtpInput($voucher);
 
         // Store voucher info for X-Ray display
@@ -326,6 +343,7 @@ class RedeemFlow extends BaseFlow
             ->set('pending_inputs', $pendingInputs)
             ->set('requires_location', $requiresLocation)
             ->set('requires_selfie', $requiresSelfie)
+            ->set('requires_signature', $requiresSignature)
             ->set('requires_otp', $requiresOtp)
             ->set('collected_inputs', [])
             ->set('expected_secret', $expectedSecret) // Store for validation in handlePromptTextInput
@@ -353,13 +371,14 @@ class RedeemFlow extends BaseFlow
             "<b>Expires:</b> {$expiry}",
         ];
 
-        // Add required inputs info (text fields + location + selfie + otp)
+        // Add required inputs info (text fields + location + selfie + signature + otp)
         $textInputFields = $this->getTextInputFields($voucher);
         $requiresLocation = $this->requiresLocationInput($voucher);
         $requiresSelfie = $this->requiresSelfieInput($voucher);
+        $requiresSignature = $this->requiresSignatureInput($voucher);
         $requiresOtp = $this->requiresOtpInput($voucher);
         
-        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie || $requiresOtp) {
+        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie || $requiresSignature || $requiresOtp) {
             $lines[] = '';
             $lines[] = '<b>Required Info:</b>';
             foreach ($textInputFields as $field) {
@@ -372,6 +391,9 @@ class RedeemFlow extends BaseFlow
             }
             if ($requiresSelfie) {
                 $lines[] = "• 📸 Selfie";
+            }
+            if ($requiresSignature) {
+                $lines[] = "• ✍️ Signature";
             }
             if ($requiresOtp) {
                 $lines[] = "• 🔐 OTP Verification";
@@ -506,6 +528,16 @@ class RedeemFlow extends BaseFlow
             $newState = $state->advanceTo('promptSelfie');
             return [
                 'response' => $this->promptPromptSelfie($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // Check if signature is required and not yet collected (Phase 5)
+        $requiresSignature = $state->get('requires_signature', false);
+        if ($requiresSignature && !isset($collectedInputs['signature'])) {
+            $newState = $state->advanceTo('promptSignature');
+            return [
+                'response' => $this->promptPromptSignature($newState),
                 'state' => $newState,
             ];
         }
@@ -940,6 +972,140 @@ class RedeemFlow extends BaseFlow
     protected function clearCachedSelfie(string $chatId): void
     {
         \App\Http\Controllers\Bot\SelfieCaptureController::clearCachedSelfie($chatId);
+    }
+
+    // ==================== SIGNATURE COLLECTION (Phase 5) ====================
+
+    /**
+     * Prompt for signature via Mini App button.
+     *
+     * Shows inline buttons:
+     * - WebApp button to open signature capture Mini App
+     * - Continue button to check if signature was uploaded via Mini App
+     */
+    protected function promptPromptSignature(ConversationState $state): NormalizedResponse
+    {
+        $miniAppUrl = $this->getSignatureCaptureMiniAppUrl($state);
+
+        // Use inline keyboard with WebApp button and Continue button
+        return NormalizedResponse::html(
+            "✍️ <b>Sign your name</b>\n\n".
+            "1️⃣ Tap <b>Sign</b> to open the signature pad\n".
+            "2️⃣ Draw your signature\n".
+            "3️⃣ After uploading, tap <b>Continue</b>\n\n".
+            "<i>Type 'exit' to cancel.</i>"
+        )->withWebAppButton('✍️ Sign', $miniAppUrl)
+         ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'signature_continue']]);
+    }
+
+    /**
+     * Get the signature capture Mini App URL with chat_id parameter.
+     *
+     * Falls back to APP_URL/bot/signature-capture if not explicitly configured.
+     */
+    protected function getSignatureCaptureMiniAppUrl(ConversationState $state): string
+    {
+        $baseUrl = config('messaging-bot.mini_app.signature_url')
+            ?? rtrim(config('app.url'), '/').'/bot/signature-capture';
+
+        // Append chat_id as query parameter
+        $chatId = $state->chatId;
+        $separator = str_contains($baseUrl, '?') ? '&' : '?';
+
+        return $baseUrl.$separator.'chat_id='.$chatId;
+    }
+
+    /**
+     * Handle signature response.
+     *
+     * Checks for cached signature from Mini App (triggered by Continue button).
+     */
+    protected function handlePromptSignature(NormalizedUpdate $update, ConversationState $state, string $input): array
+    {
+        $this->log('info', 'handlePromptSignature called', [
+            'chat_id' => $update->chatId,
+            'input' => $input,
+        ]);
+
+        // Handle exit
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
+        // Check for cached signature from Mini App
+        // This is triggered when user taps "Continue" after using the Mini App
+        $cachedSignature = $this->getCachedSignature($update->chatId);
+        
+        $this->log('info', 'Checking cached signature', [
+            'chat_id' => $update->chatId,
+            'has_cached' => $cachedSignature !== null,
+            'cached_size' => $cachedSignature ? strlen($cachedSignature) : 0,
+        ]);
+
+        if ($cachedSignature) {
+            $this->log('info', 'Retrieved signature from Mini App cache', [
+                'chat_id' => $update->chatId,
+                'size' => strlen($cachedSignature),
+            ]);
+
+            // Clear the cache
+            $this->clearCachedSignature($update->chatId);
+
+            $collectedInputs = $state->get('collected_inputs', []);
+            $collectedInputs['signature'] = $cachedSignature;
+
+            $newState = $state->set('collected_inputs', $collectedInputs);
+
+            // Proceed to mobile/confirm
+            return $this->advanceToMobileOrConfirm($update, $newState);
+        }
+
+        // User tapped Continue but no cached signature found
+        // Re-prompt with instructions
+        $miniAppUrl = $this->getSignatureCaptureMiniAppUrl($state);
+
+        // Check if user tapped Continue without uploading
+        if ($input === 'signature_continue') {
+            return [
+                'response' => NormalizedResponse::html(
+                    "⚠️ <b>No signature found</b>\n\n".
+                    "Please sign first, then tap Continue.\n\n".
+                    "<i>Type 'exit' to cancel.</i>"
+                )->withWebAppButton('✍️ Sign', $miniAppUrl)
+                 ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'signature_continue']]),
+                'state' => $state,
+            ];
+        }
+
+        return [
+            'response' => NormalizedResponse::html(
+                "⚠️ <b>Please sign your name</b>\n\n".
+                "1️⃣ Tap <b>Sign</b> to open the signature pad\n".
+                "2️⃣ Draw your signature\n".
+                "3️⃣ After uploading, tap <b>Continue</b>\n\n".
+                "<i>Type 'exit' to cancel.</i>"
+            )->withWebAppButton('✍️ Sign', $miniAppUrl)
+             ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'signature_continue']]),
+            'state' => $state,
+        ];
+    }
+
+    /**
+     * Get cached signature from Mini App.
+     */
+    protected function getCachedSignature(string $chatId): ?string
+    {
+        return \App\Http\Controllers\Bot\SignatureCaptureController::getCachedSignature($chatId);
+    }
+
+    /**
+     * Clear cached signature from Mini App.
+     */
+    protected function clearCachedSignature(string $chatId): void
+    {
+        \App\Http\Controllers\Bot\SignatureCaptureController::clearCachedSignature($chatId);
     }
 
     // ==================== MOBILE COLLECTION ====================
