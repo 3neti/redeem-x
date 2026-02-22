@@ -1139,7 +1139,8 @@ class RedeemFlow extends BaseFlow
 
                 return [
                     'response' => NormalizedResponse::html($successMessage . $confirmPrompt->text)
-                        ->withInlineButtons($confirmPrompt->inlineButtons ?? []),
+                        ->withKeyboardRemoved()
+                        ->withInlineButtons($confirmPrompt->buttons),
                     'state' => $newState,
                 ];
             }
