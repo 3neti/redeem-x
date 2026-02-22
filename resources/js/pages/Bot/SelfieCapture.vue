@@ -282,16 +282,9 @@ onUnmounted(() => {
             <div v-if="uploadSuccess" class="text-center py-8">
                 <div class="text-6xl mb-4">✅</div>
                 <h1 class="text-xl font-semibold mb-2">Selfie Uploaded!</h1>
-                <p class="mb-6" :style="{ color: themeColors.hintColor }">
-                    Tap Done to continue with your redemption.
+                <p class="text-lg mt-6" :style="{ color: themeColors.textColor }">
+                    Tap <strong>Close</strong> (top-left) to continue with your redemption.
                 </p>
-                <button
-                    @click="completeAndClose"
-                    class="w-full py-4 px-6 rounded-lg font-semibold text-lg"
-                    :style="{ backgroundColor: themeColors.buttonColor, color: themeColors.buttonTextColor }"
-                >
-                    ✓ Done
-                </button>
             </div>
 
             <!-- Normal Flow (when not success) -->
