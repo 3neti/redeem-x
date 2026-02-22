@@ -28,13 +28,24 @@ const emit = defineEmits<{
 
 const page = usePage();
 const { toast } = useToast();
-const { getTelegramBotDeepLink, getWhatsAppLink, getSmsLink, getEmailLink, copyQrLink } = useQrShare();
+const { getTelegramBotDeepLink, getTelegramLink, getWhatsAppLink, getSmsLink, getEmailLink, copyQrLink } = useQrShare();
 
 // Get bot username from Inertia shared props
 const botUsername = computed(() => (page.props as any).telegram_bot_username || null);
 
-// Share message for non-Telegram platforms
-const shareMessage = computed(() => 
+// Bot deep link for auto-redemption
+const botDeepLink = computed(() => {
+    if (!botUsername.value) return null;
+    return getTelegramBotDeepLink(botUsername.value, props.voucherCode);
+});
+
+// Share message for Telegram bot link
+const telegramBotShareMessage = computed(() => 
+    `Redeem this voucher via Telegram Bot: ${props.voucherCode}${props.voucherAmount ? ` (${props.voucherAmount})` : ''}`
+);
+
+// Share message for web link (other platforms)
+const webShareMessage = computed(() => 
     `Redeem this voucher: ${props.voucherCode}${props.voucherAmount ? ` (${props.voucherAmount})` : ''}\n${props.redeemUrl}`
 );
 
@@ -42,14 +53,15 @@ const shareMessage = computed(() =>
 const emailSubject = computed(() => `Voucher ${props.voucherCode}`);
 
 // Platform-specific links
-const telegramBotLink = computed(() => {
-    if (!botUsername.value) return null;
-    return getTelegramBotDeepLink(botUsername.value, props.voucherCode);
+// Telegram Bot: Share the bot deep link via Telegram's share URL
+const telegramBotShareLink = computed(() => {
+    if (!botDeepLink.value) return null;
+    return getTelegramLink(botDeepLink.value, telegramBotShareMessage.value);
 });
 
-const whatsappLink = computed(() => getWhatsAppLink(shareMessage.value));
-const smsLink = computed(() => getSmsLink(shareMessage.value));
-const emailLink = computed(() => getEmailLink(props.redeemUrl, emailSubject.value, shareMessage.value));
+const whatsappLink = computed(() => getWhatsAppLink(webShareMessage.value));
+const smsLink = computed(() => getSmsLink(webShareMessage.value));
+const emailLink = computed(() => getEmailLink(props.redeemUrl, emailSubject.value, webShareMessage.value));
 
 const closeDialog = () => {
     emit('update:open', false);
@@ -86,15 +98,15 @@ const openLink = (url: string) => {
             <div class="grid gap-3 py-4">
                 <!-- Telegram Bot (Featured - Auto-redeem) -->
                 <Button
-                    v-if="telegramBotLink"
-                    @click="openLink(telegramBotLink)"
+                    v-if="telegramBotShareLink"
+                    @click="openLink(telegramBotShareLink)"
                     variant="default"
                     class="w-full justify-start gap-3"
                 >
                     <Send class="h-5 w-5" />
                     <div class="text-left">
-                        <div class="font-medium">Telegram Bot</div>
-                        <div class="text-xs opacity-80">Opens bot with auto-redeem</div>
+                        <div class="font-medium">Share via Telegram</div>
+                        <div class="text-xs opacity-80">Send bot link with auto-redeem</div>
                     </div>
                 </Button>
 
