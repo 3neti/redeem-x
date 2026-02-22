@@ -403,7 +403,7 @@ class RedeemFlow extends BaseFlow
 
         // Check secret validation
         if ($voucher->instructions->cash->validation->secret ?? false) {
-            $validations[] = 'Secret PIN required 🔐';
+            $validations[] = 'Secret code required 🔐';
         }
 
         // Check location validation (from cash.validation or validation.location)
