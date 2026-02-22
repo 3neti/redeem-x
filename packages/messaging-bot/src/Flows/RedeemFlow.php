@@ -13,6 +13,7 @@ use LBHurtado\MessagingBot\Data\ConversationState;
 use LBHurtado\MessagingBot\Data\NormalizedResponse;
 use LBHurtado\MessagingBot\Data\NormalizedUpdate;
 use LBHurtado\MessagingBot\Services\BankService;
+use LBHurtado\MessagingBot\Services\TxtcmdrClient;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Models\Voucher;
@@ -45,12 +46,13 @@ class RedeemFlow extends BaseFlow
 
     public function steps(): array
     {
-        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptMobile', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptMobile', 'promptOtp', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
     }
 
     /**
      * Text input fields the bot can collect (Phase 2).
      * Note: 'secret_pin' is a special field for validation.secret, not an input field.
+     * Note: 'otp' is handled separately via txtcmdr API (Phase 7).
      */
     protected const TEXT_INPUT_FIELDS = [
         'name',
@@ -59,7 +61,6 @@ class RedeemFlow extends BaseFlow
         'birth_date',
         'gross_monthly_income',
         'reference_code',
-        'otp',
         'secret_pin', // For cash.validation.secret
     ];
 
@@ -107,11 +108,7 @@ class RedeemFlow extends BaseFlow
                 'validation' => fn($v) => mb_strlen(trim($v)) >= 3,
                 'error' => 'Reference code must be at least 3 characters.',
             ],
-            VoucherInputField::OTP => [
-                'prompt' => "🔐 <b>Enter OTP:</b>\n<i>4-6 digit code</i>",
-                'validation' => fn($v) => preg_match('/^\d{4,6}$/', trim($v)),
-                'error' => 'Please enter a valid 4-6 digit OTP.',
-            ],
+            // Note: OTP handled separately via txtcmdr API (Phase 7)
             default => null,
         };
     }
@@ -210,6 +207,23 @@ class RedeemFlow extends BaseFlow
         return false;
     }
 
+    /**
+     * Check if voucher requires OTP input (Phase 7).
+     */
+    protected function requiresOtpInput(Voucher $voucher): bool
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        foreach ($fields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            if ($fieldValue === 'otp') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Step 1: Prompt for voucher code
     protected function promptPromptCode(ConversationState $state): NormalizedResponse
     {
@@ -297,9 +311,10 @@ class RedeemFlow extends BaseFlow
             array_unshift($pendingInputs, 'secret_pin');
         }
 
-        // Check if location/selfie inputs are required
+        // Check if location/selfie/otp inputs are required
         $requiresLocation = $this->requiresLocationInput($voucher);
         $requiresSelfie = $this->requiresSelfieInput($voucher);
+        $requiresOtp = $this->requiresOtpInput($voucher);
 
         // Store voucher info for X-Ray display
         $newState = $state
@@ -311,6 +326,7 @@ class RedeemFlow extends BaseFlow
             ->set('pending_inputs', $pendingInputs)
             ->set('requires_location', $requiresLocation)
             ->set('requires_selfie', $requiresSelfie)
+            ->set('requires_otp', $requiresOtp)
             ->set('collected_inputs', [])
             ->set('expected_secret', $expectedSecret) // Store for validation in handlePromptTextInput
             ->advanceTo('xray');
@@ -337,12 +353,13 @@ class RedeemFlow extends BaseFlow
             "<b>Expires:</b> {$expiry}",
         ];
 
-        // Add required inputs info (text fields + location + selfie)
+        // Add required inputs info (text fields + location + selfie + otp)
         $textInputFields = $this->getTextInputFields($voucher);
         $requiresLocation = $this->requiresLocationInput($voucher);
         $requiresSelfie = $this->requiresSelfieInput($voucher);
+        $requiresOtp = $this->requiresOtpInput($voucher);
         
-        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie) {
+        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie || $requiresOtp) {
             $lines[] = '';
             $lines[] = '<b>Required Info:</b>';
             foreach ($textInputFields as $field) {
@@ -355,6 +372,9 @@ class RedeemFlow extends BaseFlow
             }
             if ($requiresSelfie) {
                 $lines[] = "• 📸 Selfie";
+            }
+            if ($requiresOtp) {
+                $lines[] = "• 🔐 OTP Verification";
             }
         }
 
@@ -951,8 +971,15 @@ class RedeemFlow extends BaseFlow
                 ->set('mobile', $mobile)
                 ->set('bank_code', BankService::DEFAULT_BANK_CODE)
                 ->set('bank_name', BankService::DEFAULT_BANK_NAME)
-                ->set('bank_account', $formattedAccount)
-                ->advanceTo('confirm');
+                ->set('bank_account', $formattedAccount);
+
+            // Check if OTP is required (Phase 7)
+            if ($state->get('requires_otp', false)) {
+                return $this->triggerOtpAndAdvance($update, $newState);
+            }
+
+            // No OTP needed - go straight to confirm
+            $newState = $newState->advanceTo('confirm');
 
             return [
                 'response' => $this->promptConfirm($newState),
@@ -971,6 +998,263 @@ class RedeemFlow extends BaseFlow
             ]),
             'state' => $state,
         ];
+    }
+
+    // ==================== OTP VERIFICATION (Phase 7) ====================
+
+    /**
+     * Trigger OTP request and advance to promptOtp step.
+     */
+    protected function triggerOtpAndAdvance(NormalizedUpdate $update, ConversationState $state): array
+    {
+        $mobile = $state->get('mobile');
+        $voucherCode = $state->get('voucher_code');
+
+        try {
+            $client = new TxtcmdrClient();
+            $result = $client->requestOtp($mobile, $voucherCode);
+
+            $this->log('info', 'OTP requested via txtcmdr', [
+                'mobile' => $mobile,
+                'verification_id' => $result['verification_id'],
+                'dev_code' => $result['dev_code'] ?? null,
+            ]);
+
+            $newState = $state
+                ->set('otp_verification_id', $result['verification_id'])
+                ->set('otp_resend_count', 0)
+                ->advanceTo('promptOtp');
+
+            return [
+                'response' => $this->promptPromptOtp($newState, $result['dev_code'] ?? null),
+                'state' => $newState,
+            ];
+
+        } catch (\Exception $e) {
+            $this->log('error', 'Failed to request OTP', [
+                'mobile' => $mobile,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fall back to confirm without OTP (graceful degradation)
+            $newState = $state->advanceTo('confirm');
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "⚠️ <b>OTP service unavailable</b>\n\n".
+                    "Proceeding without OTP verification."
+                ),
+                'state' => $newState,
+                'followup' => $this->promptConfirm($newState),
+            ];
+        }
+    }
+
+    /**
+     * Prompt for OTP code entry.
+     */
+    protected function promptPromptOtp(ConversationState $state, ?string $devCode = null): NormalizedResponse
+    {
+        $mobile = $state->get('mobile');
+        $maskedMobile = $this->maskMobile($mobile);
+
+        $text = "🔐 <b>Enter OTP Code</b>\n\n".
+            "A 6-digit code was sent to <b>{$maskedMobile}</b>\n\n".
+            "Enter the code below:";
+
+        // Show dev code in local/testing environment
+        if ($devCode && (app()->isLocal() || app()->environment('testing'))) {
+            $text .= "\n\n<i>🧪 Dev code: <code>{$devCode}</code></i>";
+        }
+
+        return NormalizedResponse::html($text)
+            ->withInlineButtons([
+                ['text' => '🔄 Resend OTP', 'callback_data' => 'otp_resend'],
+                ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+            ]);
+    }
+
+    /**
+     * Handle OTP submission or resend request.
+     */
+    protected function handlePromptOtp(NormalizedUpdate $update, ConversationState $state, string $input): array
+    {
+        // Handle exit
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
+        // Handle resend request
+        if ($input === 'otp_resend') {
+            return $this->handleOtpResend($update, $state);
+        }
+
+        // Validate OTP format (6 digits)
+        $code = trim($input);
+        if (! preg_match('/^\d{4,6}$/', $code)) {
+            return [
+                'response' => NormalizedResponse::html(
+                    "❌ <b>Invalid code format</b>\n\n".
+                    "Please enter the 6-digit code sent to your phone."
+                )->withInlineButtons([
+                    ['text' => '🔄 Resend OTP', 'callback_data' => 'otp_resend'],
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
+            ];
+        }
+
+        // Verify OTP via txtcmdr
+        $verificationId = $state->get('otp_verification_id');
+
+        try {
+            $client = new TxtcmdrClient();
+            $result = $client->verifyOtp($verificationId, $code);
+
+            if ($result['ok']) {
+                $this->log('info', 'OTP verified successfully', [
+                    'verification_id' => $verificationId,
+                ]);
+
+                // Store OTP in collected inputs and advance to confirm
+                $collectedInputs = $state->get('collected_inputs', []);
+                $collectedInputs['otp'] = $code;
+
+                $newState = $state
+                    ->set('collected_inputs', $collectedInputs)
+                    ->advanceTo('confirm');
+
+                return [
+                    'response' => $this->promptConfirm($newState),
+                    'state' => $newState,
+                ];
+            }
+
+            // OTP verification failed
+            $errorMessages = [
+                'invalid_code' => 'The OTP code is incorrect.',
+                'expired' => 'The OTP code has expired. Please request a new one.',
+                'locked' => 'Too many failed attempts. Please request a new OTP.',
+                'already_verified' => 'This OTP has already been used.',
+                'not_found' => 'Verification session expired. Please request a new OTP.',
+            ];
+
+            $errorMessage = $errorMessages[$result['reason']] ?? 'OTP verification failed.';
+            $attemptsInfo = isset($result['attempts']) ? " (Attempt {$result['attempts']})" : '';
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "❌ <b>{$errorMessage}</b>{$attemptsInfo}\n\n".
+                    "Please try again or request a new code."
+                )->withInlineButtons([
+                    ['text' => '🔄 Resend OTP', 'callback_data' => 'otp_resend'],
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
+            ];
+
+        } catch (\Exception $e) {
+            $this->log('error', 'OTP verification API error', [
+                'verification_id' => $verificationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "❌ <b>Verification service error</b>\n\n".
+                    "Please try again or request a new code."
+                )->withInlineButtons([
+                    ['text' => '🔄 Resend OTP', 'callback_data' => 'otp_resend'],
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
+            ];
+        }
+    }
+
+    /**
+     * Handle OTP resend request.
+     */
+    protected function handleOtpResend(NormalizedUpdate $update, ConversationState $state): array
+    {
+        $resendCount = $state->get('otp_resend_count', 0);
+        $maxResends = config('otp-handler.max_resends', 3);
+
+        if ($resendCount >= $maxResends) {
+            return [
+                'response' => NormalizedResponse::html(
+                    "❌ <b>Maximum resends reached</b>\n\n".
+                    "You have reached the maximum number of OTP resends.\n".
+                    "Please restart the redemption process."
+                )->withInlineButtons([
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
+            ];
+        }
+
+        $mobile = $state->get('mobile');
+        $voucherCode = $state->get('voucher_code');
+
+        try {
+            $client = new TxtcmdrClient();
+            $result = $client->requestOtp($mobile, $voucherCode);
+
+            $this->log('info', 'OTP resent via txtcmdr', [
+                'mobile' => $mobile,
+                'verification_id' => $result['verification_id'],
+                'resend_count' => $resendCount + 1,
+            ]);
+
+            $newState = $state
+                ->set('otp_verification_id', $result['verification_id'])
+                ->set('otp_resend_count', $resendCount + 1);
+
+            $remaining = $maxResends - $resendCount - 1;
+            $resendInfo = $remaining > 0 ? "({$remaining} resends remaining)" : "(last resend)";
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "✅ <b>New OTP sent!</b> {$resendInfo}\n\n".
+                    "Enter the 6-digit code sent to your phone."
+                )->withInlineButtons([
+                    ['text' => '🔄 Resend OTP', 'callback_data' => 'otp_resend'],
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $newState,
+            ];
+
+        } catch (\Exception $e) {
+            $this->log('error', 'Failed to resend OTP', [
+                'mobile' => $mobile,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'response' => NormalizedResponse::html(
+                    "❌ <b>Failed to resend OTP</b>\n\n".
+                    "Please try again in a moment."
+                )->withInlineButtons([
+                    ['text' => '🔄 Resend OTP', 'callback_data' => 'otp_resend'],
+                    ['text' => '🚪 Exit', 'callback_data' => 'exit'],
+                ]),
+                'state' => $state,
+            ];
+        }
+    }
+
+    /**
+     * Mask mobile number for display (e.g., +63917***1234).
+     */
+    protected function maskMobile(string $mobile): string
+    {
+        $len = strlen($mobile);
+        if ($len <= 7) {
+            return $mobile;
+        }
+        return substr($mobile, 0, 6) . '***' . substr($mobile, -4);
     }
 
     /**
