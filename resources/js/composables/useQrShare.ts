@@ -138,11 +138,13 @@ export function useQrShare(): UseQrShareReturn {
      * Generate Telegram share link
      */
     const getTelegramLink = (url: string, text?: string): string => {
-        const params = new URLSearchParams({
-            url: url,
-            ...(text && { text }),
-        });
-        return `https://t.me/share/url?${params.toString()}`;
+        // Use encodeURIComponent instead of URLSearchParams to get %20 instead of +
+        // Telegram displays %20 as spaces but + as literal plus signs
+        let link = `https://t.me/share/url?url=${encodeURIComponent(url)}`;
+        if (text) {
+            link += `&text=${encodeURIComponent(text)}`;
+        }
+        return link;
     };
 
     /**
