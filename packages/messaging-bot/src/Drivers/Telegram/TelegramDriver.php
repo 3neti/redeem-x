@@ -76,7 +76,7 @@ class TelegramDriver implements MessagingDriverInterface
             // Send a quick message to remove the reply keyboard
             $this->request('sendMessage', [
                 'chat_id' => $chatId,
-                'text' => '✓',
+                'text' => '📋',
                 'reply_markup' => ['remove_keyboard' => true],
             ]);
             // Then show inline buttons with the actual message
