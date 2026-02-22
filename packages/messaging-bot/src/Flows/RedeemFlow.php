@@ -386,9 +386,9 @@ class RedeemFlow extends BaseFlow
         
         $lines = [
             "💳 <b>Voucher: {$voucher->code}</b>",
-            "────────────────────",
-            "<b>Amount:</b> {$amount}",
-            "<b>Expires:</b> {$expiry}",
+            "",
+            "💰 {$amount}",
+            "📅 {$expiry}",
         ];
 
         // Add required inputs info (text fields + location + selfie + signature + kyc + otp)
