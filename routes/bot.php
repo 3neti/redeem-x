@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Bot\KYCController;
 use App\Http\Controllers\Bot\SelfieCaptureController;
 use App\Http\Controllers\Bot\SignatureCaptureController;
 use Illuminate\Support\Facades\Route;
@@ -29,3 +30,10 @@ Route::get('/bot/signature-capture', [SignatureCaptureController::class, 'show']
 // Signature upload API endpoint (CSRF exempt - called from Mini App)
 Route::post('/api/bot/signature-upload', [SignatureCaptureController::class, 'store'])
     ->name('bot.signature.store');
+
+// KYC verification flow
+Route::get('/bot/kyc/initiate', [KYCController::class, 'initiate'])
+    ->name('bot.kyc.initiate');
+
+Route::get('/bot/kyc/callback', [KYCController::class, 'callback'])
+    ->name('bot.kyc.callback');

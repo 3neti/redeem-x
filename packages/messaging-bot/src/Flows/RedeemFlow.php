@@ -46,7 +46,7 @@ class RedeemFlow extends BaseFlow
 
     public function steps(): array
     {
-        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptSignature', 'promptMobile', 'promptOtp', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
+        return ['promptCode', 'xray', 'promptTextInput', 'promptLocation', 'promptSelfie', 'promptSignature', 'promptKyc', 'promptMobile', 'promptOtp', 'confirm', 'promptBankName', 'promptBankAccount', 'finalize'];
     }
 
     /**
@@ -66,9 +66,10 @@ class RedeemFlow extends BaseFlow
 
     /**
      * Fields that require web interaction (not collectible via bot).
+     * Note: KYC is now collectible via bot with external web link (Phase 5B).
      */
     protected const WEB_ONLY_FIELDS = [
-        'kyc',
+        // All fields now supported via bot
     ];
 
     /**
@@ -240,6 +241,23 @@ class RedeemFlow extends BaseFlow
         return false;
     }
 
+    /**
+     * Check if voucher requires KYC input (Phase 5B).
+     */
+    protected function requiresKycInput(Voucher $voucher): bool
+    {
+        $fields = $voucher->instructions->inputs->fields ?? [];
+        
+        foreach ($fields as $field) {
+            $fieldValue = $field instanceof VoucherInputField ? $field->value : (string) $field;
+            if ($fieldValue === 'kyc') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Step 1: Prompt for voucher code
     protected function promptPromptCode(ConversationState $state): NormalizedResponse
     {
@@ -327,10 +345,11 @@ class RedeemFlow extends BaseFlow
             array_unshift($pendingInputs, 'secret_pin');
         }
 
-        // Check if location/selfie/signature/otp inputs are required
+        // Check if location/selfie/signature/kyc/otp inputs are required
         $requiresLocation = $this->requiresLocationInput($voucher);
         $requiresSelfie = $this->requiresSelfieInput($voucher);
         $requiresSignature = $this->requiresSignatureInput($voucher);
+        $requiresKyc = $this->requiresKycInput($voucher);
         $requiresOtp = $this->requiresOtpInput($voucher);
 
         // Store voucher info for X-Ray display
@@ -344,6 +363,7 @@ class RedeemFlow extends BaseFlow
             ->set('requires_location', $requiresLocation)
             ->set('requires_selfie', $requiresSelfie)
             ->set('requires_signature', $requiresSignature)
+            ->set('requires_kyc', $requiresKyc)
             ->set('requires_otp', $requiresOtp)
             ->set('collected_inputs', [])
             ->set('expected_secret', $expectedSecret) // Store for validation in handlePromptTextInput
@@ -371,14 +391,15 @@ class RedeemFlow extends BaseFlow
             "<b>Expires:</b> {$expiry}",
         ];
 
-        // Add required inputs info (text fields + location + selfie + signature + otp)
+        // Add required inputs info (text fields + location + selfie + signature + kyc + otp)
         $textInputFields = $this->getTextInputFields($voucher);
         $requiresLocation = $this->requiresLocationInput($voucher);
         $requiresSelfie = $this->requiresSelfieInput($voucher);
         $requiresSignature = $this->requiresSignatureInput($voucher);
+        $requiresKyc = $this->requiresKycInput($voucher);
         $requiresOtp = $this->requiresOtpInput($voucher);
         
-        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie || $requiresSignature || $requiresOtp) {
+        if (! empty($textInputFields) || $requiresLocation || $requiresSelfie || $requiresSignature || $requiresKyc || $requiresOtp) {
             $lines[] = '';
             $lines[] = '<b>Required Info:</b>';
             foreach ($textInputFields as $field) {
@@ -394,6 +415,9 @@ class RedeemFlow extends BaseFlow
             }
             if ($requiresSignature) {
                 $lines[] = "• ✍️ Signature";
+            }
+            if ($requiresKyc) {
+                $lines[] = "• 🪪 Identity Verification";
             }
             if ($requiresOtp) {
                 $lines[] = "• 🔐 OTP Verification";
@@ -538,6 +562,16 @@ class RedeemFlow extends BaseFlow
             $newState = $state->advanceTo('promptSignature');
             return [
                 'response' => $this->promptPromptSignature($newState),
+                'state' => $newState,
+            ];
+        }
+
+        // Check if KYC is required and not yet collected (Phase 5B)
+        $requiresKyc = $state->get('requires_kyc', false);
+        if ($requiresKyc && !isset($collectedInputs['kyc'])) {
+            $newState = $state->advanceTo('promptKyc');
+            return [
+                'response' => $this->promptPromptKyc($newState),
                 'state' => $newState,
             ];
         }
@@ -1106,6 +1140,211 @@ class RedeemFlow extends BaseFlow
     protected function clearCachedSignature(string $chatId): void
     {
         \App\Http\Controllers\Bot\SignatureCaptureController::clearCachedSignature($chatId);
+    }
+
+    // ==================== KYC VERIFICATION (Phase 5B) ====================
+
+    /**
+     * Prompt for KYC verification via external web link.
+     *
+     * Shows URL button to open KYC initiate page in browser + Continue button.
+     */
+    protected function promptPromptKyc(ConversationState $state): NormalizedResponse
+    {
+        $url = $this->getKycInitiateUrl($state);
+
+        return NormalizedResponse::html(
+            "🪪 <b>Identity Verification Required</b>\n\n".
+            "Please verify your identity to proceed.\n\n".
+            "1️⃣ Tap <b>Verify Identity</b> to start\n".
+            "2️⃣ Complete verification in browser\n".
+            "3️⃣ Return here and tap <b>Continue</b>\n\n".
+            "<i>Type 'exit' to cancel.</i>"
+        )->withInlineButtons([
+            ['text' => '🪪 Verify Identity', 'url' => $url],
+            ['text' => '✅ Continue', 'callback_data' => 'kyc_continue'],
+        ]);
+    }
+
+    /**
+     * Get the KYC initiate URL with voucher and chat_id parameters.
+     */
+    protected function getKycInitiateUrl(ConversationState $state): string
+    {
+        $voucherCode = $state->get('voucher_code');
+        $chatId = $state->chatId;
+        $mobile = $state->get('mobile');
+
+        $params = http_build_query([
+            'voucher' => $voucherCode,
+            'chat_id' => $chatId,
+            'mobile' => $mobile,
+        ]);
+
+        return rtrim(config('app.url'), '/') . '/bot/kyc/initiate?' . $params;
+    }
+
+    /**
+     * Handle KYC verification response.
+     *
+     * Checks cached KYC status from KYCController (triggered by Continue button).
+     */
+    protected function handlePromptKyc(NormalizedUpdate $update, ConversationState $state, string $input): array
+    {
+        $this->log('info', 'handlePromptKyc called', [
+            'chat_id' => $update->chatId,
+            'input' => $input,
+        ]);
+
+        // Handle exit
+        if (strtolower($input) === 'exit') {
+            return $this->complete(
+                NormalizedResponse::text("👋 Exited. Send /redeem to try again.")
+            );
+        }
+
+        // Check for cached KYC status from KYCController
+        $kycStatus = $this->getKycStatus($update->chatId);
+
+        $this->log('info', 'Checking KYC status', [
+            'chat_id' => $update->chatId,
+            'has_status' => $kycStatus !== null,
+            'status' => $kycStatus['status'] ?? null,
+        ]);
+
+        if ($kycStatus) {
+            $status = $kycStatus['status'] ?? 'pending';
+
+            // Handle approved status
+            if ($status === 'approved') {
+                $this->log('info', 'KYC approved', [
+                    'chat_id' => $update->chatId,
+                    'transaction_id' => $kycStatus['transaction_id'] ?? null,
+                ]);
+
+                // Clear the cache
+                $this->clearKycCache($update->chatId);
+
+                $collectedInputs = $state->get('collected_inputs', []);
+                $collectedInputs['kyc'] = [
+                    'status' => 'approved',
+                    'transaction_id' => $kycStatus['transaction_id'] ?? null,
+                    'contact_id' => $kycStatus['contact_id'] ?? null,
+                ];
+
+                $newState = $state->set('collected_inputs', $collectedInputs);
+
+                // Proceed to mobile/confirm
+                return $this->advanceToMobileOrConfirm($update, $newState);
+            }
+
+            // Handle rejected status
+            if ($status === 'rejected') {
+                $this->log('warning', 'KYC rejected', [
+                    'chat_id' => $update->chatId,
+                ]);
+
+                // Clear the cache to allow retry
+                $this->clearKycCache($update->chatId);
+
+                $url = $this->getKycInitiateUrl($state);
+
+                return [
+                    'response' => NormalizedResponse::html(
+                        "❌ <b>Verification Failed</b>\n\n".
+                        "Your identity verification was not approved.\n".
+                        "Please try again with clear photos.\n\n".
+                        "<i>Type 'exit' to cancel.</i>"
+                    )->withInlineButtons([
+                        ['text' => '🪪 Retry Verification', 'url' => $url],
+                        ['text' => '✅ Continue', 'callback_data' => 'kyc_continue'],
+                    ]),
+                    'state' => $state,
+                ];
+            }
+
+            // Handle cancelled status
+            if ($status === 'cancelled') {
+                $this->clearKycCache($update->chatId);
+
+                $url = $this->getKycInitiateUrl($state);
+
+                return [
+                    'response' => NormalizedResponse::html(
+                        "🚫 <b>Verification Cancelled</b>\n\n".
+                        "You cancelled the verification process.\n".
+                        "Tap below to try again when ready.\n\n".
+                        "<i>Type 'exit' to cancel.</i>"
+                    )->withInlineButtons([
+                        ['text' => '🪪 Verify Identity', 'url' => $url],
+                        ['text' => '✅ Continue', 'callback_data' => 'kyc_continue'],
+                    ]),
+                    'state' => $state,
+                ];
+            }
+
+            // Handle processing status
+            if ($status === 'processing') {
+                return [
+                    'response' => NormalizedResponse::html(
+                        "⏳ <b>Verification In Progress</b>\n\n".
+                        "Your verification is being processed.\n".
+                        "Please wait a moment and tap Continue again.\n\n".
+                        "<i>Type 'exit' to cancel.</i>"
+                    )->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'kyc_continue']]),
+                    'state' => $state,
+                ];
+            }
+        }
+
+        // No status found or still pending - prompt to start verification
+        $url = $this->getKycInitiateUrl($state);
+
+        // Check if user tapped Continue without starting verification
+        if ($input === 'kyc_continue') {
+            return [
+                'response' => NormalizedResponse::html(
+                    "⚠️ <b>Verification Not Started</b>\n\n".
+                    "Please tap <b>Verify Identity</b> first,\n".
+                    "complete the process, then tap Continue.\n\n".
+                    "<i>Type 'exit' to cancel.</i>"
+                )->withInlineButtons([
+                    ['text' => '🪪 Verify Identity', 'url' => $url],
+                    ['text' => '✅ Continue', 'callback_data' => 'kyc_continue'],
+                ]),
+                'state' => $state,
+            ];
+        }
+
+        return [
+            'response' => NormalizedResponse::html(
+                "⚠️ <b>Please verify your identity</b>\n\n".
+                "1️⃣ Tap <b>Verify Identity</b> to start\n".
+                "2️⃣ Complete verification in browser\n".
+                "3️⃣ Return here and tap <b>Continue</b>\n\n".
+                "<i>Type 'exit' to cancel.</i>"
+            )->withInlineButtons([
+                ['text' => '🪪 Verify Identity', 'url' => $url],
+                ['text' => '✅ Continue', 'callback_data' => 'kyc_continue'],
+            ]),
+            'state' => $state,
+        ];
+    }
+
+    /**
+     * Get KYC status from cache.
+     */
+    protected function getKycStatus(string $chatId): ?array
+    {
+        return \App\Http\Controllers\Bot\KYCController::getKycStatus($chatId);
+    }
+
+    /**
+     * Clear KYC cache.
+     */
+    protected function clearKycCache(string $chatId): void
+    {
+        \App\Http\Controllers\Bot\KYCController::clearKycCache($chatId);
     }
 
     // ==================== MOBILE COLLECTION ====================

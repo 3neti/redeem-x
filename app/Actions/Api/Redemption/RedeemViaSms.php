@@ -224,6 +224,7 @@ class RedeemViaSms
      * Location input can now be collected via Telegram's native location sharing (Phase 3).
      * Selfie input can now be collected via Telegram photo (Phase 4).
      * Signature input can now be collected via Telegram Mini App (Phase 5).
+     * KYC input can now be collected via Telegram with external web link (Phase 5B).
      */
     private function checkVoucherRequirements(Voucher $voucher): bool
     {
@@ -231,7 +232,8 @@ class RedeemViaSms
         // Note: 'location' removed - can now be collected via Telegram native location sharing
         // Note: 'selfie' removed - can now be collected via Telegram photo
         // Note: 'signature' removed - can now be collected via Telegram Mini App
-        $webOnlyFields = ['kyc'];
+        // Note: 'kyc' removed - can now be collected via Telegram with external web link
+        $webOnlyFields = [];
 
         try {
             $instructions = $voucher->instructions;
