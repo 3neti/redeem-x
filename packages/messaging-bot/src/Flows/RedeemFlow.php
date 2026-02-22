@@ -524,8 +524,15 @@ class RedeemFlow extends BaseFlow
                 ->set('mobile', $cachedPhone)
                 ->set('bank_code', $bankCode)
                 ->set('bank_name', $bankName)
-                ->set('bank_account', $bankAccount)
-                ->advanceTo('confirm');
+                ->set('bank_account', $bankAccount);
+
+            // Check if OTP is required (Phase 7) - also applies to returning users
+            if ($state->get('requires_otp', false) && !isset($collectedInputs['otp'])) {
+                return $this->triggerOtpAndAdvance($update, $newState);
+            }
+
+            // No OTP needed - go straight to confirm
+            $newState = $newState->advanceTo('confirm');
 
             return [
                 'response' => $this->promptConfirmWithCachedPhone($newState),
