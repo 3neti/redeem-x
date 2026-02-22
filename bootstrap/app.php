@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'disburse/*/complete',  // Form flow completion callback
             'api/bot/selfie-upload',  // Telegram Mini App selfie upload
+            'api/bot/signature-upload',  // Telegram Mini App signature upload
         ]);
 
         $middleware->web(append: [
