@@ -1133,8 +1133,13 @@ class RedeemFlow extends BaseFlow
                     ->set('collected_inputs', $collectedInputs)
                     ->advanceTo('confirm');
 
+                // Build confirm prompt with success prefix
+                $confirmPrompt = $this->promptConfirm($newState);
+                $successMessage = "✅ <b>OTP verified!</b>\n\n";
+
                 return [
-                    'response' => $this->promptConfirm($newState),
+                    'response' => NormalizedResponse::html($successMessage . $confirmPrompt->text)
+                        ->withInlineButtons($confirmPrompt->inlineButtons ?? []),
                     'state' => $newState,
                 ];
             }
