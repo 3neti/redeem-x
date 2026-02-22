@@ -117,14 +117,14 @@ class RedeemFlow extends BaseFlow
     }
 
     /**
-     * Get configuration for secret PIN (validation.secret, not an input field).
+     * Get configuration for secret code (validation.secret, not an input field).
      * 
      * @param string|null $expectedSecret The expected secret from voucher.instructions.cash.validation.secret
      */
     protected function getSecretPinConfig(?string $expectedSecret = null): array
     {
         return [
-            'prompt' => "🔐 <b>Enter PIN code:</b>",
+            'prompt' => "🔐 <b>Enter secret code:</b>",
             'validation' => function($v) use ($expectedSecret) {
                 $value = trim($v);
                 // Basic length validation
@@ -137,7 +137,7 @@ class RedeemFlow extends BaseFlow
                 }
                 return true;
             },
-            'error' => $expectedSecret !== null ? 'Invalid PIN code. Please try again.' : 'PIN must be at least 4 characters.',
+            'error' => $expectedSecret !== null ? 'Invalid secret code. Please try again.' : 'Secret code must be at least 4 characters.',
         ];
     }
 
@@ -667,7 +667,7 @@ class RedeemFlow extends BaseFlow
             'selfie' => 'Selfie Photo',
             'signature' => 'Signature',
             'kyc' => 'Identity Verification',
-            'secret_pin' => '🔐 PIN Code',
+            'secret_pin' => '🔐 Secret Code',
             default => ucfirst(str_replace('_', ' ', $field)),
         };
     }
