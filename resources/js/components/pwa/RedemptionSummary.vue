@@ -198,9 +198,9 @@ const getStatusColor = (status: string | null) => {
         </div>
       </CardHeader>
       <CardContent class="space-y-3">
-        <div v-if="getInput('formatted_address')" class="space-y-1">
+        <div v-if="getInput('address')" class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Address</div>
-          <div class="text-base">{{ getInput('formatted_address') }}</div>
+          <div class="text-base">{{ getInput('address') }}</div>
         </div>
         <div class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Coordinates</div>
@@ -210,10 +210,10 @@ const getStatusColor = (status: string | null) => {
           <div class="text-sm font-medium text-muted-foreground">Accuracy</div>
           <div class="text-base">{{ getInput('accuracy') }}m</div>
         </div>
-        <div v-if="getInput('snapshot')" class="space-y-1">
+        <div v-if="getInput('map')" class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Map</div>
           <img 
-            :src="getInput('snapshot')" 
+            :src="getInput('map')" 
             alt="Location Map" 
             class="w-full h-48 object-cover rounded-lg border"
           />

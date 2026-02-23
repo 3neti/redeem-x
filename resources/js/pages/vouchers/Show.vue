@@ -359,11 +359,13 @@ const redemptionInputs = computed<RedemptionInputs | null>(() => {
     
     // Reconstruct location JSON if lat/lng present
     if (latitude && longitude) {
+        // Use actual address input if available, otherwise fall back to coordinates
+        const addressValue = props.voucher.inputs.find(i => i.name === 'address')?.value;
         inputsObject.location = JSON.stringify({
             latitude: parseFloat(latitude),
             longitude: parseFloat(longitude),
             address: {
-                formatted: `${latitude}, ${longitude}`
+                formatted: addressValue || `${latitude}, ${longitude}`
             }
         });
     }
