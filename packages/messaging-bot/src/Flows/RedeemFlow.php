@@ -769,19 +769,28 @@ class RedeemFlow extends BaseFlow
 
     /**
      * Prompt for location via Telegram's native location sharing.
+     *
+     * Shows:
+     * - Reply keyboard with "Share Location" button
+     * - Inline "Continue" button for after location is shared
      */
     protected function promptPromptLocation(ConversationState $state): NormalizedResponse
     {
         return NormalizedResponse::html(
             "📍 <b>Share your location</b>\n\n".
-            "Tap the button below to share your GPS location.\n".
-            "This is required for verification.\n\n".
+            "1️⃣ Tap <b>📍 Share Location</b> below\n".
+            "2️⃣ After sharing, tap <b>Continue</b>\n\n".
             "<i>Type 'exit' to cancel.</i>"
-        )->withLocationRequest();
+        )->withLocationRequest()
+         ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'location_continue']]);
     }
 
     /**
      * Handle location sharing response.
+     *
+     * Handles:
+     * 1. Direct location message from Telegram
+     * 2. "Continue" button tap - checks if location was already shared
      */
     protected function handlePromptLocation(NormalizedUpdate $update, ConversationState $state, string $input): array
     {
@@ -818,18 +827,53 @@ class RedeemFlow extends BaseFlow
 
             $newState = $state->set('collected_inputs', $collectedInputs);
 
-            // Proceed to mobile/confirm
-            return $this->advanceToMobileOrConfirm($update, $newState);
+            // Show confirmation and provide Continue button
+            return [
+                'response' => NormalizedResponse::html(
+                    "✅ <b>Location received!</b>\n\n".
+                    "📍 {$update->latitude}, {$update->longitude}\n\n".
+                    "Tap <b>Continue</b> to proceed."
+                )->withKeyboardRemoved()
+                 ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'location_continue']]),
+                'state' => $newState,
+            ];
+        }
+
+        // Check if user tapped Continue
+        if ($input === 'location_continue') {
+            $collectedInputs = $state->get('collected_inputs', []);
+            
+            // Check if location was already collected
+            if (isset($collectedInputs['location'])) {
+                $this->log('info', 'Location already collected, proceeding', [
+                    'location' => $collectedInputs['location'],
+                ]);
+                
+                // Proceed to next step
+                return $this->advanceToMobileOrConfirm($update, $state);
+            }
+            
+            // No location collected yet - re-prompt
+            return [
+                'response' => NormalizedResponse::html(
+                    "⚠️ <b>No location found</b>\n\n".
+                    "Please share your location first, then tap Continue.\n\n".
+                    "<i>Type 'exit' to cancel.</i>"
+                )->withLocationRequest()
+                 ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'location_continue']]),
+                'state' => $state,
+            ];
         }
 
         // User typed text instead of sharing location
         return [
             'response' => NormalizedResponse::html(
                 "⚠️ <b>Please use the Share Location button</b>\n\n".
-                "For verification, we need your GPS location.\n".
-                "Tap <b>📍 Share Location</b> below.\n\n".
+                "1️⃣ Tap <b>📍 Share Location</b> below\n".
+                "2️⃣ After sharing, tap <b>Continue</b>\n\n".
                 "<i>Type 'exit' to cancel.</i>"
-            )->withLocationRequest(),
+            )->withLocationRequest()
+             ->withInlineButtons([['text' => '✅ Continue', 'callback_data' => 'location_continue']]),
             'state' => $state,
         ];
     }
