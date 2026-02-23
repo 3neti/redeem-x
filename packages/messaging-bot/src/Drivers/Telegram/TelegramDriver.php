@@ -70,14 +70,62 @@ class TelegramDriver implements MessagingDriverInterface
         }
 
         // Handle keyboard options
-        // If we want to remove keyboard AND show inline buttons, we need to send
-        // a separate message first to remove the reply keyboard
+        // Telegram supports TWO types of keyboards:
+        // 1. Reply keyboard (bottom of screen) - for contact/location sharing
+        // 2. Inline keyboard (attached to message) - for buttons
+        // We can show BOTH by sending the reply keyboard first, then the message with inline buttons
+        
         if ($response->wantsKeyboardRemoved() && $response->hasButtons()) {
             // Send a quick message to remove the reply keyboard
             $this->request('sendMessage', [
                 'chat_id' => $chatId,
                 'text' => '📋',
                 'reply_markup' => ['remove_keyboard' => true],
+            ]);
+            // Then show inline buttons with the actual message
+            $payload['reply_markup'] = [
+                'inline_keyboard' => [$response->buttons],
+            ];
+        } elseif ($response->wantsLocationRequest() && $response->hasButtons()) {
+            // Both location request keyboard AND inline buttons
+            // Send location keyboard first, then the message with inline buttons
+            $this->request('sendMessage', [
+                'chat_id' => $chatId,
+                'text' => '📍',
+                'reply_markup' => [
+                    'keyboard' => [
+                        [
+                            [
+                                'text' => '📍 Share Location',
+                                'request_location' => true,
+                            ],
+                        ],
+                    ],
+                    'resize_keyboard' => true,
+                    'one_time_keyboard' => false, // Keep showing until location shared
+                ],
+            ]);
+            // Then show inline buttons with the actual message
+            $payload['reply_markup'] = [
+                'inline_keyboard' => [$response->buttons],
+            ];
+        } elseif ($response->wantsContactRequest() && $response->hasButtons()) {
+            // Both contact request keyboard AND inline buttons
+            $this->request('sendMessage', [
+                'chat_id' => $chatId,
+                'text' => '📱',
+                'reply_markup' => [
+                    'keyboard' => [
+                        [
+                            [
+                                'text' => '📱 Share Phone Number',
+                                'request_contact' => true,
+                            ],
+                        ],
+                    ],
+                    'resize_keyboard' => true,
+                    'one_time_keyboard' => true,
+                ],
             ]);
             // Then show inline buttons with the actual message
             $payload['reply_markup'] = [
