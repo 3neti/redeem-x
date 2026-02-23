@@ -40,8 +40,26 @@ const hasLocation = computed(() => getInput('latitude') && getInput('longitude')
 const hasSelfie = computed(() => !!getInput('selfie'));
 const hasSignature = computed(() => !!getInput('signature'));
 const hasBioFields = computed(() => 
-  getInput('full_name') || getInput('birth_date') || getInput('address') || getInput('reference_code')
+  getInput('full_name') || getInput('name') || getInput('birth_date') || getInput('address') || getInput('reference_code')
 );
+
+// Generate static map URL when no snapshot is available but coordinates exist
+// Uses Mapbox static images API (same as desktop VoucherRedemptionView)
+const staticMapUrl = computed(() => {
+  const lat = getInput('latitude');
+  const lng = getInput('longitude');
+  
+  if (!lat || !lng) return null;
+  
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+  
+  // Only generate if token is configured
+  if (!mapboxToken || mapboxToken === 'your_actual_token_here') return null;
+  
+  const zoom = 16;
+  const size = 400;
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${lng},${lat})/${lng},${lat},${zoom},0/${size}x200@2x?access_token=${mapboxToken}`;
+});
 
 // Format amount
 const formatAmount = (amount: number | null, currency = 'PHP') => {
@@ -170,9 +188,9 @@ const getStatusColor = (status: string | null) => {
         </div>
       </CardHeader>
       <CardContent class="space-y-3">
-        <div v-if="getInput('full_name')" class="space-y-1">
+        <div v-if="getInput('full_name') || getInput('name')" class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Full Name</div>
-          <div class="text-base">{{ getInput('full_name') }}</div>
+          <div class="text-base">{{ getInput('full_name') || getInput('name') }}</div>
         </div>
         <div v-if="getInput('birth_date')" class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Date of Birth</div>
@@ -198,6 +216,14 @@ const getStatusColor = (status: string | null) => {
         </div>
       </CardHeader>
       <CardContent class="space-y-3">
+        <!-- Map image: prefer stored snapshot, fallback to static map -->
+        <div v-if="getInput('map') || staticMapUrl" class="space-y-1">
+          <img 
+            :src="getInput('map') || staticMapUrl" 
+            alt="Location Map" 
+            class="w-full h-48 object-cover rounded-lg border"
+          />
+        </div>
         <div v-if="getInput('address')" class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Address</div>
           <div class="text-base">{{ getInput('address') }}</div>
@@ -209,14 +235,6 @@ const getStatusColor = (status: string | null) => {
         <div v-if="getInput('accuracy')" class="space-y-1">
           <div class="text-sm font-medium text-muted-foreground">Accuracy</div>
           <div class="text-base">{{ getInput('accuracy') }}m</div>
-        </div>
-        <div v-if="getInput('map')" class="space-y-1">
-          <div class="text-sm font-medium text-muted-foreground">Map</div>
-          <img 
-            :src="getInput('map')" 
-            alt="Location Map" 
-            class="w-full h-48 object-cover rounded-lg border"
-          />
         </div>
       </CardContent>
     </Card>
