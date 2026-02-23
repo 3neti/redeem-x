@@ -177,14 +177,35 @@ class PwaVoucherController extends Controller
         };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
         
-        // Get collected form flow data from redeemer metadata if voucher has been redeemed
-        $collectedData = null;
+        // Build comprehensive redemption summary from multiple sources
+        $redemptionSummary = null;
         if ($voucher->isRedeemed()) {
             $redeemer = $voucher->redeemers->first();
-            if ($redeemer && isset($redeemer->metadata['redemption']['inputs']['_form_flow_collected_data'])) {
-                $collectedJson = $redeemer->metadata['redemption']['inputs']['_form_flow_collected_data'];
-                $collectedData = json_decode($collectedJson, true);
-            }
+            $contact = $redeemer?->redeemer;
+            $disbursement = $voucher->metadata['disbursement'] ?? null;
+
+            $redemptionSummary = [
+                'redeemed_at' => $voucher->redeemed_at->toIso8601String(),
+                'contact' => $contact ? [
+                    'mobile' => $contact->mobile,
+                    'name' => $contact->name,
+                ] : null,
+                'disbursement' => $disbursement ? [
+                    'amount' => $disbursement['amount'] ?? null,
+                    'currency' => $disbursement['currency'] ?? 'PHP',
+                    'bank_name' => $disbursement['metadata']['bank_name'] ?? $disbursement['recipient_name'] ?? null,
+                    'bank_code' => $disbursement['metadata']['bank_code'] ?? null,
+                    'account' => $disbursement['recipient_identifier'] ?? null,
+                    'settlement_rail' => $disbursement['settlement_rail'] ?? null,
+                    'transaction_id' => $disbursement['transaction_id'] ?? null,
+                    'status' => $disbursement['status'] ?? null,
+                    'disbursed_at' => $disbursement['disbursed_at'] ?? null,
+                ] : null,
+                'inputs' => $voucher->inputs->map(fn ($i) => [
+                    'name' => $i->name,
+                    'value' => $i->value,
+                ])->toArray(),
+            ];
         }
         
         // Get wallet transactions for this voucher
@@ -263,7 +284,7 @@ class PwaVoucherController extends Controller
                 'full_data' => array_merge(
                     VoucherData::fromModel($voucher)->toArray(),
                     [
-                        'collected_data' => $collectedData,
+                        'redemption_summary' => $redemptionSummary,
                         'wallet_transactions' => $walletTransactions,
                         'envelope' => null, // Placeholder, will be set below if exists
                     ]
