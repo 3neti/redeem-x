@@ -114,6 +114,10 @@ const showAmountKeypad = ref(false);
 const showCountKeypad = ref(false);
 const showCostBreakdownModal = ref(false);
 
+// Remember settings preference (stored separately)
+const REMEMBER_PREF_KEY = 'pwa_voucher_remember_pref';
+const rememberSettings = ref(false);
+
 // Sheet state management (following plan architecture)
 const sheetState = ref({
   campaign: { open: false },
@@ -1080,8 +1084,28 @@ watch([amount, interestRate], ([newAmount, newRate]) => {
 // State persistence (Phase 12)
 const STORAGE_KEY = 'pwa_voucher_wizard_state';
 
-// Save state to localStorage
+// Load remember preference (always persists)
+const loadRememberPref = () => {
+  try {
+    const saved = localStorage.getItem(REMEMBER_PREF_KEY);
+    return saved === 'true';
+  } catch (e) {
+    return false;
+  }
+};
+
+// Save remember preference
+const saveRememberPref = (value: boolean) => {
+  try {
+    localStorage.setItem(REMEMBER_PREF_KEY, value ? 'true' : 'false');
+  } catch (e) {
+    console.error('Failed to save remember preference:', e);
+  }
+};
+
+// Save state to localStorage (only when remember is ON)
 const saveState = () => {
+  if (!rememberSettings.value) return;
   try {
     const state = {
       amount: amount.value,
@@ -1140,6 +1164,30 @@ const clearSavedState = () => {
   }
 };
 
+// Watch remember toggle changes
+watch(rememberSettings, (newValue, oldValue) => {
+  // Skip on initial mount (oldValue is undefined)
+  if (oldValue === undefined) return;
+  
+  saveRememberPref(newValue);
+  
+  if (newValue) {
+    // Toggle ON: Restore from localStorage immediately
+    restoreState();
+    toast({
+      title: 'Remember enabled',
+      description: 'Previous settings restored',
+    });
+  } else {
+    // Toggle OFF: Reset form to defaults (localStorage untouched)
+    resetState();
+    toast({
+      title: 'Remember disabled',
+      description: 'Settings cleared',
+    });
+  }
+});
+
 // Watch key fields and save state on change
 watch(
   [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail],
@@ -1149,9 +1197,15 @@ watch(
   { deep: true }
 );
 
-// Restore state on mount
+// Initialize on mount
 onMounted(() => {
-  restoreState();
+  // Load remember preference first
+  rememberSettings.value = loadRememberPref();
+  
+  // Only restore state if remember is ON
+  if (rememberSettings.value) {
+    restoreState();
+  }
 });
 
 // Watch for mobile payee - auto-add OTP (same logic as Portal.vue)
@@ -1519,6 +1573,19 @@ watch(payeeType, (newType, oldType) => {
             </div>
             <Badge variant="outline" class="ml-2">{{ settlementRail || 'Auto' }}</Badge>
           </button>
+        </div>
+        
+        <!-- Remember Settings Toggle -->
+        <div class="py-4 px-1 border-t">
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
+            <div class="flex-1">
+              <div class="font-medium text-sm">Remember settings</div>
+              <div class="text-xs text-muted-foreground mt-0.5">
+                Restore last configuration when returning
+              </div>
+            </div>
+            <Switch v-model:checked="rememberSettings" />
+          </div>
         </div>
         
         <!-- Action Buttons -->
