@@ -14,8 +14,7 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useToast } from '@/components/ui/toast/use-toast';
 import VoucherStateManager from '@/components/pwa/VoucherStateManager.vue';
-import VoucherDetailsSheet from '@/components/pwa/VoucherDetailsSheet.vue';
-import VoucherShareDialog from '@/components/pwa/VoucherShareDialog.vue';
+import VoucherDetailsSheet from '../../../components/pwa/VoucherDetailsSheet.vue';
 
 interface Props {
     voucher: {
@@ -35,7 +34,6 @@ interface Props {
         redeem_url: string;
         full_data?: any;
     };
-    input_field_options?: any[];
     settlement?: any;
     envelope?: any;
 }
@@ -66,9 +64,6 @@ const extending = ref(false);
 const extensionType = ref<'hours' | 'days' | 'weeks' | 'months' | 'years' | 'date'>('days');
 const extensionValue = ref<number>(1);
 const newDate = ref<string>('');
-
-// Share dialog
-const showShareDialog = ref(false);
 
 // Get redemption endpoint from shared props (configured in VoucherSettings)
 const redemptionEndpoint = computed(() => 
@@ -114,14 +109,19 @@ const copyToClipboard = async (text: string) => {
     }
 };
 
-const openShareDialog = () => {
-    showShareDialog.value = true;
+const shareVoucher = async () => {
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: `Voucher ${props.voucher.code}`,
+                text: `Redeem this voucher: ${props.voucher.code}`,
+                url: props.voucher.redeem_url,
+            });
+        } catch (err) {
+            console.error('Share failed:', err);
+        }
+    }
 };
-
-// Formatted amount for share message
-const formattedShareAmount = computed(() => 
-    `${props.voucher.currency} ${formatAmount(props.voucher.amount)}`
-);
 
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -353,16 +353,6 @@ const displayState = computed(() => {
     if (isExpired.value) return 'expired';
     return 'active';
 });
-
-const handlePaymentConfirmed = () => {
-    // Reload page data to reflect updated transaction list
-    router.reload({ only: ['voucher'], preserveScroll: true });
-    
-    toast({
-        title: 'Payment Confirmed',
-        description: 'The payment has been successfully confirmed',
-    });
-};
 </script>
 
 <template>
@@ -465,7 +455,8 @@ const handlePaymentConfirmed = () => {
                     {{ copied ? 'Copied!' : 'Copy Code' }}
                 </Button>
                 <Button
-                    @click="openShareDialog"
+                    v-if="canShare"
+                    @click="shareVoucher"
                     variant="outline"
                     class="w-full"
                 >
@@ -624,17 +615,9 @@ const handlePaymentConfirmed = () => {
         <!-- Voucher Details Sheet -->
         <VoucherDetailsSheet
             v-model:open="showDetailsSheet"
-            :voucher-data="voucher.full_data || voucher"
-            :input-field-options="input_field_options || []"
-            @payment-confirmed="handlePaymentConfirmed"
-        />
-
-        <!-- Share Dialog -->
-        <VoucherShareDialog
-            v-model:open="showShareDialog"
-            :voucher-code="voucher.code"
-            :redeem-url="voucher.redeem_url"
-            :voucher-amount="formattedShareAmount"
+            :voucher-data="voucher"
+            :settlement="settlement"
+            :envelope="envelope"
         />
     </PwaLayout>
 </template>

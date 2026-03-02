@@ -1,12 +1,28 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import VoucherStatsCard from '@/components/pwa/VoucherStatsCard.vue';
 import QuickActionsCard from '@/components/pwa/QuickActionsCard.vue';
 import PendingActionsCard from '@/components/pwa/PendingActionsCard.vue';
+import KioskView from '@/components/pwa/KioskView.vue';
 import { Wallet, Plus, AlertCircle } from 'lucide-vue-next';
+
+interface SkinConfig {
+    title?: string;
+    subtitle?: string;
+    voucher_type?: string;
+    campaign?: string;
+    driver?: string;
+    amount?: number;
+    target_amount?: number;
+    inputs?: string[];
+    payload?: string[];
+    feedback?: string;
+    ui?: Record<string, string>;
+}
 
 interface Props {
     balance: number | string;
@@ -30,13 +46,111 @@ interface Props {
         hasBalance: boolean;
         isComplete: boolean;
     };
+    // Kiosk props (passed from controller)
+    kioskEnabled?: boolean;
+    kioskDefaults?: Record<string, string>;
+    skinConfig?: SkinConfig | null;
+    campaignData?: any;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    kioskEnabled: true,
+    kioskDefaults: () => ({}),
+    skinConfig: null,
+    campaignData: null,
+});
+
+// ============================================================================
+// KIOSK SKIN DETECTION
+// ============================================================================
+
+// Get query params from URL
+const getQueryParams = () => {
+    if (typeof window === 'undefined') return {};
+    const params = new URLSearchParams(window.location.search);
+    const result: Record<string, string> = {};
+    params.forEach((value, key) => {
+        result[key] = value;
+    });
+    return result;
+};
+
+const queryParams = getQueryParams();
+
+// Check if kiosk mode is active
+// Supports: ?skin=pos (generic) or ?skin=philhealth-bst (named skin)
+const isKiosk = computed(() => {
+    if (!props.kioskEnabled) return false;
+    if (!queryParams.skin) return false;
+    // Either generic 'pos' or a named skin with config loaded
+    return queryParams.skin === 'pos' || props.skinConfig !== null;
+});
+
+// Parse kiosk config - merges: skinConfig (base) + query params (overrides)
+const kioskConfig = computed(() => {
+    if (!isKiosk.value) return null;
+
+    const skin = props.skinConfig;
+    
+    // Build config with priority: query params > skin config > defaults
+    return {
+        // Identity
+        title: queryParams.title || skin?.title || props.kioskDefaults?.title || 'Quick Voucher',
+        subtitle: queryParams.subtitle || skin?.subtitle || props.kioskDefaults?.subtitle,
+        
+        // Voucher config
+        campaign: queryParams.campaign || skin?.campaign,
+        driver: queryParams.driver || skin?.driver,
+        amount: queryParams.amount !== undefined 
+            ? Number(queryParams.amount) 
+            : skin?.amount,
+        targetAmount: queryParams.target_amount !== undefined 
+            ? Number(queryParams.target_amount) 
+            : skin?.target_amount,
+        
+        // Fields
+        inputs: queryParams.inputs 
+            ? queryParams.inputs.split(',') 
+            : (skin?.inputs || []),
+        payload: queryParams.payload 
+            ? queryParams.payload.split(',') 
+            : (skin?.payload || []),
+        
+        // Callbacks
+        feedback: queryParams.feedback || skin?.feedback,
+        
+        // Type
+        type: (queryParams.type || skin?.voucher_type || 'settlement') as 'redeemable' | 'payable' | 'settlement',
+        
+        // UI Labels (query params > skin UI > defaults)
+        amountLabel: queryParams.amount_label || skin?.ui?.amount_label,
+        amountPlaceholder: skin?.ui?.amount_placeholder,
+        targetLabel: skin?.ui?.target_label,
+        targetPlaceholder: skin?.ui?.target_placeholder,
+        buttonText: queryParams.button_text || skin?.ui?.button_text,
+        successTitle: queryParams.success_title || skin?.ui?.success_title,
+        successMessage: queryParams.success_message || skin?.ui?.success_message,
+        printButton: skin?.ui?.print_button,
+        newButton: skin?.ui?.new_button,
+        errorTitle: skin?.ui?.error_title,
+        retryButton: skin?.ui?.retry_button,
+        themeColor: skin?.ui?.theme_color,
+        logo: skin?.ui?.logo,
+    };
+});
 </script>
 
 <template>
-    <PwaLayout title="Home">
+    <!-- Kiosk Mode -->
+    <KioskView
+        v-if="isKiosk && kioskConfig"
+        :config="kioskConfig"
+        :defaults="kioskDefaults"
+        :campaign-data="campaignData"
+    />
+
+    <!-- Normal Portal -->
+    <PwaLayout v-else title="Home">
         <!-- Header -->
         <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
             <div class="flex items-center justify-between px-4 py-3">

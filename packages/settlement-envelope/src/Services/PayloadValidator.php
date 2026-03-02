@@ -2,7 +2,9 @@
 
 namespace LBHurtado\SettlementEnvelope\Services;
 
+use Illuminate\Support\Facades\DB;
 use LBHurtado\SettlementEnvelope\Data\DriverData;
+use LBHurtado\SettlementEnvelope\Data\UniqueFieldConstraintData;
 use LBHurtado\SettlementEnvelope\Exceptions\PayloadValidationException;
 use Opis\JsonSchema\Errors\ErrorFormatter;
 use Opis\JsonSchema\Validator;
@@ -120,6 +122,73 @@ class PayloadValidator
         }
 
         return $flat;
+    }
+
+    /**
+     * Validate unique field constraints
+     *
+     * @param array $payload Payload data to validate
+     * @param DriverData|null $driver Driver with constraints
+     * @param int|null $excludeEnvelopeId Envelope ID to exclude from uniqueness check (for updates)
+     * @throws PayloadValidationException
+     */
+    public function validateUniqueConstraints(
+        array $payload,
+        ?DriverData $driver = null,
+        ?int $excludeEnvelopeId = null
+    ): void {
+        if (! $driver || ! $driver->payload->constraints) {
+            return;
+        }
+
+        $errors = [];
+
+        foreach ($driver->payload->constraints->unique_fields as $constraint) {
+            $fieldValue = $this->getFieldValue($payload, '/'.$constraint->field);
+
+            if ($fieldValue === null || $fieldValue === '') {
+                continue; // Skip null/empty values
+            }
+
+            // Normalize value for case-insensitive comparison
+            $compareValue = $constraint->case_sensitive
+                ? $fieldValue
+                : strtolower((string) $fieldValue);
+
+            // Query for existing envelopes with this field value
+            // Note: envelopes.payload contains the current payload (no need to join versions table)
+            $query = DB::table('envelopes')
+                ->whereNotNull('payload');
+
+            if ($constraint->case_sensitive) {
+                $query->whereJsonContains('envelopes.payload->'.$constraint->field, $fieldValue);
+            } else {
+                // Case-insensitive: use raw SQL with LOWER()
+                $query->whereRaw(
+                    'LOWER(JSON_EXTRACT(envelopes.payload, ?)) = ?',
+                    ['$.'.$constraint->field, '"'.$compareValue.'"']
+                );
+            }
+
+            // Exclude current envelope from check (for updates)
+            if ($excludeEnvelopeId) {
+                $query->where('envelopes.id', '!=', $excludeEnvelopeId);
+            }
+
+            $exists = $query->exists();
+
+            if ($exists) {
+                $message = str_replace('{value}', $fieldValue, $constraint->message);
+                $errors[$constraint->field] = $message;
+            }
+        }
+
+        if (! empty($errors)) {
+            throw new PayloadValidationException(
+                'Unique constraint violation',
+                $errors
+            );
+        }
     }
 
     /**

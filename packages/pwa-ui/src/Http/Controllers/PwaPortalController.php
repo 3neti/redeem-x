@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\PwaUi\Services\SkinConfigLoader;
 
 class PwaPortalController extends Controller
 {
@@ -87,6 +88,16 @@ class PwaPortalController extends Controller
             ];
         }
 
+        // Load skin configuration if specified
+        $skinName = $request->query('skin');
+        $skinConfig = null;
+        
+        if ($skinName && $skinName !== 'pos') {
+            // Load YAML skin config with query parameter overrides
+            $loader = new SkinConfigLoader();
+            $skinConfig = $loader->load($skinName, $request->query());
+        }
+
         return Inertia::render('pwa/Portal', [
             'balance' => $balance,
             'formattedBalance' => number_format($balance, 2),
@@ -104,6 +115,10 @@ class PwaPortalController extends Controller
                 'hasBalance' => $hasBalance,
                 'isComplete' => $hasMobile && $hasMerchant && $hasBalance,
             ],
+            // Kiosk configuration
+            'kioskEnabled' => config('pwa-ui.kiosk.enabled', true),
+            'kioskDefaults' => config('pwa-ui.kiosk.defaults', []),
+            'skinConfig' => $skinConfig,
         ]);
     }
 }

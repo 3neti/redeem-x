@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import PwaLayout from '../../../layouts/PwaLayout.vue';
 import VoucherCard from '@/components/pwa/VoucherCard.vue';
-import KeyboardSearchOverlay from '@/components/pwa/KeyboardSearchOverlay.vue';
 import { Button } from '../../../components/ui/button';
 import { Ticket, Plus } from 'lucide-vue-next';
-import { useKeyboardSearch } from '@/composables/useKeyboardSearch';
-import { useDebounceFn } from '@/composables/useDebounce';
 
 interface Voucher {
     code: string;
@@ -31,87 +27,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Navigate to voucher
-const navigateToVoucher = (voucher: Voucher) => {
-    router.visit(`/pwa/vouchers/${voucher.code}`);
-};
-
-// Keyboard search
-const search = useKeyboardSearch();
-
-// Remote matches (server-backed search across pages)
-const remoteMatches = ref<Voucher[]>([]);
-const isFetching = ref(false);
-
-// Debounced server search
-const fetchMatches = useDebounceFn(async () => {
-    if (!search.isSearching.value || !search.query.value) {
-        remoteMatches.value = [];
-        return;
-    }
-    try {
-        isFetching.value = true;
-        const params = new URLSearchParams({ q: search.query.value, filter: props.filter || 'all' });
-        const res = await fetch(`/pwa/vouchers/search?${params.toString()}`, {
-            headers: { 'Accept': 'application/json' },
-        });
-        if (res.ok) {
-            const json = await res.json();
-            remoteMatches.value = Array.isArray(json.data) ? json.data : [];
-        } else {
-            remoteMatches.value = [];
-        }
-    } catch {
-        remoteMatches.value = [];
-    } finally {
-        isFetching.value = false;
-    }
-}, 300);
-
-// When query changes, trigger fetch
-watch([() => search.query.value, () => search.isSearching.value, () => props.filter], () => {
-    fetchMatches();
-});
-
-// Combine results: prefer remote matches when searching; fallback to local page filter; else show page data
-const displayedVouchers = computed(() => {
-    if (search.isSearching.value) {
-        if (remoteMatches.value.length > 0) return remoteMatches.value;
-        return search.filterByCode(props.vouchers.data);
-    }
-    return props.vouchers.data;
-});
-
-// Debug logging (can be removed in production)
-watch([() => displayedVouchers.value.length, () => search.isSearching.value, () => search.query.value], ([matchCount, isSearching, query]) => {
-    console.log('Search state:', {
-        query: query,
-        isSearching: isSearching,
-        matchCount: matchCount,
-        remoteMatchesCount: remoteMatches.value.length,
-        isFetching: isFetching.value,
-    });
-});
-
-// Handle Enter key navigation to first result
-const handleEnterKey = (event: KeyboardEvent) => {
-    if (event.key === 'Enter' && search.isSearching.value && displayedVouchers.value.length > 0) {
-        event.preventDefault();
-        navigateToVoucher(displayedVouchers.value[0]);
-        search.clearSearch();
-    }
-};
-
-onMounted(() => {
-    search.attachListener();
-    window.addEventListener('keydown', handleEnterKey);
-});
-
-onUnmounted(() => {
-    search.detachListener();
-    window.removeEventListener('keydown', handleEnterKey);
-});
-
 // All formatting logic now in VoucherCard component
 
 const setFilter = (filter: string) => {
@@ -119,15 +34,6 @@ const setFilter = (filter: string) => {
         preserveState: true,
         preserveScroll: true,
     });
-};
-
-const toggleTypeFilter = (typeFilter: string) => {
-    // If clicking the same type filter, clear it (go to 'all')
-    if (props.filter === typeFilter) {
-        setFilter('all');
-    } else {
-        setFilter(typeFilter);
-    }
 };
 </script>
 
@@ -215,13 +121,13 @@ const toggleTypeFilter = (typeFilter: string) => {
             
             <!-- Type Filters -->
             <div class="px-4 py-2">
-                <div class="text-xs font-medium text-muted-foreground mb-2">Type (click again to clear)</div>
+                <div class="text-xs font-medium text-muted-foreground mb-2">Type</div>
                 <div class="flex gap-2">
                     <Button
                         variant="outline"
                         size="sm"
                         :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-redeemable' }"
-                        @click="toggleTypeFilter('type-redeemable')"
+                        @click="setFilter('type-redeemable')"
                     >
                         Redeemable
                     </Button>
@@ -229,7 +135,7 @@ const toggleTypeFilter = (typeFilter: string) => {
                         variant="outline"
                         size="sm"
                         :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-payable' }"
-                        @click="toggleTypeFilter('type-payable')"
+                        @click="setFilter('type-payable')"
                     >
                         Payable
                     </Button>
@@ -237,21 +143,13 @@ const toggleTypeFilter = (typeFilter: string) => {
                         variant="outline"
                         size="sm"
                         :class="{ 'bg-secondary text-secondary-foreground': filter === 'type-settlement' }"
-                        @click="toggleTypeFilter('type-settlement')"
+                        @click="setFilter('type-settlement')"
                     >
                         Settlement
                     </Button>
                 </div>
             </div>
         </div>
-
-        <!-- Keyboard Search Overlay -->
-        <KeyboardSearchOverlay
-            :show="search.showOverlay.value"
-            :query="search.query.value + (isFetching ? ' …' : '')"
-            :match-count="displayedVouchers.length"
-            @close="search.clearSearch()"
-        />
 
         <!-- Content -->
         <div class="p-4">
@@ -271,7 +169,7 @@ const toggleTypeFilter = (typeFilter: string) => {
 
             <div v-else class="space-y-3">
                 <Link
-                    v-for="voucher in displayedVouchers"
+                    v-for="voucher in vouchers.data"
                     :key="voucher.code"
                     :href="`/pwa/vouchers/${voucher.code}`"
                     class="block"

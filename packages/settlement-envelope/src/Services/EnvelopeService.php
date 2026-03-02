@@ -45,6 +45,11 @@ class EnvelopeService
     ): Envelope {
         $driver = $this->driverService->load($driverId, $driverVersion);
 
+        // Validate uniqueness constraints if initial payload provided
+        if ($initialPayload) {
+            $this->payloadValidator->validateUniqueConstraints($initialPayload, $driver, null);
+        }
+
         return DB::transaction(function () use ($referenceCode, $driver, $reference, $initialPayload, $context, $actor) {
             // Create envelope with version 0 initially
             $envelope = Envelope::create([
@@ -108,6 +113,9 @@ class EnvelopeService
         if ($schema) {
             $this->payloadValidator->validate($newPayload, $driver, $schema);
         }
+
+        // Validate uniqueness constraints
+        $this->payloadValidator->validateUniqueConstraints($newPayload, $driver, $envelope->id);
 
         return DB::transaction(function () use ($envelope, $newPayload, $patch, $actor, $oldPayload) {
             // Create version record

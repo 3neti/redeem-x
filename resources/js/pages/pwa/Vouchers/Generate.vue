@@ -114,10 +114,6 @@ const showAmountKeypad = ref(false);
 const showCountKeypad = ref(false);
 const showCostBreakdownModal = ref(false);
 
-// Remember settings preference (stored separately)
-const REMEMBER_PREF_KEY = 'pwa_voucher_remember_pref';
-const rememberSettings = ref(false);
-
 // Sheet state management (following plan architecture)
 const sheetState = ref({
   campaign: { open: false },
@@ -156,27 +152,6 @@ const voucherTypeDisplay = computed(() => {
     case 'redeemable': return 'Redeemable';
     default: return 'Redeemable';
   }
-});
-
-// Dynamic amount display label based on voucher type
-const amountDisplayLabel = computed(() => {
-  switch (voucherType.value) {
-    case 'payable':
-      return 'Target Amount';
-    case 'settlement':
-      return 'Loan Amount';
-    case 'redeemable':
-    default:
-      return 'Amount';
-  }
-});
-
-// Get the display value for the main amount card
-const displayAmount = computed(() => {
-  if (voucherType.value === 'payable') {
-    return targetAmount.value;
-  }
-  return amount.value;
 });
 
 // Dynamic button text based on voucher type
@@ -417,27 +392,9 @@ const riderConfigSummary = computed(() => {
   return items.length > 0 ? items.join(', ') : 'Not configured';
 });
 
-// Find default envelope driver for payable/settlement vouchers
-const defaultEnvelopeDriver = computed(() => {
-  return props.envelopeDrivers.find(
-    d => d.id === 'payable.default' && d.version === '1.0.0'
-  );
-});
-
-const defaultEnvelopeDriverKey = computed(() => {
-  return defaultEnvelopeDriver.value?.key || null;
-});
-
 // Envelope config summary
 const envelopeConfigSummary = computed(() => {
-  if (!envelopeConfig.value) {
-    // Check if payable/settlement (auto-creation applies)
-    const isPayableOrSettlement = voucherType.value === 'payable' || voucherType.value === 'settlement';
-    if (isPayableOrSettlement) {
-      return 'Auto-created (default driver)';
-    }
-    return 'Not configured';
-  }
+  if (!envelopeConfig.value) return 'Not configured';
   if (selectedDriverKey.value) {
     const driver = props.envelopeDrivers.find(d => d.key === selectedDriverKey.value);
     return driver ? `${driver.title} (${driver.version})` : 'Configured';
@@ -545,11 +502,6 @@ const openSheet = (sheet: keyof typeof sheetState.value) => {
 
 // Numeric keypad handlers
 const openAmountKeypad = () => {
-  // For settlement, show the voucher type sheet instead (complex dual-amount UI)
-  if (voucherType.value === 'settlement') {
-    sheetState.value.voucherType.open = true;
-    return;
-  }
   showAmountKeypad.value = true;
 };
 
@@ -558,14 +510,7 @@ const openCountKeypad = () => {
 };
 
 const confirmAmount = (value: number) => {
-  // Type-aware amount setting
-  if (voucherType.value === 'payable') {
-    targetAmount.value = value;
-    amount.value = 0; // Payable always has amount=0
-  } else if (voucherType.value === 'redeemable') {
-    amount.value = value;
-  }
-  // Settlement is handled in the sheet modal
+  amount.value = value;
   showAmountKeypad.value = false;
 };
 
@@ -729,14 +674,6 @@ const applyCampaign = (campaign: Campaign | null) => {
   
   const instructions = campaign.instructions;
   if (instructions) {
-    // Apply voucher type and target amount
-    if (instructions.voucher_type) {
-      voucherType.value = instructions.voucher_type;
-    }
-    if (instructions.target_amount) {
-      targetAmount.value = instructions.target_amount;
-    }
-    
     // Apply cash amount
     if (instructions.cash?.amount) {
       amount.value = instructions.cash.amount;
@@ -1027,52 +964,14 @@ const resetState = () => {
   autoAddedFields.value.clear();
 };
 
-// Watch for voucher type changes - preserve amounts intelligently
-watch(voucherType, (newType, oldType) => {
-  // Handle amount transitions
+// Watch for settlement type changes (from Portal.vue)
+watch(voucherType, (newType) => {
+  if (newType === 'settlement' && amount.value && interestRate.value >= 0) {
+    targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
+  }
   if (newType === 'payable') {
-    // Switching TO payable: move amount to targetAmount, set amount=0
-    if (oldType === 'redeemable' && amount.value && amount.value > 0) {
-      targetAmount.value = amount.value;
-    }
     amount.value = 0;
-  } else if (newType === 'redeemable') {
-    // Switching TO redeemable: move targetAmount to amount, clear targetAmount
-    if (oldType === 'payable' && targetAmount.value && targetAmount.value > 0) {
-      amount.value = targetAmount.value;
-      targetAmount.value = null;
-    } else if (oldType === 'settlement') {
-      // Keep loan amount as-is, clear target
-      targetAmount.value = null;
-      interestRate.value = 0;
-    }
-  } else if (newType === 'settlement') {
-    // Switching TO settlement: calculate target from amount + interest
-    if (amount.value && interestRate.value >= 0) {
-      targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
-    }
   }
-  
-  // Auto-enable/disable envelope based on voucher type
-  const isPayableOrSettlement = newType === 'payable' || newType === 'settlement';
-  const wasRedeemable = oldType === 'redeemable';
-  const wasPayableOrSettlement = oldType === 'payable' || oldType === 'settlement';
-  
-  if (isPayableOrSettlement && wasRedeemable && defaultEnvelopeDriverKey.value) {
-    // Switching FROM redeemable TO payable/settlement - auto-enable envelope
-    envelopeConfig.value = {};
-    selectedDriverKey.value = defaultEnvelopeDriverKey.value;
-    
-    toast({
-      title: 'Settlement envelope enabled',
-      description: 'Using default driver for payable/settlement vouchers',
-    });
-  } else if (newType === 'redeemable' && wasPayableOrSettlement) {
-    // Switching FROM payable/settlement TO redeemable - auto-disable envelope
-    envelopeConfig.value = null;
-    selectedDriverKey.value = '';
-  }
-  // When switching BETWEEN payable/settlement - keep current envelope state
 });
 
 watch([amount, interestRate], ([newAmount, newRate]) => {
@@ -1084,28 +983,8 @@ watch([amount, interestRate], ([newAmount, newRate]) => {
 // State persistence (Phase 12)
 const STORAGE_KEY = 'pwa_voucher_wizard_state';
 
-// Load remember preference (always persists)
-const loadRememberPref = () => {
-  try {
-    const saved = localStorage.getItem(REMEMBER_PREF_KEY);
-    return saved === 'true';
-  } catch (e) {
-    return false;
-  }
-};
-
-// Save remember preference
-const saveRememberPref = (value: boolean) => {
-  try {
-    localStorage.setItem(REMEMBER_PREF_KEY, value ? 'true' : 'false');
-  } catch (e) {
-    console.error('Failed to save remember preference:', e);
-  }
-};
-
-// Save state to localStorage (only when remember is ON)
+// Save state to localStorage
 const saveState = () => {
-  if (!rememberSettings.value) return;
   try {
     const state = {
       amount: amount.value,
@@ -1164,30 +1043,6 @@ const clearSavedState = () => {
   }
 };
 
-// Watch remember toggle changes
-watch(rememberSettings, (newValue, oldValue) => {
-  // Skip on initial mount (oldValue is undefined)
-  if (oldValue === undefined) return;
-  
-  saveRememberPref(newValue);
-  
-  if (newValue) {
-    // Toggle ON: Restore from localStorage immediately
-    restoreState();
-    toast({
-      title: 'Remember enabled',
-      description: 'Previous settings restored',
-    });
-  } else {
-    // Toggle OFF: Reset form to defaults (localStorage untouched)
-    resetState();
-    toast({
-      title: 'Remember disabled',
-      description: 'Settings cleared',
-    });
-  }
-});
-
 // Watch key fields and save state on change
 watch(
   [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail],
@@ -1197,15 +1052,9 @@ watch(
   { deep: true }
 );
 
-// Initialize on mount
+// Restore state on mount
 onMounted(() => {
-  // Load remember preference first
-  rememberSettings.value = loadRememberPref();
-  
-  // Only restore state if remember is ON
-  if (rememberSettings.value) {
-    restoreState();
-  }
+  restoreState();
 });
 
 // Watch for mobile payee - auto-add OTP (same logic as Portal.vue)
@@ -1331,23 +1180,14 @@ watch(payeeType, (newType, oldType) => {
           </div>
         </div>
 
-        <!-- Amount Display (Large) - Clickable with validation feedback -->
+        <!-- Amount Display (Large) - Clickable -->
         <div class="text-center py-8">
-          <p class="text-sm text-muted-foreground mb-2">{{ amountDisplayLabel }}</p>
-          <div 
-            :class="[
-              'text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors',
-              voucherType === 'payable' && (!targetAmount || targetAmount <= 0) ? 'text-destructive' : ''
-            ]"
+          <p class="text-sm text-muted-foreground mb-2">Amount</p>
+          <p 
+            class="text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
             @click="openAmountKeypad"
           >
-            {{ displayAmount ? `₱${displayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
-          </div>
-          <p 
-            v-if="voucherType === 'payable' && (!targetAmount || targetAmount <= 0)"
-            class="text-xs text-destructive mt-2"
-          >
-            Tap to set target amount
+            {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
           <p 
             v-if="count > 1" 
@@ -1358,36 +1198,14 @@ watch(payeeType, (newType, oldType) => {
           </p>
         </div>
 
-        <!-- Quick Amount Grid - Type-aware -->
+        <!-- Quick Amount Grid -->
         <div class="grid grid-cols-3 gap-2">
-          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 100, amount = 0) : amount = 100">₱100</Button>
-          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 500, amount = 0) : amount = 500">₱500</Button>
-          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 1000, amount = 0) : amount = 1000">₱1K</Button>
-          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 2000, amount = 0) : amount = 2000">₱2K</Button>
-          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 5000, amount = 0) : amount = 5000">₱5K</Button>
-          <Button variant="outline" @click="voucherType === 'payable' ? (targetAmount = 10000, amount = 0) : amount = 10000">₱10K</Button>
-        </div>
-        
-        <!-- Rider Configuration -->
-        <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('rider')">
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-xs text-muted-foreground">Redemption Experience</p>
-            <Plus class="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div v-if="riderConfigSummary === 'Not configured'" class="text-sm font-medium text-muted-foreground">
-            Not configured
-          </div>
-          <div v-else class="flex flex-wrap gap-1">
-            <Badge v-if="riderMessage" variant="secondary" class="text-xs">
-              Message
-            </Badge>
-            <Badge v-if="riderUrl" variant="secondary" class="text-xs">
-              URL
-            </Badge>
-            <Badge v-if="riderSplash" variant="secondary" class="text-xs">
-              Splash
-            </Badge>
-          </div>
+          <Button variant="outline" @click="amount = 100">₱100</Button>
+          <Button variant="outline" @click="amount = 500">₱500</Button>
+          <Button variant="outline" @click="amount = 1000">₱1K</Button>
+          <Button variant="outline" @click="amount = 2000">₱2K</Button>
+          <Button variant="outline" @click="amount = 5000">₱5K</Button>
+          <Button variant="outline" @click="amount = 10000">₱10K</Button>
         </div>
       </div>
 
@@ -1573,19 +1391,6 @@ watch(payeeType, (newType, oldType) => {
             </div>
             <Badge variant="outline" class="ml-2">{{ settlementRail || 'Auto' }}</Badge>
           </button>
-        </div>
-        
-        <!-- Remember Settings Toggle -->
-        <div class="py-4 px-1 border-t">
-          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
-            <div class="flex-1">
-              <div class="font-medium text-sm">Remember settings</div>
-              <div class="text-xs text-muted-foreground mt-0.5">
-                Restore last configuration when returning
-              </div>
-            </div>
-            <Switch v-model:checked="rememberSettings" />
-          </div>
         </div>
         
         <!-- Action Buttons -->
@@ -1804,6 +1609,24 @@ watch(payeeType, (newType, oldType) => {
             </div>
           </RadioGroup>
           
+          <!-- Conditional Fields for Payable -->
+          <div v-if="voucherType === 'payable'" class="space-y-3 pt-4 border-t">
+            <div class="space-y-2">
+              <Label for="target-amount">Target Amount</Label>
+              <Input
+                id="target-amount"
+                v-model.number="targetAmount"
+                type="number"
+                placeholder="Enter target amount"
+                min="1"
+                step="0.01"
+              />
+              <p class="text-xs text-muted-foreground">
+                Total amount to collect before voucher closes
+              </p>
+            </div>
+          </div>
+          
           <!-- Conditional Fields for Settlement -->
           <div v-if="voucherType === 'settlement'" class="space-y-3 pt-4 border-t">
             <div class="grid grid-cols-2 gap-3">
@@ -1833,7 +1656,7 @@ watch(payeeType, (newType, oldType) => {
             </div>
             <p class="text-xs text-muted-foreground">
               Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} 
-              (principal + {{ (interestRate || 0).toFixed(2) }}% interest)
+              (principal + {{ interestRate.toFixed(2) }}% interest)
             </p>
           </div>
         </div>
@@ -2348,20 +2171,6 @@ watch(payeeType, (newType, oldType) => {
         </SheetHeader>
         
         <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Info banner for payable/settlement auto-creation -->
-          <div v-if="voucherType === 'payable' || voucherType === 'settlement'" 
-               class="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div class="flex items-start gap-2">
-              <span class="text-blue-600 dark:text-blue-400 text-lg">ℹ️</span>
-              <div class="flex-1 text-sm text-blue-900 dark:text-blue-100">
-                <p class="font-medium mb-1">Auto-Created by Default</p>
-                <p class="text-xs text-blue-700 dark:text-blue-300">
-                  Payable and settlement vouchers automatically get an envelope with the default driver. You can customize it here or keep the default.
-                </p>
-              </div>
-            </div>
-          </div>
-          
           <div v-if="voucherType === 'payable' || voucherType === 'settlement'">
             <!-- Toggle Card (matching desktop design) -->
             <div class="border rounded-lg">

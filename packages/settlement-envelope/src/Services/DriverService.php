@@ -321,7 +321,7 @@ class DriverService
 
     protected function parsePayloadConfig(array $config): array
     {
-        return [
+        $parsed = [
             'schema' => [
                 'id' => $config['schema']['id'] ?? 'default',
                 'format' => $config['schema']['format'] ?? 'json_schema',
@@ -333,6 +333,15 @@ class DriverService
                 'patch_strategy' => $config['storage']['patch_strategy'] ?? 'merge',
             ],
         ];
+
+        // Parse constraints if present
+        if (isset($config['constraints'])) {
+            $parsed['constraints'] = [
+                'unique_fields' => $config['constraints']['unique_fields'] ?? [],
+            ];
+        }
+
+        return $parsed;
     }
 
     protected function parseDocuments(array $registry): array

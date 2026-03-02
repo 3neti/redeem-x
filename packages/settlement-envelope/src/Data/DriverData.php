@@ -66,6 +66,7 @@ class PayloadConfigData extends Data
     public function __construct(
         public PayloadSchemaData $schema,
         public ?PayloadStorageData $storage = null,
+        public ?PayloadConstraintsData $constraints = null,
     ) {}
 }
 
@@ -169,5 +170,24 @@ class ManifestIncludesData extends Data
         public bool $payload_hash = true,
         public bool $attachments_hashes = true,
         public bool $envelope_fingerprint = true,
+    ) {}
+}
+
+class PayloadConstraintsData extends Data
+{
+    public function __construct(
+        /** @var array<UniqueFieldConstraintData> */
+        #[DataCollectionOf(UniqueFieldConstraintData::class)]
+        public DataCollection $unique_fields,
+    ) {}
+}
+
+class UniqueFieldConstraintData extends Data
+{
+    public function __construct(
+        public string $field,
+        public string $scope = 'global', // 'global' or 'user'
+        public bool $case_sensitive = true,
+        public string $message = 'Field {value} already exists',
     ) {}
 }

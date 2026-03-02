@@ -20,6 +20,9 @@ use App\Actions\Billing\CalculateCharge;
 use App\Exceptions\InsufficientFundsException;
 use App\Http\Responses\ApiResponse;
 use App\Models\Campaign;
+use LBHurtado\SettlementEnvelope\Exceptions\PayloadValidationException;
+use LBHurtado\SettlementEnvelope\Services\DriverService;
+use LBHurtado\SettlementEnvelope\Services\PayloadValidator;
 use App\Models\CampaignVoucher;
 use App\Models\VoucherGenerationCharge;
 use App\Services\VoucherGenerationGate;
@@ -112,6 +115,20 @@ class GenerateVouchers
             app(VoucherGenerationGate::class)->validate($request->user(), $instructions);
         } catch (InsufficientFundsException $e) {
             return ApiResponse::forbidden($e->toApiMessage());
+        }
+
+        // Validate envelope constraints BEFORE creating vouchers
+        // This ensures uniqueness constraints are checked before persisting vouchers
+        $envelopeConfig = $validated['envelope_config'] ?? null;
+        if ($envelopeConfig && ($envelopeConfig['enabled'] ?? false)) {
+            try {
+                $this->validateEnvelopeConstraints($envelopeConfig);
+            } catch (PayloadValidationException $e) {
+                return ApiResponse::validationError(
+                    errors: $e->errors,
+                    message: 'Envelope validation failed: '.$e->getMessage()
+                );
+            }
         }
 
         // Generate vouchers using package action
@@ -283,6 +300,37 @@ class GenerateVouchers
             'total_amount' => $totalAmount,
             'currency' => $instructions->cash->currency ?? 'PHP',
         ]);
+    }
+
+    /**
+     * Validate envelope constraints before voucher creation.
+     * 
+     * Checks uniqueness constraints defined in the envelope driver.
+     * If validation fails, throws PayloadValidationException.
+     *
+     * @throws PayloadValidationException
+     */
+    protected function validateEnvelopeConstraints(array $envelopeConfig): void
+    {
+        if (! isset($envelopeConfig['driver_id'], $envelopeConfig['initial_payload'])) {
+            return; // No validation needed
+        }
+
+        $driverService = app(DriverService::class);
+        $validator = app(PayloadValidator::class);
+
+        // Load driver to check for constraints
+        $driver = $driverService->load(
+            $envelopeConfig['driver_id'],
+            $envelopeConfig['driver_version'] ?? '1.0.0'
+        );
+
+        // Validate uniqueness constraints (if any defined in driver)
+        $validator->validateUniqueConstraints(
+            $envelopeConfig['initial_payload'],
+            $driver,
+            null // excludeEnvelopeId (null for new envelopes)
+        );
     }
 
     /**
