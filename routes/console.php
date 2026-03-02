@@ -13,3 +13,9 @@ Schedule::command('balances:check --all')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Reconcile pending disbursements every 15 minutes
+Schedule::command('disbursement:reconcile-pending')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

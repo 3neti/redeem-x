@@ -30,6 +30,8 @@ class DisbursementAttempt extends Model
         'response_payload',
         'attempted_at',
         'completed_at',
+        'attempt_count',
+        'last_checked_at',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class DisbursementAttempt extends Model
         'response_payload' => 'array',
         'attempted_at' => 'datetime',
         'completed_at' => 'datetime',
+        'last_checked_at' => 'datetime',
     ];
 
     // ── Relationships ──

@@ -131,17 +131,21 @@ class ReconcileDisbursement
         }
 
         // === STILL PENDING / PROCESSING ===
+        $attempt->increment('attempt_count');
+        $attempt->update(['last_checked_at' => now()]);
+
         Log::debug('[ReconcileDisbursement] Still pending', [
             'code' => $code,
             'bank_status' => $bankStatus,
             'normalized' => $normalizedStatus->value,
+            'attempt_count' => $attempt->attempt_count,
         ]);
 
         return $this->result(
             true,
             'still_pending',
-            "Bank status is still {$normalizedStatus->getLabel()}. No action taken. Will check again later.",
-            $this->formatAttempt($attempt),
+            "Bank status is still {$normalizedStatus->getLabel()}. Check #{$attempt->attempt_count}. Will check again later.",
+            $this->formatAttempt($attempt->fresh()),
             $bankStatus
         );
     }
