@@ -160,14 +160,24 @@ class PayloadValidator
             $query = DB::table('envelopes')
                 ->whereNotNull('payload');
 
+            $connection = DB::connection()->getDriverName();
+
             if ($constraint->case_sensitive) {
                 $query->whereJsonContains('envelopes.payload->'.$constraint->field, $fieldValue);
             } else {
-                // Case-insensitive: use raw SQL with LOWER()
-                $query->whereRaw(
-                    'LOWER(JSON_EXTRACT(envelopes.payload, ?)) = ?',
-                    ['$.'.$constraint->field, '"'.$compareValue.'"']
-                );
+                // Case-insensitive: database-specific JSON extraction
+                if ($connection === 'pgsql') {
+                    $query->whereRaw(
+                        "LOWER(envelopes.payload->>'" . $constraint->field . "') = ?",
+                        [$compareValue]
+                    );
+                } else {
+                    // MySQL / SQLite
+                    $query->whereRaw(
+                        'LOWER(JSON_EXTRACT(envelopes.payload, ?)) = ?',
+                        ['$.'.$constraint->field, '"'.$compareValue.'"']
+                    );
+                }
             }
 
             // Exclude current envelope from check (for updates)
