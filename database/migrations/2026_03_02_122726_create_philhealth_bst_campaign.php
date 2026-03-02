@@ -11,6 +11,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use LBHurtado\Wallet\Services\SystemUserResolverService;
 
 return new class extends Migration
 {
@@ -28,9 +29,17 @@ return new class extends Migration
             return;
         }
 
+        // Resolve system user (campaigns.user_id is NOT NULL)
+        try {
+            $systemUser = app(SystemUserResolverService::class)->resolve();
+        } catch (\Throwable) {
+            // System user doesn't exist yet — skip (will run on next migrate after seeding)
+            return;
+        }
+
         // Create the PhilHealth BST campaign
         DB::table('campaigns')->insert([
-            'user_id' => null, // System campaign - available to all users
+            'user_id' => $systemUser->getKey(),
             'name' => 'PhilHealth BST',
             'slug' => 'philhealth-bst',
             'description' => 'Benefit Support Token for PhilHealth reimbursements. Issues settlement vouchers with target amount for patient claims.',
