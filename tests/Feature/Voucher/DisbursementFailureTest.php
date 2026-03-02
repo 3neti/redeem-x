@@ -26,7 +26,7 @@ beforeEach(function () {
     ]);
 });
 
-test('voucher is not marked as redeemed when gateway returns false', function () {
+test('voucher stays redeemed when gateway returns false (Phase A: redemption is sacred)', function () {
     // Arrange: Create mock gateway that returns false (simulating gateway failure)
     $mockGateway = Mockery::mock(PaymentGatewayInterface::class);
 
@@ -66,15 +66,20 @@ test('voucher is not marked as redeemed when gateway returns false', function ()
         'bank_account' => 'GCASH:09173011987',
     ]);
 
-    // Act: Attempt redemption - should throw exception
-    expect(fn () => RedeemVoucher::run($contact, $voucher->code))
-        ->toThrow(RuntimeException::class, 'Disbursement failed: Gateway error');
+    // Act: Redeem voucher - should succeed despite gateway failure
+    $result = RedeemVoucher::run($contact, $voucher->code);
 
-    // Assert: Voucher should NOT be marked as redeemed
+    // Assert: Voucher SHOULD be marked as redeemed (redemption is sacred)
+    expect($result)->toBeTrue();
+
     $voucher->refresh();
-    expect($voucher->redeemed_at)->toBeNull();
-    expect($voucher->status)->not->toBe('redeemed');
-    expect($voucher->metadata)->not->toHaveKey('disbursement');
+    expect($voucher->redeemed_at)->not->toBeNull();
+
+    // Assert: Disbursement metadata records the pending/failed state for reconciliation
+    expect($voucher->metadata)->toHaveKey('disbursement');
+    expect($voucher->metadata['disbursement']['status'])->toBe('pending');
+    expect($voucher->metadata['disbursement']['requires_reconciliation'])->toBeTrue();
+    expect($voucher->metadata['disbursement'])->toHaveKey('error');
 });
 
 test('voucher is marked as redeemed when disbursement succeeds', function () {
