@@ -5,7 +5,7 @@ return [
         'end-point' => env('NETBANK_DISBURSEMENT_ENDPOINT'),
         'token-end-point' => env('NETBANK_TOKEN_ENDPOINT'),
         'qr-end-point' => env('NETBANK_QR_ENDPOINT'),
-        'status-end-point' => env('NETBANK_STATUS_ENDPOINT'),
+        'status-endpoint' => env('NETBANK_STATUS_ENDPOINT'),
     ],
     'client' => [
         'id' => env('NETBANK_CLIENT_ID', ''),

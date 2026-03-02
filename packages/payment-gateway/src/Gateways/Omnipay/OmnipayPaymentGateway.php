@@ -336,7 +336,7 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
      * Check the status of a disbursement transaction.
      *
      * @param  string  $transactionId  Gateway transaction ID
-     * @return array{status: string, raw: array} Normalized status + raw response
+     * @return array{status: string, raw: array, error?: string} Normalized status + raw response
      */
     public function checkDisbursementStatus(string $transactionId): array
     {
@@ -348,24 +348,24 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
                 ->send();
 
             if (! $response->isSuccessful()) {
+                $errorMessage = $response->getMessage() ?? 'Unknown gateway error';
+
                 Log::warning('[OmnipayPaymentGateway] Status check failed', [
                     'transaction_id' => $transactionId,
-                    'message' => $response->getMessage(),
+                    'message' => $errorMessage,
                 ]);
 
-                return ['status' => 'pending', 'raw' => []];
+                return ['status' => 'error', 'raw' => [], 'error' => 'Gateway returned error: '.$errorMessage];
             }
 
             $rawStatus = $response->getStatus();
             $normalized = \LBHurtado\PaymentGateway\Enums\DisbursementStatus::fromGateway('netbank', $rawStatus);
 
-            if (self::DEBUG) {
-                Log::info('[OmnipayPaymentGateway] Status checked', [
-                    'transaction_id' => $transactionId,
-                    'raw_status' => $rawStatus,
-                    'normalized_status' => $normalized->value,
-                ]);
-            }
+            Log::info('[OmnipayPaymentGateway] Status checked', [
+                'transaction_id' => $transactionId,
+                'raw_status' => $rawStatus,
+                'normalized_status' => $normalized->value,
+            ]);
 
             return [
                 'status' => $normalized->value,
@@ -375,9 +375,10 @@ class OmnipayPaymentGateway implements PaymentGatewayInterface
             Log::error('[OmnipayPaymentGateway] Status check error', [
                 'transaction_id' => $transactionId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            return ['status' => 'pending', 'raw' => []];
+            return ['status' => 'error', 'raw' => [], 'error' => 'Status check failed: '.$e->getMessage()];
         }
     }
 

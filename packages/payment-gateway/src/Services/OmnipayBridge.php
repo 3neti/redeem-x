@@ -256,7 +256,7 @@ class OmnipayBridge implements PaymentGatewayInterface
      * Check the status of a disbursement transaction
      *
      * @param  string  $transactionId  Gateway transaction ID
-     * @return array{status: string, raw: array} Normalized status + raw response
+     * @return array{status: string, raw: array, error?: string} Normalized status + raw response
      */
     public function checkDisbursementStatus(string $transactionId): array
     {
@@ -268,12 +268,14 @@ class OmnipayBridge implements PaymentGatewayInterface
                 ->send();
 
             if (! $response->isSuccessful()) {
+                $errorMessage = $response->getMessage() ?? 'Unknown gateway error';
+
                 Log::warning('[OmnipayBridge] Status check failed', [
                     'transaction_id' => $transactionId,
-                    'message' => $response->getMessage(),
+                    'message' => $errorMessage,
                 ]);
 
-                return ['status' => 'pending', 'raw' => []];
+                return ['status' => 'error', 'raw' => [], 'error' => 'Gateway returned error: '.$errorMessage];
             }
 
             $rawStatus = $response->getStatus();
@@ -293,9 +295,10 @@ class OmnipayBridge implements PaymentGatewayInterface
             Log::error('[OmnipayBridge] Status check error', [
                 'transaction_id' => $transactionId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            return ['status' => 'pending', 'raw' => []];
+            return ['status' => 'error', 'raw' => [], 'error' => 'Status check failed: '.$e->getMessage()];
         }
     }
 

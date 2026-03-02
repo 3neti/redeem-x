@@ -44,7 +44,7 @@ class DisbursementData extends Data
         return new static(
             gateway: $disbursement['gateway'],
             transaction_id: $disbursement['transaction_id'],
-            status: $disbursement['status'] ?? 'Unknown',
+            status: ucfirst(strtolower($disbursement['status'] ?? 'unknown')),
             amount: (float) ($disbursement['amount'] ?? 0),
             currency: $disbursement['currency'] ?? 'PHP',
             recipient_identifier: $disbursement['recipient_identifier'],

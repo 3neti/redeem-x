@@ -106,9 +106,14 @@ class UpdateDisbursementStatusCommand extends Command
                 $this->newLine();
             }
 
-            $updated = $this->service->updateVoucherStatus($voucher);
+            $result = $this->service->updateVoucherStatus($voucher);
 
-            if ($updated) {
+            if (! empty($result['error'])) {
+                $this->newLine();
+                $this->warn("⚠️  {$result['error']}");
+            }
+
+            if ($result['updated']) {
                 // Refresh voucher to get new status
                 $voucher->refresh();
                 $newDisbursement = $voucher->metadata['disbursement'] ?? [];
@@ -209,7 +214,8 @@ class UpdateDisbursementStatusCommand extends Command
                 $bar->setMessage("Checking {$voucher->code}...");
 
                 try {
-                    if ($this->service->updateVoucherStatus($voucher)) {
+                    $statusResult = $this->service->updateVoucherStatus($voucher);
+                    if ($statusResult['updated']) {
                         $updated++;
                         $bar->setMessage("Updated {$voucher->code}");
                     } else {

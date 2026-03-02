@@ -25,16 +25,16 @@ class DisbursementStatusService
     /**
      * Update status for a single voucher
      *
-     * @return bool True if status was updated, false otherwise
+     * @return array{updated: bool, error?: string} Result with optional error message
      */
-    public function updateVoucherStatus(Voucher $voucher): bool
+    public function updateVoucherStatus(Voucher $voucher): array
     {
         $disbursement = DisbursementData::fromMetadata($voucher->metadata);
 
         if (! $disbursement) {
             Log::warning('[StatusService] No disbursement data', ['voucher' => $voucher->code]);
 
-            return false;
+            return ['updated' => false, 'error' => 'No disbursement data found'];
         }
 
         // Skip if already in final state
@@ -44,12 +44,25 @@ class DisbursementStatusService
                 'status' => $disbursement->status,
             ]);
 
-            return false;
+            return ['updated' => false, 'error' => 'Already in final state: '.$disbursement->status];
         }
 
         // Check status with gateway
         $result = $this->gateway->checkDisbursementStatus($disbursement->transaction_id);
         $newStatus = $result['status'];
+
+        // Gateway returned an error (couldn't reach bank)
+        if ($newStatus === 'error') {
+            $errorMessage = $result['error'] ?? 'Unknown error querying gateway';
+
+            Log::warning('[StatusService] Gateway error during status check', [
+                'voucher' => $voucher->code,
+                'transaction_id' => $disbursement->transaction_id,
+                'error' => $errorMessage,
+            ]);
+
+            return ['updated' => false, 'error' => $errorMessage];
+        }
 
         // No change
         if ($newStatus === $disbursement->status) {
@@ -58,7 +71,7 @@ class DisbursementStatusService
                 'status' => $newStatus,
             ]);
 
-            return false;
+            return ['updated' => false];
         }
 
         // Update voucher metadata with enhanced data
@@ -95,7 +108,7 @@ class DisbursementStatusService
             ]);
         }
 
-        return true;
+        return ['updated' => true];
     }
 
     /**
@@ -123,7 +136,8 @@ class DisbursementStatusService
 
         foreach ($vouchers as $voucher) {
             try {
-                if ($this->updateVoucherStatus($voucher)) {
+                $result = $this->updateVoucherStatus($voucher);
+                if ($result['updated']) {
                     $updated++;
                 }
             } catch (\Throwable $e) {

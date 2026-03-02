@@ -50,18 +50,19 @@ class RefreshDisbursementStatus
         $currentStatus = $voucher->metadata['disbursement']['status'] ?? null;
 
         // Update status
-        $updated = $service->updateVoucherStatus($voucher);
+        $result = $service->updateVoucherStatus($voucher);
 
         // Get new status
         $voucher->refresh();
         $newStatus = $voucher->metadata['disbursement']['status'] ?? null;
 
         return [
-            'updated' => $updated,
+            'updated' => $result['updated'],
             'current_status' => $currentStatus,
             'new_status' => $newStatus,
             'voucher_code' => $voucher->code,
             'disbursement' => $voucher->metadata['disbursement'] ?? null,
+            'error' => $result['error'] ?? null,
         ];
     }
 
@@ -101,12 +102,19 @@ class RefreshDisbursementStatus
         try {
             $result = $this->handle($voucher, $service);
 
+            // Determine message based on result
+            if ($result['updated']) {
+                $message = 'Status updated successfully';
+            } elseif (! empty($result['error'])) {
+                $message = $result['error'];
+            } else {
+                $message = 'Status unchanged';
+            }
+
             return response()->json([
-                'success' => true,
+                'success' => $result['updated'] || empty($result['error']),
                 'data' => $result,
-                'message' => $result['updated']
-                    ? 'Status updated successfully'
-                    : 'Status unchanged',
+                'message' => $message,
             ]);
 
         } catch (\Throwable $e) {

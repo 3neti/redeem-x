@@ -167,6 +167,7 @@ const getStatusVariant = (status?: string) => {
     }
 };
 
+
 const getMaskedAccount = (account?: string) => {
     if (!account || account.length <= 4) return account || 'N/A';
     return '***' + account.slice(-4);
@@ -721,7 +722,7 @@ onMounted(async () => {
                                             <span v-else class="text-xs text-muted-foreground">—</span>
                                         </td>
                                         <td class="px-4 py-3">
-                                            <Badge v-if="transaction.disbursement" :variant="getStatusVariant(transaction.disbursement.status)" class="text-xs">
+                            <Badge v-if="transaction.disbursement" :variant="getStatusVariant(transaction.disbursement.status)" class="text-xs">
                                                 {{ transaction.disbursement.status }}
                                             </Badge>
                                             <Badge v-else variant="default" class="text-xs">

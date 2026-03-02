@@ -125,12 +125,21 @@ trait CanDisburse
      * Check the status of a disbursement transaction.
      *
      * @param  string  $transactionId  Gateway transaction ID
-     * @return array{status: string, raw: array}
+     * @return array{status: string, raw: array, error?: string}
      */
     public function checkDisbursementStatus(string $transactionId): array
     {
         try {
             $endpoint = config('disbursement.server.status-endpoint');
+
+            if (empty($endpoint)) {
+                Log::error('[Netbank] Status endpoint not configured', [
+                    'transaction_id' => $transactionId,
+                    'config_key' => 'disbursement.server.status-endpoint',
+                ]);
+
+                return ['status' => 'error', 'raw' => [], 'error' => 'Status endpoint not configured (NETBANK_STATUS_ENDPOINT missing)'];
+            }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->getAccessToken(),
@@ -144,7 +153,7 @@ trait CanDisburse
                     'response' => $response->body(),
                 ]);
 
-                return ['status' => 'pending', 'raw' => []];
+                return ['status' => 'error', 'raw' => [], 'error' => 'Gateway returned HTTP '.$response->status()];
             }
 
             $data = $response->json();
@@ -165,9 +174,10 @@ trait CanDisburse
             Log::error('[Netbank] Status check error', [
                 'transaction_id' => $transactionId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            return ['status' => 'pending', 'raw' => []];
+            return ['status' => 'error', 'raw' => [], 'error' => 'Status check failed: '.$e->getMessage()];
         }
     }
 }
