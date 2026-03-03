@@ -171,11 +171,17 @@ class PayloadValidator
                         "LOWER(envelopes.payload->>'" . $constraint->field . "') = ?",
                         [$compareValue]
                     );
-                } else {
-                    // MySQL / SQLite
+                } elseif ($connection === 'mysql') {
+                    // MySQL JSON_EXTRACT returns quoted strings
                     $query->whereRaw(
                         'LOWER(JSON_EXTRACT(envelopes.payload, ?)) = ?',
                         ['$.'.$constraint->field, '"'.$compareValue.'"']
+                    );
+                } else {
+                    // SQLite JSON_EXTRACT returns unquoted strings
+                    $query->whereRaw(
+                        'LOWER(JSON_EXTRACT(envelopes.payload, ?)) = ?',
+                        ['$.'.$constraint->field, $compareValue]
                     );
                 }
             }
