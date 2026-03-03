@@ -27,6 +27,17 @@ interface PayloadFieldConfig {
   editable?: boolean;
   required?: boolean;
   placeholder?: string;
+  hidden?: boolean;
+}
+
+interface ScannerConfig {
+  enabled: boolean;
+  format: string;
+  buffer_timeout_ms: number;
+  field_mapping: Record<string, string>;
+  amount_key: string | null;
+  target_amount_key: string | null;
+  target_override: boolean;
 }
 
 interface KioskConfig {
@@ -58,6 +69,8 @@ interface KioskConfig {
   retryButton?: string;
   themeColor?: string;
   logo?: string;
+  // Scanner config from driver
+  scanner?: ScannerConfig | null;
 }
 
 interface IssuedVoucher {
@@ -71,11 +84,13 @@ interface Props {
   config: KioskConfig;
   defaults?: Record<string, string>;
   campaignData?: any;
+  initialScan?: Record<string, any> | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   defaults: () => ({}),
   campaignData: null,
+  initialScan: null,
 });
 
 // ============================================================================
@@ -156,6 +171,8 @@ const showXRay = ref(false);
 // Scanner buffer
 const scanBuffer = ref('');
 const scanTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+const scanFeedback = ref<string | null>(null);
+const scanFeedbackTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
 // History management
 const skinName = computed(() => {
@@ -565,6 +582,70 @@ const handleShowQR = (voucher: KioskHistoryEntry) => {
 // SCANNER SUPPORT
 // ============================================================================
 
+// Resolved scanner config from driver
+const scannerConfig = computed(() => props.config.scanner ?? null);
+const scannerEnabled = computed(() => scannerConfig.value?.enabled ?? false);
+const bufferTimeout = computed(() => scannerConfig.value?.buffer_timeout_ms ?? 100);
+
+/**
+ * Show brief scan feedback indicator
+ */
+const showScanFeedback = (message: string) => {
+  if (scanFeedbackTimeout.value) clearTimeout(scanFeedbackTimeout.value);
+  scanFeedback.value = message;
+  scanFeedbackTimeout.value = setTimeout(() => {
+    scanFeedback.value = null;
+  }, 2000);
+};
+
+/**
+ * Process a scanned JSON payload using driver field_mapping
+ */
+const processJsonScan = (data: Record<string, any>): boolean => {
+  const config = scannerConfig.value;
+  if (!config) return false;
+
+  let fieldsPopulated = 0;
+
+  // Map QR keys to payload fields via driver field_mapping
+  if (config.field_mapping) {
+    for (const [qrKey, payloadField] of Object.entries(config.field_mapping)) {
+      if (data[qrKey] !== undefined && payloadField in payloadFields.value) {
+        payloadFields.value[payloadField] = String(data[qrKey]);
+        fieldsPopulated++;
+      }
+    }
+  }
+
+  // Also map any direct matches (QR key matches payload field name)
+  for (const [key, value] of Object.entries(data)) {
+    if (key in payloadFields.value && value !== undefined) {
+      payloadFields.value[key] = String(value);
+      fieldsPopulated++;
+    }
+  }
+
+  // Handle target_amount from QR
+  if (config.target_amount_key && data[config.target_amount_key] !== undefined) {
+    const scannedTarget = Number(data[config.target_amount_key]);
+    if (!isNaN(scannedTarget) && scannedTarget > 0) {
+      targetAmount.value = scannedTarget;
+      fieldsPopulated++;
+    }
+  }
+
+  // Handle amount from QR
+  if (config.amount_key && data[config.amount_key] !== undefined) {
+    const scannedAmount = Number(data[config.amount_key]);
+    if (!isNaN(scannedAmount) && scannedAmount > 0) {
+      amount.value = scannedAmount;
+      fieldsPopulated++;
+    }
+  }
+
+  return fieldsPopulated > 0;
+};
+
 const handleKeydown = (event: KeyboardEvent) => {
   // Only capture in input state
   if (state.value !== 'input') return;
@@ -574,8 +655,39 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Scanner typically sends rapid keystrokes ending with Enter
   if (event.key === 'Enter' && scanBuffer.value) {
-    // Process scanned value
-    const scanned = parseInt(scanBuffer.value, 10);
+    const raw = scanBuffer.value;
+    scanBuffer.value = '';
+
+    // If driver scanner is enabled, try JSON parsing first
+    if (scannerEnabled.value) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null) {
+          if (processJsonScan(parsed)) {
+            showScanFeedback('\u2713 QR Scanned');
+            return;
+          }
+        }
+      } catch {
+        // Not JSON — fall through to other strategies
+      }
+
+      // Plain string fallback: fill first empty editable payload field
+      if (raw && !/^\d+$/.test(raw)) {
+        const emptyField = props.config.payload?.find(fc => {
+          const name = getFieldName(fc);
+          return isFieldEditable(fc) && !payloadFields.value[name]?.trim();
+        });
+        if (emptyField) {
+          payloadFields.value[getFieldName(emptyField)] = raw;
+          showScanFeedback('\u2713 Scanned');
+          return;
+        }
+      }
+    }
+
+    // Numeric fallback (original behavior)
+    const scanned = parseInt(raw, 10);
     if (!isNaN(scanned) && scanned > 0) {
       if (showTargetField.value && !targetAmount.value) {
         targetAmount.value = scanned;
@@ -583,19 +695,82 @@ const handleKeydown = (event: KeyboardEvent) => {
         amount.value = scanned;
       }
     }
-    scanBuffer.value = '';
     return;
   }
 
-  // Capture digits
-  if (/^\d$/.test(event.key)) {
+  // Capture characters into scan buffer
+  // Driver scanner enabled: capture all printable characters (for JSON)
+  // Default: capture digits only (original behavior)
+  const isCapturableChar = scannerEnabled.value
+    ? event.key.length === 1  // All printable characters
+    : /^\d$/.test(event.key); // Digits only
+
+  if (isCapturableChar) {
     scanBuffer.value += event.key;
 
-    // Clear buffer after 100ms of no input
+    // Clear buffer after timeout of no input
     if (scanTimeout.value) clearTimeout(scanTimeout.value);
     scanTimeout.value = setTimeout(() => {
       scanBuffer.value = '';
-    }, 100);
+    }, bufferTimeout.value);
+  }
+};
+
+/**
+ * Handle paste events — some scanners paste content directly,
+ * and this also enables testing by pasting JSON into the page.
+ */
+const handlePaste = (event: ClipboardEvent) => {
+  if (state.value !== 'input') return;
+  if (!scannerEnabled.value) return;
+
+  const pasted = event.clipboardData?.getData('text')?.trim();
+  if (!pasted) return;
+
+  const isFocusedOnInput = document.activeElement?.tagName === 'INPUT';
+
+  // Try JSON parse — intercept even when focused on an input
+  try {
+    const parsed = JSON.parse(pasted);
+    if (typeof parsed === 'object' && parsed !== null) {
+      if (processJsonScan(parsed)) {
+        event.preventDefault();
+        // Blur the input so the cursor doesn't stay in the field
+        if (isFocusedOnInput) (document.activeElement as HTMLElement)?.blur();
+        showScanFeedback('\u2713 QR Scanned');
+        return;
+      }
+    }
+  } catch {
+    // Not JSON — let normal paste proceed if focused on input
+  }
+
+  // If focused on an input, let the browser handle non-JSON paste normally
+  if (isFocusedOnInput) return;
+
+  event.preventDefault();
+
+  // Plain string fallback: fill first empty editable payload field
+  if (pasted && !/^\d+$/.test(pasted)) {
+    const emptyField = props.config.payload?.find(fc => {
+      const name = getFieldName(fc);
+      return isFieldEditable(fc) && !payloadFields.value[name]?.trim();
+    });
+    if (emptyField) {
+      payloadFields.value[getFieldName(emptyField)] = pasted;
+      showScanFeedback('\u2713 Scanned');
+      return;
+    }
+  }
+
+  // Numeric fallback
+  const scanned = parseInt(pasted, 10);
+  if (!isNaN(scanned) && scanned > 0) {
+    if (showTargetField.value && !targetAmount.value) {
+      targetAmount.value = scanned;
+    } else if (showAmountField.value) {
+      amount.value = scanned;
+    }
   }
 };
 
@@ -605,15 +780,25 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
+  window.addEventListener('paste', handlePaste);
 
   // Pre-fill from config
   if (props.config.amount) amount.value = props.config.amount;
   if (props.config.targetAmount) targetAmount.value = props.config.targetAmount;
+
+  // Process ?scan= query param if present
+  if (props.initialScan && scannerEnabled.value) {
+    if (processJsonScan(props.initialScan)) {
+      showScanFeedback('\u2713 Pre-filled from URL');
+    }
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('paste', handlePaste);
   if (scanTimeout.value) clearTimeout(scanTimeout.value);
+  if (scanFeedbackTimeout.value) clearTimeout(scanFeedbackTimeout.value);
 });
 </script>
 
@@ -644,6 +829,20 @@ onUnmounted(() => {
         <pre class="overflow-x-auto rounded-md bg-background p-3 text-xs border"><code>{{ JSON.stringify(xRayData, null, 2) }}</code></pre>
       </div>
     </div>
+
+    <!-- Scan Feedback Toast -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      leave-active-class="transition-all duration-300 ease-in"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div v-if="scanFeedback" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium">
+        {{ scanFeedback }}
+      </div>
+    </Transition>
 
     <!-- Main Content -->
     <main class="flex-1 flex items-center justify-center p-4">
@@ -684,8 +883,11 @@ onUnmounted(() => {
 
           <!-- Payload Fields (dynamic text inputs) -->
           <template v-for="fieldConfig in config.payload" :key="getFieldName(fieldConfig)">
+            <!-- Hidden fields: still in data, not rendered -->
+            <template v-if="typeof fieldConfig === 'object' && fieldConfig.hidden" />
+
             <!-- Editable Field -->
-            <div v-if="isFieldEditable(fieldConfig)" class="space-y-2">
+            <div v-else-if="isFieldEditable(fieldConfig)" class="space-y-2">
               <Label :for="getFieldName(fieldConfig)">{{ formatFieldLabel(getFieldName(fieldConfig)) }}</Label>
               <Input
                 :id="getFieldName(fieldConfig)"

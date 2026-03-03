@@ -113,6 +113,23 @@ manifest:
   enabled: false
 
 # -----------------------------------------------------------------------------
+# Scanner - QR/barcode scanner input configuration
+# When enabled, KioskView captures all keyboard input (not just digits)
+# and maps scanned JSON keys to payload fields.
+# -----------------------------------------------------------------------------
+scanner:
+  enabled: true
+  format: json                      # json | text
+  buffer_timeout_ms: 200            # ms between keystrokes before buffer clears
+  field_mapping:                    # QR JSON key → payload field name
+    reference: reference            # Direct 1:1
+    ref_no: reference               # Alias: hospital systems may use "ref_no"
+    claim_reference: reference      # Alias: PhilHealth claim reference
+  amount_key: null                  # QR key for amount field (null = don't scan)
+  target_amount_key: target_amount  # QR key for target amount field
+  target_override: true             # Cashier can edit scanned target_amount
+
+# -----------------------------------------------------------------------------
 # Form Flow Mapping - Redemption data to envelope
 # -----------------------------------------------------------------------------
 form_flow_mapping:

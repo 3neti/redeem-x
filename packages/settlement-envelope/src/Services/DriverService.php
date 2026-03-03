@@ -197,7 +197,7 @@ class DriverService
         }
 
         // Merge other config sections (overlay wins)
-        foreach (['audit', 'manifest', 'permissions', 'ui'] as $section) {
+        foreach (['audit', 'manifest', 'permissions', 'ui', 'scanner'] as $section) {
             if (isset($overlay[$section])) {
                 $result[$section] = array_merge($result[$section] ?? [], $overlay[$section]);
             }
@@ -316,6 +316,7 @@ class DriverService
             'manifest' => $data['manifest'] ?? null,
             'ui' => $data['ui'] ?? null,
             'form_flow_mapping' => FormFlowMappingData::fromArray($data['form_flow_mapping'] ?? null),
+            'scanner' => $data['scanner'] ?? null,
         ]);
     }
 

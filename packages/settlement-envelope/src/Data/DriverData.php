@@ -33,6 +33,7 @@ class DriverData extends Data
         public ?ManifestConfigData $manifest = null,
         public ?array $ui = null,
         public ?FormFlowMappingData $form_flow_mapping = null,
+        public ?array $scanner = null,
     ) {}
 
     public function getDriverKey(): string

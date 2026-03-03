@@ -28,6 +28,7 @@ fields:
     - name: device  # Auto-injected device UUID
       type: auto_device_id
       editable: false  # User cannot modify
+      hidden: true     # Not visible in kiosk UI
 
 # Callbacks
 callbacks:

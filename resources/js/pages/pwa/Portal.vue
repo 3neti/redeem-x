@@ -10,6 +10,16 @@ import PendingActionsCard from '@/components/pwa/PendingActionsCard.vue';
 import KioskView from '@/components/pwa/KioskView.vue';
 import { Wallet, Plus, AlertCircle } from 'lucide-vue-next';
 
+interface ScannerConfig {
+    enabled: boolean;
+    format: string;
+    buffer_timeout_ms: number;
+    field_mapping: Record<string, string>;
+    amount_key: string | null;
+    target_amount_key: string | null;
+    target_override: boolean;
+}
+
 interface SkinConfig {
     title?: string;
     subtitle?: string;
@@ -23,6 +33,7 @@ interface SkinConfig {
     payload?: string[];
     feedback?: string;
     ui?: Record<string, string>;
+    scanner?: ScannerConfig | null;
 }
 
 interface Props {
@@ -77,6 +88,18 @@ const getQueryParams = () => {
 };
 
 const queryParams = getQueryParams();
+
+// Read ?scan= param (JSON string for pre-filling fields)
+const initialScan = (() => {
+    const raw = queryParams.scan;
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        return typeof parsed === 'object' && parsed !== null ? parsed : null;
+    } catch {
+        return null;
+    }
+})();
 
 // Check if kiosk mode is active
 // Supports: ?skin=pos (generic) or ?skin=philhealth-bst (named skin)
@@ -141,6 +164,9 @@ const kioskConfig = computed(() => {
         retryButton: skin?.ui?.retry_button,
         themeColor: skin?.ui?.theme_color,
         logo: skin?.ui?.logo,
+        
+        // Scanner config from driver
+        scanner: skin?.scanner ?? null,
     };
 });
 </script>
@@ -152,6 +178,7 @@ const kioskConfig = computed(() => {
         :config="kioskConfig"
         :defaults="kioskDefaults"
         :campaign-data="campaignData"
+        :initial-scan="initialScan"
     />
 
     <!-- Normal Portal -->

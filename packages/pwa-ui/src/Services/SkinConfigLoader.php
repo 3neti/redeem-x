@@ -4,6 +4,7 @@ namespace LBHurtado\PwaUi\Services;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use LBHurtado\SettlementEnvelope\Services\DriverService;
 use Symfony\Component\Yaml\Yaml;
 
 class SkinConfigLoader
@@ -38,7 +39,40 @@ class SkinConfigLoader
         // Process the config
         $processed = $this->processConfig($config, $queryParams);
 
+        // Load scanner config from envelope driver (if driver specified)
+        $processed['scanner'] = $this->loadScannerConfig($processed['driver'] ?? null);
+
         return $processed;
+    }
+
+    /**
+     * Load scanner configuration from the envelope driver.
+     *
+     * The driver is the authority on scanner behavior — it defines
+     * the QR format, field mappings, and amount key bindings.
+     *
+     * @param string|null $driverRef Driver reference (e.g., "philhealth-bst@1.0.0")
+     * @return array|null Scanner config or null if not available
+     */
+    protected function loadScannerConfig(?string $driverRef): ?array
+    {
+        if (!$driverRef) {
+            return null;
+        }
+
+        try {
+            [$driverId, $driverVersion] = str_contains($driverRef, '@')
+                ? explode('@', $driverRef, 2)
+                : [$driverRef, '1.0.0'];
+
+            $driverService = app(DriverService::class);
+            $driver = $driverService->load($driverId, $driverVersion);
+
+            return $driver->scanner;
+        } catch (\Exception $e) {
+            // Driver not found or not installed — scanner not available
+            return null;
+        }
     }
 
     /**
@@ -232,6 +266,7 @@ class SkinConfigLoader
                     'editable' => $field['editable'] ?? true,
                     'required' => $field['required'] ?? false,
                     'placeholder' => $field['placeholder'] ?? null,
+                    'hidden' => $field['hidden'] ?? false,
                 ];
             }
         }
