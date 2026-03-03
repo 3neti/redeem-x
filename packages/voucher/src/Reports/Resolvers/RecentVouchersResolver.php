@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\Resolvers;
+namespace LBHurtado\Voucher\Reports\Resolvers;
 
 use LBHurtado\ReportRegistry\Contracts\ReportResolverInterface;
 use LBHurtado\Voucher\Models\Voucher;

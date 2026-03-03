@@ -79,6 +79,9 @@
         "lbhurtado/laravel-model-input": "dev-main",
         "3neti/settlement-envelope": "dev-main"
     },
+    "suggest": {
+        "lbhurtado/report-registry": "Required for built-in voucher report resolvers and YAML report drivers"
+    },
     "require-dev": {
         "orchestra/testbench": "^10.3",
         "pestphp/pest": "^3.8"

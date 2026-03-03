@@ -47,5 +47,12 @@ class VoucherServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/voucher-pipeline.php' => config_path('voucher-pipeline.php'),
         ], 'config');
+
+        // Conditionally publish report drivers when report-registry is installed
+        if (interface_exists(\LBHurtado\ReportRegistry\Contracts\ReportResolverInterface::class)) {
+            $this->publishes([
+                __DIR__.'/../resources/report-drivers' => storage_path('app/report-drivers'),
+            ], 'voucher-report-drivers');
+        }
     }
 }
