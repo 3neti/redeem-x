@@ -8,6 +8,7 @@ use App\Settings\VoucherSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use LBHurtado\ReportRegistry\Services\ReportExecutor;
 use LBHurtado\Voucher\Data\VoucherData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use LBHurtado\Voucher\Enums\VoucherType;
@@ -17,134 +18,43 @@ class PwaVoucherController extends Controller
     /**
      * Search vouchers across all pages by code prefix, respecting current filters.
      */
-    public function search(Request $request)
+    public function search(Request $request, ReportExecutor $executor)
     {
-        $user = $request->user();
-        $filter = $request->query('filter', 'all');
         $q = strtoupper(trim((string) $request->query('q', '')));
 
         if ($q === '') {
             return response()->json(['data' => []]);
         }
 
-        $query = $user->vouchers()->latest();
+        $filters = $this->translateFilter($request->query('filter', 'all'));
+        $filters['search'] = $q;
 
-        // Reuse same filter mapping as index()
-        match($filter) {
-            'active' => $query->where('state', 'active')->whereNull('redeemed_at'),
-            'redeemed' => $query->whereNotNull('redeemed_at'),
-            'expired' => $query->where(function($q2) {
-                $q2->where('expires_at', '<', now())
-                   ->where('state', 'active');
-            }),
-            'locked' => $query->where('state', 'locked'),
-            'cancelled' => $query->where('state', 'cancelled'),
-            'closed' => $query->where('state', 'closed'),
-            // Type filters
-            'type-redeemable' => $query->where('voucher_type', 'redeemable'),
-            'type-payable' => $query->where('voucher_type', 'payable'),
-            'type-settlement' => $query->where('voucher_type', 'settlement'),
-            default => null,
-        };
+        $result = $executor->resolveData(
+            'vouchers.list',
+            filters: $filters,
+            perPage: 20,
+        );
 
-        // Prefix match on code (codes are uppercase)
-        $query->where('code', 'like', $q.'%');
-
-        $vouchers = $query->limit(20)->get()->map(function ($voucher) {
-            // Helper to extract numeric amount from Money object or number
-            $extractAmount = function ($value) {
-                if (is_object($value) && method_exists($value, 'getAmount')) {
-                    return $value->getAmount()->toFloat();
-                }
-                return is_numeric($value) ? (float) $value : 0;
-            };
-
-            $amount = match($voucher->voucher_type->value) {
-                'payable' => $voucher->target_amount ?? 0,
-                'settlement' => $extractAmount($voucher->cash?->amount),
-                default => $extractAmount($voucher->cash?->amount),
-            };
-            $amountFloat = is_numeric($amount) ? (float) $amount : 0;
-
-            return [
-                'code' => $voucher->code,
-                'amount' => $amountFloat,
-                'target_amount' => $voucher->target_amount ? (float) $voucher->target_amount : null,
-                'voucher_type' => $voucher->voucher_type->value,
-                'currency' => $voucher->cash?->currency ?? 'PHP',
-                'status' => $voucher->display_status,
-                'state' => $voucher->state?->value,
-                'expires_at' => $voucher->expires_at?->toIso8601String(),
-                'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
-                'created_at' => $voucher->created_at->toIso8601String(),
-            ];
-        })->values();
-
-        return response()->json(['data' => $vouchers]);
+        return response()->json(['data' => $result['data']]);
     }
 
     /**
      * Display voucher list.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, ReportExecutor $executor): Response
     {
-        $user = $request->user();
         $filter = $request->query('filter', 'all');
+        $filters = $this->translateFilter($filter);
 
-        $query = $user->vouchers()->latest();
-
-        // Status filters
-        match($filter) {
-            'active' => $query->where('state', 'active')->whereNull('redeemed_at'),
-            'redeemed' => $query->whereNotNull('redeemed_at'),
-            'expired' => $query->where(function($q) {
-                $q->where('expires_at', '<', now())
-                  ->where('state', 'active');
-            }),
-            'locked' => $query->where('state', 'locked'),
-            'cancelled' => $query->where('state', 'cancelled'),
-            'closed' => $query->where('state', 'closed'),
-            // Type filters
-            'type-redeemable' => $query->where('voucher_type', 'redeemable'),
-            'type-payable' => $query->where('voucher_type', 'payable'),
-            'type-settlement' => $query->where('voucher_type', 'settlement'),
-            default => null, // 'all' - no filter
-        };
-
-        $vouchers = $query->paginate(20)->through(function ($voucher) {
-            // Helper to extract numeric amount from Money object or number
-            $extractAmount = function ($value) {
-                if (is_object($value) && method_exists($value, 'getAmount')) {
-                    // Money->getAmount() returns BigDecimal, use toFloat() for conversion
-                    return $value->getAmount()->toFloat();
-                }
-                return is_numeric($value) ? (float) $value : 0;
-            };
-            
-            // Determine amount based on voucher type
-            $amount = match($voucher->voucher_type->value) {
-                'payable' => $voucher->target_amount ?? 0,
-                'settlement' => $extractAmount($voucher->cash?->amount), // Show loan amount
-                default => $extractAmount($voucher->cash?->amount), // Redeemable
-            };
-            $amountFloat = is_numeric($amount) ? (float) $amount : 0;
-            
-            return [
-                'code' => $voucher->code,
-                'amount' => $amountFloat,
-                'target_amount' => $voucher->target_amount ? (float) $voucher->target_amount : null,
-                'voucher_type' => $voucher->voucher_type->value,
-                'currency' => $voucher->cash?->currency ?? 'PHP',
-                'status' => $voucher->display_status,
-                'state' => $voucher->state?->value,
-                'expires_at' => $voucher->expires_at?->toIso8601String(),
-                'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
-                'created_at' => $voucher->created_at->toIso8601String(),
-            ];
-        });
+        $result = $executor->resolveData(
+            'vouchers.list',
+            filters: $filters,
+            perPage: 20,
+            page: (int) $request->query('page', 1),
+        );
 
         return Inertia::render('pwa/Vouchers/Index', [
-            'vouchers' => $vouchers,
+            'vouchers' => $result,
             'filter' => $filter,
         ]);
     }
@@ -166,17 +76,18 @@ class PwaVoucherController extends Controller
                 // Money->getAmount() returns BigDecimal, use toFloat() for conversion
                 return $value->getAmount()->toFloat();
             }
+
             return is_numeric($value) ? (float) $value : 0;
         };
-        
+
         // Determine amount based on voucher type
-        $amount = match($voucher->voucher_type->value) {
+        $amount = match ($voucher->voucher_type->value) {
             'payable' => $voucher->target_amount ?? 0,
             'settlement' => $extractAmount($voucher->cash?->amount), // Show loan amount
             default => $extractAmount($voucher->cash?->amount), // Redeemable
         };
         $amountFloat = is_numeric($amount) ? (float) $amount : 0;
-        
+
         // Build comprehensive redemption summary from multiple sources
         $redemptionSummary = null;
         if ($voucher->isRedeemed()) {
@@ -207,35 +118,35 @@ class PwaVoucherController extends Controller
                 ])->toArray(),
             ];
         }
-        
+
         // Get wallet transactions for this voucher
         $walletTransactions = [];
         if ($voucher->cash && $voucher->cash->wallet) {
             $disbursementMeta = $voucher->metadata['disbursement'] ?? null;
             $redeemer = $voucher->redeemers->first();
             $contact = $redeemer?->redeemer;
-            
+
             $walletTransactions = $voucher->cash->wallet->transactions()
                 ->where(function ($query) use ($voucher) {
                     $query->whereJsonContains('meta->voucher_code', $voucher->code)
-                          ->orWhere(function ($q) use ($voucher) {
-                              // Redemption transactions for THIS voucher
-                              $q->where('type', 'withdraw')
+                        ->orWhere(function ($q) use ($voucher) {
+                            // Redemption transactions for THIS voucher
+                            $q->where('type', 'withdraw')
                                 ->whereJsonContains('meta->flow', 'redeem')
                                 ->whereJsonContains('meta->voucher_code', $voucher->code);
-                          })
-                          ->orWhere(function ($q) use ($voucher) {
-                              // Payment transactions for THIS voucher
-                              $q->where('type', 'deposit')
+                        })
+                        ->orWhere(function ($q) use ($voucher) {
+                            // Payment transactions for THIS voucher
+                            $q->where('type', 'deposit')
                                 ->whereJsonContains('meta->flow', 'pay')
                                 ->whereJsonContains('meta->voucher_code', $voucher->code);
-                          });
+                        });
                 })
                 ->latest()
                 ->get()
                 ->map(function ($tx) use ($disbursementMeta, $contact) {
                     $meta = $tx->meta ?? [];
-                    
+
                     // Enhance withdrawal (redemption) transactions with disbursement data
                     if ($tx->type === 'withdraw' && ($meta['flow'] ?? null) === 'redeem' && $disbursementMeta) {
                         $meta['recipient_name'] = $disbursementMeta['recipient_name'] ?? null;
@@ -244,12 +155,12 @@ class PwaVoucherController extends Controller
                         $meta['bank_name'] = $disbursementMeta['metadata']['bank_name'] ?? null;
                         $meta['settlement_rail'] = $disbursementMeta['settlement_rail'] ?? null;
                     }
-                    
+
                     // Add contact mobile if available
                     if ($contact && $contact->mobile) {
                         $meta['contact_mobile'] = $contact->mobile;
                     }
-                    
+
                     return [
                         'id' => $tx->id,
                         'uuid' => $tx->uuid,
@@ -262,7 +173,7 @@ class PwaVoucherController extends Controller
                     ];
                 })->toArray();
         }
-        
+
         $data = [
             'voucher' => [
                 'code' => $voucher->code,
@@ -279,7 +190,7 @@ class PwaVoucherController extends Controller
                 'locked_at' => $voucher->locked_at?->toIso8601String(),
                 'closed_at' => $voucher->closed_at?->toIso8601String(),
                 'redeem_url' => $this->buildRedemptionUrl($voucher),
-                
+
                 // Full voucher data for details sheet
                 'full_data' => array_merge(
                     VoucherData::fromModel($voucher)->toArray(),
@@ -316,7 +227,7 @@ class PwaVoucherController extends Controller
             $envelope = $voucher->envelope;
             if ($envelope) {
                 $envelope->load(['checklistItems', 'attachments', 'signals', 'auditLogs']);
-                
+
                 $data['envelope'] = [
                     'id' => $envelope->id,
                     'reference_code' => $envelope->reference_code,
@@ -329,7 +240,7 @@ class PwaVoucherController extends Controller
                     'gates_cache' => $envelope->gates_cache ?? [],
                     'created_at' => $envelope->created_at->toIso8601String(),
                     'updated_at' => $envelope->updated_at->toIso8601String(),
-                    
+
                     'status_helpers' => [
                         'can_edit' => $envelope->status->canEdit(),
                         'can_lock' => $envelope->status->canLock(),
@@ -338,7 +249,7 @@ class PwaVoucherController extends Controller
                         'can_reopen' => $envelope->status->canReopen(),
                         'is_terminal' => $envelope->status->isTerminal(),
                     ],
-                    
+
                     'computed_flags' => [
                         'required_present' => $envelope->computed_flags['required_present'] ?? false,
                         'required_accepted' => $envelope->computed_flags['required_accepted'] ?? false,
@@ -346,7 +257,7 @@ class PwaVoucherController extends Controller
                         'all_signals_satisfied' => $envelope->computed_flags['all_signals_satisfied'] ?? true,
                         'settleable' => $envelope->gates_cache['settleable'] ?? false,
                     ],
-                    
+
                     'checklist_items' => $envelope->checklistItems->map(fn ($item) => [
                         'id' => $item->id,
                         'key' => $item->key,
@@ -359,7 +270,7 @@ class PwaVoucherController extends Controller
                         'signal_key' => $item->signal_key,
                         'review_mode' => $item->review_mode,
                     ])->toArray(),
-                    
+
                     'signals' => $envelope->signals->map(fn ($signal) => [
                         'id' => $signal->id,
                         'key' => $signal->key,
@@ -370,7 +281,7 @@ class PwaVoucherController extends Controller
                         'signal_category' => $signal->driver_metadata['signal_category'] ?? null,
                         'system_settable' => $signal->driver_metadata['system_settable'] ?? false,
                     ])->toArray(),
-                    
+
                     'attachments' => $envelope->attachments->map(fn ($att) => [
                         'id' => $att->id,
                         'doc_type' => $att->doc_type,
@@ -381,7 +292,7 @@ class PwaVoucherController extends Controller
                         'url' => $att->file_path ? \Storage::disk($att->disk ?? 'public')->url($att->file_path) : null,
                         'created_at' => $att->created_at->toIso8601String(),
                     ])->toArray(),
-                    
+
                     'audit_logs' => $envelope->auditLogs->sortBy('id')->values()->map(fn ($log) => [
                         'id' => $log->id,
                         'action' => $log->action,
@@ -389,13 +300,29 @@ class PwaVoucherController extends Controller
                         'created_at' => $log->created_at->toIso8601String(),
                     ])->toArray(),
                 ];
-                
+
                 // Also add to full_data for VoucherDetailsSheet
                 $data['voucher']['full_data']['envelope'] = $data['envelope'];
             }
         }
-        
+
         return Inertia::render('pwa/Vouchers/Show', $data);
+    }
+
+    /**
+     * Translate the compound filter param into separate filter keys.
+     */
+    private function translateFilter(string $filter): array
+    {
+        if ($filter === 'all') {
+            return [];
+        }
+
+        if (str_starts_with($filter, 'type-')) {
+            return ['voucher_type' => substr($filter, 5)];
+        }
+
+        return ['status' => $filter];
     }
 
     /**
@@ -407,11 +334,9 @@ class PwaVoucherController extends Controller
         $baseUrl = rtrim(config('app.url'), '/');
         $code = $voucher->code;
 
-        $endpoint = match($voucher->voucher_type) {
-            VoucherType::PAYABLE, VoucherType::SETTLEMENT => 
-                $settings->default_settlement_endpoint,
-            default => 
-                $settings->default_redemption_endpoint,
+        $endpoint = match ($voucher->voucher_type) {
+            VoucherType::PAYABLE, VoucherType::SETTLEMENT => $settings->default_settlement_endpoint,
+            default => $settings->default_redemption_endpoint,
         };
 
         return "{$baseUrl}{$endpoint}?code={$code}";
@@ -423,26 +348,26 @@ class PwaVoucherController extends Controller
     public function create(Request $request): Response
     {
         $user = $request->user();
-        
+
         // Load user campaigns
         $campaigns = $user ? Campaign::where('user_id', $user->id)
             ->latest()
             ->get()
-            ->map(fn($campaign) => [
+            ->map(fn ($campaign) => [
                 'id' => $campaign->id,
                 'name' => $campaign->name,
                 'slug' => $campaign->slug,
                 'instructions' => $campaign->instructions->toArray(),
             ])
             ->toArray() : [];
-        
+
         // Load input field options from VoucherInputField enum
         $inputFieldOptions = VoucherInputField::options();
-        
+
         // Get wallet balance (in major currency - pesos)
         $walletBalance = $user ? (float) $user->balanceFloat : 0.0;
-        $formattedBalance = '₱' . number_format($walletBalance, 2);
-        
+        $formattedBalance = '₱'.number_format($walletBalance, 2);
+
         // Load envelope drivers
         $envelopeDrivers = [];
         try {
@@ -451,12 +376,13 @@ class PwaVoucherController extends Controller
             $envelopeDrivers = collect($driverList)->map(function ($item) use ($driverService) {
                 try {
                     $driver = $driverService->load($item['id'], $item['version']);
+
                     return [
                         'id' => $driver->id,
                         'version' => $driver->version,
                         'title' => $driver->title,
                         'description' => $driver->description,
-                        'key' => $driver->id . '@' . $driver->version, // For dropdown value
+                        'key' => $driver->id.'@'.$driver->version, // For dropdown value
                     ];
                 } catch (\Exception $e) {
                     return null;
@@ -465,7 +391,7 @@ class PwaVoucherController extends Controller
         } catch (\Exception $e) {
             // Silently fail if driver service unavailable
         }
-        
+
         return Inertia::render('pwa/Vouchers/Generate', [
             'campaigns' => $campaigns,
             'inputFieldOptions' => $inputFieldOptions,
@@ -551,6 +477,7 @@ class PwaVoucherController extends Controller
 
     /**
      * Invalidate a voucher (alias for cancel).
+     *
      * @deprecated Use cancel() instead
      */
     public function invalidate(Request $request, string $code)
@@ -576,11 +503,11 @@ class PwaVoucherController extends Controller
 
         // Calculate new expiration date
         $currentExpiration = $voucher->expires_at ?? now();
-        
+
         if ($validated['extension_type'] === 'date') {
             $newExpiration = \Carbon\Carbon::parse($validated['new_date']);
         } else {
-            $newExpiration = match($validated['extension_type']) {
+            $newExpiration = match ($validated['extension_type']) {
                 'hours' => $currentExpiration->addHours($validated['extension_value']),
                 'days' => $currentExpiration->addDays($validated['extension_value']),
                 'weeks' => $currentExpiration->addWeeks($validated['extension_value']),
