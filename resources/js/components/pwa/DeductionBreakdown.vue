@@ -43,7 +43,7 @@ interface DeductionData {
 
 interface Props {
   deductionData: DeductionData | null;
-  voucherStatus: string;
+  voucherStatus: string | null;
 }
 
 const props = defineProps<Props>();

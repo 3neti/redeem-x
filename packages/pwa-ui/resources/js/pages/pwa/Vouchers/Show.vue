@@ -34,6 +34,7 @@ interface Props {
         redeem_url: string;
         full_data?: any;
     };
+    input_field_options?: any[];
     settlement?: any;
     envelope?: any;
 }
@@ -353,6 +354,16 @@ const displayState = computed(() => {
     if (isExpired.value) return 'expired';
     return 'active';
 });
+
+const handlePaymentConfirmed = () => {
+    // Reload page data to reflect updated transaction list
+    router.reload({ only: ['voucher'], preserveScroll: true });
+    
+    toast({
+        title: 'Payment Confirmed',
+        description: 'The payment has been successfully confirmed',
+    });
+};
 </script>
 
 <template>
@@ -615,9 +626,9 @@ const displayState = computed(() => {
         <!-- Voucher Details Sheet -->
         <VoucherDetailsSheet
             v-model:open="showDetailsSheet"
-            :voucher-data="voucher"
-            :settlement="settlement"
-            :envelope="envelope"
+            :voucher-data="voucher.full_data || voucher"
+            :input-field-options="input_field_options || []"
+            @payment-confirmed="handlePaymentConfirmed"
         />
     </PwaLayout>
 </template>
