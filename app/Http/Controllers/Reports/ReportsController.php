@@ -110,7 +110,7 @@ class ReportsController extends Controller
                 'id' => $voucher->id,
                 'code' => $voucher->code,
                 'type' => $voucher->voucher_type,
-                'state' => $voucher->state,
+                'state' => $voucher->display_status,
                 'target_amount' => $voucher->target_amount,
                 'paid_total' => $voucher->getPaidTotal(),
                 'redeemed_total' => $voucher->getRedeemedTotal(),

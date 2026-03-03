@@ -44,7 +44,7 @@ class RecentVouchersResolver implements ReportResolverInterface
                 'code' => $voucher->code,
                 'amount' => $amount ? (string) $amount : '—',
                 'voucher_type' => $voucher->voucher_type?->value ?? '—',
-                'state' => $voucher->state?->value ?? '—',
+                'state' => $voucher->display_status,
                 'created_at' => $voucher->created_at?->format('Y-m-d H:i:s') ?? '—',
             ];
         })->toArray();

@@ -214,6 +214,40 @@ class Voucher extends BaseVoucher implements HasMedia, InputInterface
         return $this->expires_at && $this->expires_at->isPast();
     }
 
+    /**
+     * Computed display status — single source of truth.
+     *
+     * Priority: terminal states > redeemed > expired > pending > active.
+     */
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->state === VoucherState::CANCELLED) {
+            return 'cancelled';
+        }
+
+        if ($this->state === VoucherState::CLOSED) {
+            return 'closed';
+        }
+
+        if ($this->state === VoucherState::LOCKED) {
+            return 'locked';
+        }
+
+        if ($this->isRedeemed()) {
+            return 'redeemed';
+        }
+
+        if ($this->isExpired()) {
+            return 'expired';
+        }
+
+        if ($this->starts_at && $this->starts_at->isFuture()) {
+            return 'pending';
+        }
+
+        return 'active';
+    }
+
     // Computed Amount Methods (derived from wallet ledger)
 
     public function getPaidTotal(): float

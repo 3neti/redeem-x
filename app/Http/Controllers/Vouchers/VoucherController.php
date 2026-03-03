@@ -200,6 +200,7 @@ class VoucherController extends Controller
             $data['settlement'] = [
                 'type' => $voucher->voucher_type->value,
                 'state' => $voucher->state->value,
+                'display_status' => $voucher->display_status,
                 'target_amount' => $voucher->target_amount,
                 'paid_total' => $voucher->getPaidTotal(),
                 'redeemed_total' => $voucher->getRedeemedTotal(),

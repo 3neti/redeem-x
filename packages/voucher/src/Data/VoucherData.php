@@ -107,19 +107,7 @@ class VoucherData extends Data
      */
     protected static function computeStatus(VoucherModel $model): string
     {
-        if ($model->isRedeemed()) {
-            return 'redeemed';
-        }
-
-        if ($model->isExpired()) {
-            return 'expired';
-        }
-
-        if ($model->starts_at && $model->starts_at->isFuture()) {
-            return 'pending';
-        }
-
-        return 'active';
+        return $model->display_status;
     }
 
     /**
