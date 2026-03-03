@@ -99,6 +99,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./packages/report-registry",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -133,6 +140,7 @@
         "lbhurtado/voucher": "@dev",
         "lbhurtado/wallet": "@dev",
         "lbhurtado/messaging-bot": "@dev",
+        "lbhurtado/report-registry": "@dev",
         "league/flysystem-aws-s3-v3": "^3.29",
         "league/omnipay": "^3.2",
         "omnipay/common": "^3.1",

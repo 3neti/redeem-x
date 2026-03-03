@@ -76,6 +76,21 @@ return [
             'throw' => false,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Report Drivers Disk
+        |--------------------------------------------------------------------------
+        |
+        | Storage for report registry driver YAML files.
+        |
+        */
+
+        'report-drivers' => [
+            'driver' => 'local',
+            'root' => storage_path('app/report-drivers'),
+            'throw' => false,
+        ],
+
     ],
 
     /*

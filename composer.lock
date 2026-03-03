@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "96516441d901b088445f479b9c66cab9",
+    "content-hash": "145157c485ccd7f368797be36568d644",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -416,7 +416,7 @@
         },
         {
             "name": "3neti/pwa-ui",
-            "version": "dev-feature/messaging-bot",
+            "version": "dev-feature/report-registry-package",
             "dist": {
                 "type": "path",
                 "url": "./packages/pwa-ui",
@@ -3785,7 +3785,7 @@
         },
         {
             "name": "lbhurtado/messaging-bot",
-            "version": "dev-feature/messaging-bot",
+            "version": "dev-feature/report-registry-package",
             "dist": {
                 "type": "path",
                 "url": "./packages/messaging-bot",
@@ -3899,7 +3899,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/messaging-bot",
+            "version": "dev-feature/report-registry-package",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -4014,6 +4014,59 @@
                 }
             ],
             "description": "Payment Gateway",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/report-registry",
+            "version": "dev-feature/report-registry-package",
+            "dist": {
+                "type": "path",
+                "url": "./packages/report-registry",
+                "reference": "b21830cb45eec2349d398e6bedf6f32b3eea8bcb"
+            },
+            "require": {
+                "illuminate/database": "^11.0 || ^12.0",
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0",
+                "symfony/yaml": "^7.0",
+                "zordius/lightncandy": "^1.2"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^9.0 || ^10.0",
+                "pestphp/pest": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\ReportRegistry\\ReportRegistryServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\ReportRegistry\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\ReportRegistry\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Driver-based report registry with multi-format output and Handlebars templating",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12204,6 +12257,62 @@
                 "source": "https://github.com/workos/workos-php/tree/v4.29.0"
             },
             "time": "2025-12-03T20:21:28+00:00"
+        },
+        {
+            "name": "zordius/lightncandy",
+            "version": "v1.2.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zordius/lightncandy.git",
+                "reference": "b451f73e8b5c73e62e365997ba3c993a0376b72a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zordius/lightncandy/zipball/b451f73e8b5c73e62e365997ba3c993a0376b72a",
+                "reference": "b451f73e8b5c73e62e365997ba3c993a0376b72a",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.1.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": ">=7"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.2.5-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LightnCandy\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Zordius Chen",
+                    "email": "zordius@gmail.com"
+                }
+            ],
+            "description": "An extremely fast PHP implementation of handlebars ( http://handlebarsjs.com/ ) and mustache ( http://mustache.github.io/ ).",
+            "homepage": "https://github.com/zordius/lightncandy",
+            "keywords": [
+                "handlebars",
+                "logicless",
+                "mustache",
+                "php",
+                "template"
+            ],
+            "support": {
+                "issues": "https://github.com/zordius/lightncandy/issues",
+                "source": "https://github.com/zordius/lightncandy/tree/v1.2.6"
+            },
+            "time": "2021-07-11T04:52:41+00:00"
         }
     ],
     "packages-dev": [
@@ -15429,6 +15538,7 @@
         "lbhurtado/money-issuer": 20,
         "lbhurtado/omnichannel": 20,
         "lbhurtado/payment-gateway": 20,
+        "lbhurtado/report-registry": 20,
         "lbhurtado/voucher": 20,
         "lbhurtado/wallet": 20
     },
