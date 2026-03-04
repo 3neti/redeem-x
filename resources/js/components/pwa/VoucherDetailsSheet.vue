@@ -326,7 +326,7 @@ const formatCurrency = (amount: number) => {
                 <p class="text-sm text-muted-foreground">No settlement envelope attached</p>
               </div>
               
-              <div v-else class="space-y-4">
+              <div v-else-if="envelope" class="space-y-4">
                 <!-- Status Card with action buttons -->
                 <EnvelopeStatusCard :envelope="envelope" :show-actions="true">
                   <template #actions="{ canLock, canSettle, canCancel, canReopen, isTerminal }">
@@ -390,36 +390,36 @@ const formatCurrency = (amount: number) => {
                 
                 <!-- Checklist (full width on mobile) -->
                 <EnvelopeChecklistCard 
-                  v-if="envelope.checklist_items?.length" 
+                  v-if="envelope?.checklist_items?.length" 
                   :items="envelope.checklist_items" 
                 />
                 
                 <!-- Signals (full width on mobile, read-only) -->
                 <EnvelopeSignalsCard 
-                  v-if="envelope.signals?.length" 
+                  v-if="envelope?.signals?.length" 
                   :signals="envelope.signals"
-                  :blocking-signals="envelope.computed_flags?.blocking_signals ?? []"
+                  :blocking-signals="envelope?.computed_flags?.blocking_signals ?? []"
                   :readonly="true"
                 />
                 
                 <!-- Attachments (read-only, no upload button) -->
                 <EnvelopeAttachmentsCard 
-                  :attachments="envelope.attachments ?? []"
+                  :attachments="envelope?.attachments ?? []"
                   :readonly="true"
                 />
                 
                 <!-- Payload (read-only) -->
                 <EnvelopePayloadCard 
-                  :payload="envelope.payload || {}" 
-                  :version="envelope.payload_version"
-                  :context="envelope.context"
+                  :payload="envelope?.payload || {}" 
+                  :version="envelope?.payload_version ?? 0"
+                  :context="envelope?.context"
                   :voucher-code="voucherData.code"
                   :readonly="true"
                 />
                 
                 <!-- Audit Log -->
                 <EnvelopeAuditLog 
-                  v-if="envelope.audit_logs?.length" 
+                  v-if="envelope?.audit_logs?.length" 
                   :entries="envelope.audit_logs" 
                 />
               </div>

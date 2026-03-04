@@ -39,7 +39,7 @@ const statusIcons: Record<EnvelopeStatus, any> = {
 }
 
 const statusConfig = computed(() => {
-    const status = props.envelope.status
+    const status = props.envelope?.status ?? 'draft'
     const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft
     return {
         ...config,
@@ -48,21 +48,21 @@ const statusConfig = computed(() => {
 })
 
 const isSettleable = computed(() => 
-    props.envelope.computed_flags?.settleable ?? 
-    props.envelope.gates_cache?.settleable === true
+    props.envelope?.computed_flags?.settleable ?? 
+    props.envelope?.gates_cache?.settleable === true
 )
 
 // Computed flags from backend
-const requiredPresent = computed(() => props.envelope.computed_flags?.required_present ?? false)
-const requiredAccepted = computed(() => props.envelope.computed_flags?.required_accepted ?? false)
-const blockingSignals = computed(() => props.envelope.computed_flags?.blocking_signals ?? [])
+const requiredPresent = computed(() => props.envelope?.computed_flags?.required_present ?? false)
+const requiredAccepted = computed(() => props.envelope?.computed_flags?.required_accepted ?? false)
+const blockingSignals = computed(() => props.envelope?.computed_flags?.blocking_signals ?? [])
 
 // Status helpers from backend
-const canLock = computed(() => props.envelope.status_helpers?.can_lock ?? props.envelope.status === 'ready_to_settle')
-const canSettle = computed(() => props.envelope.status_helpers?.can_settle ?? props.envelope.status === 'locked')
-const canCancel = computed(() => props.envelope.status_helpers?.can_cancel ?? false)
-const canReopen = computed(() => props.envelope.status_helpers?.can_reopen ?? false)
-const isTerminal = computed(() => props.envelope.status_helpers?.is_terminal ?? ['settled', 'cancelled', 'rejected'].includes(props.envelope.status))
+const canLock = computed(() => props.envelope?.status_helpers?.can_lock ?? props.envelope?.status === 'ready_to_settle')
+const canSettle = computed(() => props.envelope?.status_helpers?.can_settle ?? props.envelope?.status === 'locked')
+const canCancel = computed(() => props.envelope?.status_helpers?.can_cancel ?? false)
+const canReopen = computed(() => props.envelope?.status_helpers?.can_reopen ?? false)
+const isTerminal = computed(() => props.envelope?.status_helpers?.is_terminal ?? ['settled', 'cancelled', 'rejected'].includes(props.envelope?.status ?? ''))
 
 const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-'
@@ -81,7 +81,7 @@ const formatDate = (dateStr?: string) => {
                     </Badge>
                 </div>
                 <CardDescription>
-                    Driver: {{ envelope.driver_id }}
+                    Driver: {{ envelope?.driver_id }}
                 </CardDescription>
             </div>
         </CardHeader>
@@ -119,22 +119,22 @@ const formatDate = (dateStr?: string) => {
             </div>
 
             <!-- Timestamps -->
-            <div v-if="envelope.locked_at || envelope.settled_at || envelope.cancelled_at || envelope.rejected_at" class="space-y-2 text-sm">
-                <div v-if="envelope.locked_at" class="flex justify-between">
+            <div v-if="envelope?.locked_at || envelope?.settled_at || envelope?.cancelled_at || envelope?.rejected_at" class="space-y-2 text-sm">
+                <div v-if="envelope?.locked_at" class="flex justify-between">
                     <span class="text-muted-foreground">Locked at</span>
-                    <span>{{ formatDate(envelope.locked_at) }}</span>
+                    <span>{{ formatDate(envelope?.locked_at) }}</span>
                 </div>
-                <div v-if="envelope.settled_at" class="flex justify-between">
+                <div v-if="envelope?.settled_at" class="flex justify-between">
                     <span class="text-muted-foreground">Settled at</span>
-                    <span>{{ formatDate(envelope.settled_at) }}</span>
+                    <span>{{ formatDate(envelope?.settled_at) }}</span>
                 </div>
-                <div v-if="envelope.cancelled_at" class="flex justify-between">
+                <div v-if="envelope?.cancelled_at" class="flex justify-between">
                     <span class="text-muted-foreground">Cancelled at</span>
-                    <span>{{ formatDate(envelope.cancelled_at) }}</span>
+                    <span>{{ formatDate(envelope?.cancelled_at) }}</span>
                 </div>
-                <div v-if="envelope.rejected_at" class="flex justify-between">
+                <div v-if="envelope?.rejected_at" class="flex justify-between">
                     <span class="text-muted-foreground">Rejected at</span>
-                    <span>{{ formatDate(envelope.rejected_at) }}</span>
+                    <span>{{ formatDate(envelope?.rejected_at) }}</span>
                 </div>
             </div>
 
