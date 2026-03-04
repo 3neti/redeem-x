@@ -393,8 +393,8 @@ class DisburseController extends Controller
         $dateDiff = $this->ogDateDiff($voucher, $status);
 
         return [
-            'title' => "Voucher {$voucher->code} — {$formattedAmount}",
-            'description' => "{$type} — {$dateDiff}",
+            'title' => "{$type} — {$dateDiff}",
+            'description' => "Voucher {$voucher->code} — {$formattedAmount}",
             'image' => url("/og/voucher/{$voucher->code}"),
             'url' => url("/disburse?code={$voucher->code}"),
         ];
