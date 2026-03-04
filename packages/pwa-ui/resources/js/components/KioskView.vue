@@ -8,10 +8,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle, AlertCircle, Printer, RotateCcw } from 'lucide-vue-next';
 import NumericKeypad from '@/components/NumericKeypad.vue';
+import { useDeviceInfo } from '@/composables/useDeviceInfo';
+import { useKioskHistory, type KioskHistoryEntry } from '@/composables/useKioskHistory';
+import RecentVoucherIndicator from '@/components/pwa/RecentVoucherIndicator.vue';
+import RecentVoucherDrawer from '@/components/pwa/RecentVoucherDrawer.vue';
 
 // ============================================================================
 // TYPES & PROPS
 // ============================================================================
+
+/**
+ * Payload field configuration
+ * Supports both string (backward compatible) and object formats
+ */
+interface PayloadFieldConfig {
+  name: string;
+  type?: 'text' | 'auto_device_id' | 'auto_device_metadata';
+  editable?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  hidden?: boolean;
+}
+
+interface ScannerConfig {
+  enabled: boolean;
+  format: string;
+  buffer_timeout_ms: number;
+  field_mapping: Record<string, string>;
+  amount_key: string | null;
+  target_amount_key: string | null;
+  target_override: boolean;
+}
 
 interface KioskConfig {
   title: string;
@@ -21,14 +48,18 @@ interface KioskConfig {
   amount?: number;
   targetAmount?: number;
   inputs?: string[];
-  payload?: string[];  // Payload fields to collect (e.g., ['reference', 'membership_id'])
+  payload?: (string | PayloadFieldConfig)[];  // Payload fields - string or object format
   feedback?: string;
   type?: 'redeemable' | 'payable' | 'settlement';
   // UI Labels (from skin config)
   amountLabel?: string;
   amountPlaceholder?: string;
+  amountKeypadTitle?: string;
   targetLabel?: string;
   targetPlaceholder?: string;
+  targetKeypadTitle?: string;
+  cardDescription?: string;
+  typeLabel?: string;  // Voucher type label (e.g., "BST", "Settlement")
   buttonText?: string;
   successTitle?: string;
   successMessage?: string;
@@ -38,6 +69,8 @@ interface KioskConfig {
   retryButton?: string;
   themeColor?: string;
   logo?: string;
+  // Scanner config from driver
+  scanner?: ScannerConfig | null;
 }
 
 interface IssuedVoucher {
@@ -51,11 +84,13 @@ interface Props {
   config: KioskConfig;
   defaults?: Record<string, string>;
   campaignData?: any;
+  initialScan?: Record<string, any> | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   defaults: () => ({}),
   campaignData: null,
+  initialScan: null,
 });
 
 // ============================================================================
@@ -71,16 +106,57 @@ const issuedVoucher = ref<IssuedVoucher | null>(null);
 const errorMessage = ref<string>('');
 const qrDataUrl = ref<string>('');
 
+// Device information composable
+const { getDeviceId, getDeviceInfo } = useDeviceInfo();
+
 // Payload fields state (dynamic key-value pairs)
 const payloadFields = ref<Record<string, string>>({});
 
+// ============================================================================
+// HELPER FUNCTIONS (must be declared before initPayloadFields)
+// ============================================================================
+
+/**
+ * Get field name from field config (string or object)
+ */
+const getFieldName = (fieldConfig: string | PayloadFieldConfig): string => {
+  return typeof fieldConfig === 'string' ? fieldConfig : fieldConfig.name;
+};
+
+/**
+ * Format payload field name to label (e.g., 'membership_id' -> 'Membership ID')
+ */
+const formatFieldLabel = (field: string): string => {
+  return field
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 // Initialize payload fields from config
 const initPayloadFields = () => {
-  if (props.config.payload) {
-    props.config.payload.forEach(field => {
-      payloadFields.value[field] = '';
-    });
-  }
+  if (!props.config.payload) return;
+
+  props.config.payload.forEach(fieldConfig => {
+    const fieldName = getFieldName(fieldConfig);
+    
+    // Auto-inject based on field type
+    if (typeof fieldConfig === 'object' && fieldConfig.type) {
+      switch (fieldConfig.type) {
+        case 'auto_device_id':
+          payloadFields.value[fieldName] = getDeviceId();
+          break;
+        case 'auto_device_metadata':
+          payloadFields.value[fieldName] = JSON.stringify(getDeviceInfo());
+          break;
+        default:
+          payloadFields.value[fieldName] = '';
+      }
+    } else {
+      // Default: empty string for manual entry
+      payloadFields.value[fieldName] = '';
+    }
+  });
 };
 initPayloadFields();
 
@@ -95,36 +171,55 @@ const showXRay = ref(false);
 // Scanner buffer
 const scanBuffer = ref('');
 const scanTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+const scanFeedback = ref<string | null>(null);
+const scanFeedbackTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+
+// History management
+const skinName = computed(() => {
+  // Extract skin name from URL or use default
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('skin') || 'default';
+});
+
+const {
+  history,
+  historyCount,
+  hasHistory,
+  addToHistory,
+  getRelativeTime,
+} = useKioskHistory(skinName.value);
+
+// History UI state
+const showHistoryDrawer = ref(false);
 
 // ============================================================================
 // COMPUTED - Merged Labels
 // ============================================================================
 
-// Labels are pre-processed by SkinConfigLoader with automatic placeholders
 const labels = computed(() => ({
-  title: props.config.title || 'Quick Voucher',
-  subtitle: props.config.subtitle || '',
-  amountLabel: props.config.ui?.amount_label || 'Amount',
-  amountPlaceholder: props.config.ui?.amount_placeholder || 'Enter amount',
-  amountKeypadTitle: props.config.ui?.amount_keypad_title || 'Enter Amount',
-  targetLabel: props.config.ui?.target_label || 'Target Amount',
-  targetPlaceholder: props.config.ui?.target_placeholder || 'Enter target amount',
-  targetKeypadTitle: props.config.ui?.target_keypad_title || 'Enter Target Amount',
-  buttonText: props.config.ui?.button_text || 'Issue Voucher',
-  successTitle: props.config.ui?.success_title || 'Voucher Issued!',
-  successMessage: props.config.ui?.success_message || 'Scan QR code to redeem',
-  printButton: props.config.ui?.print_button || 'Print',
-  newButton: props.config.ui?.new_button || 'Issue Another',
-  errorTitle: props.config.ui?.error_title || 'Error',
-  retryButton: props.config.ui?.retry_button || 'Try Again',
+  title: props.config.title || props.defaults.title || 'Quick Voucher',
+  subtitle: props.config.subtitle || props.defaults.subtitle || '',
+  cardDescription: props.config.cardDescription || props.defaults.card_description || null,
+  typeLabel: props.config.typeLabel || props.defaults.type_label || null,
+  amountLabel: props.config.amountLabel || props.defaults.amount_label || 'Amount',
+  amountPlaceholder: props.config.amountPlaceholder || props.defaults.amount_placeholder || 'Enter amount',
+  amountKeypadTitle: props.config.amountKeypadTitle || props.defaults.amount_keypad_title || 'Enter Amount',
+  targetLabel: props.config.targetLabel || props.defaults.target_label || 'Target Amount',
+  targetPlaceholder: props.config.targetPlaceholder || props.defaults.target_placeholder || 'Enter target amount',
+  targetKeypadTitle: props.config.targetKeypadTitle || props.defaults.target_keypad_title || 'Enter Target Amount',
+  buttonText: props.config.buttonText || props.defaults.button_text || 'Issue Voucher',
+  successTitle: props.config.successTitle || props.defaults.success_title || 'Voucher Issued!',
+  successMessage: props.config.successMessage || props.defaults.success_message || 'Scan QR code to redeem',
+  printButton: props.config.printButton || props.defaults.print_button || 'Print',
+  newButton: props.config.newButton || props.defaults.new_button || 'Issue Another',
+  errorTitle: props.config.errorTitle || props.defaults.error_title || 'Error',
+  retryButton: props.config.retryButton || props.defaults.retry_button || 'Try Again',
 }));
 
 // Determine voucher type
 const voucherType = computed(() => {
-  if (props.config.voucher_type) return props.config.voucher_type;
-  // BST = settlement with target_amount > 0
-  // BEAST = settlement with target_amount = 0
-  if (props.config.target_amount !== undefined) return 'settlement';
+  if (props.config.type) return props.config.type;
+  if (props.config.targetAmount !== undefined) return 'settlement';
   return 'redeemable';
 });
 
@@ -165,28 +260,70 @@ const canSubmit = computed(() => {
 
 // Type label for display
 const typeLabel = computed(() => {
-  if (voucherType.value === 'settlement') {
-    return targetAmount.value && targetAmount.value > 0 ? 'BST' : 'BEAST';
+  // Use configured label if provided
+  if (labels.value.typeLabel) {
+    return labels.value.typeLabel;
   }
+  
+  // Default: capitalize voucher type
   return voucherType.value.charAt(0).toUpperCase() + voucherType.value.slice(1);
 });
 
-// Format payload field name to label (e.g., 'membership_id' -> 'Membership ID')
-const formatFieldLabel = (field: string): string => {
-  return field
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+// ============================================================================
+// ADDITIONAL PAYLOAD FIELD HELPERS
+// ============================================================================
+
+/**
+ * Check if field is editable
+ */
+const isFieldEditable = (fieldConfig: string | PayloadFieldConfig): boolean => {
+  if (typeof fieldConfig === 'string') return true;
+  return fieldConfig.editable !== false;
 };
 
-// Check if all payload fields are filled
+/**
+ * Get field placeholder
+ */
+const getFieldPlaceholder = (fieldConfig: string | PayloadFieldConfig): string => {
+  if (typeof fieldConfig === 'string') {
+    return `Enter ${formatFieldLabel(fieldConfig)}`;
+  }
+  return fieldConfig.placeholder || `Enter ${formatFieldLabel(fieldConfig.name)}`;
+};
+
+/**
+ * Truncate long values for display
+ */
+const truncateValue = (value: string, maxLength: number = 40): string => {
+  if (!value || value.length <= maxLength) return value;
+  return value.slice(0, maxLength - 3) + '...';
+};
+
+/**
+ * Check if all required payload fields are filled
+ */
 const payloadFieldsFilled = computed(() => {
   if (!props.config.payload || props.config.payload.length === 0) return true;
-  return props.config.payload.every(field => payloadFields.value[field]?.trim());
+  
+  return props.config.payload.every(fieldConfig => {
+    const fieldName = getFieldName(fieldConfig);
+    const value = payloadFields.value[fieldName];
+    
+    // Auto-injected fields are always considered filled
+    if (typeof fieldConfig === 'object' && 
+        (fieldConfig.type === 'auto_device_id' || fieldConfig.type === 'auto_device_metadata')) {
+      return true;
+    }
+    
+    // Manual fields must have non-empty value
+    return value?.trim();
+  });
 });
 
 // X-Ray configuration data for debug panel
 const xRayData = computed(() => {
+  const { getDeviceId, isSessionOnly, STORAGE_KEY } = useDeviceInfo();
+  
   // Helper to filter out null/undefined/empty values
   const clean = (obj: Record<string, any>) => {
     const result: Record<string, any> = {};
@@ -216,6 +353,12 @@ const xRayData = computed(() => {
       inputs: props.config.inputs?.length ? props.config.inputs : undefined,
       payload: props.config.payload?.length ? props.config.payload : undefined,
     }),
+    payload_values: payloadFields.value,
+    device: {
+      device_id: getDeviceId(),
+      storage_key: STORAGE_KEY,
+      is_session_only: isSessionOnly(),
+    },
     callbacks: clean({
       feedback: props.config.feedback,
     }),
@@ -301,9 +444,10 @@ const handleSubmit = async () => {
     // Build payload from collected fields
     const collectedPayload: Record<string, string> = {};
     if (props.config.payload) {
-      props.config.payload.forEach(field => {
-        if (payloadFields.value[field]) {
-          collectedPayload[field] = payloadFields.value[field].trim();
+      props.config.payload.forEach(fieldConfig => {
+        const fieldName = getFieldName(fieldConfig);
+        if (payloadFields.value[fieldName]) {
+          collectedPayload[fieldName] = payloadFields.value[fieldName].trim();
         }
       });
     }
@@ -313,7 +457,7 @@ const handleSubmit = async () => {
       const [driverId, driverVersion] = props.config.driver.includes('@')
         ? props.config.driver.split('@')
         : [props.config.driver, '1.0.0'];
-      requestData.envelope = {
+      requestData.envelope_config = {
         enabled: true,
         driver_id: driverId,
         driver_version: driverVersion || '1.0.0',
@@ -335,8 +479,10 @@ const handleSubmit = async () => {
 
     const response = await axios.post('/api/v1/vouchers', requestData, { headers });
 
-    if (response.data.success && response.data.data?.length > 0) {
-      const voucher = response.data.data[0];
+    console.log('API Response:', response.data);
+
+    if (response.data.data?.vouchers?.length > 0) {
+      const voucher = response.data.data.vouchers[0];
       issuedVoucher.value = {
         code: voucher.code,
         amount: voucher.amount,
@@ -347,13 +493,42 @@ const handleSubmit = async () => {
       // Generate QR code
       await generateQrCode(issuedVoucher.value.redemption_url);
 
+      // Add to history (localStorage persistence)
+      addToHistory(
+        issuedVoucher.value.code,
+        issuedVoucher.value.amount,
+        issuedVoucher.value.formatted_amount,
+        issuedVoucher.value.redemption_url,
+        qrDataUrl.value
+      );
+
       state.value = 'issued';
     } else {
       throw new Error(response.data.message || 'Failed to issue voucher');
     }
   } catch (err: any) {
     console.error('Voucher issuance failed:', err);
-    errorMessage.value = err.response?.data?.message || err.message || 'An error occurred';
+    console.log('Error response:', err.response);
+    console.log('Error response data:', err.response?.data);
+    
+    // Build error message with field-specific details if available
+    let message = err.response?.data?.message || err.message || 'An error occurred';
+    
+    // If there are validation errors, append them
+    if (err.response?.data?.errors) {
+      const fieldErrors = Object.entries(err.response.data.errors)
+        .map(([field, messages]: [string, any]) => {
+          const errorList = Array.isArray(messages) ? messages : [messages];
+          return errorList.join(', ');
+        })
+        .join('; ');
+      
+      if (fieldErrors) {
+        message = `${message}\n\n${fieldErrors}`;
+      }
+    }
+    
+    errorMessage.value = message;
     state.value = 'error';
   }
 };
@@ -372,20 +547,104 @@ const handleReset = () => {
   if (!props.config.targetAmount) {
     targetAmount.value = null;
   }
-  // Reset payload fields
-  if (props.config.payload) {
-    props.config.payload.forEach(field => {
-      payloadFields.value[field] = '';
-    });
-  }
+  // Re-initialize payload fields (preserves auto-injection)
+  initPayloadFields();
+  
   issuedVoucher.value = null;
   qrDataUrl.value = '';
   errorMessage.value = '';
 };
 
 // ============================================================================
+// HISTORY HANDLERS
+// ============================================================================
+
+const handleOpenHistory = () => {
+  showHistoryDrawer.value = true;
+};
+
+const handleShowQR = (voucher: KioskHistoryEntry) => {
+  // Reuse the existing issued state display
+  issuedVoucher.value = {
+    code: voucher.code,
+    amount: voucher.amount,
+    formatted_amount: voucher.formatted_amount,
+    redemption_url: voucher.redemption_url,
+  };
+  qrDataUrl.value = voucher.qr_data_url;
+  
+  // Close drawer and show issued state
+  showHistoryDrawer.value = false;
+  state.value = 'issued';
+};
+
+// ============================================================================
 // SCANNER SUPPORT
 // ============================================================================
+
+// Resolved scanner config from driver
+const scannerConfig = computed(() => props.config.scanner ?? null);
+const scannerEnabled = computed(() => scannerConfig.value?.enabled ?? false);
+const bufferTimeout = computed(() => scannerConfig.value?.buffer_timeout_ms ?? 100);
+
+/**
+ * Show brief scan feedback indicator
+ */
+const showScanFeedback = (message: string) => {
+  if (scanFeedbackTimeout.value) clearTimeout(scanFeedbackTimeout.value);
+  scanFeedback.value = message;
+  scanFeedbackTimeout.value = setTimeout(() => {
+    scanFeedback.value = null;
+  }, 2000);
+};
+
+/**
+ * Process a scanned JSON payload using driver field_mapping
+ */
+const processJsonScan = (data: Record<string, any>): boolean => {
+  const config = scannerConfig.value;
+  if (!config) return false;
+
+  let fieldsPopulated = 0;
+
+  // Map QR keys to payload fields via driver field_mapping
+  if (config.field_mapping) {
+    for (const [qrKey, payloadField] of Object.entries(config.field_mapping)) {
+      if (data[qrKey] !== undefined && payloadField in payloadFields.value) {
+        payloadFields.value[payloadField] = String(data[qrKey]);
+        fieldsPopulated++;
+      }
+    }
+  }
+
+  // Also map any direct matches (QR key matches payload field name)
+  for (const [key, value] of Object.entries(data)) {
+    if (key in payloadFields.value && value !== undefined) {
+      payloadFields.value[key] = String(value);
+      fieldsPopulated++;
+    }
+  }
+
+  // Handle target_amount from QR
+  if (config.target_amount_key && data[config.target_amount_key] !== undefined) {
+    const scannedTarget = Number(data[config.target_amount_key]);
+    if (!isNaN(scannedTarget) && scannedTarget > 0) {
+      targetAmount.value = scannedTarget;
+      fieldsPopulated++;
+    }
+  }
+
+  // Handle amount from QR
+  if (config.amount_key && data[config.amount_key] !== undefined) {
+    const scannedAmount = Number(data[config.amount_key]);
+    if (!isNaN(scannedAmount) && scannedAmount > 0) {
+      amount.value = scannedAmount;
+      fieldsPopulated++;
+    }
+  }
+
+  return fieldsPopulated > 0;
+};
 
 const handleKeydown = (event: KeyboardEvent) => {
   // Only capture in input state
@@ -396,8 +655,39 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Scanner typically sends rapid keystrokes ending with Enter
   if (event.key === 'Enter' && scanBuffer.value) {
-    // Process scanned value
-    const scanned = parseInt(scanBuffer.value, 10);
+    const raw = scanBuffer.value;
+    scanBuffer.value = '';
+
+    // If driver scanner is enabled, try JSON parsing first
+    if (scannerEnabled.value) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null) {
+          if (processJsonScan(parsed)) {
+            showScanFeedback('\u2713 QR Scanned');
+            return;
+          }
+        }
+      } catch {
+        // Not JSON — fall through to other strategies
+      }
+
+      // Plain string fallback: fill first empty editable payload field
+      if (raw && !/^\d+$/.test(raw)) {
+        const emptyField = props.config.payload?.find(fc => {
+          const name = getFieldName(fc);
+          return isFieldEditable(fc) && !payloadFields.value[name]?.trim();
+        });
+        if (emptyField) {
+          payloadFields.value[getFieldName(emptyField)] = raw;
+          showScanFeedback('\u2713 Scanned');
+          return;
+        }
+      }
+    }
+
+    // Numeric fallback (original behavior)
+    const scanned = parseInt(raw, 10);
     if (!isNaN(scanned) && scanned > 0) {
       if (showTargetField.value && !targetAmount.value) {
         targetAmount.value = scanned;
@@ -405,19 +695,82 @@ const handleKeydown = (event: KeyboardEvent) => {
         amount.value = scanned;
       }
     }
-    scanBuffer.value = '';
     return;
   }
 
-  // Capture digits
-  if (/^\d$/.test(event.key)) {
+  // Capture characters into scan buffer
+  // Driver scanner enabled: capture all printable characters (for JSON)
+  // Default: capture digits only (original behavior)
+  const isCapturableChar = scannerEnabled.value
+    ? event.key.length === 1  // All printable characters
+    : /^\d$/.test(event.key); // Digits only
+
+  if (isCapturableChar) {
     scanBuffer.value += event.key;
 
-    // Clear buffer after 100ms of no input
+    // Clear buffer after timeout of no input
     if (scanTimeout.value) clearTimeout(scanTimeout.value);
     scanTimeout.value = setTimeout(() => {
       scanBuffer.value = '';
-    }, 100);
+    }, bufferTimeout.value);
+  }
+};
+
+/**
+ * Handle paste events — some scanners paste content directly,
+ * and this also enables testing by pasting JSON into the page.
+ */
+const handlePaste = (event: ClipboardEvent) => {
+  if (state.value !== 'input') return;
+  if (!scannerEnabled.value) return;
+
+  const pasted = event.clipboardData?.getData('text')?.trim();
+  if (!pasted) return;
+
+  const isFocusedOnInput = document.activeElement?.tagName === 'INPUT';
+
+  // Try JSON parse — intercept even when focused on an input
+  try {
+    const parsed = JSON.parse(pasted);
+    if (typeof parsed === 'object' && parsed !== null) {
+      if (processJsonScan(parsed)) {
+        event.preventDefault();
+        // Blur the input so the cursor doesn't stay in the field
+        if (isFocusedOnInput) (document.activeElement as HTMLElement)?.blur();
+        showScanFeedback('\u2713 QR Scanned');
+        return;
+      }
+    }
+  } catch {
+    // Not JSON — let normal paste proceed if focused on input
+  }
+
+  // If focused on an input, let the browser handle non-JSON paste normally
+  if (isFocusedOnInput) return;
+
+  event.preventDefault();
+
+  // Plain string fallback: fill first empty editable payload field
+  if (pasted && !/^\d+$/.test(pasted)) {
+    const emptyField = props.config.payload?.find(fc => {
+      const name = getFieldName(fc);
+      return isFieldEditable(fc) && !payloadFields.value[name]?.trim();
+    });
+    if (emptyField) {
+      payloadFields.value[getFieldName(emptyField)] = pasted;
+      showScanFeedback('\u2713 Scanned');
+      return;
+    }
+  }
+
+  // Numeric fallback
+  const scanned = parseInt(pasted, 10);
+  if (!isNaN(scanned) && scanned > 0) {
+    if (showTargetField.value && !targetAmount.value) {
+      targetAmount.value = scanned;
+    } else if (showAmountField.value) {
+      amount.value = scanned;
+    }
   }
 };
 
@@ -427,15 +780,25 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
+  window.addEventListener('paste', handlePaste);
 
   // Pre-fill from config
   if (props.config.amount) amount.value = props.config.amount;
   if (props.config.targetAmount) targetAmount.value = props.config.targetAmount;
+
+  // Process ?scan= query param if present
+  if (props.initialScan && scannerEnabled.value) {
+    if (processJsonScan(props.initialScan)) {
+      showScanFeedback('\u2713 Pre-filled from URL');
+    }
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('paste', handlePaste);
   if (scanTimeout.value) clearTimeout(scanTimeout.value);
+  if (scanFeedbackTimeout.value) clearTimeout(scanFeedbackTimeout.value);
 });
 </script>
 
@@ -467,51 +830,86 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Scan Feedback Toast -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      leave-active-class="transition-all duration-300 ease-in"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div v-if="scanFeedback" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium">
+        {{ scanFeedback }}
+      </div>
+    </Transition>
+
     <!-- Main Content -->
     <main class="flex-1 flex items-center justify-center p-4">
       <!-- INPUT STATE -->
       <Card v-if="state === 'input'" class="w-full max-w-md print:hidden">
         <CardHeader class="text-center">
           <CardTitle>{{ labels.title }}</CardTitle>
-          <CardDescription v-if="typeLabel">{{ typeLabel }} Voucher</CardDescription>
+          <CardDescription v-if="labels.cardDescription || typeLabel">
+            {{ labels.cardDescription || `${typeLabel} Voucher` }}
+          </CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <!-- Amount Field -->
           <div v-if="showAmountField" class="space-y-2">
             <Label>{{ labels.amountLabel }}</Label>
             <div
-              class="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+              class="flex items-center justify-center p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
               @click="openAmountKeypad"
             >
-              <span class="text-2xl font-bold">
+              <span class="text-2xl font-bold text-center">
                 {{ amount ? `₱${amount.toLocaleString()}` : labels.amountPlaceholder }}
               </span>
             </div>
           </div>
 
-          <!-- Target Amount Field (for BST/Settlement) -->
+          <!-- Target Amount Field (for Settlement) -->
           <div v-if="showTargetField" class="space-y-2">
             <Label>{{ labels.targetLabel }}</Label>
             <div
-              class="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+              class="flex items-center justify-center p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
               @click="openTargetKeypad"
             >
-              <span class="text-2xl font-bold">
+              <span class="text-2xl font-bold text-center">
                 {{ targetAmount ? `₱${targetAmount.toLocaleString()}` : labels.targetPlaceholder }}
               </span>
             </div>
           </div>
 
           <!-- Payload Fields (dynamic text inputs) -->
-          <div v-for="field in config.payload" :key="field" class="space-y-2">
-            <Label :for="field">{{ formatFieldLabel(field) }}</Label>
-            <Input
-              :id="field"
-              v-model="payloadFields[field]"
-              :placeholder="`Enter ${formatFieldLabel(field).toLowerCase()}`"
-              class="h-12 text-lg"
-            />
-          </div>
+          <template v-for="fieldConfig in config.payload" :key="getFieldName(fieldConfig)">
+            <!-- Hidden fields: still in data, not rendered -->
+            <template v-if="typeof fieldConfig === 'object' && fieldConfig.hidden" />
+
+            <!-- Editable Field -->
+            <div v-else-if="isFieldEditable(fieldConfig)" class="space-y-2">
+              <Label :for="getFieldName(fieldConfig)">{{ formatFieldLabel(getFieldName(fieldConfig)) }}</Label>
+              <Input
+                :id="getFieldName(fieldConfig)"
+                v-model="payloadFields[getFieldName(fieldConfig)]"
+                :placeholder="getFieldPlaceholder(fieldConfig)"
+                class="h-12 text-lg text-center"
+              />
+            </div>
+            
+            <!-- Readonly Auto-Injected Field -->
+            <div v-else class="space-y-2">
+              <Label class="text-muted-foreground">{{ formatFieldLabel(getFieldName(fieldConfig)) }}</Label>
+              <div class="p-3 bg-muted rounded-lg border border-dashed">
+                <p class="text-sm font-mono text-center break-all">
+                  {{ truncateValue(payloadFields[getFieldName(fieldConfig)]) }}
+                </p>
+                <p class="text-xs text-muted-foreground text-center mt-1">
+                  Auto-generated device identifier
+                </p>
+              </div>
+            </div>
+          </template>
 
           <!-- Submit Button -->
           <Button
@@ -579,7 +977,7 @@ onUnmounted(() => {
           <AlertCircle class="h-16 w-16 mx-auto text-destructive" />
           <div>
             <h2 class="text-2xl font-bold text-destructive">{{ labels.errorTitle }}</h2>
-            <p class="text-muted-foreground mt-2">{{ errorMessage }}</p>
+            <p class="text-muted-foreground mt-2 whitespace-pre-line">{{ errorMessage }}</p>
           </div>
           <Button class="w-full" @click="handleReset">
             <RotateCcw class="mr-2 h-4 w-4" />
@@ -606,6 +1004,19 @@ onUnmounted(() => {
       :model-value="targetAmount"
       :min="1"
       @confirm="confirmTarget"
+    />
+
+    <!-- History Components -->
+    <RecentVoucherIndicator
+      :count="historyCount"
+      @open="handleOpenHistory"
+    />
+
+    <RecentVoucherDrawer
+      v-model:open="showHistoryDrawer"
+      :vouchers="history"
+      :get-relative-time="getRelativeTime"
+      @show-qr="handleShowQR"
     />
   </div>
 </template>
