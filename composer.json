@@ -11,98 +11,98 @@
     "repositories": [
         {
             "type": "path",
-            "url": "./packages/cash",
+            "url": "./monorepo-packages/cash",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/contact",
+            "url": "./monorepo-packages/contact",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/model-channel",
+            "url": "./monorepo-packages/model-channel",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/model-input",
+            "url": "./monorepo-packages/model-input",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/money-issuer",
+            "url": "./monorepo-packages/money-issuer",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/omnichannel",
+            "url": "./monorepo-packages/omnichannel",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/payment-gateway",
+            "url": "./monorepo-packages/payment-gateway",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/voucher",
+            "url": "./monorepo-packages/voucher",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/wallet",
+            "url": "./monorepo-packages/wallet",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/merchant",
+            "url": "./monorepo-packages/merchant",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/settlement-envelope",
+            "url": "./monorepo-packages/settlement-envelope",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/pwa-ui",
+            "url": "./monorepo-packages/pwa-ui",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/messaging-bot",
+            "url": "./monorepo-packages/messaging-bot",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "./packages/report-registry",
+            "url": "./monorepo-packages/report-registry",
             "options": {
                 "symlink": true
             }

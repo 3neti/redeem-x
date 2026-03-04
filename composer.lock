@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "145157c485ccd7f368797be36568d644",
+    "content-hash": "5f634b2155ec8fc881e1e9f520a70e26",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -419,7 +419,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/pwa-ui",
+                "url": "./monorepo-packages/pwa-ui",
                 "reference": "1076be8ec1629375ee7461c015660f1fabfe33f6"
             },
             "require": {
@@ -460,7 +460,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/settlement-envelope",
+                "url": "./monorepo-packages/settlement-envelope",
                 "reference": "214651602921dc449e30e2bcc312c2a613bfa1e9"
             },
             "require": {
@@ -3369,7 +3369,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/cash",
+                "url": "./monorepo-packages/cash",
                 "reference": "9181f2b9ab9158c148f6828f0fc704ca3660eab9"
             },
             "require": {
@@ -3494,7 +3494,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/contact",
+                "url": "./monorepo-packages/contact",
                 "reference": "aaea500375b2e0aaab8eb26368a738bf4692d15f"
             },
             "require": {
@@ -3620,7 +3620,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/model-channel",
+                "url": "./monorepo-packages/model-channel",
                 "reference": "7321b2c0e1d2976841585260cbdb6476f0c37a1a"
             },
             "require": {
@@ -3674,7 +3674,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/model-input",
+                "url": "./monorepo-packages/model-input",
                 "reference": "20758b737bb42e78449d18465cdcf439b78ade69"
             },
             "require": {
@@ -3729,7 +3729,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/merchant",
+                "url": "./monorepo-packages/merchant",
                 "reference": "5c07761189e3e7bb95ed15d3a6c4b8241b8a5c72"
             },
             "require": {
@@ -3788,7 +3788,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/messaging-bot",
+                "url": "./monorepo-packages/messaging-bot",
                 "reference": "c24390b0c2cd6fa6508a49eec85b1f0d98db7dc5"
             },
             "require": {
@@ -3843,7 +3843,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/money-issuer",
+                "url": "./monorepo-packages/money-issuer",
                 "reference": "41c234454701d79f5c60dec5ad54cf146cbeec10"
             },
             "require": {
@@ -3902,7 +3902,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/omnichannel",
+                "url": "./monorepo-packages/omnichannel",
                 "reference": "de47659c368210ded6245440dd54348bf28b4025"
             },
             "require": {
@@ -3957,7 +3957,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/payment-gateway",
+                "url": "./monorepo-packages/payment-gateway",
                 "reference": "9b58003cdd27f9fbadd19e75052ee792792bca1a"
             },
             "require": {
@@ -4024,7 +4024,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/report-registry",
+                "url": "./monorepo-packages/report-registry",
                 "reference": "b21830cb45eec2349d398e6bedf6f32b3eea8bcb"
             },
             "require": {
@@ -4140,7 +4140,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/voucher",
+                "url": "./monorepo-packages/voucher",
                 "reference": "4df4bbddb8c6bbc20e31e5c1cf18cc87b70f4676"
             },
             "require": {
@@ -4208,7 +4208,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "./packages/wallet",
+                "url": "./monorepo-packages/wallet",
                 "reference": "aba048d63e1acf6d067799ee645fc528719d28e4"
             },
             "require": {
