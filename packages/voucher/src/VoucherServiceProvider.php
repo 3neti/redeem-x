@@ -25,6 +25,13 @@ class VoucherServiceProvider extends ServiceProvider
             __DIR__.'/../config/voucher-pipeline.php',
             'voucher-pipeline'
         );
+
+        // Register report driver source path (used by report:install-drivers)
+        if (interface_exists(\LBHurtado\ReportRegistry\Contracts\ReportResolverInterface::class)) {
+            $sources = $this->app['config']->get('report-registry.driver_sources', []);
+            $sources[] = __DIR__.'/../resources/report-drivers';
+            $this->app['config']->set('report-registry.driver_sources', $sources);
+        }
     }
 
     /**
@@ -48,11 +55,5 @@ class VoucherServiceProvider extends ServiceProvider
             __DIR__.'/../config/voucher-pipeline.php' => config_path('voucher-pipeline.php'),
         ], 'config');
 
-        // Conditionally publish report drivers when report-registry is installed
-        if (interface_exists(\LBHurtado\ReportRegistry\Contracts\ReportResolverInterface::class)) {
-            $this->publishes([
-                __DIR__.'/../resources/report-drivers' => storage_path('app/report-drivers'),
-            ], 'voucher-report-drivers');
-        }
     }
 }

@@ -3,6 +3,7 @@
 namespace LBHurtado\ReportRegistry;
 
 use Illuminate\Support\ServiceProvider;
+use LBHurtado\ReportRegistry\Console\InstallDriversCommand;
 use LBHurtado\ReportRegistry\Console\ListReportsCommand;
 use LBHurtado\ReportRegistry\Console\RunReportCommand;
 use LBHurtado\ReportRegistry\Formatters\CsvFormatter;
@@ -49,6 +50,7 @@ class ReportRegistryServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
+                InstallDriversCommand::class,
                 ListReportsCommand::class,
                 RunReportCommand::class,
             ]);

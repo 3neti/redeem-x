@@ -39,6 +39,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Driver Sources
+    |--------------------------------------------------------------------------
+    |
+    | Absolute paths to directories containing report driver YAML files.
+    | Packages register their paths here during service provider registration.
+    | The report:install-drivers command copies from these sources to the
+    | driver_disk storage.
+    |
+    */
+
+    'driver_sources' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Template Path
     |--------------------------------------------------------------------------
     |
