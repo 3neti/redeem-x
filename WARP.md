@@ -224,6 +224,8 @@ npm run dev          # Development with HMR
 **Production URL**: `https://redeem-x.laravel.cloud`
 **Environment**: `main` (PHP 8.4, Node 22, push-to-deploy, hibernation enabled)
 
+**Full reference:** `.ai/guidelines/cloud-operations.md` (REST API examples, CLI commands, environment IDs, logging architecture)
+
 ### Quick Setup
 ```bash
 # 1. Set your API token (get from https://cloud.laravel.com/org/settings/api-tokens)

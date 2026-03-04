@@ -19,6 +19,15 @@ This directory contains custom AI guidelines for the Redeem-X digital voucher re
 
 ## Guidelines Structure
 
+### Cloud Operations
+
+#### [`cloud-operations.md`](cloud-operations.md)
+Laravel Cloud integration reference:
+- Three access methods: Makefile targets, Cloud CLI, REST API (with curl examples)
+- Environment IDs, configuration, and logging architecture
+- Common AI agent workflows: debugging, deploying, setting env vars, running remote commands
+- Key files: `Makefile`, `.cloud/config.json`, `config/logging.php`
+
 ### Domain Knowledge (`redeem-x/`)
 Core business logic and system architecture:
 
