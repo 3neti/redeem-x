@@ -416,7 +416,7 @@
         },
         {
             "name": "3neti/pwa-ui",
-            "version": "dev-feature/report-registry-package",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/pwa-ui",
@@ -3785,7 +3785,7 @@
         },
         {
             "name": "lbhurtado/messaging-bot",
-            "version": "dev-feature/report-registry-package",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/messaging-bot",
@@ -3899,7 +3899,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-feature/report-registry-package",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/omnichannel",
@@ -4021,7 +4021,7 @@
         },
         {
             "name": "lbhurtado/report-registry",
-            "version": "dev-feature/report-registry-package",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./packages/report-registry",
@@ -4141,7 +4141,7 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/voucher",
-                "reference": "9f0b09817d0ad419c096e4cf6d72180e45613241"
+                "reference": "4df4bbddb8c6bbc20e31e5c1cf18cc87b70f4676"
             },
             "require": {
                 "3neti/settlement-envelope": "dev-main",
@@ -4160,6 +4160,9 @@
             "require-dev": {
                 "orchestra/testbench": "^10.3",
                 "pestphp/pest": "^3.8"
+            },
+            "suggest": {
+                "lbhurtado/report-registry": "Required for built-in voucher report resolvers and YAML report drivers"
             },
             "type": "library",
             "extra": {
