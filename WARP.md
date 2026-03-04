@@ -219,6 +219,70 @@ npm run build:ssr    # Build with SSR support
 npm run dev          # Development with HMR
 ```
 
+## Cloud Operations (Laravel Cloud)
+
+**Production URL**: `https://redeem-x.laravel.cloud`
+**Environment**: `main` (PHP 8.4, Node 22, push-to-deploy, hibernation enabled)
+
+### Quick Setup
+```bash
+# 1. Set your API token (get from https://cloud.laravel.com/org/settings/api-tokens)
+export LARAVEL_CLOUD_TOKEN=<your-token>
+
+# 2. (Optional) Install the Cloud CLI for interactive use
+composer global require laravel/cloud-cli
+cloud auth
+cloud repo:config  # Link this repo to the Cloud app
+```
+
+### Makefile Targets
+All cloud operations are available via `make`. Run `make` or `make cloud-help` for the full list.
+
+```bash
+# Status & monitoring
+make cloud-status        # Environment status (running/hibernating, PHP, domain)
+make cloud-logs          # Application logs (last 30 min)
+make cloud-access        # Access logs (last 30 min)
+make cloud-errors        # Error-level logs only
+make cloud-deploys       # Recent deployment history
+make cloud-env           # List environment variable keys
+
+# Remote commands
+make cloud-cmd CMD="cache:clear"      # Run any artisan command
+make cloud-cmd CMD="migrate --force"  # Run migrations
+make cloud-clear                      # Clear all caches
+
+# Deployment
+make cloud-deploy        # Trigger deployment manually
+
+# Compound
+make cloud-debug         # Quick triage: status + recent errors
+
+# Adjust time window (default: 30 minutes)
+make cloud-logs MINUTES=60
+make cloud-errors MINUTES=120
+```
+
+### Common Workflows
+
+**Production is returning 500:**
+```bash
+make cloud-debug                    # Check status + errors
+make cloud-logs MINUTES=5           # Narrow to last 5 min
+make cloud-cmd CMD="route:list"     # Verify routes loaded
+```
+
+**After deploying a new feature:**
+```bash
+make cloud-deploys                  # Verify deployment succeeded
+make cloud-errors MINUTES=10        # Watch for new errors
+```
+
+**Clear caches after config change:**
+```bash
+make cloud-clear                    # Clears cache, config, route, view
+```
+
 ## Testing & Automation
 
 The project includes comprehensive test commands, shell scripts, and integrations for automated testing.
