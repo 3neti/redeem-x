@@ -48,30 +48,32 @@ This is the HTML template rendered to a PNG via Cloudflare Browser Rendering in 
 
 - **Dimensions**: 1200×630px (OG standard — required by Facebook, WhatsApp, iMessage)
 - **Format**: Full HTML document with `<html>`, `<head>`, `<body>`
-- **Styling**: Tailwind CSS via CDN, Inter font via Google Fonts
+- **Styling**: Tailwind CSS via CDN, Inter font (400/600/700/900) via Google Fonts
 
 ### Layout Structure
 
+Centered, full-width layout — the voucher code is the dominant element:
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│  60px padding — status-colored background               │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │  White card (rounded)                             │  │
-│  │  ┌─────────────────────┐  ┌────────────────────┐  │  │
-│  │  │  LEFT COLUMN        │  │  RIGHT COLUMN      │  │  │
-│  │  │  (flex-1)           │  │  (400px, optional)  │  │  │
-│  │  │                     │  │                     │  │  │
-│  │  │  App Name (gray)    │  │  {!! $splashHtml !!}│  │  │
-│  │  │  Headline (5xl)     │  │  (raw HTML)         │  │  │
-│  │  │  Subtitle (4xl)     │  │                     │  │  │
-│  │  │  [STATUS BADGE]     │  │                     │  │  │
-│  │  │  Message (gray)     │  │                     │  │  │
-│  │  │                     │  │                     │  │  │
-│  │  │  Tagline (sm gray)  │  │                     │  │  │
-│  │  └─────────────────────┘  └────────────────────┘  │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  48px padding — status-colored background             │
+│  ┌────────────────────────────────────────────────┐  │
+│  │                                                │  │
+│  │  REDEEM-X (small, gray, top-left)              │  │
+│  │                                                │  │
+│  │            ║   R2PQ   ║                        │  │
+│  │               ₱50.00                           │  │
+│  │       [REDEEMABLE]  [CASH]                     │  │
+│  │                                                │  │
+│  │                                                │  │
+│  └────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
 ```
+
+- **Code**: 7xl font-black, centered, flanked by `║` parallel line decorators (gray-200, font-thin)
+- **Amount**: 4xl font-semibold, gray-700, centered below code
+- **Badges**: Pill-shaped (`rounded-full`), side by side. Type badge (gray-100 bg, gray-500 text) + Payee badge (gray-700 bg, white text)
+- **App name**: Absolute positioned top-left, sm uppercase tracking-wider, gray-300
 
 ### Template Variables
 
@@ -80,12 +82,11 @@ This is the HTML template rendered to a PNG via Cloudflare Browser Rendering in 
 | `$bgColor` | string | CSS `rgb()` for outer background (from status config) |
 | `$badgeColor` | string | CSS `rgb()` for status badge (from status config) |
 | `$appName` | string | App name shown top-left |
-| `$headline` | string | Large text (e.g. voucher code) |
-| `$subtitle` | ?string | Secondary text (e.g. amount) |
-| `$status` | string | Status label for badge (uppercased in template) |
-| `$message` | ?string | Descriptive text below badge |
-| `$tagline` | ?string | Bottom text (e.g. "Tap to redeem") |
-| `$splashHtml` | string | Raw HTML for right column (empty string if none) |
+| `$headline` | string | Large centered text (e.g. voucher code) |
+| `$subtitle` | ?string | Secondary centered text (e.g. amount) |
+| `$status` | string | Drives background color (not rendered as badge) |
+|| `$payeeBadge` | ?string | Payee badge label (e.g. vendor alias, mobile, "CASH") |
+| `$typeBadge` | ?string | Type badge label (e.g. "redeemable", "payable") |
 
 ### Status Colors
 
@@ -100,31 +101,12 @@ Colors are defined as RGB arrays in `config/og-meta.php` and converted to CSS `r
 
 Unknown statuses fall back to neutral gray.
 
-### Splash HTML Guidelines
-
-The right column renders `{!! $splashHtml !!}` — unescaped HTML that appears as-is in the rendered image.
-
-- **Self-contained**: Must not depend on host app assets or JavaScript
-- **Tailwind classes**: Available via CDN loaded in the template
-- **External images**: Use `<img src="https://...">` with absolute URLs
-- **Width limit**: Container is 400px wide with `overflow-hidden`
-- **No JS execution**: Cloudflare renders the page but complex JS may not execute reliably — keep it HTML/CSS
-
-Example splash HTML stored in a voucher's `rider->splash`:
-```html
-<div class="text-center">
-    <img src="https://placekitten.com/400/300" class="rounded-lg mx-auto max-w-full" />
-    <h2 class="text-xl font-bold mt-4">Für Anaïs</h2>
-    <p class="text-gray-500 mt-1">une autre vie, <span class="text-red-500 font-mono">cushla machr</span></p>
-</div>
-```
-
 ### Customization Rules
 
 1. **Keep 1200×630**: Social platforms expect this aspect ratio. Deviating causes cropping.
 2. **Delete cached PNGs** after template changes — images are cached on disk.
 3. **Fonts**: Change the `@import` URL in `<style>` for different Google Fonts.
-4. **Test locally**: Render the Blade view in a browser via a temporary route, or generate via `curl` and view the PNG.
+4. **Test locally**: Generate via `curl -o test.png http://app.test/og/{key}/{id}` and view the PNG.
 
 ## OgMetaData DTO
 
@@ -142,14 +124,17 @@ Example splash HTML stored in a voucher's `rider->splash`:
 | `imageUrl` | `?string` | `og:image` — auto-set by `OgMetaService` if null |
 | `cacheKey` | `?string` | Image cache filename segment (e.g. voucher code) |
 | `httpMaxAge` | `?int` | `Cache-Control` max-age in seconds (null = infinite) |
-| `message` | `?string` | Text below the status badge |
+| `message` | `?string` | Text below the status badge (GD mode) |
 | `overlayImage` | `?string` | Base64-encoded image for GD mode (right side) |
-| `splashHtml` | `?string` | Raw HTML for screenshot mode (right column) |
+| `splashHtml` | `?string` | Raw HTML for screenshot mode (reserved for future use) |
+| `typeBadge` | `?string` | Secondary badge label (e.g. "redeemable", "payable") |
+|| `payeeBadge` | `?string` | Payee badge label (e.g. vendor alias, mobile, "CASH") |
 
 **Renderer-specific fields**:
 - `overlayImage` is only used in GD mode — the renderer composites it onto the canvas
-- `splashHtml` is only used in screenshot mode — passed to `card.blade.php`
-- A resolver can populate both for dual-mode support
+- `typeBadge` renders as a gray pill badge in screenshot mode
+- `payeeBadge` renders as a dark pill badge next to the type badge in screenshot mode
+- A resolver can populate fields for both rendering modes
 
 ## Creating a Resolver
 

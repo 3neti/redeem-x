@@ -78,9 +78,8 @@ class OgImageRenderer
             'headline' => $data->headline,
             'subtitle' => $data->subtitle,
             'status' => $data->status,
-            'message' => $data->message,
-            'tagline' => $data->tagline,
-            'splashHtml' => $data->splashHtml ?? '',
+            'typeBadge' => $data->typeBadge,
+            'payeeBadge' => $data->payeeBadge,
         ])->render();
 
         $width = config('og-meta.dimensions.width', 1200);

@@ -47,6 +47,12 @@ class OgMetaData extends Data
 
         /** Raw HTML rendered natively on the image card (screenshot mode) */
         public ?string $splashHtml = null,
+
+        /** Secondary badge label on the image card (e.g. 'redeemable', 'payable') */
+        public ?string $typeBadge = null,
+
+        /** Payee badge label on the image card (e.g. vendor alias, mobile, 'CASH') */
+        public ?string $payeeBadge = null,
     ) {}
 
     /**

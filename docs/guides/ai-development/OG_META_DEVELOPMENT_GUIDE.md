@@ -59,22 +59,23 @@ otherwise                 → 'active'
 
 | OgMetaData field | Source |
 |-----------------|--------|
-| `title` | Voucher type + relative date (e.g. "Redeemable: Expires in 3 days") |
-| `description` | Rider message (active), disbursement summary (redeemed), or expiry text |
+| `title` | `rider->message` or default per status ("Click to redeem", "This voucher has been redeemed", etc.) |
+| `description` | `"{Type} voucher — {amount}"` (e.g. "Redeemable voucher — ₱50.00") |
 | `headline` | Voucher code (e.g. `R2PQ`) |
 | `subtitle` | Formatted amount (e.g. `₱50.00`) |
-| `tagline` | Per-status text ("Tap to redeem", "This voucher has been redeemed", etc.) |
-| `message` | `rider->message` (free text from voucher creator) |
-| `splashHtml` | `rider->splash` — raw HTML passed directly to card template |
-| `overlayImage` | Extracted from `rider->splash` via regex (`<img src>` → download → base64) for GD fallback |
+|| `typeBadge` | Voucher type value ("redeemable", "payable", "settlement") |
+|| `payeeBadge` | Payee: `cash.validation.payable` → `cash.validation.mobile` → `"CASH"` |
 | `httpMaxAge` | 600s for active/pending, 604800s (7 days) for redeemed/expired |
 | `cacheKey` | Voucher code |
 
-### Dual-Mode Support
+Fields not used: `tagline`, `message`, `splashHtml`, `overlayImage` (set to null).
 
-The resolver populates both `splashHtml` and `overlayImage` so the card works in either rendering mode:
-- **Screenshot mode**: `splashHtml` renders the full HTML natively (images, styled text, Tailwind)
-- **GD mode**: `overlayImage` composites a single extracted image on the right side
+### Card Layout
+
+The card is a centered, code-dominant design:
+- `║ CODE ║` — voucher code as the largest element, flanked by parallel line decorators
+- Amount centered below
+- Two pill badges: type (gray) and payee (dark gray)
 
 ## Testing OG Images Locally
 
