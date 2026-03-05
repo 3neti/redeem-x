@@ -18,7 +18,7 @@ use Laravel\Pennant\Feature;
 
 Route::prefix('pay')->name('pay.')->middleware(['web'])->group(function () {
     // Pay page (public UI)
-    Route::get('/', [PayVoucherController::class, 'index'])->name('index');
+    Route::get('/', [PayVoucherController::class, 'index'])->middleware('og-meta:pay')->name('index');
 
     // Quote endpoint - validate voucher and get payment details
     Route::post('quote', [PayVoucherController::class, 'quote'])

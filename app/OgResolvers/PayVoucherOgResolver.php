@@ -9,7 +9,7 @@ use LBHurtado\OgMeta\Data\OgMetaData;
 use LBHurtado\OgMeta\Resolvers\ModelOgResolver;
 use LBHurtado\Voucher\Models\Voucher;
 
-class VoucherOgResolver extends ModelOgResolver
+class PayVoucherOgResolver extends ModelOgResolver
 {
     protected string $model = Voucher::class;
 
@@ -23,8 +23,9 @@ class VoucherOgResolver extends ModelOgResolver
     {
         /** @var Voucher $model */
         $status = $this->resolveStatus($model);
-        $type = $model->voucher_type?->value ?? 'redeemable';
-        $subtitle = $this->resolveSubtitle($model, $type);
+        $type = $model->voucher_type?->value ?? 'payable';
+        $target = $model->instructions->target_amount ?? $model->instructions->cash->amount ?? 0;
+        $formattedTarget = '₱'.number_format((float) $target, 2);
 
         $rider = $model->instructions->rider;
         $validation = $model->instructions->cash->validation;
@@ -32,11 +33,11 @@ class VoucherOgResolver extends ModelOgResolver
 
         return new OgMetaData(
             title: $rider->message ?? $this->defaultTitle($status),
-            description: ucfirst($type).' voucher — '.$subtitle,
+            description: ucfirst($type).' voucher — '.$formattedTarget,
             status: $status,
             headline: $model->code,
-            subtitle: $subtitle,
-            url: url("/disburse?code={$model->code}"),
+            subtitle: $formattedTarget,
+            url: url("/pay?code={$model->code}"),
             cacheKey: $model->code,
             httpMaxAge: $this->cacheTtl($status),
             typeBadge: $type,
@@ -46,13 +47,13 @@ class VoucherOgResolver extends ModelOgResolver
 
     private function resolveStatus(Voucher $voucher): string
     {
-        if ($voucher->isRedeemed()) {
-            return 'redeemed';
+        if ($voucher->isClosed()) {
+            return 'redeemed'; // fully paid — reuse gray styling
         }
         if ($voucher->isExpired()) {
             return 'expired';
         }
-        if ($voucher->starts_at && $voucher->starts_at->isFuture()) {
+        if (! $voucher->canAcceptPayment()) {
             return 'pending';
         }
 
@@ -62,10 +63,10 @@ class VoucherOgResolver extends ModelOgResolver
     private function defaultTitle(string $status): string
     {
         return match ($status) {
-            'redeemed' => 'This voucher has been redeemed',
+            'redeemed' => 'This voucher has been fully paid',
             'expired' => 'This voucher has expired',
-            'pending' => 'This voucher is not yet active',
-            default => 'Click to redeem',
+            'pending' => 'This voucher cannot accept payments',
+            default => 'Pay this voucher',
         };
     }
 
@@ -76,19 +77,4 @@ class VoucherOgResolver extends ModelOgResolver
             default => 600, // 10 minutes
         };
     }
-
-    private function resolveSubtitle(Voucher $voucher, string $type): string
-    {
-        $fmt = fn (float $v) => '₱'.number_format($v, 2);
-
-        $amount = $voucher->instructions->cash->amount ?? 0;
-        $target = $voucher->instructions->target_amount;
-
-        return match ($type) {
-            'payable' => $fmt((float) ($target ?? $amount)),
-            'settlement' => $fmt((float) $amount).' → '.$fmt((float) ($target ?? $amount)),
-            default => $fmt((float) $amount),
-        };
-    }
-
 }

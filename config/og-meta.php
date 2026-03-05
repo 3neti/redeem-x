@@ -6,6 +6,7 @@ return [
 
     'resolvers' => [
         'disburse' => \App\OgResolvers\VoucherOgResolver::class,
+        'pay' => \App\OgResolvers\PayVoucherOgResolver::class,
     ],
 
 ];

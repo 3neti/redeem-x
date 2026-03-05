@@ -32,13 +32,14 @@ return [
 
     'resolvers' => [
         'disburse' => \App\OgResolvers\VoucherOgResolver::class,
+        'pay'      => \App\OgResolvers\PayVoucherOgResolver::class,
     ],
 ];
 ```
 
-The `'disburse'` key means:
-- Image URL: `GET /og/disburse/{CODE}`
-- Middleware parameter: `og-meta:disburse`
+Resolver keys become URL segments and middleware parameters:
+- `'disburse'` → Image: `GET /og/disburse/{CODE}`, Middleware: `og-meta:disburse`
+- `'pay'` → Image: `GET /og/pay/{CODE}`, Middleware: `og-meta:pay`
 
 ## VoucherOgResolver — Working Example
 
@@ -76,6 +77,41 @@ The card is a centered, code-dominant design:
 - `║ CODE ║` — voucher code as the largest element, flanked by parallel line decorators
 - Amount centered below
 - Two pill badges: type (gray) and payee (dark gray)
+
+## PayVoucherOgResolver — Pay Endpoint
+
+**File**: `app/OgResolvers/PayVoucherOgResolver.php`
+
+This resolver maps voucher data to OG card fields for the `/pay?code={code}` endpoint (payable/settlement vouchers).
+
+### Status Resolution
+
+```
+isClosed()                → 'redeemed' (fully paid)
+isExpired()               → 'expired'
+!canAcceptPayment()       → 'pending'
+otherwise                 → 'active'
+```
+
+### Field Mapping
+
+| OgMetaData field | Source |
+|-----------------|--------|
+| `title` | `rider->message` or default per status ("Pay this voucher", "This voucher has been fully paid", etc.) |
+| `description` | `"{Type} voucher — ₱{target_amount}"` |
+| `headline` | Voucher code |
+| `subtitle` | Formatted target amount (e.g. `₱1,000.00`) |
+| `typeBadge` | Voucher type value ("payable", "settlement") |
+| `payeeBadge` | Payee: `cash.validation.payable` → `cash.validation.mobile` → `"CASH"` |
+| `httpMaxAge` | 600s for active/pending, 604800s (7 days) for closed/expired |
+| `cacheKey` | Voucher code |
+
+### Testing
+
+```bash
+curl -o /tmp/og_pay.png http://redeem-x.test/og/pay/CODE
+open /tmp/og_pay.png
+```
 
 ## Testing OG Images Locally
 
@@ -118,7 +154,8 @@ rm -rf storage/app/public/og/
    ```php
    'resolvers' => [
        'disburse' => \App\OgResolvers\VoucherOgResolver::class,
-       'pay'      => \App\OgResolvers\PaymentOgResolver::class, // new
+       'pay'      => \App\OgResolvers\PayVoucherOgResolver::class,
+       'invoice'  => \App\OgResolvers\InvoiceOgResolver::class, // example
    ],
    ```
 3. Add middleware to the route:
