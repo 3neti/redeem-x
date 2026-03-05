@@ -11,10 +11,6 @@ Route::get('/health', function () {
     return app(\App\Actions\Api\System\GetHealth::class)->simple();
 })->name('health.simple');
 
-// Dynamic OG image for voucher link previews (WhatsApp, iMessage, Viber)
-Route::get('/og/voucher/{code}', [\App\Http\Controllers\OgImageController::class, 'voucher'])
-    ->name('og.voucher');
-
 // Public QR load page (no authentication required)
 Route::get('/load/{uuid}', \App\Http\Controllers\Wallet\LoadPublicController::class)
     ->name('load.public');

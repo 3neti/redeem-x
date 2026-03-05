@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Disburse;
 
-use App\Actions\Voucher\GenerateVoucherOgImage;
 use App\Actions\Voucher\ProcessRedemption;
 use App\Events\FormFlowCompleted;
 use App\Http\Controllers\Controller;
@@ -100,12 +99,9 @@ class DisburseController extends Controller
             }
         }
 
-        // Build OG meta tags for link preview (WhatsApp, iMessage, Viber)
-        $ogData = $this->buildOgData($code);
-
         return Inertia::render('disburse/Start', [
             'initial_code' => old('code', $code),
-        ])->withViewData(['og' => $ogData]);
+        ]);
     }
 
     /**
@@ -354,75 +350,6 @@ class DisburseController extends Controller
                 ],
             ],
         ]);
-    }
-
-    /**
-     * Build Open Graph meta data for link previews.
-     */
-    private function buildOgData(?string $code): array
-    {
-        $appName = config('app.name', 'RedeemX');
-        $baseUrl = config('app.url');
-
-        // Default OG data when no code or voucher not found
-        $default = [
-            'title' => "{$appName} — Redeem Your Voucher",
-            'description' => 'Enter your voucher code to redeem.',
-            'image' => url('/og/voucher/default'),
-            'url' => url('/disburse'),
-        ];
-
-        if (! $code) {
-            return $default;
-        }
-
-        $voucher = Voucher::where('code', strtoupper(trim($code)))->first();
-
-        if (! $voucher) {
-            return $default;
-        }
-
-        $amount = $voucher->instructions->cash->amount ?? 0;
-        $formattedAmount = '₱'.number_format((float) $amount, 2);
-        $status = $this->resolveOgStatus($voucher);
-
-        // Pre-generate OG image so it's ready when crawler fetches it
-        GenerateVoucherOgImage::run($voucher);
-
-        $type = ucfirst($voucher->voucher_type?->value ?? 'redeemable');
-        $dateDiff = $this->ogDateDiff($voucher, $status);
-
-        return [
-            'title' => "{$type}: {$dateDiff}",
-            'description' => "Voucher {$voucher->code} — {$formattedAmount}",
-            'image' => url("/og/voucher/{$voucher->code}"),
-            'url' => url("/disburse?code={$voucher->code}"),
-        ];
-    }
-
-    private function resolveOgStatus(Voucher $voucher): string
-    {
-        if ($voucher->isRedeemed()) {
-            return 'redeemed';
-        }
-        if ($voucher->isExpired()) {
-            return 'expired';
-        }
-        if ($voucher->starts_at && $voucher->starts_at->isFuture()) {
-            return 'pending';
-        }
-
-        return 'active';
-    }
-
-    private function ogDateDiff(Voucher $voucher, string $status): string
-    {
-        return match ($status) {
-            'redeemed' => 'Redeemed '.$voucher->redeemed_at?->diffForHumans() ?? 'already',
-            'expired' => 'Expired '.$voucher->expires_at?->diffForHumans() ?? 'already',
-            'pending' => 'Starts '.$voucher->starts_at?->diffForHumans() ?? 'soon',
-            default => 'Created '.$voucher->created_at->diffForHumans(),
-        };
     }
 
     /**

@@ -10,20 +10,9 @@ import PendingActionsCard from '@/components/pwa/PendingActionsCard.vue';
 import KioskView from '@/components/pwa/KioskView.vue';
 import { Wallet, Plus, AlertCircle } from 'lucide-vue-next';
 
-interface ScannerConfig {
-    enabled: boolean;
-    format: string;
-    buffer_timeout_ms: number;
-    field_mapping: Record<string, string>;
-    amount_key: string | null;
-    target_amount_key: string | null;
-    target_override: boolean;
-}
-
 interface SkinConfig {
     title?: string;
     subtitle?: string;
-    card_description?: string;
     voucher_type?: string;
     campaign?: string;
     driver?: string;
@@ -33,7 +22,6 @@ interface SkinConfig {
     payload?: string[];
     feedback?: string;
     ui?: Record<string, string>;
-    scanner?: ScannerConfig | null;
 }
 
 interface Props {
@@ -89,18 +77,6 @@ const getQueryParams = () => {
 
 const queryParams = getQueryParams();
 
-// Read ?scan= param (JSON string for pre-filling fields)
-const initialScan = (() => {
-    const raw = queryParams.scan;
-    if (!raw) return null;
-    try {
-        const parsed = JSON.parse(raw);
-        return typeof parsed === 'object' && parsed !== null ? parsed : null;
-    } catch {
-        return null;
-    }
-})();
-
 // Check if kiosk mode is active
 // Supports: ?skin=pos (generic) or ?skin=philhealth-bst (named skin)
 const isKiosk = computed(() => {
@@ -121,7 +97,6 @@ const kioskConfig = computed(() => {
         // Identity
         title: queryParams.title || skin?.title || props.kioskDefaults?.title || 'Quick Voucher',
         subtitle: queryParams.subtitle || skin?.subtitle || props.kioskDefaults?.subtitle,
-        cardDescription: queryParams.card_description || skin?.card_description,
         
         // Voucher config
         campaign: queryParams.campaign || skin?.campaign,
@@ -146,15 +121,12 @@ const kioskConfig = computed(() => {
         
         // Type
         type: (queryParams.type || skin?.voucher_type || 'settlement') as 'redeemable' | 'payable' | 'settlement',
-        typeLabel: queryParams.type_label || skin?.ui?.type_label,
         
         // UI Labels (query params > skin UI > defaults)
         amountLabel: queryParams.amount_label || skin?.ui?.amount_label,
         amountPlaceholder: skin?.ui?.amount_placeholder,
-        amountKeypadTitle: queryParams.amount_keypad_title || skin?.ui?.amount_keypad_title,
-        targetLabel: queryParams.target_label || skin?.ui?.target_label,
+        targetLabel: skin?.ui?.target_label,
         targetPlaceholder: skin?.ui?.target_placeholder,
-        targetKeypadTitle: queryParams.target_keypad_title || skin?.ui?.target_keypad_title,
         buttonText: queryParams.button_text || skin?.ui?.button_text,
         successTitle: queryParams.success_title || skin?.ui?.success_title,
         successMessage: queryParams.success_message || skin?.ui?.success_message,
@@ -164,9 +136,6 @@ const kioskConfig = computed(() => {
         retryButton: skin?.ui?.retry_button,
         themeColor: skin?.ui?.theme_color,
         logo: skin?.ui?.logo,
-        
-        // Scanner config from driver
-        scanner: skin?.scanner ?? null,
     };
 });
 </script>
@@ -178,7 +147,6 @@ const kioskConfig = computed(() => {
         :config="kioskConfig"
         :defaults="kioskDefaults"
         :campaign-data="campaignData"
-        :initial-scan="initialScan"
     />
 
     <!-- Normal Portal -->

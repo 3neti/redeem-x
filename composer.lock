@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5f634b2155ec8fc881e1e9f520a70e26",
+    "content-hash": "fa7faec7ec38f55fb10b58473f5e9b49",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -416,7 +416,7 @@
         },
         {
             "name": "3neti/pwa-ui",
-            "version": "dev-main",
+            "version": "dev-feature/og-meta-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/pwa-ui",
@@ -3785,7 +3785,7 @@
         },
         {
             "name": "lbhurtado/messaging-bot",
-            "version": "dev-main",
+            "version": "dev-feature/og-meta-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/messaging-bot",
@@ -3898,8 +3898,51 @@
             }
         },
         {
+            "name": "lbhurtado/og-meta",
+            "version": "dev-feature/og-meta-package",
+            "dist": {
+                "type": "path",
+                "url": "./monorepo-packages/og-meta",
+                "reference": "6c147dc44bc4090bcdf71bbf1fbdefaf5df338ac"
+            },
+            "require": {
+                "illuminate/http": "^11.0 || ^12.0",
+                "illuminate/routing": "^11.0 || ^12.0",
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\OgMeta\\OgMetaServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\OgMeta\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Service-centric Open Graph meta tag generation with resolver-based architecture",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
+            "version": "dev-feature/og-meta-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/omnichannel",
@@ -4021,7 +4064,7 @@
         },
         {
             "name": "lbhurtado/report-registry",
-            "version": "dev-main",
+            "version": "dev-feature/og-meta-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/report-registry",
@@ -15539,6 +15582,7 @@
         "lbhurtado/merchant": 20,
         "lbhurtado/messaging-bot": 20,
         "lbhurtado/money-issuer": 20,
+        "lbhurtado/og-meta": 20,
         "lbhurtado/omnichannel": 20,
         "lbhurtado/payment-gateway": 20,
         "lbhurtado/report-registry": 20,

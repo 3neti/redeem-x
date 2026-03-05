@@ -24,8 +24,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('disburse')->name('disburse.')->group(function () {
-    // Start: Enter voucher code
-    Route::get('/', [DisburseController::class, 'start'])->name('start');
+    // Start: Enter voucher code (og-meta middleware auto-injects OG tags for link previews)
+    Route::get('/', [DisburseController::class, 'start'])->middleware('og-meta:disburse')->name('start');
 
     // Callback after flow completion (does not redeem)
     Route::post('/{voucher:code}/complete', [DisburseController::class, 'complete'])->name('complete');
