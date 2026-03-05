@@ -7,6 +7,7 @@ namespace App\OgResolvers;
 use Illuminate\Database\Eloquent\Model;
 use LBHurtado\OgMeta\Data\OgMetaData;
 use LBHurtado\OgMeta\Resolvers\ModelOgResolver;
+use LBHurtado\PaymentGateway\Models\DisbursementAttempt;
 use LBHurtado\Voucher\Models\Voucher;
 
 class VoucherOgResolver extends ModelOgResolver
@@ -29,13 +30,14 @@ class VoucherOgResolver extends ModelOgResolver
 
         return new OgMetaData(
             title: "{$type}: {$this->dateDiff($model, $status)}",
-            description: "Voucher {$model->code} — {$formattedAmount}",
+            description: $this->buildDescription($model, $status, $formattedAmount),
             status: $status,
             headline: $model->code,
             subtitle: $formattedAmount,
-            tagline: 'Tap to redeem this voucher',
+            tagline: $this->buildTagline($status),
             url: url("/disburse?code={$model->code}"),
             cacheKey: $model->code,
+            httpMaxAge: $this->cacheTtl($status),
         );
     }
 
@@ -60,7 +62,62 @@ class VoucherOgResolver extends ModelOgResolver
             'redeemed' => 'Redeemed '.($voucher->redeemed_at?->diffForHumans() ?? 'already'),
             'expired' => 'Expired '.($voucher->expires_at?->diffForHumans() ?? 'already'),
             'pending' => 'Starts '.($voucher->starts_at?->diffForHumans() ?? 'soon'),
-            default => 'Created '.$voucher->created_at->diffForHumans(),
+            default => $voucher->expires_at
+                ? 'Expires '.$voucher->expires_at->diffForHumans()
+                : 'Ready to redeem',
         };
+    }
+
+    private function buildDescription(Voucher $voucher, string $status, string $formattedAmount): string
+    {
+        $default = "Voucher {$voucher->code} — {$formattedAmount}";
+
+        return match ($status) {
+            'redeemed' => $this->disbursementSummary($voucher, $formattedAmount) ?? "{$default} redeemed",
+            'expired' => "This voucher has expired — {$formattedAmount}",
+            default => $voucher->instructions->rider->message ?? $default,
+        };
+    }
+
+    private function buildTagline(string $status): string
+    {
+        return match ($status) {
+            'redeemed' => 'This voucher has been redeemed',
+            'expired' => 'This voucher is no longer valid',
+            'pending' => 'This voucher is not yet active',
+            default => 'Tap to redeem this voucher',
+        };
+    }
+
+    private function cacheTtl(string $status): int
+    {
+        return match ($status) {
+            'redeemed', 'expired' => 604_800, // 7 days
+            default => 600, // 10 minutes
+        };
+    }
+
+    private function disbursementSummary(Voucher $voucher, string $formattedAmount): ?string
+    {
+        $attempt = DisbursementAttempt::where('voucher_code', $voucher->code)
+            ->success()
+            ->latest('completed_at')
+            ->first();
+
+        if (! $attempt) {
+            return null;
+        }
+
+        $parts = ["{$formattedAmount} disbursed"];
+
+        if ($attempt->settlement_rail) {
+            $parts[] = "via {$attempt->settlement_rail}";
+        }
+
+        if ($attempt->bank_code) {
+            $parts[] = "to {$attempt->bank_code}";
+        }
+
+        return implode(' ', $parts);
     }
 }

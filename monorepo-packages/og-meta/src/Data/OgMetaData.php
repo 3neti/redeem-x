@@ -35,6 +35,9 @@ class OgMetaData extends Data
 
         /** Custom cache key segment for the generated image (defaults to model key) */
         public ?string $cacheKey = null,
+
+        /** HTTP Cache-Control max-age in seconds. Null = package default (3600). */
+        public ?int $httpMaxAge = null,
     ) {}
 
     /**

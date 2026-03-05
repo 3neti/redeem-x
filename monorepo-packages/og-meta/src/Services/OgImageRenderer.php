@@ -19,9 +19,11 @@ class OgImageRenderer
         $filename = "{$prefix}/{$resolverKey}/{$cacheKey}-{$data->status}.png";
         $disk = config('og-meta.cache_disk', 'public');
 
-        // Cache hit
+        // Cache hit — check freshness if httpMaxAge is set
         if (Storage::disk($disk)->exists($filename)) {
-            return Storage::disk($disk)->url($filename);
+            if ($this->isFresh($disk, $filename, $data->httpMaxAge)) {
+                return Storage::disk($disk)->url($filename);
+            }
         }
 
         // Clean stale images for this cache key (different status)
@@ -171,6 +173,21 @@ class OgImageRenderer
         $filename = $weight === 'bold' ? 'Inter-Bold.ttf' : 'Inter-Regular.ttf';
 
         return __DIR__.'/../../resources/fonts/'.$filename;
+    }
+
+    /**
+     * Check if a cached file is still fresh based on the given max-age.
+     */
+    private function isFresh(string $disk, string $filename, ?int $maxAge): bool
+    {
+        // No TTL hint — treat as fresh (infinite cache)
+        if ($maxAge === null) {
+            return true;
+        }
+
+        $lastModified = Storage::disk($disk)->lastModified($filename);
+
+        return (time() - $lastModified) < $maxAge;
     }
 
     private function cleanStaleImages(string $disk, string $directory, string $cacheKey, string $currentFilename): void

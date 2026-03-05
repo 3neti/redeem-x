@@ -43,9 +43,11 @@ class OgImageController
             return $this->fallbackResponse();
         }
 
+        $maxAge = $data->httpMaxAge ?? 3600;
+
         return response($contents)
             ->header('Content-Type', 'image/png')
-            ->header('Cache-Control', 'public, max-age=3600');
+            ->header('Cache-Control', "public, max-age={$maxAge}");
     }
 
     private function fallbackResponse(): Response
