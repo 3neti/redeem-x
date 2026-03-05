@@ -136,6 +136,19 @@ class OgImageRenderer
             $white, $fontBold, $statusLabel
         );
 
+        // Message (below badge, above tagline)
+        if ($data->message) {
+            $messageY = $badgeY + $textHeight + $badgePadY * 2 + 40;
+            $maxMessageWidth = $data->overlayImage ? 500 : 900;
+            $truncated = $this->truncateToFit($data->message, 16, $fontRegular, $maxMessageWidth);
+            imagettftext($img, 16, 0, $contentX, $messageY, $gray, $fontRegular, $truncated);
+        }
+
+        // Overlay image (right side of card)
+        if ($data->overlayImage) {
+            $this->renderOverlay($img, $data->overlayImage, $width, $height, $cardMargin);
+        }
+
         // Bottom tagline
         if ($data->tagline) {
             imagettftext($img, 14, 0, $contentX, $height - 100, $gray, $fontRegular, $data->tagline);
@@ -173,6 +186,59 @@ class OgImageRenderer
         $filename = $weight === 'bold' ? 'Inter-Bold.ttf' : 'Inter-Regular.ttf';
 
         return __DIR__.'/../../resources/fonts/'.$filename;
+    }
+
+    /**
+     * Render a base64-encoded image on the right side of the card.
+     */
+    private function renderOverlay(\GdImage $img, string $base64, int $canvasWidth, int $canvasHeight, int $cardMargin): void
+    {
+        $decoded = base64_decode($base64, true);
+        if (! $decoded) {
+            return;
+        }
+
+        $overlay = @imagecreatefromstring($decoded);
+        if (! $overlay) {
+            return;
+        }
+
+        $overlayW = imagesx($overlay);
+        $overlayH = imagesy($overlay);
+
+        $maxW = 350;
+        $maxH = 350;
+        $scale = min($maxW / $overlayW, $maxH / $overlayH, 1.0);
+        $newW = (int) ($overlayW * $scale);
+        $newH = (int) ($overlayH * $scale);
+
+        // Right-aligned, vertically centered in card
+        $x = $canvasWidth - $cardMargin - 40 - $newW;
+        $y = (int) (($canvasHeight - $newH) / 2);
+
+        imagecopyresampled($img, $overlay, $x, $y, 0, 0, $newW, $newH, $overlayW, $overlayH);
+        imagedestroy($overlay);
+    }
+
+    /**
+     * Truncate text to fit within a pixel width.
+     */
+    private function truncateToFit(string $text, int $fontSize, string $font, int $maxWidth): string
+    {
+        $bbox = imagettfbbox($fontSize, 0, $font, $text);
+        if (abs($bbox[2] - $bbox[0]) <= $maxWidth) {
+            return $text;
+        }
+
+        while (mb_strlen($text) > 0) {
+            $text = mb_substr($text, 0, -1);
+            $bbox = imagettfbbox($fontSize, 0, $font, $text.'…');
+            if (abs($bbox[2] - $bbox[0]) <= $maxWidth) {
+                return $text.'…';
+            }
+        }
+
+        return '…';
     }
 
     /**

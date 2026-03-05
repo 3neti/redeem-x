@@ -28,6 +28,8 @@ class VoucherOgResolver extends ModelOgResolver
         $formattedAmount = '₱'.number_format((float) $amount, 2);
         $type = ucfirst($model->voucher_type?->value ?? 'redeemable');
 
+        $rider = $model->instructions->rider;
+
         return new OgMetaData(
             title: "{$type}: {$this->dateDiff($model, $status)}",
             description: $this->buildDescription($model, $status, $formattedAmount),
@@ -38,6 +40,8 @@ class VoucherOgResolver extends ModelOgResolver
             url: url("/disburse?code={$model->code}"),
             cacheKey: $model->code,
             httpMaxAge: $this->cacheTtl($status),
+            message: $rider->message,
+            overlayImage: $this->resolveOverlayImage($rider->splash),
         );
     }
 
@@ -95,6 +99,31 @@ class VoucherOgResolver extends ModelOgResolver
             'redeemed', 'expired' => 604_800, // 7 days
             default => 600, // 10 minutes
         };
+    }
+
+    /**
+     * Convert splash content (HTML with <img> or raw base64) into base64 image data.
+     */
+    private function resolveOverlayImage(?string $splash): ?string
+    {
+        if (! $splash) {
+            return null;
+        }
+
+        // HTML splash — extract image URL and download
+        if (preg_match('/src=["\']([^"\']+)["\']/', $splash, $matches)) {
+            $imageData = @file_get_contents($matches[1]);
+
+            return $imageData ? base64_encode($imageData) : null;
+        }
+
+        // Assume raw base64 — validate it decodes to an image
+        $decoded = base64_decode($splash, true);
+        if ($decoded && @imagecreatefromstring($decoded)) {
+            return $splash;
+        }
+
+        return null;
     }
 
     private function disbursementSummary(Voucher $voucher, string $formattedAmount): ?string

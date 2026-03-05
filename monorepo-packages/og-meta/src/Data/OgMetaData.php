@@ -38,6 +38,12 @@ class OgMetaData extends Data
 
         /** HTTP Cache-Control max-age in seconds. Null = package default (3600). */
         public ?int $httpMaxAge = null,
+
+        /** Extra text rendered on the image card below the status badge */
+        public ?string $message = null,
+
+        /** Base64-encoded image rendered on the right side of the image card */
+        public ?string $overlayImage = null,
     ) {}
 
     /**
