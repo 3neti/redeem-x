@@ -42,8 +42,11 @@ class OgMetaData extends Data
         /** Extra text rendered on the image card below the status badge */
         public ?string $message = null,
 
-        /** Base64-encoded image rendered on the right side of the image card */
+        /** Base64-encoded image rendered on the right side of the image card (GD mode) */
         public ?string $overlayImage = null,
+
+        /** Raw HTML rendered natively on the image card (screenshot mode) */
+        public ?string $splashHtml = null,
     ) {}
 
     /**

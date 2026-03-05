@@ -42,6 +42,7 @@ class VoucherOgResolver extends ModelOgResolver
             httpMaxAge: $this->cacheTtl($status),
             message: $rider->message,
             overlayImage: $this->resolveOverlayImage($rider->splash),
+            splashHtml: $rider->splash,
         );
     }
 

@@ -6,6 +6,7 @@ namespace LBHurtado\OgMeta\Services;
 
 use Illuminate\Support\Facades\Storage;
 use LBHurtado\OgMeta\Data\OgMetaData;
+use Spatie\LaravelScreenshot\Facades\Screenshot;
 
 class OgImageRenderer
 {
@@ -29,7 +30,11 @@ class OgImageRenderer
         // Clean stale images for this cache key (different status)
         $this->cleanStaleImages($disk, "{$prefix}/{$resolverKey}", $cacheKey, $filename);
 
-        $image = $this->render($data);
+        $renderer = config('og-meta.renderer', 'gd');
+
+        $image = $renderer === 'screenshot'
+            ? $this->renderViaScreenshot($data)
+            : $this->render($data);
 
         Storage::disk($disk)->makeDirectory("{$prefix}/{$resolverKey}");
         Storage::disk($disk)->put($filename, $image);
@@ -60,7 +65,54 @@ class OgImageRenderer
     }
 
     /**
-     * Render the OG image card from OgMetaData.
+     * Render the OG image via Cloudflare Browser Rendering (Screenshot).
+     */
+    private function renderViaScreenshot(OgMetaData $data): string
+    {
+        $appName = config('og-meta.app_name') ?? config('app.name', 'App');
+
+        $html = view('og-meta::card', [
+            'bgColor' => $this->statusCssColor($data->status, 'bg'),
+            'badgeColor' => $this->statusCssColor($data->status, 'badge'),
+            'appName' => $appName,
+            'headline' => $data->headline,
+            'subtitle' => $data->subtitle,
+            'status' => $data->status,
+            'message' => $data->message,
+            'tagline' => $data->tagline,
+            'splashHtml' => $data->splashHtml ?? '',
+        ])->render();
+
+        $width = config('og-meta.dimensions.width', 1200);
+        $height = config('og-meta.dimensions.height', 630);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'og_') . '.png';
+
+        Screenshot::html($html)
+            ->size($width, $height)
+            ->deviceScaleFactor(1)
+            ->waitUntil('networkidle0')
+            ->save($tempPath);
+
+        $image = file_get_contents($tempPath);
+        @unlink($tempPath);
+
+        return $image;
+    }
+
+    /**
+     * Convert a status color config (RGB array) to a CSS rgb() string.
+     */
+    private function statusCssColor(string $status, string $type): string
+    {
+        $colors = config("og-meta.statuses.{$status}.{$type}")
+            ?? config("og-meta.fallback_status.{$type}", [200, 200, 200]);
+
+        return "rgb({$colors[0]}, {$colors[1]}, {$colors[2]})";
+    }
+
+    /**
+     * Render the OG image card from OgMetaData (GD fallback).
      */
     private function render(OgMetaData $data): string
     {
