@@ -113,6 +113,28 @@ curl -o /tmp/og_pay.png http://redeem-x.test/og/pay/CODE
 open /tmp/og_pay.png
 ```
 
+## Landing Cards (No Code)
+
+When `/disburse` or `/pay` is visited without `?code=`, resolvers return a **landing card** with a QR code instead of voucher details. This makes bare URLs shareable with useful previews.
+
+**Behavior**: `resolve()` is overridden in both resolvers. When the query param is missing, a static `OgMetaData` with `qrDataUri` is returned. The card template renders the QR image centered with a tagline below.
+
+| Endpoint | `og:title` | Subtitle | QR encodes | Cache key |
+|----------|-----------|----------|------------|----------|
+| `/disburse` | "Redeem Pay Code here" | "Scan to redeem" | `url('/disburse')` | `landing-disburse` |
+| `/pay` | "Pay here" | "Scan to pay" | `url('/pay')` | `landing-pay` |
+
+**Cache**: `httpMaxAge` is null (infinite). The QR encodes a static URL so the cached PNG never needs regeneration.
+
+**QR generation**: Shared `GeneratesQrDataUri` trait (`app/OgResolvers/Concerns/`) uses `endroid/qr-code` v6.
+
+### Testing landing cards
+
+```bash
+curl -o /tmp/og_landing.png http://redeem-x.test/og/disburse/landing-disburse
+open /tmp/og_landing.png
+```
+
 ## Testing OG Images Locally
 
 ### Generate and view an image

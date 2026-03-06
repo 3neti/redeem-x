@@ -53,6 +53,9 @@ class OgMetaData extends Data
 
         /** Payee badge label on the image card (e.g. vendor alias, mobile, 'CASH') */
         public ?string $payeeBadge = null,
+
+        /** Base64 PNG data URI for a QR code rendered on the card (screenshot mode) */
+        public ?string $qrDataUri = null,
     ) {}
 
     /**

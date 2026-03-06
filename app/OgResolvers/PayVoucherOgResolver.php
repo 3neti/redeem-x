@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\OgResolvers;
 
+use App\OgResolvers\Concerns\GeneratesQrDataUri;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use LBHurtado\OgMeta\Data\OgMetaData;
 use LBHurtado\OgMeta\Resolvers\ModelOgResolver;
 use LBHurtado\Voucher\Models\Voucher;
 
 class PayVoucherOgResolver extends ModelOgResolver
 {
+    use GeneratesQrDataUri;
     protected string $model = Voucher::class;
 
     protected string $findBy = 'code';
@@ -18,6 +21,40 @@ class PayVoucherOgResolver extends ModelOgResolver
     protected string $queryParam = 'code';
 
     protected bool $uppercase = true;
+
+    public function resolve(Request $request): ?OgMetaData
+    {
+        if (! $request->query($this->queryParam)) {
+            return $this->landingOgData();
+        }
+
+        return parent::resolve($request);
+    }
+
+    public function resolveForImage(string $identifier): ?OgMetaData
+    {
+        if ($identifier === 'landing-pay') {
+            return $this->landingOgData();
+        }
+
+        return parent::resolveForImage($identifier);
+    }
+
+    private function landingOgData(): OgMetaData
+    {
+        $landingUrl = url('/pay');
+
+        return new OgMetaData(
+            title: 'Pay here',
+            description: (config('og-meta.app_name') ?? config('app.name', 'App')).' — Scan to pay',
+            status: 'active',
+            headline: config('og-meta.app_name') ?? config('app.name', 'App'),
+            subtitle: 'Scan to pay',
+            url: $landingUrl,
+            cacheKey: 'landing-pay',
+            qrDataUri: $this->generateQrDataUri($landingUrl),
+        );
+    }
 
     protected function mapToOgData(Model $model): OgMetaData
     {

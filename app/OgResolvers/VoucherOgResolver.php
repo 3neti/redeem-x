@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\OgResolvers;
 
+use App\OgResolvers\Concerns\GeneratesQrDataUri;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use LBHurtado\OgMeta\Data\OgMetaData;
 use LBHurtado\OgMeta\Resolvers\ModelOgResolver;
 use LBHurtado\Voucher\Models\Voucher;
 
 class VoucherOgResolver extends ModelOgResolver
 {
+    use GeneratesQrDataUri;
     protected string $model = Voucher::class;
 
     protected string $findBy = 'code';
@@ -18,6 +21,24 @@ class VoucherOgResolver extends ModelOgResolver
     protected string $queryParam = 'code';
 
     protected bool $uppercase = true;
+
+    public function resolve(Request $request): ?OgMetaData
+    {
+        if (! $request->query($this->queryParam)) {
+            return $this->landingOgData('/disburse', 'Redeem Pay Code here', 'Scan to redeem');
+        }
+
+        return parent::resolve($request);
+    }
+
+    public function resolveForImage(string $identifier): ?OgMetaData
+    {
+        if ($identifier === 'landing-disburse') {
+            return $this->landingOgData('/disburse', 'Redeem Pay Code here', 'Scan to redeem');
+        }
+
+        return parent::resolveForImage($identifier);
+    }
 
     protected function mapToOgData(Model $model): OgMetaData
     {
@@ -75,6 +96,22 @@ class VoucherOgResolver extends ModelOgResolver
             'redeemed', 'expired' => 604_800, // 7 days
             default => 600, // 10 minutes
         };
+    }
+
+    private function landingOgData(string $path, string $title, string $subtitle): OgMetaData
+    {
+        $landingUrl = url($path);
+
+        return new OgMetaData(
+            title: $title,
+            description: (config('og-meta.app_name') ?? config('app.name', 'App')).' — '.$subtitle,
+            status: 'active',
+            headline: config('og-meta.app_name') ?? config('app.name', 'App'),
+            subtitle: $subtitle,
+            url: $landingUrl,
+            cacheKey: 'landing-'.ltrim($path, '/'),
+            qrDataUri: $this->generateQrDataUri($landingUrl),
+        );
     }
 
     private function resolveSubtitle(Voucher $voucher, string $type): string

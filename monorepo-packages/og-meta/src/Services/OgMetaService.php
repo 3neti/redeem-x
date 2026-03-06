@@ -85,6 +85,13 @@ class OgMetaService
             url: $data->url,
             imageUrl: $imageUrl,
             cacheKey: $data->cacheKey,
+            httpMaxAge: $data->httpMaxAge,
+            message: $data->message,
+            overlayImage: $data->overlayImage,
+            splashHtml: $data->splashHtml,
+            typeBadge: $data->typeBadge,
+            payeeBadge: $data->payeeBadge,
+            qrDataUri: $data->qrDataUri,
         );
     }
 

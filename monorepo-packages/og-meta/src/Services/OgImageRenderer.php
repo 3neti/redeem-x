@@ -80,6 +80,7 @@ class OgImageRenderer
             'status' => $data->status,
             'typeBadge' => $data->typeBadge,
             'payeeBadge' => $data->payeeBadge,
+            'qrDataUri' => $data->qrDataUri,
         ])->render();
 
         $width = config('og-meta.dimensions.width', 1200);
