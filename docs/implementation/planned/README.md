@@ -1,4 +1,12 @@
 
+## OG Meta Scaling Plan
+**File:** `OG_META_SCALING_PLAN.md`  
+**Status:** 📋 Planned  
+**Priority:** Low (act when voucher count > 10K)  
+**Effort:** 1 sprint  
+
+Storage and Cloudflare Browser Rendering cost analysis for OG card PNGs at scale. Phased migration: S3 cache disk → GD fallback → lazy generation → garbage collection.
+
 ## Voucher Timestamp State Migration
 **File:** `VOUCHER_TIMESTAMP_STATE_MIGRATION.md`  
 **Status:** 📋 Planned  
