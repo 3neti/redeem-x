@@ -79,7 +79,7 @@ class GenerateVouchers
     #[BodyParameter('amount', description: '**REQUIRED**. Voucher amount in major units (whole PHP). Minimum: 0. This is the exact amount that will be disbursed to the redeemer. Example: 500 = ₱500.00', type: 'number', example: 500)]
     #[BodyParameter('count', description: '**REQUIRED**. Number of vouchers to generate. Range: 1-1000. Cannot be 0 (minimum is 1 for production use).', type: 'integer', example: 10)]
     #[BodyParameter('prefix', description: '*optional* - Prefix for voucher codes (1-10 characters). Will be prepended to generated codes. Example: "PROMO" generates "PROMO-AB12CD34".', type: 'string', example: 'PROMO')]
-    #[BodyParameter('mask', description: '*optional* - Voucher code pattern. Must contain only asterisks (*) and hyphens (-). Asterisks: 4-6 required (each becomes a random alphanumeric char). Hyphens: used as separators. Example: "****-****" generates "AB12-CD34".', type: 'string', example: '****-****')]
+#[BodyParameter('mask', description: '*optional* - Voucher code pattern. Must contain only asterisks (*) and hyphens (-). Asterisks: 4-8 required (each becomes a random alphanumeric char). Hyphens: used as separators. Example: "****-****" generates "AB12-CD34".', type: 'string', example: '****-****')]
     #[BodyParameter('ttl_days', description: '*optional* - Voucher expiration in days from creation (minimum: 1 day). Omit this field for vouchers that never expire.', type: 'integer', example: 30)]
     #[BodyParameter('input_fields', description: '*optional* - Array of required input fields for redemption. Valid values: "email", "mobile", "name", "address", "birth_date", "gross_monthly_income", "location", "reference_code", "signature", "selfie", "otp", "kyc". Leave empty or omit for no required inputs.', type: 'array', example: ['mobile', 'location', 'selfie'])]
     #[BodyParameter('validation_secret', description: '*optional* - Secret PIN required for redemption. Useful for restricting access.', type: 'string', example: '1234')]
@@ -351,13 +351,15 @@ class GenerateVouchers
                     }
 
                     $asterisks = substr_count($value, '*');
+                    $min = config('voucher.mask.min_asterisks', 4);
+                    $max = config('voucher.mask.max_asterisks', 8);
 
-                    if ($asterisks < 4) {
-                        $fail('The :attribute must contain at least 4 asterisks (*).');
+                    if ($asterisks < $min) {
+                        $fail("The :attribute must contain at least {$min} asterisks (*).");
                     }
 
-                    if ($asterisks > 6) {
-                        $fail('The :attribute must contain at most 6 asterisks (*).');
+                    if ($asterisks > $max) {
+                        $fail("The :attribute must contain at most {$max} asterisks (*).");
                     }
                 },
             ],

@@ -79,13 +79,15 @@ class VoucherInstructionsData extends Data
                     }
 
                     $asterisks = substr_count($value, '*');
+                    $min = config('voucher.mask.min_asterisks', 4);
+                    $max = config('voucher.mask.max_asterisks', 8);
 
-                    if ($asterisks < 4) {
-                        $fail('The :attribute must contain at least 4 asterisks (*).');
+                    if ($asterisks < $min) {
+                        $fail("The :attribute must contain at least {$min} asterisks (*).");
                     }
 
-                    if ($asterisks > 6) {
-                        $fail('The :attribute must contain at most 6 asterisks (*).');
+                    if ($asterisks > $max) {
+                        $fail("The :attribute must contain at most {$max} asterisks (*).");
                     }
                 },
             ],

@@ -77,6 +77,22 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Code Mask Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Controls the asterisk limits for voucher code masks.
+    | Asterisks (*) represent random characters; hyphens (-) are literal.
+    | Example: "****-****" = 8 random chars separated by a hyphen.
+    |
+    */
+
+    'mask' => [
+        'min_asterisks' => (int) env('VOUCHER_MASK_MIN_ASTERISKS', 4),
+        'max_asterisks' => (int) env('VOUCHER_MASK_MAX_ASTERISKS', 8),
+    ],
+
     'attachments' => [
         // Maximum file size in kilobytes (default: 2MB)
         'max_file_size_kb' => env('VOUCHER_ATTACHMENT_MAX_SIZE_KB', 2048),

@@ -401,7 +401,7 @@ const { breakdown, loading: pricingLoading, error: pricingError } = props.readon
                         />
                         <InputError :message="validationErrors.mask" />
                         <p class="text-xs text-muted-foreground">
-                            Use * for random chars, - for separators (4-6 asterisks)
+                            Use * for random chars, - for separators (4-8 asterisks)
                         </p>
                     </div>
                 </div>

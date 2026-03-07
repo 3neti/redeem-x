@@ -111,7 +111,7 @@ return [
         'mask' => [
             'label' => env('GENERATE_VOUCHER_MASK_LABEL', 'Code Mask (Optional)'),
             'placeholder' => env('GENERATE_VOUCHER_MASK_PLACEHOLDER', 'e.g., ****-****'),
-            'help_text' => env('GENERATE_VOUCHER_MASK_HELP', 'Use * for random chars, - for separators (4-6 asterisks)'),
+'help_text' => env('GENERATE_VOUCHER_MASK_HELP', 'Use * for random chars, - for separators (4-8 asterisks)'),
         ],
 
         // TTL field
