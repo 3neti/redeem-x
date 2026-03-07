@@ -171,6 +171,75 @@
     --sidebar: hsl(240 5.9% 10%);
 }
 
+/* Section tint variables — transparent by default, themed overrides add color */
+:root {
+    --section-chips: transparent;
+    --section-amount: transparent;
+    --section-quickgrid: transparent;
+    --section-balance: transparent;
+    --section-generate: transparent;
+}
+
+/*
+ * Steampunk — warm brass, aged parchment, copper machinery
+ * Layers on top of light/dark; does not replace the toggle.
+ */
+.theme-steampunk {
+    --background: hsl(35 30% 95%);
+    --foreground: hsl(25 20% 12%);
+    --card: hsl(36 28% 93%);
+    --card-foreground: hsl(25 20% 12%);
+    --popover: hsl(36 28% 93%);
+    --popover-foreground: hsl(25 20% 12%);
+    --primary: hsl(25 65% 42%);
+    --primary-foreground: hsl(40 30% 96%);
+    --secondary: hsl(32 22% 86%);
+    --secondary-foreground: hsl(25 30% 18%);
+    --muted: hsl(35 18% 90%);
+    --muted-foreground: hsl(25 12% 45%);
+    --accent: hsl(43 45% 80%);
+    --accent-foreground: hsl(25 30% 18%);
+    --destructive: hsl(0 72% 51%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(30 22% 78%);
+    --input: hsl(30 18% 82%);
+    --ring: hsl(25 65% 42%);
+
+    --section-chips: hsl(35 25% 91%);
+    --section-amount: hsl(40 35% 89%);
+    --section-quickgrid: hsl(28 28% 90%);
+    --section-balance: hsl(43 30% 88%);
+    --section-generate: hsl(25 30% 86%);
+}
+
+.theme-steampunk.dark {
+    --background: hsl(28 12% 9%);
+    --foreground: hsl(35 20% 88%);
+    --card: hsl(28 10% 12%);
+    --card-foreground: hsl(35 20% 88%);
+    --popover: hsl(28 10% 12%);
+    --popover-foreground: hsl(35 20% 88%);
+    --primary: hsl(30 75% 52%);
+    --primary-foreground: hsl(28 12% 9%);
+    --secondary: hsl(30 12% 17%);
+    --secondary-foreground: hsl(35 20% 88%);
+    --muted: hsl(28 10% 16%);
+    --muted-foreground: hsl(30 15% 55%);
+    --accent: hsl(43 35% 22%);
+    --accent-foreground: hsl(35 20% 88%);
+    --destructive: hsl(0 72% 51%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(30 12% 20%);
+    --input: hsl(30 10% 18%);
+    --ring: hsl(30 75% 52%);
+
+    --section-chips: hsl(28 10% 13%);
+    --section-amount: hsl(32 15% 12%);
+    --section-quickgrid: hsl(25 12% 14%);
+    --section-balance: hsl(40 12% 13%);
+    --section-generate: hsl(25 15% 11%);
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;

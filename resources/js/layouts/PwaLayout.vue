@@ -4,6 +4,7 @@ import { computed, onMounted } from 'vue';
 import PwaBottomNav from '@/components/pwa/PwaBottomNav.vue';
 import { Toaster } from '@/components/ui/toast';
 import { usePwa } from '@/composables/pwa/usePwa';
+import { initializeTheme } from '@/composables/useTheme';
 import { WifiOff } from 'lucide-vue-next';
 
 interface Props {
@@ -19,6 +20,9 @@ const { isOnline } = usePwa();
 const pageTitle = computed(() => {
     return props.title ? `${props.title} - Redeem-X` : 'Redeem-X';
 });
+
+// Apply saved theme before first paint
+initializeTheme();
 
 // Register service worker
 onMounted(() => {

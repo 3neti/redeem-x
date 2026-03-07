@@ -966,8 +966,8 @@ const resetState = () => {
 
 // Watch for settlement type changes (from Portal.vue)
 watch(voucherType, (newType) => {
-  if (newType === 'settlement' && amount.value && interestRate.value >= 0) {
-    targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
+  if (newType === 'settlement' && amount.value && Number(interestRate.value || 0) >= 0) {
+    targetAmount.value = parseFloat((amount.value * (1 + Number(interestRate.value || 0) / 100)).toFixed(2));
   }
   if (newType === 'payable') {
     amount.value = 0;
@@ -975,8 +975,9 @@ watch(voucherType, (newType) => {
 });
 
 watch([amount, interestRate], ([newAmount, newRate]) => {
-  if (voucherType.value === 'settlement' && newAmount && newRate >= 0) {
-    targetAmount.value = parseFloat((newAmount * (1 + newRate / 100)).toFixed(2));
+  const rate = Number(newRate || 0);
+  if (voucherType.value === 'settlement' && newAmount && rate >= 0) {
+    targetAmount.value = parseFloat((newAmount * (1 + rate / 100)).toFixed(2));
   }
 });
 
@@ -1019,7 +1020,7 @@ const restoreState = () => {
       if (state.voucherType) voucherType.value = state.voucherType;
       if (state.selectedInputFields) selectedInputFields.value = state.selectedInputFields;
       if (state.targetAmount) targetAmount.value = state.targetAmount;
-      if (state.interestRate !== undefined) interestRate.value = state.interestRate;
+      if (state.interestRate !== undefined) interestRate.value = Number(state.interestRate) || 0;
       if (state.payee) payee.value = state.payee;
       if (state.validationSecret) validationSecret.value = state.validationSecret;
       if (state.feedbackEmail) feedbackEmail.value = state.feedbackEmail;
@@ -1103,9 +1104,9 @@ watch(payeeType, (newType, oldType) => {
     </header>
 
     <!-- Main Content -->
-    <div class="flex flex-col h-[calc(100vh-64px-56px)]">
+    <div class="flex flex-col h-[calc(100vh-64px-80px)]">
       <!-- Scrollable Config Summary -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div class="flex-1 overflow-y-auto p-4 space-y-2">
         <!-- Campaign Indicator -->
         <Card v-if="selectedCampaign" class="p-3 bg-primary/5 border-primary/20">
           <div class="flex items-center justify-between">
@@ -1120,7 +1121,7 @@ watch(payeeType, (newType, oldType) => {
         </Card>
 
         <!-- Config Summary Chips -->
-        <div class="space-y-2">
+        <div class="space-y-2 rounded-lg bg-[var(--section-chips)]">
           <!-- Input Fields -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('inputs')">
             <div class="flex items-center justify-between mb-2">
@@ -1181,10 +1182,10 @@ watch(payeeType, (newType, oldType) => {
         </div>
 
         <!-- Amount Display (Large) - Clickable -->
-        <div class="text-center py-8">
-          <p class="text-sm text-muted-foreground mb-2">Amount</p>
+        <div class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+          <p class="text-sm text-muted-foreground mb-1">Amount</p>
           <p 
-            class="text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+            class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
             @click="openAmountKeypad"
           >
             {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
@@ -1199,20 +1200,17 @@ watch(payeeType, (newType, oldType) => {
         </div>
 
         <!-- Quick Amount Grid -->
-        <div class="grid grid-cols-3 gap-2">
-          <Button variant="outline" @click="amount = 100">₱100</Button>
-          <Button variant="outline" @click="amount = 500">₱500</Button>
-          <Button variant="outline" @click="amount = 1000">₱1K</Button>
-          <Button variant="outline" @click="amount = 2000">₱2K</Button>
-          <Button variant="outline" @click="amount = 5000">₱5K</Button>
-          <Button variant="outline" @click="amount = 10000">₱10K</Button>
+        <div class="grid grid-cols-3 gap-2 rounded-lg p-2 bg-[var(--section-quickgrid)]">
+          <Button variant="outline" size="sm" @click="amount = 100">₱100</Button>
+          <Button variant="outline" size="sm" @click="amount = 500">₱500</Button>
+          <Button variant="outline" size="sm" @click="amount = 1000">₱1K</Button>
+          <Button variant="outline" size="sm" @click="amount = 2000">₱2K</Button>
+          <Button variant="outline" size="sm" @click="amount = 5000">₱5K</Button>
+          <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
         </div>
-      </div>
 
-      <!-- Fixed Bottom Section -->
-      <div class="border-t bg-background p-4 space-y-3">
         <!-- Wallet Balance & Cost -->
-        <div class="flex items-center justify-between text-sm">
+        <div class="flex items-center justify-between text-sm rounded-lg px-2 py-1 bg-[var(--section-balance)]">
           <div class="flex items-center gap-2 text-muted-foreground">
             <Wallet class="h-4 w-4" />
             <span>{{ formattedBalance }}</span>
@@ -1225,10 +1223,12 @@ watch(payeeType, (newType, oldType) => {
             Cost: ₱{{ estimatedCost.toFixed(2) }}
           </div>
         </div>
+      </div>
 
+      <!-- Fixed Bottom Section -->
+      <div class="px-4 py-1.5 bg-[var(--section-generate)]">
         <!-- Generate Button -->
         <Button
-          size="lg"
           class="w-full"
           :disabled="!canGenerate"
           @click="handleGenerate"
@@ -1656,7 +1656,7 @@ watch(payeeType, (newType, oldType) => {
             </div>
             <p class="text-xs text-muted-foreground">
               Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} 
-              (principal + {{ interestRate.toFixed(2) }}% interest)
+              (principal + {{ Number(interestRate || 0).toFixed(2) }}% interest)
             </p>
           </div>
         </div>

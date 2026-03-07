@@ -2,8 +2,9 @@
 import { Link } from '@inertiajs/vue3';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Building2, ChevronRight, Smartphone, Mail } from 'lucide-vue-next';
+import { Settings, User, Building2, ChevronRight, Smartphone, Mail, Palette } from 'lucide-vue-next';
 import { usePhoneFormat } from '@/composables/usePhoneFormat';
+import { useTheme } from '@/composables/useTheme';
 
 interface Props {
     user: {
@@ -26,6 +27,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const { formatForDisplay } = usePhoneFormat();
+const { currentTheme, setTheme, availableThemes } = useTheme();
 
 const formattedMobile = props.user.mobile ? formatForDisplay(props.user.mobile) : 'Not set';
 </script>
@@ -126,6 +128,44 @@ const formattedMobile = props.user.mobile ? formatForDisplay(props.user.mobile) 
                     <div v-else class="py-4 text-center">
                         <Building2 class="mx-auto h-8 w-8 text-muted-foreground/50" />
                         <p class="mt-2 text-sm text-muted-foreground">No merchant profile yet</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Theme -->
+            <Card>
+                <CardHeader>
+                    <div class="flex items-center gap-2">
+                        <Palette class="h-5 w-5 text-primary" />
+                        <CardTitle class="text-base">Theme</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button
+                            v-for="theme in availableThemes"
+                            :key="theme.id"
+                            @click="setTheme(theme.id)"
+                            :class="[
+                                'relative rounded-lg border-2 p-3 text-left transition-all',
+                                currentTheme === theme.id
+                                    ? 'border-primary ring-1 ring-primary/20'
+                                    : 'border-border hover:border-primary/40',
+                            ]"
+                        >
+                            <div class="mb-2 flex h-8 gap-1 rounded overflow-hidden">
+                                <div :class="[theme.preview.bg, 'flex-1']" />
+                                <div :class="[theme.preview.accent, 'w-3']" />
+                            </div>
+                            <div class="font-medium text-sm">{{ theme.name }}</div>
+                            <div class="text-xs text-muted-foreground">{{ theme.description }}</div>
+                            <div
+                                v-if="currentTheme === theme.id"
+                                class="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center"
+                            >
+                                <span class="text-primary-foreground text-[10px]">✓</span>
+                            </div>
+                        </button>
                     </div>
                 </CardContent>
             </Card>
