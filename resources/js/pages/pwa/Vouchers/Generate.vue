@@ -1104,7 +1104,7 @@ watch(payeeType, (newType, oldType) => {
     </header>
 
     <!-- Main Content -->
-    <div class="flex flex-col h-[calc(100vh-64px-80px)]">
+    <div class="flex flex-col h-[calc(100dvh-64px-80px)]">
       <!-- Scrollable Config Summary -->
       <div class="flex-1 overflow-y-auto p-4 space-y-2">
         <!-- Campaign Indicator -->
@@ -1209,7 +1209,10 @@ watch(payeeType, (newType, oldType) => {
           <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
         </div>
 
-        <!-- Wallet Balance & Cost -->
+      </div>
+
+      <!-- Fixed Bottom: Balance + Generate -->
+      <div class="px-4 py-2 space-y-1.5 bg-[var(--section-generate)]">
         <div class="flex items-center justify-between text-sm rounded-lg px-2 py-1 bg-[var(--section-balance)]">
           <div class="flex items-center gap-2 text-muted-foreground">
             <Wallet class="h-4 w-4" />
@@ -1223,11 +1226,6 @@ watch(payeeType, (newType, oldType) => {
             Cost: ₱{{ estimatedCost.toFixed(2) }}
           </div>
         </div>
-      </div>
-
-      <!-- Fixed Bottom Section -->
-      <div class="px-4 py-1.5 bg-[var(--section-generate)]">
-        <!-- Generate Button -->
         <Button
           class="w-full"
           :disabled="!canGenerate"
