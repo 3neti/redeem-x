@@ -128,6 +128,98 @@ const sheetState = ref({
   options: { open: false }, // Menu sheet
 });
 
+// Conditions presets — configurable
+const secretPresets = [
+  { label: 'Fruits', words: ['Mango', 'Apple', 'Cherry', 'Banana', 'Grape', 'Melon'] },
+  { label: 'Animals', words: ['Tiger', 'Eagle', 'Shark', 'Panda', 'Wolf', 'Falcon'] },
+  { label: 'Cars', words: ['Tesla', 'Honda', 'BMW', 'Toyota', 'Audi', 'Ford'] },
+];
+
+const locationPresets = [
+  { name: 'BGC', latitude: 14.5547, longitude: 121.0508, radius: 500 },
+  { name: 'Makati CBD', latitude: 14.5547, longitude: 121.0244, radius: 500 },
+  { name: 'Ortigas', latitude: 14.5880, longitude: 121.0614, radius: 500 },
+];
+
+const timePresets = [
+  { name: 'Office Hours', start_time: '09:00', end_time: '17:00' },
+  { name: 'Business Hours', start_time: '08:00', end_time: '18:00' },
+  { name: 'Morning', start_time: '06:00', end_time: '12:00' },
+  { name: 'Afternoon', start_time: '12:00', end_time: '18:00' },
+  { name: 'Evening', start_time: '18:00', end_time: '22:00' },
+];
+
+// Saved favorites (localStorage)
+const savedPlaces = ref<{ name: string; latitude: number; longitude: number; radius: number }[]>([]);
+const savedTimes = ref<{ name: string; start_time: string; end_time: string }[]>([]);
+const savePlaceName = ref('');
+const saveTimeName = ref('');
+const showSavePlaceInput = ref(false);
+const showSaveTimeInput = ref(false);
+
+const loadSavedPlaces = () => {
+  try {
+    const raw = localStorage.getItem('pwa_saved_places');
+    if (raw) savedPlaces.value = JSON.parse(raw);
+  } catch { /* ignore */ }
+};
+
+const loadSavedTimes = () => {
+  try {
+    const raw = localStorage.getItem('pwa_saved_times');
+    if (raw) savedTimes.value = JSON.parse(raw);
+  } catch { /* ignore */ }
+};
+
+const savePlace = () => {
+  if (!savePlaceName.value.trim() || !locationValidation.value?.latitude) return;
+  savedPlaces.value.push({
+    name: savePlaceName.value.trim(),
+    latitude: locationValidation.value.latitude,
+    longitude: locationValidation.value.longitude,
+    radius: locationValidation.value.radius || 100,
+  });
+  localStorage.setItem('pwa_saved_places', JSON.stringify(savedPlaces.value));
+  savePlaceName.value = '';
+  showSavePlaceInput.value = false;
+};
+
+const deletePlace = (index: number) => {
+  savedPlaces.value.splice(index, 1);
+  localStorage.setItem('pwa_saved_places', JSON.stringify(savedPlaces.value));
+};
+
+const applyPlace = (place: { latitude: number; longitude: number; radius: number }) => {
+  locationValidation.value = { latitude: place.latitude, longitude: place.longitude, radius: place.radius };
+};
+
+const saveTimeWindow = () => {
+  if (!saveTimeName.value.trim() || !timeValidation.value?.start_time) return;
+  savedTimes.value.push({
+    name: saveTimeName.value.trim(),
+    start_time: timeValidation.value.start_time,
+    end_time: timeValidation.value.end_time,
+  });
+  localStorage.setItem('pwa_saved_times', JSON.stringify(savedTimes.value));
+  saveTimeName.value = '';
+  showSaveTimeInput.value = false;
+};
+
+const deleteTimeWindow = (index: number) => {
+  savedTimes.value.splice(index, 1);
+  localStorage.setItem('pwa_saved_times', JSON.stringify(savedTimes.value));
+};
+
+const applyTimeWindow = (tw: { start_time: string; end_time: string }) => {
+  timeValidation.value = { start_time: tw.start_time, end_time: tw.end_time, timezone: 'Asia/Manila' };
+};
+
+const setPayeeMode = (mode: 'anyone' | 'mobile' | 'vendor') => {
+  if (mode === 'anyone') payee.value = '';
+  else if (mode === 'mobile' && payeeType.value !== 'mobile') payee.value = '09';
+  else if (mode === 'vendor' && payeeType.value !== 'vendor') payee.value = 'VENDOR-';
+};
+
 // ============================================================================
 // COMPUTED PROPERTIES
 // ============================================================================
@@ -1079,6 +1171,8 @@ watch(
 // Restore state on mount
 onMounted(() => {
   restoreState();
+  loadSavedPlaces();
+  loadSavedTimes();
 });
 
 // Watch for mobile payee - auto-add OTP (same logic as Portal.vue)
@@ -1205,10 +1299,10 @@ watch(payeeType, (newType, oldType) => {
             </div>
           </div>
 
-          <!-- Validation -->
+          <!-- Conditions -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('validation')">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-muted-foreground">Validation</p>
+              <p class="text-xs text-muted-foreground">Conditions</p>
               <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
             <div v-if="validationBadges.length === 0" class="text-sm font-medium text-muted-foreground">
@@ -1675,187 +1769,257 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
     
-    <!-- Validation Sheet (Phase 6) -->
+    <!-- Conditions Sheet -->
     <Sheet v-model:open="sheetState.validation.open">
       <SheetContent side="bottom" class="h-[85vh] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Validation Rules</SheetTitle>
+          <SheetTitle>Conditions</SheetTitle>
           <SheetDescription>
-            Add validation rules to restrict redemption
+            Control who, what, where, and when
           </SheetDescription>
         </SheetHeader>
         
-        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col mt-4">
+        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val: any) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col mt-4">
           <TabsList class="grid w-full grid-cols-4">
-            <TabsTrigger value="payee">Payee</TabsTrigger>
-            <TabsTrigger value="secret">Secret</TabsTrigger>
-            <TabsTrigger value="location">Location</TabsTrigger>
-            <TabsTrigger value="time">Time</TabsTrigger>
+            <TabsTrigger value="payee">Who</TabsTrigger>
+            <TabsTrigger value="secret">What</TabsTrigger>
+            <TabsTrigger value="location">Where</TabsTrigger>
+            <TabsTrigger value="time">When</TabsTrigger>
           </TabsList>
           
-          <!-- Location Tab -->
-          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
+          <!-- Who Tab -->
+          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 px-3 space-y-4">
             <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="location-lat">Latitude</Label>
-                <Input
-                  id="location-lat"
-                  v-model.number="locationValidation.latitude"
-                  type="number"
-                  placeholder="14.5995"
-                  step="0.0001"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="location-lng">Longitude</Label>
-                <Input
-                  id="location-lng"
-                  v-model.number="locationValidation.longitude"
-                  type="number"
-                  placeholder="120.9842"
-                  step="0.0001"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="location-radius">Radius (meters)</Label>
-                <Input
-                  id="location-radius"
-                  v-model.number="locationValidation.radius"
-                  type="number"
-                  placeholder="100"
-                  min="1"
-                />
-              </div>
-              <p class="text-xs text-muted-foreground">
-                Redemption allowed within {{ locationValidation?.radius || 100 }}m of specified location
-              </p>
-              <Button
-                variant="outline"
-                class="w-full"
-                @click="locationValidation = null"
-                v-if="locationValidation"
+              <!-- Mode cards -->
+              <button
+                class="w-full text-left p-4 rounded-xl border transition-all duration-150"
+                :class="!payee ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                @click="setPayeeMode('anyone')"
               >
-                Clear Location
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <!-- Time Tab -->
-          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="time-start">Start Time</Label>
-                <Input
-                  id="time-start"
-                  v-model="timeValidation.start_time"
-                  type="time"
-                  placeholder="09:00"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="time-end">End Time</Label>
-                <Input
-                  id="time-end"
-                  v-model="timeValidation.end_time"
-                  type="time"
-                  placeholder="17:00"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="time-timezone">Timezone</Label>
-                <Input
-                  id="time-timezone"
-                  v-model="timeValidation.timezone"
-                  type="text"
-                  placeholder="Asia/Manila"
-                />
-              </div>
-              <p class="text-xs text-muted-foreground">
-                Redemption allowed between {{ timeValidation?.start_time || '00:00' }} - {{ timeValidation?.end_time || '23:59' }}
-              </p>
-              <Button
-                variant="outline"
-                class="w-full"
-                @click="timeValidation = null"
-                v-if="timeValidation"
+                <p class="text-sm font-medium">Anyone</p>
+                <p class="text-xs text-muted-foreground">No restriction — any redeemer</p>
+              </button>
+              <button
+                class="w-full text-left p-4 rounded-xl border transition-all duration-150"
+                :class="payeeType === 'mobile' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                @click="setPayeeMode('mobile')"
               >
-                Clear Time
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <!-- Secret Tab -->
-          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="secret">Secret Code</Label>
-                <Input
-                  id="secret"
-                  v-model="validationSecret"
-                  type="text"
-                  placeholder="Enter secret code"
-                />
-                <p class="text-xs text-muted-foreground">
-                  Redeemer must enter this secret code to redeem voucher
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                class="w-full"
-                @click="validationSecret = ''"
-                v-if="validationSecret"
+                <p class="text-sm font-medium">Mobile number</p>
+                <p class="text-xs text-muted-foreground">Only this phone can redeem</p>
+              </button>
+              <button
+                class="w-full text-left p-4 rounded-xl border transition-all duration-150"
+                :class="payeeType === 'vendor' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                @click="setPayeeMode('vendor')"
               >
-                Clear Secret
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <!-- Payee Tab -->
-          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="payee">{{ payeeLabel }}</Label>
+                <p class="text-sm font-medium">Vendor</p>
+                <p class="text-xs text-muted-foreground">Restrict to a vendor alias</p>
+              </button>
+
+              <!-- Inline input when mobile/vendor selected -->
+              <div v-if="payeeType === 'mobile' || payeeType === 'vendor'" class="pt-1">
                 <Input
-                  id="payee"
                   v-model="payee"
-                  type="text"
-                  placeholder="CASH, mobile number, or vendor alias"
+                  :type="payeeType === 'mobile' ? 'tel' : 'text'"
+                  class="text-base"
                 />
-                <p class="text-xs text-muted-foreground">
-                  {{ payeeContextHelp }}
-                </p>
               </div>
-              
-              <!-- Payee Type Info -->
-              <div class="p-3 bg-muted/50 rounded-lg">
-                <p class="text-sm font-medium mb-1">Detected: {{ payeeTypeDisplay }}</p>
-                <p class="text-xs text-muted-foreground">
-                  {{ payeeTypeDescription }}
-                </p>
+
+              <!-- Clear -->
+              <button
+                v-if="payee"
+                class="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                @click="payee = ''"
+              >Clear</button>
+            </div>
+          </TabsContent>
+
+          <!-- What Tab -->
+          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+            <p class="text-xs text-muted-foreground">Create your own secret</p>
+
+            <!-- Quick-pick by category -->
+            <div v-for="cat in secretPresets" :key="cat.label" class="space-y-2">
+              <p class="text-xs text-muted-foreground">{{ cat.label }}</p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="word in cat.words"
+                  :key="word"
+                  class="px-3 py-1.5 rounded-full text-sm border transition-all duration-150"
+                  :class="validationSecret === word ? 'bg-primary/8 border-primary/30 font-medium' : 'hover:bg-muted/50'"
+                  @click="validationSecret = validationSecret === word ? '' : word"
+                >{{ word }}</button>
               </div>
-              
-              <!-- Quick Presets -->
+            </div>
+
+            <!-- Custom input -->
+            <div class="space-y-1.5">
+              <p class="text-xs text-muted-foreground">Or type your own</p>
+              <Input
+                v-model="validationSecret"
+                type="text"
+                class="text-base"
+              />
+            </div>
+
+            <!-- Clear -->
+            <button
+              v-if="validationSecret"
+              class="text-xs text-muted-foreground hover:text-destructive transition-colors"
+              @click="validationSecret = ''"
+            >Clear</button>
+          </TabsContent>
+
+          <!-- Where Tab -->
+          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+            <!-- Preset places -->
+            <div v-if="locationPresets.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Presets</p>
               <div class="space-y-2">
-                <Label class="text-xs">Quick Presets:</Label>
-                <div class="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" @click="payee = ''">
-                    Anyone (CASH)
-                  </Button>
-                  <Button variant="outline" size="sm" @click="payee = '09171234567'">
-                    Mobile Sample
-                  </Button>
+                <button
+                  v-for="place in locationPresets"
+                  :key="place.name"
+                  class="w-full text-left p-3 rounded-xl border transition-all duration-150"
+                  :class="locationValidation?.latitude === place.latitude && locationValidation?.longitude === place.longitude ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                  @click="applyPlace(place)"
+                >
+                  <p class="text-sm font-medium">{{ place.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ place.latitude.toFixed(4) }}, {{ place.longitude.toFixed(4) }} · {{ place.radius }}m</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- Saved places -->
+            <div v-if="savedPlaces.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Saved</p>
+              <div class="space-y-2">
+                <div
+                  v-for="(place, idx) in savedPlaces"
+                  :key="idx"
+                  class="flex items-center gap-2"
+                >
+                  <button
+                    class="flex-1 text-left p-3 rounded-xl border transition-all duration-150"
+                    :class="locationValidation?.latitude === place.latitude && locationValidation?.longitude === place.longitude ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                    @click="applyPlace(place)"
+                  >
+                    <p class="text-sm font-medium">{{ place.name }}</p>
+                    <p class="text-xs text-muted-foreground">{{ place.latitude.toFixed(4) }}, {{ place.longitude.toFixed(4) }} · {{ place.radius }}m</p>
+                  </button>
+                  <button class="p-1.5 text-muted-foreground/60 hover:text-destructive transition-colors" @click="deletePlace(idx)">×</button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Custom coordinates -->
+            <div class="space-y-3">
+              <p class="text-xs text-muted-foreground">Custom</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <Label class="text-xs">Lat</Label>
+                  <Input v-model.number="locationValidation.latitude" type="number" step="0.0001" class="text-sm" />
+                </div>
+                <div class="space-y-1">
+                  <Label class="text-xs">Lng</Label>
+                  <Input v-model.number="locationValidation.longitude" type="number" step="0.0001" class="text-sm" />
+                </div>
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs">Radius (m)</Label>
+                <Input v-model.number="locationValidation.radius" type="number" min="1" class="text-sm" />
+              </div>
+
+              <!-- Save / Clear -->
+              <div v-if="locationValidation?.latitude" class="flex items-center gap-2">
+                <template v-if="!showSavePlaceInput">
+                  <button class="text-xs text-primary hover:underline" @click="showSavePlaceInput = true">Save this place</button>
+                  <span class="text-xs text-muted-foreground/40">·</span>
+                  <button class="text-xs text-muted-foreground hover:text-destructive transition-colors" @click="locationValidation = null">Clear</button>
+                </template>
+                <template v-else>
+                  <Input v-model="savePlaceName" class="text-sm flex-1" @keyup.enter="savePlace" />
+                  <Button size="sm" variant="ghost" @click="savePlace">Save</Button>
+                  <button class="text-xs text-muted-foreground" @click="showSavePlaceInput = false">Cancel</button>
+                </template>
+              </div>
+            </div>
+          </TabsContent>
+
+          <!-- When Tab -->
+          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+            <!-- Preset windows -->
+            <div v-if="timePresets.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Presets</p>
+              <div class="space-y-2">
+                <button
+                  v-for="tw in timePresets"
+                  :key="tw.name"
+                  class="w-full text-left p-3 rounded-xl border transition-all duration-150"
+                  :class="timeValidation?.start_time === tw.start_time && timeValidation?.end_time === tw.end_time ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                  @click="applyTimeWindow(tw)"
+                >
+                  <p class="text-sm font-medium">{{ tw.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ tw.start_time }} – {{ tw.end_time }}</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- Saved windows -->
+            <div v-if="savedTimes.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Saved</p>
+              <div class="space-y-2">
+                <div
+                  v-for="(tw, idx) in savedTimes"
+                  :key="idx"
+                  class="flex items-center gap-2"
+                >
+                  <button
+                    class="flex-1 text-left p-3 rounded-xl border transition-all duration-150"
+                    :class="timeValidation?.start_time === tw.start_time && timeValidation?.end_time === tw.end_time ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                    @click="applyTimeWindow(tw)"
+                  >
+                    <p class="text-sm font-medium">{{ tw.name }}</p>
+                    <p class="text-xs text-muted-foreground">{{ tw.start_time }} – {{ tw.end_time }}</p>
+                  </button>
+                  <button class="p-1.5 text-muted-foreground/60 hover:text-destructive transition-colors" @click="deleteTimeWindow(idx)">×</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom time inputs -->
+            <div class="space-y-3">
+              <p class="text-xs text-muted-foreground">Custom</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <Label class="text-xs">Start</Label>
+                  <Input v-model="timeValidation.start_time" type="time" class="text-sm" />
+                </div>
+                <div class="space-y-1">
+                  <Label class="text-xs">End</Label>
+                  <Input v-model="timeValidation.end_time" type="time" class="text-sm" />
+                </div>
+              </div>
+
+              <!-- Save / Clear -->
+              <div v-if="timeValidation?.start_time" class="flex items-center gap-2">
+                <template v-if="!showSaveTimeInput">
+                  <button class="text-xs text-primary hover:underline" @click="showSaveTimeInput = true">Save this window</button>
+                  <span class="text-xs text-muted-foreground/40">·</span>
+                  <button class="text-xs text-muted-foreground hover:text-destructive transition-colors" @click="timeValidation = null">Clear</button>
+                </template>
+                <template v-else>
+                  <Input v-model="saveTimeName" class="text-sm flex-1" @keyup.enter="saveTimeWindow" />
+                  <Button size="sm" variant="ghost" @click="saveTimeWindow">Save</Button>
+                  <button class="text-xs text-muted-foreground" @click="showSaveTimeInput = false">Cancel</button>
+                </template>
               </div>
             </div>
           </TabsContent>
         </Tabs>
         
         <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.validation.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.validation.open = false" class="flex-1">
-            Apply
+          <Button @click="sheetState.validation.open = false" class="w-full">
+            Done
           </Button>
         </SheetFooter>
       </SheetContent>
