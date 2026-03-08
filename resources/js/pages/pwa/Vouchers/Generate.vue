@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw } from 'lucide-vue-next';
+import { ArrowLeft, Wallet, Plus, Minus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw } from 'lucide-vue-next';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast/use-toast';
@@ -519,6 +519,14 @@ const confirmAmount = (value: number) => {
 const confirmCount = (value: number) => {
   count.value = value;
   showCountKeypad.value = false;
+};
+
+const incrementCount = () => {
+  count.value = Math.min(count.value + 1, 100);
+};
+
+const decrementCount = () => {
+  count.value = Math.max(count.value - 1, 1);
 };
 
 const openTargetAmountKeypad = () => {
@@ -1214,13 +1222,6 @@ watch(payeeType, (newType, oldType) => {
           >
             {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
-          <p 
-            v-if="count > 1" 
-            class="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors"
-            @click="openCountKeypad"
-          >
-            × {{ count }} vouchers
-          </p>
         </div>
 
         <!-- Payable: Target amount -->
@@ -1232,16 +1233,9 @@ watch(payeeType, (newType, oldType) => {
           >
             {{ targetAmount ? `₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
-          <p 
-            v-if="count > 1" 
-            class="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors"
-            @click="openCountKeypad"
-          >
-            × {{ count }} vouchers
-          </p>
         </div>
 
-        <!-- Settlement: Principal → Target with interest -->
+        <!-- Settlement: Principal -->
         <div v-else class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
           <div class="flex items-center justify-center gap-3">
             <div class="cursor-pointer hover:text-primary transition-colors" @click="openAmountKeypad">
@@ -1264,13 +1258,34 @@ watch(payeeType, (newType, oldType) => {
           >
             {{ Number(interestRate || 0).toFixed(2) }}% interest
           </p>
-          <p 
-            v-if="count > 1" 
-            class="text-sm text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors"
+        </div>
+
+        <!-- Count Stepper -->
+        <div class="flex items-center justify-center gap-4 py-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            class="h-8 w-8 rounded-full" 
+            :disabled="count <= 1"
+            @click="decrementCount"
+          >
+            <Minus class="h-3.5 w-3.5" />
+          </Button>
+          <button 
+            class="text-sm tabular-nums text-muted-foreground hover:text-foreground transition-colors min-w-[5rem] text-center"
             @click="openCountKeypad"
           >
-            × {{ count }} vouchers
-          </p>
+            {{ count }} {{ count === 1 ? 'voucher' : 'vouchers' }}
+          </button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            class="h-8 w-8 rounded-full" 
+            :disabled="count >= 100"
+            @click="incrementCount"
+          >
+            <Plus class="h-3.5 w-3.5" />
+          </Button>
         </div>
 
         <!-- Quick Amount Grid -->
