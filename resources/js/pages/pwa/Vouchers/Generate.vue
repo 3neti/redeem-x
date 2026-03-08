@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2, Trash2, Save } from 'lucide-vue-next';
+import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw } from 'lucide-vue-next';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast/use-toast';
 import NumericKeypad from '@/components/NumericKeypad.vue';
@@ -112,14 +113,15 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const showAmountKeypad = ref(false);
 const showCountKeypad = ref(false);
+const showTargetAmountKeypad = ref(false);
+const showInterestRateKeypad = ref(false);
 const showCostBreakdownModal = ref(false);
 
 // Sheet state management (following plan architecture)
 const sheetState = ref({
   campaign: { open: false },
-  voucherType: { open: false },
   inputs: { open: false },
-  validation: { open: false, activeTab: 'location' as 'location' | 'time' | 'secret' | 'payee' },
+  validation: { open: false, activeTab: 'payee' as 'payee' | 'secret' | 'location' | 'time' },
   feedback: { open: false },
   rider: { open: false },
   envelope: { open: false },
@@ -519,6 +521,28 @@ const confirmCount = (value: number) => {
   showCountKeypad.value = false;
 };
 
+const openTargetAmountKeypad = () => {
+  showTargetAmountKeypad.value = true;
+};
+
+const openInterestRateKeypad = () => {
+  showInterestRateKeypad.value = true;
+};
+
+const confirmTargetAmount = (value: number) => {
+  targetAmount.value = value;
+  // Back-calculate interest rate in settlement mode
+  if (voucherType.value === 'settlement' && amount.value && amount.value > 0) {
+    interestRate.value = parseFloat((((value / amount.value) - 1) * 100).toFixed(2));
+  }
+  showTargetAmountKeypad.value = false;
+};
+
+const confirmInterestRate = (value: number) => {
+  interestRate.value = value;
+  showInterestRateKeypad.value = false;
+};
+
 // Generate voucher (Phase 11 - from Portal.vue)
 const handleGenerate = async () => {
   if (!canGenerate.value) return;
@@ -758,48 +782,23 @@ const clearRider = () => {
   riderSplashTimeout.value = null;
 };
 
-// Clear all instructions
-const clearAllInstructions = () => {
-  // Clear input fields (except auto-added ones)
-  selectedInputFields.value = selectedInputFields.value.filter(field => 
-    autoAddedFields.value.has(field)
-  );
-  
-  // Clear validation
-  validationSecret.value = '';
-  locationValidation.value = { latitude: null, longitude: null, radius: null };
-  timeValidation.value = { start_time: '', end_time: '', timezone: 'Asia/Manila' };
-  payee.value = '';
-  
-  // Clear feedback
-  feedbackEmail.value = '';
-  feedbackMobile.value = '';
-  feedbackWebhook.value = '';
-  
-  // Clear rider
+// Full reset — everything back to factory defaults
+const handleClearAll = () => {
+  resetState();
   clearRider();
-  
-  // Clear envelope
   envelopeConfig.value = null;
   selectedDriverKey.value = '';
-  
-  // Clear rail & fees (reset to defaults)
   settlementRail.value = null;
   feeStrategy.value = 'absorb';
-  
-  // Clear campaign selection
-  selectedCampaignId.value = '';
-  selectedCampaign.value = null;
-  
-  // Clear localStorage
+  riderMessage.value = '';
+  riderUrl.value = '';
+  riderRedirectTimeout.value = null;
+  riderSplash.value = '';
+  riderSplashTimeout.value = null;
   clearSavedState();
-  
-  // Close options menu
-  sheetState.value.options.open = false;
-  
   toast({
-    title: 'All cleared',
-    description: 'All instructions and settings have been reset',
+    title: 'Reset',
+    description: 'All settings cleared',
   });
 };
 
@@ -1094,12 +1093,35 @@ watch(payeeType, (newType, oldType) => {
           </Button>
           <div>
             <h1 class="text-lg font-semibold">Generate</h1>
-            <p class="text-xs text-muted-foreground">{{ voucherTypeDisplay }}</p>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <button class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  {{ voucherTypeDisplay }}
+                  <ChevronDown class="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem @click="voucherType = 'redeemable'">
+                  <span :class="voucherType === 'redeemable' && 'font-semibold'">Redeemable</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="voucherType = 'payable'">
+                  <span :class="voucherType === 'payable' && 'font-semibold'">Payable</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="voucherType = 'settlement'">
+                  <span :class="voucherType === 'settlement' && 'font-semibold'">Settlement</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        <Button variant="ghost" size="icon" @click="openSheet('options')">
-          <SettingsIcon class="h-5 w-5" />
-        </Button>
+        <div class="flex items-center">
+          <Button variant="ghost" size="icon" @click="handleClearAll">
+            <RotateCcw class="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" @click="openSheet('options')">
+            <SettingsIcon class="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </header>
 
@@ -1181,8 +1203,10 @@ watch(payeeType, (newType, oldType) => {
           </div>
         </div>
 
-        <!-- Amount Display (Large) - Clickable -->
-        <div class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+        <!-- Amount Display (Large) - Context-Aware -->
+
+        <!-- Redeemable: Single amount -->
+        <div v-if="voucherType === 'redeemable'" class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
           <p class="text-sm text-muted-foreground mb-1">Amount</p>
           <p 
             class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
@@ -1199,14 +1223,74 @@ watch(payeeType, (newType, oldType) => {
           </p>
         </div>
 
+        <!-- Payable: Target amount -->
+        <div v-else-if="voucherType === 'payable'" class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+          <p class="text-sm text-muted-foreground mb-1">Target Amount</p>
+          <p 
+            class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+            @click="openTargetAmountKeypad"
+          >
+            {{ targetAmount ? `₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+          </p>
+          <p 
+            v-if="count > 1" 
+            class="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors"
+            @click="openCountKeypad"
+          >
+            × {{ count }} vouchers
+          </p>
+        </div>
+
+        <!-- Settlement: Principal → Target with interest -->
+        <div v-else class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+          <div class="flex items-center justify-center gap-3">
+            <div class="cursor-pointer hover:text-primary transition-colors" @click="openAmountKeypad">
+              <p class="text-xs text-muted-foreground mb-1">Principal</p>
+              <p class="text-2xl font-bold tabular-nums">
+                {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+              </p>
+            </div>
+            <span class="text-muted-foreground/40 text-lg select-none mt-4">→</span>
+            <div class="cursor-pointer hover:text-primary transition-colors" @click="openTargetAmountKeypad">
+              <p class="text-xs text-muted-foreground mb-1">Target</p>
+              <p class="text-2xl font-bold tabular-nums">
+                {{ targetAmount ? `₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+              </p>
+            </div>
+          </div>
+          <p 
+            class="text-xs text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors underline decoration-dotted"
+            @click="openInterestRateKeypad"
+          >
+            {{ Number(interestRate || 0).toFixed(2) }}% interest
+          </p>
+          <p 
+            v-if="count > 1" 
+            class="text-sm text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors"
+            @click="openCountKeypad"
+          >
+            × {{ count }} vouchers
+          </p>
+        </div>
+
         <!-- Quick Amount Grid -->
         <div class="grid grid-cols-3 gap-2 rounded-lg p-2 bg-[var(--section-quickgrid)]">
-          <Button variant="outline" size="sm" @click="amount = 100">₱100</Button>
-          <Button variant="outline" size="sm" @click="amount = 500">₱500</Button>
-          <Button variant="outline" size="sm" @click="amount = 1000">₱1K</Button>
-          <Button variant="outline" size="sm" @click="amount = 2000">₱2K</Button>
-          <Button variant="outline" size="sm" @click="amount = 5000">₱5K</Button>
-          <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
+          <template v-if="voucherType === 'payable'">
+            <Button variant="outline" size="sm" @click="targetAmount = 100">₱100</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 500">₱500</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 1000">₱1K</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 2000">₱2K</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 5000">₱5K</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 10000">₱10K</Button>
+          </template>
+          <template v-else>
+            <Button variant="outline" size="sm" @click="amount = 100">₱100</Button>
+            <Button variant="outline" size="sm" @click="amount = 500">₱500</Button>
+            <Button variant="outline" size="sm" @click="amount = 1000">₱1K</Button>
+            <Button variant="outline" size="sm" @click="amount = 2000">₱2K</Button>
+            <Button variant="outline" size="sm" @click="amount = 5000">₱5K</Button>
+            <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
+          </template>
         </div>
 
       </div>
@@ -1336,18 +1420,6 @@ watch(payeeType, (newType, oldType) => {
             <Badge v-if="selectedCampaign" variant="secondary" class="ml-2">Selected</Badge>
           </button>
           
-          <!-- Voucher Type -->
-          <button
-            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
-            @click="openSheet('voucherType')"
-          >
-            <div class="flex-1">
-              <div class="font-medium text-sm">Voucher Type</div>
-              <div class="text-xs text-muted-foreground mt-0.5">{{ voucherTypeDisplay }}</div>
-            </div>
-            <Badge variant="default" class="ml-2">{{ voucherTypeDisplay }}</Badge>
-          </button>
-          
           <!-- Rider Config -->
           <button
             class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
@@ -1392,25 +1464,15 @@ watch(payeeType, (newType, oldType) => {
         </div>
         
         <!-- Action Buttons -->
-        <div class="py-4 px-1 space-y-2 border-t">
-          <div class="grid grid-cols-2 gap-2">
-            <Button 
-              variant="outline" 
-              class="w-full" 
-              @click="openSaveCampaignDialog"
-            >
-              <Save class="mr-2 h-4 w-4" />
-              Save as Campaign
-            </Button>
-            <Button 
-              variant="outline" 
-              class="w-full text-destructive hover:text-destructive" 
-              @click="clearAllInstructions"
-            >
-              <Trash2 class="mr-2 h-4 w-4" />
-              Clear All
-            </Button>
-          </div>
+        <div class="py-4 px-1 border-t">
+          <Button 
+            variant="outline" 
+            class="w-full" 
+            @click="openSaveCampaignDialog"
+          >
+            <Save class="mr-2 h-4 w-4" />
+            Save as Campaign
+          </Button>
         </div>
         
         <SheetFooter>
@@ -1537,139 +1599,6 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
 
-    <!-- Voucher Type Sheet (Phase 4) -->
-    <Sheet v-model:open="sheetState.voucherType.open">
-      <SheetContent side="bottom" class="h-auto max-h-[90vh] flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Voucher Type</SheetTitle>
-          <SheetDescription>
-            Choose the type of voucher to generate
-          </SheetDescription>
-        </SheetHeader>
-        
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
-          <RadioGroup v-model="voucherType">
-            <!-- Redeemable -->
-            <div
-              :class="[
-                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                voucherType === 'redeemable' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-              ]"
-              @click="voucherType = 'redeemable'"
-            >
-              <RadioGroupItem value="redeemable" id="type-redeemable" class="mt-1" />
-              <div class="flex-1">
-                <Label for="type-redeemable" class="font-semibold text-base cursor-pointer">
-                  Redeemable
-                </Label>
-                <p class="text-sm text-muted-foreground mt-1">
-                  Standard one-time redemption voucher. Redeemer receives the full amount.
-                </p>
-              </div>
-            </div>
-            
-            <!-- Payable -->
-            <div
-              :class="[
-                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                voucherType === 'payable' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-              ]"
-              @click="voucherType = 'payable'"
-            >
-              <RadioGroupItem value="payable" id="type-payable" class="mt-1" />
-              <div class="flex-1">
-                <Label for="type-payable" class="font-semibold text-base cursor-pointer">
-                  Payable
-                </Label>
-                <p class="text-sm text-muted-foreground mt-1">
-                  Accepts payments until target amount is reached. Anyone can contribute.
-                </p>
-              </div>
-            </div>
-            
-            <!-- Settlement -->
-            <div
-              :class="[
-                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                voucherType === 'settlement' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-              ]"
-              @click="voucherType = 'settlement'"
-            >
-              <RadioGroupItem value="settlement" id="type-settlement" class="mt-1" />
-              <div class="flex-1">
-                <Label for="type-settlement" class="font-semibold text-base cursor-pointer">
-                  Settlement
-                </Label>
-                <p class="text-sm text-muted-foreground mt-1">
-                  Enterprise settlement instrument. Supports multi-payment with interest calculation.
-                </p>
-              </div>
-            </div>
-          </RadioGroup>
-          
-          <!-- Conditional Fields for Payable -->
-          <div v-if="voucherType === 'payable'" class="space-y-3 pt-4 border-t">
-            <div class="space-y-2">
-              <Label for="target-amount">Target Amount</Label>
-              <Input
-                id="target-amount"
-                v-model.number="targetAmount"
-                type="number"
-                placeholder="Enter target amount"
-                min="1"
-                step="0.01"
-              />
-              <p class="text-xs text-muted-foreground">
-                Total amount to collect before voucher closes
-              </p>
-            </div>
-          </div>
-          
-          <!-- Conditional Fields for Settlement -->
-          <div v-if="voucherType === 'settlement'" class="space-y-3 pt-4 border-t">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="space-y-2">
-                <Label for="loan-amount">Loan Amount</Label>
-                <Input
-                  id="loan-amount"
-                  v-model.number="amount"
-                  type="number"
-                  placeholder="Enter amount"
-                  min="1"
-                  step="0.01"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="interest-rate">Interest Rate</Label>
-                <Input
-                  id="interest-rate"
-                  v-model.number="interestRate"
-                  type="number"
-                  placeholder="0"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-              </div>
-            </div>
-            <p class="text-xs text-muted-foreground">
-              Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} 
-              (principal + {{ Number(interestRate || 0).toFixed(2) }}% interest)
-            </p>
-          </div>
-        </div>
-        
-        <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.voucherType.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.voucherType.open = false" class="flex-1">
-            Apply
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-    
     <!-- Input Fields Sheet (Phase 5) -->
     <Sheet v-model:open="sheetState.inputs.open">
       <SheetContent side="bottom" class="h-[80vh] flex flex-col">
@@ -1767,10 +1696,10 @@ watch(payeeType, (newType, oldType) => {
         
         <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col mt-4">
           <TabsList class="grid w-full grid-cols-4">
+            <TabsTrigger value="payee">Payee</TabsTrigger>
+            <TabsTrigger value="secret">Secret</TabsTrigger>
             <TabsTrigger value="location">Location</TabsTrigger>
             <TabsTrigger value="time">Time</TabsTrigger>
-            <TabsTrigger value="secret">Secret</TabsTrigger>
-            <TabsTrigger value="payee">Payee</TabsTrigger>
           </TabsList>
           
           <!-- Location Tab -->
@@ -2433,6 +2362,28 @@ watch(payeeType, (newType, oldType) => {
       :allow-decimal="false"
       title="Number of Vouchers"
       @confirm="confirmCount"
+    />
+    
+    <NumericKeypad
+      v-model:open="showTargetAmountKeypad"
+      :model-value="targetAmount"
+      mode="amount"
+      :min="1"
+      :allow-decimal="true"
+      title="Enter Target Amount"
+      @confirm="confirmTargetAmount"
+    />
+    
+    <NumericKeypad
+      v-model:open="showInterestRateKeypad"
+      :model-value="interestRate"
+      mode="amount"
+      :min="0"
+      :max="100"
+      :allow-decimal="true"
+      :hide-currency="true"
+      title="Interest Rate (%)"
+      @confirm="confirmInterestRate"
     />
   </PwaLayout>
 </template>
