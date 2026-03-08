@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -214,10 +214,72 @@ const applyTimeWindow = (tw: { start_time: string; end_time: string }) => {
   timeValidation.value = { start_time: tw.start_time, end_time: tw.end_time, timezone: 'Asia/Manila' };
 };
 
+const payeeMode = ref<'anyone' | 'mobile' | 'vendor'>('anyone');
+const payeeError = ref('');
+
+const payeeInputRef = ref<HTMLElement | null>(null);
+const vendorInputRef = ref<HTMLInputElement | null>(null);
+const secretInputRef = ref<HTMLInputElement | null>(null);
+
+const pickSecret = (word: string) => {
+  validationSecret.value = validationSecret.value === word ? '' : word;
+  nextTick(() => {
+    const el = (secretInputRef.value as any)?.$el ?? secretInputRef.value;
+    if (el?.focus) { el.focus(); el.select?.(); }
+  });
+};
+
+const focusPayeeInput = () => {
+  nextTick(() => {
+    if (payeeMode.value === 'mobile' && payeeInputRef.value) {
+      const input = payeeInputRef.value.$el?.querySelector?.('input') as HTMLInputElement
+        ?? payeeInputRef.value?.querySelector?.('input') as HTMLInputElement;
+      if (input) { input.focus(); input.select(); }
+    } else if (payeeMode.value === 'vendor' && vendorInputRef.value) {
+      const el = (vendorInputRef.value as any)?.$el ?? vendorInputRef.value;
+      if (el?.focus) { el.focus(); el.select?.(); }
+    }
+  });
+};
+
 const setPayeeMode = (mode: 'anyone' | 'mobile' | 'vendor') => {
+  payeeMode.value = mode;
+  payeeError.value = '';
   if (mode === 'anyone') payee.value = '';
   else if (mode === 'mobile' && payeeType.value !== 'mobile') payee.value = '09';
   else if (mode === 'vendor' && payeeType.value !== 'vendor') payee.value = 'VENDOR-';
+  if (mode !== 'anyone') focusPayeeInput();
+};
+
+const validateConditions = (): boolean => {
+  payeeError.value = '';
+  if (payeeMode.value === 'mobile') {
+    const ph = payee.value.trim();
+    // Extract digits only — accepts E.164 (+639173011987), 09-format, or formatted (917) 301-1987
+    const digits = ph.replace(/\D/g, '');
+    const isValid = /^\+63\d{10}$/.test(ph)        // E.164
+      || /^63\d{10}$/.test(digits)                  // 63 + 10 digits
+      || /^09\d{9}$/.test(digits)                   // 09 + 9 digits
+      || /^9\d{9}$/.test(digits);                   // 9 + 9 digits (no leading 0)
+    if (!ph || !isValid) {
+      payeeError.value = 'Enter a valid Philippine mobile number';
+      sheetState.value.validation.activeTab = 'payee';
+      return false;
+    }
+  } else if (payeeMode.value === 'vendor') {
+    if (!payee.value.trim()) {
+      payeeError.value = 'Enter a vendor alias';
+      sheetState.value.validation.activeTab = 'payee';
+      return false;
+    }
+  }
+  return true;
+};
+
+const closeConditions = () => {
+  if (validateConditions()) {
+    sheetState.value.validation.open = false;
+  }
 };
 
 // ============================================================================
@@ -1068,6 +1130,7 @@ const resetState = () => {
   targetAmount.value = null;
   interestRate.value = 0;
   payee.value = '';
+  payeeMode.value = 'anyone';
   validationSecret.value = '';
   locationValidation.value = { latitude: null, longitude: null, radius: null };
   timeValidation.value = { start_time: '', end_time: '', timezone: 'Asia/Manila' };
@@ -1136,7 +1199,14 @@ const restoreState = () => {
       if (state.selectedInputFields) selectedInputFields.value = state.selectedInputFields;
       if (state.targetAmount) targetAmount.value = state.targetAmount;
       if (state.interestRate !== undefined) interestRate.value = Number(state.interestRate) || 0;
-      if (state.payee) payee.value = state.payee;
+      if (state.payee) {
+        payee.value = state.payee;
+        // Sync payeeMode from restored value
+        const normalized = state.payee.trim();
+        if (!normalized || normalized.toUpperCase() === 'CASH') payeeMode.value = 'anyone';
+        else if (/^(\+|09|\+63)/.test(normalized)) payeeMode.value = 'mobile';
+        else payeeMode.value = 'vendor';
+      }
       if (state.validationSecret) validationSecret.value = state.validationSecret;
       if (state.feedbackEmail) feedbackEmail.value = state.feedbackEmail;
       if (state.feedbackMobile) feedbackMobile.value = state.feedbackMobile;
@@ -1793,7 +1863,7 @@ watch(payeeType, (newType, oldType) => {
               <!-- Mode cards -->
               <button
                 class="w-full text-left p-4 rounded-xl border transition-all duration-150"
-                :class="!payee ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                :class="payeeMode === 'anyone' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
                 @click="setPayeeMode('anyone')"
               >
                 <p class="text-sm font-medium">Anyone</p>
@@ -1801,7 +1871,7 @@ watch(payeeType, (newType, oldType) => {
               </button>
               <button
                 class="w-full text-left p-4 rounded-xl border transition-all duration-150"
-                :class="payeeType === 'mobile' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                :class="payeeMode === 'mobile' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
                 @click="setPayeeMode('mobile')"
               >
                 <p class="text-sm font-medium">Mobile number</p>
@@ -1809,7 +1879,7 @@ watch(payeeType, (newType, oldType) => {
               </button>
               <button
                 class="w-full text-left p-4 rounded-xl border transition-all duration-150"
-                :class="payeeType === 'vendor' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                :class="payeeMode === 'vendor' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
                 @click="setPayeeMode('vendor')"
               >
                 <p class="text-sm font-medium">Vendor</p>
@@ -1817,57 +1887,56 @@ watch(payeeType, (newType, oldType) => {
               </button>
 
               <!-- Inline input when mobile/vendor selected -->
-              <div v-if="payeeType === 'mobile' || payeeType === 'vendor'" class="pt-1">
-                <Input
-                  v-model="payee"
-                  :type="payeeType === 'mobile' ? 'tel' : 'text'"
-                  class="text-base"
-                />
+              <div v-if="payeeMode === 'mobile'" class="pt-1">
+                <PhoneInput ref="payeeInputRef" v-model="payee" :error="payeeError" />
+              </div>
+              <div v-else-if="payeeMode === 'vendor'" class="pt-1 space-y-1">
+                <Input ref="vendorInputRef" v-model="payee" type="text" class="text-base" :class="{ 'border-red-500': payeeError }" />
+                <p v-if="payeeError" class="text-xs text-red-600">{{ payeeError }}</p>
               </div>
 
               <!-- Clear -->
               <button
                 v-if="payee"
                 class="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                @click="payee = ''"
+                @click="payee = ''; payeeMode = 'anyone'"
               >Clear</button>
             </div>
           </TabsContent>
 
           <!-- What Tab -->
           <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
-            <p class="text-xs text-muted-foreground">Create your own secret</p>
-
-            <!-- Quick-pick by category -->
-            <div v-for="cat in secretPresets" :key="cat.label" class="space-y-2">
-              <p class="text-xs text-muted-foreground">{{ cat.label }}</p>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="word in cat.words"
-                  :key="word"
-                  class="px-3 py-1.5 rounded-full text-sm border transition-all duration-150"
-                  :class="validationSecret === word ? 'bg-primary/8 border-primary/30 font-medium' : 'hover:bg-muted/50'"
-                  @click="validationSecret = validationSecret === word ? '' : word"
-                >{{ word }}</button>
-              </div>
-            </div>
-
-            <!-- Custom input -->
-            <div class="space-y-1.5">
-              <p class="text-xs text-muted-foreground">Or type your own</p>
+            <!-- Prominent input -->
+            <div class="shrink-0">
               <Input
+                ref="secretInputRef"
                 v-model="validationSecret"
                 type="text"
-                class="text-base"
+                placeholder="Enter a secret code"
               />
             </div>
-
-            <!-- Clear -->
             <button
               v-if="validationSecret"
               class="text-xs text-muted-foreground hover:text-destructive transition-colors"
               @click="validationSecret = ''"
             >Clear</button>
+
+            <!-- Quick suggestions -->
+            <div class="space-y-4 pt-2">
+              <p class="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest">Or pick one</p>
+              <div v-for="cat in secretPresets" :key="cat.label" class="space-y-2">
+                <p class="text-xs text-muted-foreground/50">{{ cat.label }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="word in cat.words"
+                    :key="word"
+                    class="px-3 py-1.5 rounded-full text-sm border transition-all duration-150"
+                    :class="validationSecret === word ? 'bg-primary/8 border-primary/30 font-medium text-foreground' : 'text-muted-foreground border-muted hover:bg-muted/30'"
+                    @click="pickSecret(word)"
+                  >{{ word }}</button>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           <!-- Where Tab -->
@@ -2018,7 +2087,7 @@ watch(payeeType, (newType, oldType) => {
         </Tabs>
         
         <SheetFooter class="mt-4">
-          <Button @click="sheetState.validation.open = false" class="w-full">
+          <Button @click="closeConditions" class="w-full">
             Done
           </Button>
         </SheetFooter>
