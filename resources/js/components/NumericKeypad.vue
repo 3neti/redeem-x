@@ -66,14 +66,13 @@ const displayValue = computed(() => {
     return props.hideCurrency ? num.toLocaleString() : `₱${num.toLocaleString()}`;
   }
   
-  // Count mode - show raw number without suffix
+  // Count mode - show raw number only (title provides context)
   const num = currentValue.value;
   // Preserve decimal point during typing
   if (props.allowDecimal && digits.value.includes('.')) {
     return displayNum;
   }
-  const voucherText = num === 1 ? 'voucher' : 'vouchers';
-  return `${num} ${voucherText}`;
+  return `${num}`;
 });
 
 // Title based on mode

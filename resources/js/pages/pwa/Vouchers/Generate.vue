@@ -1103,7 +1103,7 @@ watch(payeeType, (newType, oldType) => {
             <div class="flex items-center">
               <h1 class="text-lg font-semibold">Generate</h1>
               <button 
-                class="ml-1.5 p-0.5 text-muted-foreground/30 hover:text-foreground transition-colors disabled:invisible"
+                class="ml-1.5 p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors disabled:invisible"
                 :disabled="count <= 1"
                 @click="decrementCount"
               >
@@ -1114,7 +1114,7 @@ watch(payeeType, (newType, oldType) => {
                 @click="openCountKeypad"
               >{{ count }}</button>
               <button 
-                class="p-0.5 text-muted-foreground/30 hover:text-foreground transition-colors disabled:opacity-20"
+                class="p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors disabled:opacity-20"
                 :disabled="count >= 100"
                 @click="incrementCount"
               >
