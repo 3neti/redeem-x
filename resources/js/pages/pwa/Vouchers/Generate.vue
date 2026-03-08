@@ -1229,7 +1229,7 @@ watch(payeeType, (newType, oldType) => {
           <!-- Feedback -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('feedback')">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-muted-foreground">Notifications</p>
+              <p class="text-xs text-muted-foreground">Feedback</p>
               <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
             <div v-if="feedbackBadges.length === 0" class="text-sm font-medium text-muted-foreground">
@@ -1861,99 +1861,76 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
     
-    <!-- Feedback Sheet (Phase 7) -->
+    <!-- Feedback Sheet -->
     <Sheet v-model:open="sheetState.feedback.open">
       <SheetContent side="bottom" class="h-auto max-h-[80vh] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Notifications</SheetTitle>
+          <SheetTitle>Feedback</SheetTitle>
           <SheetDescription>
-            Configure notification channels for redemption events
+            Get notified when vouchers are redeemed
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Email Notification -->
-          <div class="space-y-2">
-            <Label for="feedback-email">Email Notification</Label>
+        <div class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+          <!-- Email -->
+          <div class="space-y-1.5">
+            <div class="flex items-baseline justify-between">
+              <Label for="feedback-email" class="text-sm">Email</Label>
+              <button 
+                v-if="!feedbackEmail && (page.props as any).auth?.user?.email" 
+                class="text-xs text-primary/60 hover:text-primary transition-colors"
+                @click="feedbackEmail = (page.props as any).auth.user.email"
+              >Use mine</button>
+            </div>
             <Input
               id="feedback-email"
               v-model="feedbackEmail"
               type="email"
-              placeholder="recipient@example.com"
               :class="{ 'border-red-500': feedbackEmailError }"
             />
-            <p v-if="feedbackEmailError" class="text-xs text-red-600">
-              {{ feedbackEmailError }}
-            </p>
-            <p v-else class="text-xs text-muted-foreground">
-              Send redemption notification to this email
-            </p>
+            <p v-if="feedbackEmailError" class="text-xs text-red-600">{{ feedbackEmailError }}</p>
           </div>
           
-          <!-- SMS Notification -->
-          <div class="space-y-2">
-            <Label for="feedback-mobile">SMS Notification</Label>
+          <!-- SMS -->
+          <div class="space-y-1.5">
+            <div class="flex items-baseline justify-between">
+              <Label for="feedback-mobile" class="text-sm">SMS</Label>
+              <button 
+                v-if="!feedbackMobile && (page.props as any).auth?.user?.mobile" 
+                class="text-xs text-primary/60 hover:text-primary transition-colors"
+                @click="feedbackMobile = (page.props as any).auth.user.mobile"
+              >Use mine</button>
+            </div>
             <PhoneInput
               id="feedback-mobile"
               v-model="feedbackMobile"
-              placeholder="(917) 301-1987"
               :error="feedbackMobileError"
             />
-            <p v-if="!feedbackMobileError" class="text-xs text-muted-foreground">
-              Send SMS notification to this mobile number
-            </p>
           </div>
           
-          <!-- Webhook Notification -->
-          <div class="space-y-2">
-            <Label for="feedback-webhook">Webhook URL</Label>
+          <!-- Webhook -->
+          <div class="space-y-1.5">
+            <div class="flex items-baseline justify-between">
+              <Label for="feedback-webhook" class="text-sm">Webhook</Label>
+              <button 
+                v-if="!feedbackWebhook && (page.props as any).auth?.user?.webhook" 
+                class="text-xs text-primary/60 hover:text-primary transition-colors"
+                @click="feedbackWebhook = (page.props as any).auth.user.webhook"
+              >Use mine</button>
+            </div>
             <Input
               id="feedback-webhook"
               v-model="feedbackWebhook"
               type="url"
-              placeholder="https://your-server.com/webhook"
               :class="{ 'border-red-500': feedbackWebhookError }"
             />
-            <p v-if="feedbackWebhookError" class="text-xs text-red-600">
-              {{ feedbackWebhookError }}
-            </p>
-            <p v-else class="text-xs text-muted-foreground">
-              POST redemption data to this endpoint
-            </p>
-          </div>
-          
-          <!-- Info Box -->
-          <div v-if="feedbackEmail || feedbackMobile || feedbackWebhook" class="p-4 bg-muted/50 rounded-lg mt-6">
-            <p class="text-sm font-medium mb-1">Active Channels</p>
-            <ul class="text-xs text-muted-foreground space-y-1">
-              <li v-if="feedbackEmail" class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                Email: {{ feedbackEmail }}
-              </li>
-              <li v-if="feedbackMobile" class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                SMS: {{ feedbackMobile }}
-              </li>
-              <li v-if="feedbackWebhook" class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                Webhook: {{ feedbackWebhook.substring(0, 40) }}{{ feedbackWebhook.length > 40 ? '...' : '' }}
-              </li>
-            </ul>
-          </div>
-          
-          <!-- Empty State -->
-          <div v-else class="py-8 text-center">
-            <p class="text-sm text-muted-foreground">No notification channels configured</p>
-            <p class="text-xs text-muted-foreground mt-1">Enable at least one channel above</p>
+            <p v-if="feedbackWebhookError" class="text-xs text-red-600">{{ feedbackWebhookError }}</p>
           </div>
         </div>
         
         <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.feedback.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.feedback.open = false" class="flex-1" :disabled="hasFeedbackErrors">
-            Apply
+          <Button @click="sheetState.feedback.open = false" class="w-full" :disabled="hasFeedbackErrors">
+            Done
           </Button>
         </SheetFooter>
       </SheetContent>
