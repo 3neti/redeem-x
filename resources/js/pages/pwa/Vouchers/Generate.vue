@@ -1100,7 +1100,28 @@ watch(payeeType, (newType, oldType) => {
             <ArrowLeft class="h-5 w-5" />
           </Button>
           <div>
-            <h1 class="text-lg font-semibold">Generate</h1>
+            <div class="flex items-center">
+              <h1 class="text-lg font-semibold">Generate</h1>
+              <button 
+                class="ml-1.5 p-0.5 text-muted-foreground/30 hover:text-foreground transition-colors disabled:invisible"
+                :disabled="count <= 1"
+                @click="decrementCount"
+              >
+                <Minus class="h-3 w-3" />
+              </button>
+              <button 
+                class="text-lg font-semibold tabular-nums px-0.5 hover:text-primary/70 transition-colors"
+                @click="openCountKeypad"
+              >{{ count }}</button>
+              <button 
+                class="p-0.5 text-muted-foreground/30 hover:text-foreground transition-colors disabled:opacity-20"
+                :disabled="count >= 100"
+                @click="incrementCount"
+              >
+                <Plus class="h-3 w-3" />
+              </button>
+              <span class="text-lg font-semibold">{{ count === 1 ? 'voucher' : 'vouchers' }}</span>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
                 <button class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -1260,33 +1281,6 @@ watch(payeeType, (newType, oldType) => {
           </p>
         </div>
 
-        <!-- Count Stepper -->
-        <div class="flex items-center justify-center gap-4 py-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            class="h-8 w-8 rounded-full" 
-            :disabled="count <= 1"
-            @click="decrementCount"
-          >
-            <Minus class="h-3.5 w-3.5" />
-          </Button>
-          <button 
-            class="text-sm tabular-nums text-muted-foreground hover:text-foreground transition-colors min-w-[5rem] text-center"
-            @click="openCountKeypad"
-          >
-            {{ count }} {{ count === 1 ? 'voucher' : 'vouchers' }}
-          </button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            class="h-8 w-8 rounded-full" 
-            :disabled="count >= 100"
-            @click="incrementCount"
-          >
-            <Plus class="h-3.5 w-3.5" />
-          </Button>
-        </div>
 
         <!-- Quick Amount Grid -->
         <div class="grid grid-cols-3 gap-2 rounded-lg p-2 bg-[var(--section-quickgrid)]">
