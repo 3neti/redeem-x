@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -170,6 +169,23 @@ const generateButtonText = computed(() => {
     default:
       return `Generate ${countText}Redeemable ${voucherText}`;
   }
+});
+
+// Input field categories — configurable ordering and grouping
+const inputFieldCategories = [
+  { label: 'Capture', fields: ['signature', 'selfie', 'location'] },
+  { label: 'Verification', fields: ['otp', 'kyc'] },
+  { label: 'Details', fields: ['email', 'reference_code', 'name', 'address', 'birth_date'] },
+];
+
+// Map categories to full option objects from props
+const categorizedFields = computed(() => {
+  return inputFieldCategories.map(category => ({
+    label: category.label,
+    options: category.fields
+      .map(value => props.inputFieldOptions.find(opt => opt.value === value))
+      .filter((opt): opt is InputFieldOption => !!opt),
+  }));
 });
 
 // Input field selection summary
@@ -1173,10 +1189,10 @@ watch(payeeType, (newType, oldType) => {
 
         <!-- Config Summary Chips -->
         <div class="space-y-2 rounded-lg bg-[var(--section-chips)]">
-          <!-- Input Fields -->
+          <!-- Required Info -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('inputs')">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-muted-foreground">Input Fields</p>
+              <p class="text-xs text-muted-foreground">Required Info</p>
               <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
             <div v-if="selectedInputFields.length === 0" class="text-sm font-medium text-muted-foreground">
@@ -1608,86 +1624,52 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
 
-    <!-- Input Fields Sheet (Phase 5) -->
+    <!-- Required Info Sheet -->
     <Sheet v-model:open="sheetState.inputs.open">
       <SheetContent side="bottom" class="h-[80vh] flex flex-col">
         <SheetHeader>
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <SheetTitle>Input Fields</SheetTitle>
-              <SheetDescription>
-                Select fields to collect during redemption
-              </SheetDescription>
-            </div>
-            <Button 
+          <SheetTitle>Required Info</SheetTitle>
+          <div class="flex items-baseline justify-between">
+            <SheetDescription>
+              What should the redeemer provide?
+            </SheetDescription>
+            <button 
               v-if="selectedInputFields.length > 0" 
-              variant="ghost" 
-              size="sm" 
+              class="text-xs text-muted-foreground hover:text-destructive transition-colors shrink-0"
               @click="clearAllInputFields"
-              class="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              Clear All
-            </Button>
+            >Clear</button>
           </div>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Input Field Checkboxes -->
-          <div class="space-y-3">
-            <div
-              v-for="option in props.inputFieldOptions"
-              :key="option.value"
-              :class="[
-                'flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                selectedInputFields.includes(option.value) ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
-                option.value === 'otp' && autoAddedFields.has('otp') && 'opacity-60'
-              ]"
-              @click="option.value === 'otp' && autoAddedFields.has('otp') ? null : toggleInputField(option.value)"
-            >
-              <Checkbox
-                :id="`input-${option.value}`"
-                :checked="selectedInputFields.includes(option.value)"
-                :disabled="option.value === 'otp' && autoAddedFields.has('otp')"
-                @click.stop
-              />
-              <div class="flex-1">
-                <Label
-                  :for="`input-${option.value}`"
-                  :class="[
-                    'font-semibold text-base cursor-pointer flex items-center gap-2',
-                    option.value === 'otp' && autoAddedFields.has('otp') && 'cursor-not-allowed'
-                  ]"
-                >
-                  <span v-if="option.icon" class="text-xl">{{ option.icon }}</span>
-                  {{ option.label }}
-                </Label>
-                <p v-if="option.value === 'otp' && autoAddedFields.has('otp')" class="text-xs text-muted-foreground mt-1">
-                  Required for mobile validation
-                </p>
-              </div>
+        <div class="flex-1 overflow-y-auto mt-4 px-1 space-y-5">
+          <div v-for="category in categorizedFields" :key="category.label" class="space-y-2">
+            <p class="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest px-1">{{ category.label }}</p>
+            <div class="space-y-1.5">
+              <button
+                v-for="option in category.options"
+                :key="option.value"
+                :class="[
+                  'w-full text-left px-3.5 py-2.5 rounded-xl border transition-all duration-150',
+                  selectedInputFields.includes(option.value)
+                    ? 'bg-primary/8 border-primary/30 text-foreground'
+                    : 'border-border text-muted-foreground hover:bg-muted/40',
+                  option.value === 'otp' && autoAddedFields.has('otp') && 'opacity-50 cursor-default'
+                ]"
+                @click="option.value === 'otp' && autoAddedFields.has('otp') ? null : toggleInputField(option.value)"
+              >
+                <span class="text-sm font-medium">{{ option.label }}</span>
+                <span 
+                  v-if="option.value === 'otp' && autoAddedFields.has('otp')" 
+                  class="text-[10px] text-muted-foreground ml-2"
+                >Required</span>
+              </button>
             </div>
-          </div>
-          
-          <!-- Empty State -->
-          <div v-if="props.inputFieldOptions.length === 0" class="py-12 text-center">
-            <p class="text-sm text-muted-foreground">No input fields configured</p>
-          </div>
-          
-          <!-- Info Box -->
-          <div v-if="selectedInputFields.length > 0" class="p-4 bg-muted/50 rounded-lg">
-            <p class="text-sm font-medium mb-1">Selected: {{ selectedInputFields.length }} field{{ selectedInputFields.length > 1 ? 's' : '' }}</p>
-            <p class="text-xs text-muted-foreground">
-              Redeemers will need to provide: {{ selectedInputFields.join(', ') }}
-            </p>
           </div>
         </div>
         
         <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.inputs.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.inputs.open = false" class="flex-1">
-            Apply ({{ selectedInputFields.length }})
+          <Button @click="sheetState.inputs.open = false" class="w-full">
+            Done
           </Button>
         </SheetFooter>
       </SheetContent>
