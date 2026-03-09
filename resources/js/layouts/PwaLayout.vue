@@ -24,9 +24,9 @@ const pageTitle = computed(() => {
 // Apply saved theme before first paint
 initializeTheme();
 
-// Register service worker
+// Register service worker (production only — dev mode uses Vite HMR)
 onMounted(() => {
-    if ('serviceWorker' in navigator) {
+    if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
         navigator.serviceWorker.register('/pwa/sw.js').catch((error) => {
             console.error('Service Worker registration failed:', error);
         });

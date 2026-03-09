@@ -1388,6 +1388,26 @@ Code currently in the host app that will be extracted to monorepo packages once 
 
 **Workflow:** Host app first → iterate → extract to package → vendor:publish support
 
+## PWA Service Worker
+
+**CRITICAL: The service worker can cache stale assets and survive hard refreshes, incognito windows, and even clearing site data.**
+
+**How it works:**
+- `public/pwa/sw.js` is registered by `PwaLayout.vue` (production builds only)
+- Each `npm run build` auto-stamps `sw.js` with a build timestamp via the `swVersionStamp` Vite plugin
+- Changed `sw.js` triggers browser to install new SW → purge old caches → serve fresh assets
+- Vite build assets (`/build/*`) use **network-first** strategy (safe)
+- Static PWA assets (icons, fonts) use **cache-first** (safe — they rarely change)
+
+**If the UI looks stale after a build:**
+1. First try: `npm run build` (re-stamps SW, should auto-fix on next page load)
+2. If that fails: DevTools → Application → Service Workers → Unregister
+3. See `docs/troubleshooting/PWA_SERVICE_WORKER_CACHE.md` for full guide
+
+**Dev mode guard:** SW is NOT registered when running `npm run dev` (checked via `import.meta.env.DEV`). This prevents SW from interfering with Vite HMR.
+
+**Stale `public/hot` file:** If Vite dev server crashes, delete `public/hot` — it causes Laravel to load assets from a dead dev server.
+
 ## Important Notes
 
 ### Configuration Data in Migrations

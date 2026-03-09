@@ -1,8 +1,9 @@
-const CACHE_NAME = 'redeem-x-pwa-v1';
+// Auto-stamped by Vite build plugin — DO NOT edit this line manually
+const SW_BUILD = '2026-03-09T00:18:04.944Z';
+const CACHE_NAME = `redeem-x-pwa-${SW_BUILD}`;
 const OFFLINE_URL = '/pwa/offline';
 
-// Assets to cache immediately on install
-// Note: Do NOT include '/' as it may redirect or require auth, causing cache.addAll() to fail
+// Assets to cache immediately on install (static, rarely change)
 const PRECACHE_ASSETS = [
     '/pwa/manifest.webmanifest',
     '/pwa/icons/icon-72x72.png',
@@ -17,30 +18,34 @@ const PRECACHE_ASSETS = [
 
 // Install event - precache essential assets
 self.addEventListener('install', (event) => {
+    console.log(`[SW] Installing build ${SW_BUILD}`);
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW] Precaching app shell');
             return cache.addAll(PRECACHE_ASSETS);
         })
     );
     self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - purge ALL old caches
 self.addEventListener('activate', (event) => {
+    console.log(`[SW] Activating build ${SW_BUILD}, purging old caches`);
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
                     .filter((name) => name !== CACHE_NAME)
-                    .map((name) => caches.delete(name))
+                    .map((name) => {
+                        console.log(`[SW] Deleting old cache: ${name}`);
+                        return caches.delete(name);
+                    })
             );
         })
     );
     self.clients.claim();
 });
 
-// Fetch event - network-first for API, cache-first for assets
+// Fetch event
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
@@ -55,11 +60,10 @@ self.addEventListener('fetch', (event) => {
         if (request.method === 'GET') {
             event.respondWith(networkFirstWithCache(request));
         }
-        // POST/PUT/DELETE requests are handled by the offline queue in the app
         return;
     }
 
-    // Handle navigation requests
+    // Handle navigation requests - network only, offline fallback
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request).catch(() => {
@@ -69,7 +73,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Handle static assets - cache first
+    // Vite build assets (/build/) — NETWORK FIRST
+    // These have content-hashed filenames; SW cache-first is redundant and dangerous.
+    if (url.pathname.startsWith('/build/')) {
+        event.respondWith(networkFirstWithCache(request));
+        return;
+    }
+
+    // Other static assets (icons, fonts, manifest) — cache first is safe
     if (isStaticAsset(url.pathname)) {
         event.respondWith(cacheFirstWithNetwork(request));
         return;
