@@ -4,7 +4,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use LBHurtado\Merchant\Services\VendorAliasService;
 
-uses(RefreshDatabase::class);
+uses(Tests\TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     $this->service = new VendorAliasService;
@@ -18,17 +18,17 @@ test('normalizes alias to uppercase', function () {
 });
 
 test('validates correct alias format', function () {
-    // Valid: 3-8 chars, starts with letter
+    // Valid: 2-8 chars, starts with letter (config pattern: ^[A-Z][A-Z0-9]{1,7}$)
+    expect($this->service->validate('AB'))->toBeTrue();
     expect($this->service->validate('ABC'))->toBeTrue();
     expect($this->service->validate('GCASH'))->toBeTrue();
     expect($this->service->validate('SM12345'))->toBeTrue();
     expect($this->service->validate('A'))->toBeFalse(); // Too short
-    expect($this->service->validate('AB'))->toBeFalse(); // Too short
 });
 
 test('rejects invalid alias format', function () {
-    // Too short
-    expect($this->service->validate('AB'))->toBeFalse();
+    // Too short (min 2 chars)
+    expect($this->service->validate('A'))->toBeFalse();
 
     // Too long
     expect($this->service->validate('TOOLONGALIAS'))->toBeFalse();
@@ -58,8 +58,8 @@ test('validation requires uppercase', function () {
 
 test('detects reserved aliases', function () {
     DB::table('reserved_vendor_aliases')->insert([
-        ['alias' => 'ADMIN', 'reason' => 'System', 'created_at' => now(), 'updated_at' => now()],
-        ['alias' => 'GCASH', 'reason' => 'EMI', 'created_at' => now(), 'updated_at' => now()],
+        ['alias' => 'ADMIN', 'reason' => 'System', 'reserved_at' => now(), 'created_at' => now(), 'updated_at' => now()],
+        ['alias' => 'GCASH', 'reason' => 'EMI', 'reserved_at' => now(), 'created_at' => now(), 'updated_at' => now()],
     ]);
 
     expect($this->service->isReserved('ADMIN'))->toBeTrue();
@@ -69,7 +69,7 @@ test('detects reserved aliases', function () {
 
 test('reserved check is case insensitive', function () {
     DB::table('reserved_vendor_aliases')->insert([
-        ['alias' => 'ADMIN', 'reason' => 'System', 'created_at' => now(), 'updated_at' => now()],
+        ['alias' => 'ADMIN', 'reason' => 'System', 'reserved_at' => now(), 'created_at' => now(), 'updated_at' => now()],
     ]);
 
     expect($this->service->isReserved('admin'))->toBeTrue();
