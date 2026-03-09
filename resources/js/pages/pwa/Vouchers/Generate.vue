@@ -223,10 +223,6 @@ const secretInputRef = ref<HTMLInputElement | null>(null);
 
 const pickSecret = (word: string) => {
   validationSecret.value = validationSecret.value === word ? '' : word;
-  nextTick(() => {
-    const el = (secretInputRef.value as any)?.$el ?? secretInputRef.value;
-    if (el?.focus) { el.focus(); el.select?.(); }
-  });
 };
 
 const focusPayeeInput = () => {
@@ -1716,7 +1712,7 @@ watch(payeeType, (newType, oldType) => {
 
     <!-- Campaign Selection Sheet (Phase 3) -->
     <Sheet v-model:open="sheetState.campaign.open">
-      <SheetContent side="bottom" class="h-[80vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[80dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Select Campaign</SheetTitle>
           <SheetDescription>
@@ -1790,7 +1786,7 @@ watch(payeeType, (newType, oldType) => {
 
     <!-- Required Info Sheet -->
     <Sheet v-model:open="sheetState.inputs.open">
-      <SheetContent side="bottom" class="h-[80vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[80dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Required Info</SheetTitle>
           <div class="flex items-baseline justify-between">
@@ -1841,7 +1837,7 @@ watch(payeeType, (newType, oldType) => {
     
     <!-- Conditions Sheet -->
     <Sheet v-model:open="sheetState.validation.open">
-      <SheetContent side="bottom" class="h-[85vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[85dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Conditions</SheetTitle>
           <SheetDescription>
@@ -1849,7 +1845,7 @@ watch(payeeType, (newType, oldType) => {
           </SheetDescription>
         </SheetHeader>
         
-        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val: any) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col mt-4">
+        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val: any) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col min-h-0 mt-4">
           <TabsList class="grid w-full grid-cols-4">
             <TabsTrigger value="payee">Who</TabsTrigger>
             <TabsTrigger value="secret">What</TabsTrigger>
@@ -2096,7 +2092,7 @@ watch(payeeType, (newType, oldType) => {
     
     <!-- Feedback Sheet -->
     <Sheet v-model:open="sheetState.feedback.open">
-      <SheetContent side="bottom" class="h-auto max-h-[80vh] flex flex-col">
+      <SheetContent side="bottom" class="h-auto max-h-[80dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Feedback</SheetTitle>
           <SheetDescription>
@@ -2171,7 +2167,7 @@ watch(payeeType, (newType, oldType) => {
     
     <!-- Rider Sheet (Phase 8 - Advanced) -->
     <Sheet v-model:open="sheetState.rider.open">
-      <SheetContent side="bottom" class="h-[85vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[85dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Rider Configuration</SheetTitle>
           <SheetDescription>
