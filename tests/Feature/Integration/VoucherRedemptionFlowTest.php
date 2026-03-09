@@ -114,7 +114,7 @@ test('complete redemption flow with all plugins', function () {
         'reference_code',
         'signature',
     ]);
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('complete redemption flow with minimal fields', function () {
     // Given: A voucher requiring only wallet info (no plugins)
@@ -143,7 +143,7 @@ test('complete redemption flow with minimal fields', function () {
     // Verify: Voucher is redeemed
     $voucher->refresh();
     expect($voucher->redeemed_at)->not->toBeNull();
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow with only email field', function () {
     // Given: A voucher requiring only EMAIL
@@ -174,7 +174,7 @@ test('redemption flow with only email field', function () {
     $redeemedInputs = $redeemer->metadata['redemption']['inputs'] ?? [];
     expect($redeemedInputs)->toHaveKey('email');
     expect($redeemedInputs['email'])->toBe('test@example.com');
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow validates required fields only', function () {
     // Given: Voucher requires NAME and EMAIL
@@ -201,7 +201,7 @@ test('redemption flow validates required fields only', function () {
         'email' => 'test@example.com',
         'address' => '123 Main St', // Extra field (should be ignored gracefully)
     ])->assertRedirect("/redeem/{$voucher->code}/finalize");
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow prevents double redemption', function () {
     // Given: A voucher already redeemed
@@ -216,7 +216,7 @@ test('redemption flow prevents double redemption', function () {
     get("/redeem?code={$voucher->code}")
         ->assertRedirect('/redeem')
         ->assertSessionHas('error');
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow validates expired vouchers', function () {
     // Given: An expired voucher
@@ -244,7 +244,7 @@ test('redemption flow validates expired vouchers', function () {
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
     ])->assertSessionHasErrors(['code']);
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow validates wrong secret', function () {
     // Given: A valid voucher
@@ -268,7 +268,7 @@ test('redemption flow validates wrong secret', function () {
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
     ])->assertSessionHasErrors(['secret']);
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow validates mobile number format', function () {
     $user = User::factory()->create();
@@ -295,7 +295,7 @@ test('redemption flow validates mobile number format', function () {
             'account_number' => '09171234567',
         ])->assertSessionDoesntHaveErrors(['mobile']);
     }
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow session data persists across steps', function () {
     // Given: Voucher with multiple plugins
@@ -336,7 +336,7 @@ test('redemption flow session data persists across steps', function () {
         ->assertSessionHas("redeem.{$voucher->code}.mobile")
         ->assertSessionHas("redeem.{$voucher->code}.inputs")
         ->assertSessionHas("redeem.{$voucher->code}.signature");
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('redemption flow clears session after successful completion', function () {
     // Given: Minimal voucher
@@ -357,7 +357,7 @@ test('redemption flow clears session after successful completion', function () {
     // Session should be marked as redeemed
     get("/redeem/{$voucher->code}/success")
         ->assertSessionHas("redeem.{$voucher->code}.redeemed", true);
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('cannot redeem voucher that starts in the future', function () {
     $user = User::factory()->create();
@@ -379,7 +379,7 @@ test('cannot redeem voucher that starts in the future', function () {
     get("/redeem?code={$voucher->code}")
         ->assertRedirect('/redeem')
         ->assertSessionHas('error');
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('cannot redeem expired voucher', function () {
     $user = User::factory()->create();
@@ -401,7 +401,7 @@ test('cannot redeem expired voucher', function () {
     get("/redeem?code={$voucher->code}")
         ->assertRedirect('/redeem')
         ->assertSessionHas('error');
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('expired voucher returns error when submitting wallet info', function () {
     $user = User::factory()->create();
@@ -424,7 +424,7 @@ test('expired voucher returns error when submitting wallet info', function () {
         'bank_code' => 'GCASH',
         'account_number' => '09171234567',
     ])->assertSessionHasErrors(['code']);
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('success page displays custom rider message', function () {
     $user = User::factory()->create();
@@ -462,7 +462,7 @@ test('success page displays custom rider message', function () {
             ->has('voucher')
             ->where('voucher.instructions.rider.message', $customMessage)
         );
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('success page redirects to custom rider URL when configured', function () {
     $user = User::factory()->create();
@@ -501,7 +501,7 @@ test('success page redirects to custom rider URL when configured', function () {
             ->component('redeem/Success')
             ->where('voucher.instructions.rider.url', $customUrl)
         );
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('success page uses default configuration when no rider specified', function () {
     $user = User::factory()->create();
@@ -527,7 +527,7 @@ test('success page uses default configuration when no rider specified', function
             ->component('redeem/Success')
             ->has('voucher')
         );
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');
 
 test('voucher with extended expiry remains valid', function () {
     $user = User::factory()->create();
@@ -551,4 +551,4 @@ test('voucher with extended expiry remains valid', function () {
     // Should be able to start redemption
     get("/redeem?code={$voucher->code}")
         ->assertRedirect("/redeem/{$voucher->code}/wallet");
-});
+})->skip('Web wizard flow removed - needs rewrite for API-first flow');

@@ -2,10 +2,12 @@
 
 use App\Actions\Payment\PayWithVoucher;
 use App\Models\User;
+use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use LBHurtado\Merchant\Actions\AssignVendorAlias;
+use LBHurtado\Voucher\Exceptions\RedemptionException;
 use LBHurtado\Voucher\Models\Voucher;
+use Tests\Helpers\VoucherTestHelper;
 
 uses(RefreshDatabase::class);
 
@@ -14,9 +16,9 @@ beforeEach(function () {
     $this->merchant1 = User::factory()->create(['name' => 'Vendor 1']);
     $this->merchant2 = User::factory()->create(['name' => 'Vendor 2']);
 
-    // Give them wallet balance
-    $this->merchant1->depositFloat(1000);
-    $this->merchant2->depositFloat(1000);
+    // Give them wallet balance (enough to fund vouchers)
+    $this->merchant1->depositFloat(10000);
+    $this->merchant2->depositFloat(10000);
 
     // Assign aliases
     $this->alias1 = AssignVendorAlias::run($this->merchant1->id, 'VNDR1', null);
@@ -24,10 +26,10 @@ beforeEach(function () {
 });
 
 test('correct merchant can redeem payable voucher', function () {
-    // Create voucher payable to merchant1
+    // Create voucher payable to VNDR1 (merchant1's alias)
     $voucher = createPayableVoucher(
         amount: 50,
-        payableAliasId: $this->alias1->id,
+        payableAlias: 'VNDR1',
         owner: $this->merchant1
     );
 
@@ -40,47 +42,47 @@ test('correct merchant can redeem payable voucher', function () {
 
     expect($result['success'])->toBeTrue();
     expect($result['amount'])->toBe(50.0);
-    expect($balanceAfter)->toBe($balanceBefore + 50.0);
+    expect((float) $balanceAfter)->toBe((float) $balanceBefore + 50.0);
 
     // Voucher should be marked as redeemed
     expect($voucher->fresh()->redeemed_at)->not->toBeNull();
 });
 
 test('wrong merchant cannot redeem payable voucher', function () {
-    // Create voucher payable to merchant1
+    // Create voucher payable to VNDR1 (merchant1's alias)
     $voucher = createPayableVoucher(
         amount: 50,
-        payableAliasId: $this->alias1->id,
+        payableAlias: 'VNDR1',
         owner: $this->merchant1
     );
 
-    // Merchant2 tries to redeem
+    // Merchant2 tries to redeem - should fail with RedemptionException
     PayWithVoucher::run($this->merchant2, $voucher->code);
-})->throws(\RuntimeException::class, 'payable to VNDR1');
+})->throws(RedemptionException::class, 'payable to merchant');
 
 test('merchant without alias cannot redeem payable voucher', function () {
     $merchantNoAlias = User::factory()->create();
-    $merchantNoAlias->depositFloat(1000);
+    $merchantNoAlias->depositFloat(10000);
 
     $voucher = createPayableVoucher(
         amount: 50,
-        payableAliasId: $this->alias1->id,
+        payableAlias: 'VNDR1',
         owner: $this->merchant1
     );
 
-    // Merchant without alias tries to redeem
+    // Merchant without alias tries to redeem - fails payable check
     PayWithVoucher::run($merchantNoAlias, $voucher->code);
-})->throws(\RuntimeException::class, 'active vendor alias');
+})->throws(RedemptionException::class, 'payable to merchant');
 
 test('any merchant can redeem voucher without payable restriction', function () {
     // Create voucher WITHOUT payable restriction
     $voucher = createPayableVoucher(
         amount: 30,
-        payableAliasId: null, // No restriction
+        payableAlias: null, // No restriction
         owner: $this->merchant1
     );
 
-    // Both merchants should be able to redeem
+    // Merchant2 should be able to redeem
     $result = PayWithVoucher::run($this->merchant2, $voucher->code);
 
     expect($result['success'])->toBeTrue();
@@ -88,24 +90,25 @@ test('any merchant can redeem voucher without payable restriction', function () 
 });
 
 test('merchant with revoked alias cannot redeem', function () {
-    // Revoke merchant1's alias
-    $this->alias1->update(['status' => 'revoked']);
-
+    // Create voucher payable to VNDR1 first (before revoking)
     $voucher = createPayableVoucher(
         amount: 50,
-        payableAliasId: $this->alias1->id,
+        payableAlias: 'VNDR1',
         owner: $this->merchant1
     );
 
-    // Merchant1 tries to redeem with revoked alias
+    // Revoke merchant1's alias after voucher is created
+    $this->alias1->update(['status' => 'revoked']);
+
+    // Merchant1 tries to redeem with revoked alias - primaryVendorAlias returns null
     PayWithVoucher::run($this->merchant1, $voucher->code);
-})->throws(\RuntimeException::class, 'active vendor alias');
+})->throws(RedemptionException::class, 'payable to merchant');
 
 test('payable validation happens before voucher redemption', function () {
-    // Create voucher payable to merchant1
+    // Create voucher payable to VNDR1
     $voucher = createPayableVoucher(
         amount: 50,
-        payableAliasId: $this->alias1->id,
+        payableAlias: 'VNDR1',
         owner: $this->merchant1
     );
 
@@ -113,40 +116,40 @@ test('payable validation happens before voucher redemption', function () {
     try {
         PayWithVoucher::run($this->merchant2, $voucher->code);
         $this->fail('Should have thrown exception');
-    } catch (\RuntimeException $e) {
+    } catch (RedemptionException $e) {
         // Voucher should NOT be redeemed
         expect($voucher->fresh()->redeemed_at)->toBeNull();
     }
 });
 
 /**
- * Helper to create a payable voucher
+ * Helper to create a payable voucher using GenerateVouchers (creates Cash entity).
  */
-function createPayableVoucher(float $amount, ?int $payableAliasId, User $owner): Voucher
+function createPayableVoucher(float $amount, ?string $payableAlias, User $owner): Voucher
 {
-    // Create voucher directly
-    $voucher = Voucher::create([
-        'code' => 'TEST-'.strtoupper(Str::random(6)),
-        'owner_type' => User::class,
-        'owner_id' => $owner->id,
-        'metadata' => [
-            'instructions' => [
-                'cash' => [
-                    'amount' => $amount,
-                    'currency' => 'PHP',
-                    'validation' => [
-                        'payable' => $payableAliasId,
-                    ],
-                ],
-                'inputs' => ['fields' => []],
-                'feedback' => [],
-                'rider' => [],
+    $instructions = [
+        'cash' => [
+            'amount' => $amount,
+            'currency' => 'PHP',
+            'validation' => [
+                'secret' => null,
+                'mobile' => null,
+                'payable' => $payableAlias,
+                'country' => 'PH',
+                'location' => null,
+                'radius' => null,
             ],
         ],
-        'starts_at' => now(),
-        'expires_at' => now()->addYear(),
-        'processed_on' => now(),
-    ]);
+        'inputs' => ['fields' => []],
+        'feedback' => ['email' => null, 'mobile' => null, 'webhook' => null],
+        'rider' => ['message' => null, 'url' => null],
+        'count' => 1,
+        'prefix' => 'PAY',
+        'mask' => '****',
+        'ttl' => CarbonInterval::hours(12),
+    ];
 
-    return $voucher;
+    $vouchers = VoucherTestHelper::createVouchersWithInstructions($owner, 1, 'PAY', $instructions);
+
+    return $vouchers->first();
 }

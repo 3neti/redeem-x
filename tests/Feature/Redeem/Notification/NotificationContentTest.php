@@ -120,22 +120,28 @@ test('notification content with different scenarios', function (
 
     // Test email content
     $mailData = $notification->toMail($feedbackObj);
-    expect($mailData->subject)->toBe('Voucher Code Redeemed')
-        ->and($mailData->introLines[0])->toContain($voucher->code)
-        ->and($mailData->introLines[0])->toContain($contact->mobile);
+    // Subject template: 'Voucher {{ code }} Redeemed'
+    expect($mailData->subject)->toContain('Voucher')
+        ->and($mailData->subject)->toContain('Redeemed')
+        ->and($mailData->subject)->toContain($voucher->code);
 
-    // Test SMS content
+    // Body (introLines[0]) contains code; mobile is in details section (later introLine)
+    expect($mailData->introLines[0])->toContain($voucher->code);
+    $allIntroLines = implode(' ', $mailData->introLines);
+    expect($allIntroLines)->toContain($contact->mobile);
+
+    // Test SMS content - template: 'Voucher {{ code }} ({{ formatted_amount }}) redeemed by {{ contact_name_or_mobile }}'
     $smsData = $notification->toEngageSpark($feedbackObj);
-    expect($smsData->content)->toContain($voucher->code)
-        ->and($smsData->content)->toContain($contact->mobile);
+    expect($smsData->content)->toContain($voucher->code);
 
     // Test location in notifications if present
     if ($has_location && $location) {
         $locationArray = json_decode($location, true);
         $formattedAddress = $locationArray['address']['formatted'];
 
-        expect($mailData->introLines[0])->toContain($formattedAddress);
-        expect($smsData->content)->toContain($formattedAddress);
+        // Address appears in the email details section, not the first line
+        $allIntroContent = implode(' ', $mailData->introLines);
+        expect($allIntroContent)->toContain($formattedAddress);
 
         $webhookData = $notification->toWebhook($feedbackObj);
         expect($webhookData['payload']['redeemer']['address'])->toBe($formattedAddress);

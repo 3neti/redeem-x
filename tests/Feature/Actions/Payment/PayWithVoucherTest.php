@@ -7,6 +7,7 @@ use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Cash\Models\Cash;
 use LBHurtado\Voucher\Models\Voucher;
+use Tests\Helpers\VoucherTestHelper;
 
 uses(RefreshDatabase::class);
 
@@ -14,19 +15,26 @@ beforeEach(function () {
     // Seed instruction items for proper voucher generation
     $this->seed(\Database\Seeders\InstructionItemSeeder::class);
 
-    // Helper to generate voucher via API (full pipeline with escrow)
+    // Helper to generate voucher via action (bypasses API middleware)
     $this->generateVoucher = function (User $issuer, array $overrides = []) {
-        $base = ['amount' => 100, 'count' => 1];
+        $amount = $overrides['amount'] ?? 100;
 
-        $response = $this->postJson('/api/v1/vouchers', array_merge($base, $overrides), [
-            'Authorization' => 'Bearer '.$issuer->createToken('test')->plainTextToken,
-            'Idempotency-Key' => \Illuminate\Support\Str::uuid()->toString(),
+        $vouchers = VoucherTestHelper::createVouchersWithInstructions($issuer, 1, 'TEST', [
+            'cash' => [
+                'amount' => $amount,
+                'currency' => 'PHP',
+                'validation' => ['secret' => null, 'mobile' => null, 'country' => 'PH', 'location' => null, 'radius' => null],
+            ],
+            'inputs' => ['fields' => []],
+            'feedback' => ['email' => null, 'mobile' => null, 'webhook' => null],
+            'rider' => ['message' => null, 'url' => null],
+            'count' => 1,
+            'prefix' => 'TEST',
+            'mask' => '****',
+            'ttl' => 'P7D',
         ]);
 
-        $response->assertStatus(201);
-        $code = $response->json('data.vouchers.0.code');
-
-        return Voucher::where('code', $code)->firstOrFail();
+        return $vouchers->first();
     };
 });
 

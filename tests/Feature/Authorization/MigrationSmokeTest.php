@@ -13,11 +13,21 @@ use Laravel\Pennant\Feature;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    // Ensure SYSTEM_USER_ID is set for UserSeeder
+    if (empty(env('SYSTEM_USER_ID'))) {
+        putenv('SYSTEM_USER_ID=system@test.com');
+    }
+    // Sync the config with the env var (config is loaded at boot before putenv)
+    config(['account.system_user.identifier' => env('SYSTEM_USER_ID')]);
     $this->seed([\Database\Seeders\RolePermissionSeeder::class]);
     $this->seed([\Database\Seeders\UserSeeder::class]);
+    $this->seed([\Database\Seeders\SystemWalletSeeder::class]);
 });
 
 test('complete authorization flow works end-to-end', function () {
+    $this->withoutVite();
+    config(['balance.default_account' => '113-001-00001-9']);
+
     // 1. Seeded users have correct roles
     $admin = User::where('email', env('SYSTEM_USER_ID'))->first();
     $lester = User::where('email', 'lester@hurtado.ph')->first();

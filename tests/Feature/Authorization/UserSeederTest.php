@@ -11,7 +11,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('UserSeeder creates admin@disburse.cash with super-admin role', function () {
+beforeEach(function () {
+    // Ensure SYSTEM_USER_ID is set for UserSeeder
+    if (empty(env('SYSTEM_USER_ID'))) {
+        putenv('SYSTEM_USER_ID=system@test.com');
+    }
+});
+
+test('UserSeeder creates admin with super-admin role', function () {
     // Run seeders
     $this->seed([\Database\Seeders\RolePermissionSeeder::class]);
     $this->seed([\Database\Seeders\UserSeeder::class]);

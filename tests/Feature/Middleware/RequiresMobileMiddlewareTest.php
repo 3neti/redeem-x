@@ -18,7 +18,8 @@ it('allows users with mobile number to continue', function () {
 
     // Assert: Should reach the page (not redirect)
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page->component('vouchers/generate/CreateV2'));
+    // GENERATE_UI_V2_ENABLED=false in .env, so the component is 'Create'
+    $response->assertInertia(fn ($page) => $page->component('vouchers/generate/Create'));
 });
 
 it('redirects users without mobile to profile', function () {
