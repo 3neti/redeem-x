@@ -90,6 +90,9 @@ Route::prefix('v1')
         // Bank Accounts API
         require base_path('routes/api/bank-accounts.php');
 
+        // Location Presets API
+        require base_path('routes/api/location-presets.php');
+
         // Contact management API
         require base_path('routes/api/contacts.php');
 

@@ -1,10 +1,24 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import axios from 'axios';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Building2, ChevronRight, Smartphone, Mail, Palette } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Settings, User, Building2, ChevronRight, Smartphone, Mail, MapPin, Plus, Trash2 } from 'lucide-vue-next';
 import { usePhoneFormat } from '@/composables/usePhoneFormat';
-import { useTheme } from '@/composables/useTheme';
+import { useToast } from '@/components/ui/toast/use-toast';
+
+interface LocationPreset {
+    id: number;
+    name: string;
+    coordinates: { lat: number; lng: number }[];
+    radius: number;
+    is_default: boolean;
+    centroid: { lat: number; lng: number };
+}
 
 interface Props {
     user: {
@@ -23,13 +37,67 @@ interface Props {
         status: string;
         assigned_at: string;
     } | null;
+    locationPresets?: LocationPreset[];
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    locationPresets: () => [],
+});
 const { formatForDisplay } = usePhoneFormat();
-const { currentTheme, setTheme, availableThemes } = useTheme();
+const { toast } = useToast();
 
 const formattedMobile = props.user.mobile ? formatForDisplay(props.user.mobile) : 'Not set';
+
+// Location presets state
+const presets = ref<LocationPreset[]>([...props.locationPresets]);
+const showAddForm = ref(false);
+const addingPreset = ref(false);
+const newPresetName = ref('');
+const newPresetLat = ref<number | null>(null);
+const newPresetLng = ref<number | null>(null);
+const newPresetRadius = ref<number>(500);
+
+const addPreset = async () => {
+    if (!newPresetName.value || newPresetLat.value === null || newPresetLng.value === null) return;
+    addingPreset.value = true;
+    try {
+        const lat = newPresetLat.value;
+        const lng = newPresetLng.value;
+        const offset = 0.005;
+        const coordinates = [
+            { lat: lat + offset, lng: lng - offset },
+            { lat: lat + offset, lng: lng + offset },
+            { lat: lat - offset, lng: lng + offset },
+            { lat: lat - offset, lng: lng - offset },
+        ];
+        const { data } = await axios.post('/api/v1/location-presets', {
+            name: newPresetName.value,
+            coordinates,
+            radius: newPresetRadius.value,
+        });
+        presets.value.push(data.data.preset);
+        newPresetName.value = '';
+        newPresetLat.value = null;
+        newPresetLng.value = null;
+        newPresetRadius.value = 500;
+        showAddForm.value = false;
+        toast({ title: 'Place saved' });
+    } catch {
+        toast({ title: 'Failed to save place', variant: 'destructive' });
+    } finally {
+        addingPreset.value = false;
+    }
+};
+
+const deletePreset = async (id: number) => {
+    try {
+        await axios.delete(`/api/v1/location-presets/${id}`);
+        presets.value = presets.value.filter(p => p.id !== id);
+        toast({ title: 'Place deleted' });
+    } catch {
+        toast({ title: 'Failed to delete', variant: 'destructive' });
+    }
+};
 </script>
 
 <template>
@@ -132,40 +200,63 @@ const formattedMobile = props.user.mobile ? formatForDisplay(props.user.mobile) 
                 </CardContent>
             </Card>
 
-            <!-- Theme -->
+            <!-- Location Presets Card -->
             <Card>
                 <CardHeader>
-                    <div class="flex items-center gap-2">
-                        <Palette class="h-5 w-5 text-primary" />
-                        <CardTitle class="text-base">Theme</CardTitle>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <MapPin class="h-5 w-5 text-primary" />
+                            <CardTitle class="text-base">Saved Places</CardTitle>
+                        </div>
+                        <Button variant="ghost" size="sm" @click="showAddForm = !showAddForm">
+                            <Plus class="h-4 w-4" />
+                        </Button>
                     </div>
                 </CardHeader>
-                <CardContent>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button
-                            v-for="theme in availableThemes"
-                            :key="theme.id"
-                            @click="setTheme(theme.id)"
-                            :class="[
-                                'relative rounded-lg border-2 p-3 text-left transition-all',
-                                currentTheme === theme.id
-                                    ? 'border-primary ring-1 ring-primary/20'
-                                    : 'border-border hover:border-primary/40',
-                            ]"
-                        >
-                            <div class="mb-2 flex h-8 gap-1 rounded overflow-hidden">
-                                <div :class="[theme.preview.bg, 'flex-1']" />
-                                <div :class="[theme.preview.accent, 'w-3']" />
+                <CardContent class="space-y-3">
+                    <!-- Add Form -->
+                    <div v-if="showAddForm" class="space-y-3 p-3 bg-muted/50 rounded-lg">
+                        <div class="space-y-1">
+                            <Label class="text-xs">Name</Label>
+                            <Input v-model="newPresetName" placeholder="e.g. Office" class="h-9" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="space-y-1">
+                                <Label class="text-xs">Latitude</Label>
+                                <Input v-model.number="newPresetLat" type="number" step="0.0001" placeholder="14.5547" class="h-9" />
                             </div>
-                            <div class="font-medium text-sm">{{ theme.name }}</div>
-                            <div class="text-xs text-muted-foreground">{{ theme.description }}</div>
-                            <div
-                                v-if="currentTheme === theme.id"
-                                class="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center"
-                            >
-                                <span class="text-primary-foreground text-[10px]">✓</span>
+                            <div class="space-y-1">
+                                <Label class="text-xs">Longitude</Label>
+                                <Input v-model.number="newPresetLng" type="number" step="0.0001" placeholder="121.0444" class="h-9" />
                             </div>
-                        </button>
+                        </div>
+                        <div class="space-y-1">
+                            <Label class="text-xs">Radius (meters)</Label>
+                            <Input v-model.number="newPresetRadius" type="number" min="1" class="h-9" />
+                        </div>
+                        <Button size="sm" class="w-full" :disabled="!newPresetName || newPresetLat === null || newPresetLng === null || addingPreset" @click="addPreset">
+                            {{ addingPreset ? 'Saving...' : 'Save Place' }}
+                        </Button>
+                    </div>
+
+                    <!-- Presets List -->
+                    <div v-for="preset in presets" :key="preset.id" class="flex items-center justify-between p-3 rounded-lg border">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-sm truncate">{{ preset.name }}</div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ preset.coordinates.length }} points · {{ preset.radius }}m radius
+                                <span v-if="preset.is_default" class="text-primary"> · System</span>
+                            </div>
+                        </div>
+                        <Button v-if="!preset.is_default" variant="ghost" size="sm" class="shrink-0 text-destructive" @click="deletePreset(preset.id)">
+                            <Trash2 class="h-4 w-4" />
+                        </Button>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-if="presets.length === 0" class="py-4 text-center">
+                        <MapPin class="mx-auto h-8 w-8 text-muted-foreground/50" />
+                        <p class="mt-2 text-sm text-muted-foreground">No saved places yet</p>
                     </div>
                 </CardContent>
             </Card>

@@ -34,3 +34,6 @@ yarn-error.log
 /CLAUDE.md
 /.junie/
 .cloud/
+
+# Monorepo package vendor dirs (regeneratable)
+monorepo-packages/*/vendor/

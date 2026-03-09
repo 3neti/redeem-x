@@ -27,6 +27,18 @@ class PwaSettingsController extends Controller
             $merchantDisplayName = $templateService->render($template, $merchant, $user);
         }
 
+        // Get location presets (user's + system defaults)
+        $locationPresets = method_exists($user, 'getLocationPresetsWithDefaults')
+            ? $user->getLocationPresetsWithDefaults()->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'coordinates' => $p->coordinates,
+                'radius' => $p->radius,
+                'is_default' => $p->is_default,
+                'centroid' => $p->centroid(),
+            ])->values()
+            : collect();
+
         return Inertia::render('pwa/Settings', [
             'user' => [
                 'name' => $user->name,
@@ -44,6 +56,7 @@ class PwaSettingsController extends Controller
                 'status' => $primaryAlias->status,
                 'assigned_at' => $primaryAlias->assigned_at?->toIso8601String(),
             ] : null,
+            'locationPresets' => $locationPresets,
         ]);
     }
 }

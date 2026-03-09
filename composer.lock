@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "88f1a05080c34b8526a8ffcb2c0536a8",
+    "content-hash": "c1163fbb4015a9e8cd47dd8a93f9d2e8",
     "packages": [
         {
             "name": "3neti/form-flow",
@@ -416,7 +416,7 @@
         },
         {
             "name": "3neti/pwa-ui",
-            "version": "dev-main",
+            "version": "dev-feature/location-preset-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/pwa-ui",
@@ -3725,6 +3725,60 @@
             }
         },
         {
+            "name": "lbhurtado/location-preset",
+            "version": "dev-feature/location-preset-package",
+            "dist": {
+                "type": "path",
+                "url": "./monorepo-packages/location-preset",
+                "reference": "b38211ca812a7a5b6e9175235524e3b248d31a04"
+            },
+            "require": {
+                "mjaschen/phpgeo": "^6.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\LocationPreset\\LocationPresetServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\LocationPreset\\": "src/",
+                    "LBHurtado\\LocationPreset\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\LocationPreset\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/pest"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "A package to enable spatial polygon geofence presets for Eloquent Models",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "lbhurtado/merchant",
             "version": "dev-main",
             "dist": {
@@ -3785,7 +3839,7 @@
         },
         {
             "name": "lbhurtado/messaging-bot",
-            "version": "dev-main",
+            "version": "dev-feature/location-preset-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/messaging-bot",
@@ -3899,7 +3953,7 @@
         },
         {
             "name": "lbhurtado/og-meta",
-            "version": "dev-main",
+            "version": "dev-feature/location-preset-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/og-meta",
@@ -3942,7 +3996,7 @@
         },
         {
             "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
+            "version": "dev-feature/location-preset-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/omnichannel",
@@ -4064,7 +4118,7 @@
         },
         {
             "name": "lbhurtado/report-registry",
-            "version": "dev-main",
+            "version": "dev-feature/location-preset-package",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/report-registry",
@@ -5205,6 +5259,89 @@
                 }
             ],
             "time": "2025-12-10T09:58:31+00:00"
+        },
+        {
+            "name": "mjaschen/phpgeo",
+            "version": "6.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mjaschen/phpgeo.git",
+                "reference": "8152f70d8ed257665fd73f82f2e6a88707309786"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mjaschen/phpgeo/zipball/8152f70d8ed257665fd73f82f2e6a88707309786",
+                "reference": "8152f70d8ed257665fd73f82f2e6a88707309786",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^11.0",
+                "squizlabs/php_codesniffer": "^3.7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Location\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Marcus Jaschen",
+                    "email": "mjaschen@gmail.com",
+                    "homepage": "https://www.marcusjaschen.de/"
+                }
+            ],
+            "description": "Simple Yet Powerful Geo Library",
+            "homepage": "https://phpgeo.marcusjaschen.de/",
+            "keywords": [
+                "Polygon",
+                "area",
+                "bearing",
+                "bounds",
+                "calculation",
+                "coordinate",
+                "distance",
+                "earth",
+                "ellipsoid",
+                "geo",
+                "geofence",
+                "gis",
+                "gps",
+                "haversine",
+                "length",
+                "perpendicular",
+                "point",
+                "polyline",
+                "projection",
+                "simplify",
+                "track",
+                "vincenty"
+            ],
+            "support": {
+                "docs": "https://phpgeo.marcusjaschen.de/Installation.html",
+                "email": "mjaschen@gmail.com",
+                "issues": "https://github.com/mjaschen/phpgeo/issues",
+                "source": "https://github.com/mjaschen/phpgeo/tree/6.0.2"
+            },
+            "funding": [
+                {
+                    "url": "https://www.paypal.com/paypalme/mjaschen",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/mjaschen",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-12-02T13:10:24+00:00"
         },
         {
             "name": "moneyphp/money",
@@ -15658,6 +15795,7 @@
         "lbhurtado/contact": 20,
         "lbhurtado/laravel-model-channel": 20,
         "lbhurtado/laravel-model-input": 20,
+        "lbhurtado/location-preset": 20,
         "lbhurtado/merchant": 20,
         "lbhurtado/messaging-bot": 20,
         "lbhurtado/money-issuer": 20,

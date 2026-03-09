@@ -1,0 +1,45 @@
+{
+    "name": "lbhurtado/location-preset",
+    "description": "A package to enable spatial polygon geofence presets for Eloquent Models",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\LocationPreset\\": "src/",
+            "LBHurtado\\LocationPreset\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\LocationPreset\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\LocationPreset\\LocationPresetServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "mjaschen/phpgeo": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.3",
+        "pestphp/pest": "^3.8"
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

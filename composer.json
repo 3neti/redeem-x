@@ -113,6 +113,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "./monorepo-packages/location-preset",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -139,6 +146,7 @@
         "lbhurtado/contact": "@dev",
         "lbhurtado/laravel-model-channel": "@dev",
         "lbhurtado/laravel-model-input": "@dev",
+        "lbhurtado/location-preset": "@dev",
         "lbhurtado/merchant": "@dev",
         "lbhurtado/messaging-bot": "@dev",
         "lbhurtado/money-issuer": "@dev",

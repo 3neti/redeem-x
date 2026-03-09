@@ -17,6 +17,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use LBHurtado\Contact\Models\Contact;
+use LBHurtado\LocationPreset\Traits\HasLocationPresets;
 use LBHurtado\Merchant\Traits\HasMerchant;
 use LBHurtado\Merchant\Traits\HasVendorAlias;
 use LBHurtado\ModelChannel\Traits\HasChannels;
@@ -28,11 +29,13 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements Confirmable, Customer, Wallet
 {
     use CanConfirm;
-
     use CanPay;
+
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
     use HasChannels;
+    use HasLocationPresets;
     use HasMerchant;
     use HasPlatformWallets;
     use HasRoles;
