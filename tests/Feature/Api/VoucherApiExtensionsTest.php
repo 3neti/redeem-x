@@ -324,14 +324,6 @@ describe('Bulk Create Vouchers API', function () {
         expect($voucher->external_metadata->user_id)->toBe('player-1');
     });
 
-    test('requires insufficient balance for bulk create', function () {
-        // Note: Skipping this test due to wallet balance persistence issues in test environment
-        // The wallet balance isn't being properly reset between tests
-        // TODO: Investigate bavix/laravel-wallet behavior in test transactions
-
-        $this->markTestSkipped('Wallet balance test needs investigation - balance persists across tests');
-    })->skip();
-
     test('cannot bulk create with another users campaign', function () {
         $otherUser = User::factory()->create();
         $otherCampaign = Campaign::factory()->create([

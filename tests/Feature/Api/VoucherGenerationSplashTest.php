@@ -38,8 +38,6 @@ it('saves splash fields when generating via API endpoint', function () {
 
     $riderData = $voucher->instructions->rider->toArray();
 
-    dump('API - Voucher code:', $voucherCode);
-    dump('API - Rider data:', $riderData);
 
     expect($riderData)->toHaveKeys([
         'message',

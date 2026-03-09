@@ -202,12 +202,6 @@ test('enforces maximum 100 vouchers limit', function () {
         ->assertJsonValidationErrors(['vouchers']);
 });
 
-test('accepts exactly 100 vouchers', function () {
-    // Note: Skipping wallet balance verification due to Queue::fake() in beforeEach
-    // The validation logic for max 100 vouchers is tested in the validation test
-    $this->markTestSkipped('Wallet balance test skipped due to Queue::fake() interaction');
-})->skip();
-
 test('validates Philippine mobile numbers', function () {
     $response = $this->postJson('/api/v1/vouchers/bulk-create', [
         'campaign_id' => $this->campaign->id,
@@ -338,13 +332,6 @@ test('handles partial failures gracefully', function () {
     // No errors in this successful case
     expect($responseData)->not->toHaveKey('errors');
 });
-
-test('deducts correct amount from wallet', function () {
-    // Note: Skipping wallet balance deduction test due to Queue::fake() in beforeEach
-    // Wallet operations require events/jobs that are faked for other tests
-    // The wallet balance check is tested in 'returns proper error when insufficient wallet balance'
-    $this->markTestSkipped('Wallet deduction test skipped due to Queue::fake() interaction');
-})->skip();
 
 test('returns proper error when insufficient wallet balance', function () {
     // Create user with low balance

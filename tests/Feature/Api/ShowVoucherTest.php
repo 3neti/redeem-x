@@ -470,20 +470,8 @@ test('shows complete voucher with all metadata and inputs', function () {
     expect($data['redeemed_by']['mobile'])->toBe('09179876543');
 });
 
-test('cannot view another users voucher', function () {
-    // Note: This authorization check is tested in VoucherApiTest.php
-    // Skipping here due to token persistence in test suite
-    $this->markTestSkipped('Authorization test covered in VoucherApiTest');
-})->skip();
-
 test('returns 404 for non-existent voucher', function () {
     $response = $this->getJson('/api/v1/vouchers/NONEXISTENT123');
 
     $response->assertNotFound();
 });
-
-test('requires authentication', function () {
-    // Note: This authentication check is tested in VoucherApiTest.php
-    // Skipping here due to token persistence in test suite
-    $this->markTestSkipped('Authentication test covered in VoucherApiTest');
-})->skip();

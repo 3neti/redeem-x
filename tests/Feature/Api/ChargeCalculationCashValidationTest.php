@@ -42,8 +42,6 @@ it('includes cash.validation.secret charge when secret is provided', function ()
     $data = $response->json();
 
     // Debug output
-    dump('Response:', $data);
-    dump('Breakdown items:', collect($data['breakdown'] ?? [])->pluck('index')->toArray());
 
     // Should include cash.validation.secret charge (120 centavos = ₱1.20)
     expect($data['breakdown'])
@@ -79,8 +77,6 @@ it('includes cash.validation.mobile charge when mobile is provided', function ()
     $data = $response->json();
 
     // Debug output
-    dump('Response:', $data);
-    dump('Breakdown items:', collect($data['breakdown'] ?? [])->pluck('index')->toArray());
 
     // Should include cash.validation.mobile charge (130 centavos = ₱1.30)
     expect($data['breakdown'])
@@ -116,8 +112,6 @@ it('includes both cash.validation charges when both are provided', function () {
     $data = $response->json();
 
     // Debug output
-    dump('Response:', $data);
-    dump('Breakdown items:', collect($data['breakdown'] ?? [])->pluck('index')->toArray());
 
     $breakdown = collect($data['breakdown']);
     $indices = $breakdown->pluck('index')->toArray();
@@ -160,7 +154,6 @@ it('converts request to VoucherInstructionsData correctly preserving cash.valida
     // Test direct Data object creation
     $instructions = VoucherInstructionsData::from($payload);
 
-    dump('Instructions cash.validation:', $instructions->cash->validation);
 
     expect($instructions->cash->validation->secret)->toBe('test-secret')
         ->and($instructions->cash->validation->mobile)->toBe('09171234567')

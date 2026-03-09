@@ -48,8 +48,6 @@ it('persists splash fields when creating voucher directly via action', function 
     // Retrieve fresh from database
     $voucher->refresh();
 
-    dump('Saved instructions:', $voucher->instructions->toArray());
-    dump('Rider data:', $voucher->instructions->rider->toArray());
 
     expect($voucher->instructions->rider->splash)->toBe('# Welcome to Splash!')
         ->and($voucher->instructions->rider->splash_timeout)->toBe(10);
@@ -89,17 +87,14 @@ it('persists splash fields through VoucherInstructionsData hydration cycle', fun
     // Step 1: Create DTO from array
     $dto = VoucherInstructionsData::from($originalData);
 
-    dump('Step 1 - DTO created:', $dto->rider->toArray());
 
     // Step 2: Convert to array (simulate serialization)
     $serialized = $dto->toArray();
 
-    dump('Step 2 - Serialized:', $serialized['rider']);
 
     // Step 3: Recreate from array (simulate deserialization)
     $hydrated = VoucherInstructionsData::from($serialized);
 
-    dump('Step 3 - Hydrated:', $hydrated->rider->toArray());
 
     // Step 4: Generate voucher
     $vouchers = GenerateVouchers::run($hydrated);
@@ -108,7 +103,6 @@ it('persists splash fields through VoucherInstructionsData hydration cycle', fun
     // Step 5: Retrieve from database
     $voucher->refresh();
 
-    dump('Step 5 - Saved to DB:', $voucher->instructions->rider->toArray());
 
     expect($voucher->instructions->rider->splash)->toBe('<svg>...</svg>')
         ->and($voucher->instructions->rider->splash_timeout)->toBe(20);
@@ -148,7 +142,6 @@ it('preserves splash fields when rider has all fields filled', function () {
     $voucher->refresh();
     $riderData = $voucher->instructions->rider->toArray();
 
-    dump('All fields filled - Rider:', $riderData);
 
     // All 5 fields should be present
     expect($riderData)->toHaveKeys([
@@ -196,7 +189,6 @@ it('preserves splash fields when other rider fields are null', function () {
     $voucher->refresh();
     $riderData = $voucher->instructions->rider->toArray();
 
-    dump('Only splash filled - Rider:', $riderData);
 
     expect($riderData)->toHaveKey('splash')
         ->and($riderData['splash'])->toBe('Only splash content here')
