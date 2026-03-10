@@ -1,21 +1,23 @@
 <?php
 
 use LBHurtado\Voucher\Enums\VoucherState;
+use LBHurtado\Voucher\Enums\VoucherType;
 use LBHurtado\Voucher\Models\Voucher;
+
+uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 function createVoucher(array $attributes = []): Voucher
 {
     $user = \App\Models\User::factory()->create();
-    
-    return Voucher::create(array_merge([
+
+    $defaults = [
         'code' => strtoupper(\Illuminate\Support\Str::random(4)),
-        'owner_type' => get_class($user),
-        'owner_id' => $user->id,
         'metadata' => [
             'instructions' => [
                 'cash' => [
                     'amount' => 100,
                     'currency' => 'PHP',
+                    'validation' => ['country' => 'PH'],
                 ],
                 'inputs' => ['fields' => []],
                 'feedback' => [],
@@ -24,8 +26,18 @@ function createVoucher(array $attributes = []): Voucher
             ],
         ],
         'state' => VoucherState::ACTIVE,
-        'voucher_type' => 'redeemable',
-    ], $attributes));
+    ];
+
+    $merged = array_merge($defaults, $attributes);
+
+    $voucher = new Voucher();
+    $voucher->forceFill($merged);
+    $voucher->owner_type = get_class($user);
+    $voucher->owner_id = $user->id;
+    $voucher->voucher_type = VoucherType::REDEEMABLE;
+    $voucher->save();
+
+    return $voucher->fresh();
 }
 
 test('voucher can transition from active to locked', function () {

@@ -21,6 +21,7 @@ test('profile information can be updated', function () {
         ->actingAs($user)
         ->patch('/settings/profile', [
             'name' => 'Updated Name',
+            'mobile' => '09171234567',
         ]);
 
     $response
