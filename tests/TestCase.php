@@ -2,9 +2,11 @@
 
 namespace Tests;
 
+use App\Http\Middleware\AdvancedRateLimiting;
 use App\Settings\VoucherSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -21,6 +23,13 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Disable rate limiting middleware so the full test suite
+        // doesn't hit 429 Too Many Requests responses
+        $this->withoutMiddleware([
+            ThrottleRequests::class,
+            AdvancedRateLimiting::class,
+        ]);
 
         // Fake VoucherSettings with default values
         // This prevents tests from hitting the database for settings
