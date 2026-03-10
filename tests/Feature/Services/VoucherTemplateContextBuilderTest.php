@@ -195,6 +195,7 @@ it('handles malformed location json gracefully', function () {
 
 it('includes owner information when available', function () {
     $owner = new ModelData(
+        id: 1,
         name: 'John Doe',
         email: 'john@example.com',
         mobile: '+639181234567',

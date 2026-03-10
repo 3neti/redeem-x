@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Models\VendorAlias;
+use LBHurtado\Merchant\Models\VendorAlias;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -12,25 +12,27 @@ use LBHurtado\Voucher\Models\Voucher;
  * Verifies that payable validation correctly blocks unauthenticated
  * and wrong-vendor redemptions via the /disburse path.
  */
+uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+
 beforeEach(function () {
     // Create issuer with sufficient balance
     $this->issuer = User::factory()->create(['name' => 'Issuer']);
-    $this->issuer->deposit(10000 * 100); // ₱10,000
+    $this->issuer->depositFloat(10000); // ₱10,000
 
     // Create merchant with vendor alias "BB"
     $this->merchantBB = User::factory()->create(['name' => 'Merchant BB']);
     VendorAlias::factory()->create([
-        'user_id' => $this->merchantBB->id,
+        'owner_user_id' => $this->merchantBB->id,
         'alias' => 'BB',
-        'is_primary' => true,
+        'status' => 'active',
     ]);
 
     // Create merchant with different vendor alias
     $this->merchantXYZ = User::factory()->create(['name' => 'Merchant XYZ']);
     VendorAlias::factory()->create([
-        'user_id' => $this->merchantXYZ->id,
+        'owner_user_id' => $this->merchantXYZ->id,
         'alias' => 'XYZ',
-        'is_primary' => true,
+        'status' => 'active',
     ]);
 
     // Generate voucher payable to "BB"
@@ -50,6 +52,7 @@ beforeEach(function () {
         'prefix' => 'TEST',
     ]);
 
+    $this->actingAs($this->issuer);
     $vouchers = GenerateVouchers::run($instructions);
     $this->voucher = $vouchers->first();
 

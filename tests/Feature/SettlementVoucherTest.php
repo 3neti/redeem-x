@@ -236,7 +236,10 @@ describe('Webhook Payment Processing', function () {
 
 describe('Pay Page', function () {
     it('returns 404 when feature flag is disabled', function () {
-        Feature::deactivate('settlement-vouchers');
+        // PayVoucherController checks app()->environment('local', 'staging') || config('pay.enabled')
+        // In test env (local), it's always enabled. Force production behavior:
+        app()->detectEnvironment(fn () => 'production');
+        config(['pay.enabled' => false]);
 
         $response = $this->get('/pay');
 

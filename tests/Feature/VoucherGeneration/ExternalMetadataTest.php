@@ -38,12 +38,12 @@ test('can generate voucher with external metadata', function () {
     $voucher->refresh();
 
     expect($voucher->external_metadata)->not->toBeNull()
-        ->and($voucher->external_metadata->external_id)->toBe('GAME-001')
-        ->and($voucher->external_metadata->external_type)->toBe('questpay')
-        ->and($voucher->external_metadata->reference_id)->toBe('QUEST-123')
-        ->and($voucher->external_metadata->user_id)->toBe('PLAYER-456')
-        ->and($voucher->external_metadata->getCustom('level'))->toBe(10)
-        ->and($voucher->external_metadata->getCustom('challenge_type'))->toBe('treasure_hunt');
+        ->and($voucher->external_metadata['external_id'])->toBe('GAME-001')
+        ->and($voucher->external_metadata['external_type'])->toBe('questpay')
+        ->and($voucher->external_metadata['reference_id'])->toBe('QUEST-123')
+        ->and($voucher->external_metadata['user_id'])->toBe('PLAYER-456')
+        ->and($voucher->external_metadata['custom']['level'])->toBe(10)
+        ->and($voucher->external_metadata['custom']['challenge_type'])->toBe('treasure_hunt');
 });
 
 test('can generate voucher without external metadata', function () {
@@ -108,6 +108,6 @@ test('can query vouchers by external metadata', function () {
 
     expect($questpayVouchers)->toHaveCount(1)
         ->and($loyaltyVouchers)->toHaveCount(1)
-        ->and($questpayVouchers->first()->external_metadata->external_id)->toBe('GAME-001')
-        ->and($loyaltyVouchers->first()->external_metadata->external_id)->toBe('LOYALTY-001');
+        ->and($questpayVouchers->first()->external_metadata['external_id'])->toBe('GAME-001')
+        ->and($loyaltyVouchers->first()->external_metadata['external_id'])->toBe('LOYALTY-001');
 });
