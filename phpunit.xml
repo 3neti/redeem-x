@@ -37,5 +37,6 @@
         <env name="HYPERVERGE_APP_KEY" value="omr7u46kwhrjf8ot96j4"/>
         <env name="HYPERVERGE_URL_WORKFLOW" value="onboarding"/>
         <env name="PENNANT_STORE" value="array"/>
+        <env name="GENERATE_UI_V2_ENABLED" value="false"/>
     </php>
 </phpunit>

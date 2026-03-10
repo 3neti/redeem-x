@@ -40,7 +40,7 @@ class SetExternalMetadata
         $externalMetadata = ExternalMetadataData::from($request->validated());
 
         // Set external metadata using trait
-        $voucher->external_metadata = $externalMetadata;
+        $voucher->external_metadata = $externalMetadata->toArray();
         $voucher->save();
 
         return ApiResponse::success([
