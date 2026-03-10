@@ -108,6 +108,8 @@ test('template variables are replaced', function () {
 });
 
 test('success page shows processed content when custom message exists', function () {
+    config(['success.button_label' => 'Continue Now']);
+
     $voucher = Vouchers::withOwner($this->user)
         ->withPrefix('CUSTOM')
         ->withMask('***')

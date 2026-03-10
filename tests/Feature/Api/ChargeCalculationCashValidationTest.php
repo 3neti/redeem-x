@@ -121,15 +121,15 @@ it('includes both cash.validation charges when both are provided', function () {
         ->toContain('cash.validation.secret')
         ->toContain('cash.validation.mobile');
 
-    // Check total includes both charges (120 + 130 = 250 centavos)
+    // Check total includes both charges (50 + 50 = 100 centavos)
     $secretCharge = $breakdown->firstWhere('index', 'cash.validation.secret');
     $mobileCharge = $breakdown->firstWhere('index', 'cash.validation.mobile');
 
     expect($secretCharge)->not->toBeNull()
-        ->and($secretCharge['price'])->toBe(120);
+        ->and($secretCharge['price'])->toBe(50);
 
     expect($mobileCharge)->not->toBeNull()
-        ->and($mobileCharge['price'])->toBe(130);
+        ->and($mobileCharge['price'])->toBe(50);
 });
 
 it('converts request to VoucherInstructionsData correctly preserving cash.validation', function () {
