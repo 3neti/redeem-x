@@ -17,7 +17,8 @@ it('allows users with positive balance to continue', function () {
 
     // Assert: Should reach the page
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page->component('vouchers/generate/CreateV2'));
+    // GENERATE_UI_V2_ENABLED=false in .env, so the component is 'Create'
+    $response->assertInertia(fn ($page) => $page->component('vouchers/generate/Create'));
 });
 
 it('redirects users with zero balance to wallet qr', function () {

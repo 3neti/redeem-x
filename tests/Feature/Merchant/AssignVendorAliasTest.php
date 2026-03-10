@@ -64,8 +64,9 @@ test('rejects invalid alias format', function () {
     $user = User::factory()->create();
     $admin = User::factory()->create();
 
-    // Too short
-    AssignVendorAlias::run($user->id, 'AB', $admin->id);
+    // Too short - config/merchant.php pattern is ^[A-Z][A-Z0-9]{1,7}$ (min 2 chars)
+    // Single char is too short
+    AssignVendorAlias::run($user->id, 'A', $admin->id);
 })->throws(\RuntimeException::class, 'Invalid alias format');
 
 test('rejects alias with special characters', function () {

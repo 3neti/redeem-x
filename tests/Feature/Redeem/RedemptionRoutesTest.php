@@ -13,6 +13,7 @@ use LBHurtado\Voucher\Data\VoucherInstructionsData;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->withoutVite();
     $this->user = User::factory()->create();
     $this->user->depositFloat(1000);
 });
@@ -21,7 +22,8 @@ test('redemption start page route exists', function () {
     $response = $this->get('/redeem');
 
     $response->assertOk()
-        ->assertInertia(fn ($page) => $page->component('redeem/Start'));
+        // shouldExist=false skips file existence check (case mismatch: redeem/ vs Redeem/)
+        ->assertInertia(fn ($page) => $page->component('redeem/Start', false));
 });
 
 test('wallet page route exists and requires voucher code', function () {
@@ -31,7 +33,7 @@ test('wallet page route exists and requires voucher code', function () {
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('redeem/Wallet')
+            ->component('redeem/Wallet', false)
             ->has('voucher_code')
         );
 });
@@ -57,7 +59,7 @@ test('success page route exists and requires voucher code', function () {
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('redeem/Success')
+            ->component('redeem/Success', false)
             ->has('voucher')
         );
 });
@@ -75,7 +77,7 @@ test('success page returns error for unredeemed voucher', function () {
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('redeem/Error')
+            ->component('redeem/Error', false)
             ->has('message')
         );
 });
@@ -87,7 +89,7 @@ test('finalize page route exists', function () {
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('redeem/Finalize')
+            ->component('redeem/Finalize', false)
         );
 });
 

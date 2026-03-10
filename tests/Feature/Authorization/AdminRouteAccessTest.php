@@ -15,6 +15,17 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Seed roles and permissions
     $this->seed([\Database\Seeders\RolePermissionSeeder::class]);
+
+    // Create system user if SYSTEM_USER_ID is set (may leak from Redeem tests via putenv)
+    // The SystemUserResolverService throws if the user doesn't exist in DB
+    $systemUserId = env('SYSTEM_USER_ID');
+    if ($systemUserId) {
+        $column = config('account.system_user.identifier_column', 'uuid');
+        $modelClass = config('account.system_user.model', User::class);
+        if (! $modelClass::where($column, $systemUserId)->exists()) {
+            User::factory()->create([$column === 'email' ? 'email' : $column => $systemUserId]);
+        }
+    }
 });
 
 test('admin override email can access pricing page', function () {
@@ -39,7 +50,11 @@ test('admin override email can access pricing page', function () {
 });
 
 test('admin override email can access balance monitoring', function () {
-    config(['admin.override_emails' => ['admin@disburse.cash']]);
+    $this->withoutVite();
+    config([
+        'admin.override_emails' => ['admin@disburse.cash'],
+        'balance.default_account' => '113-001-00001-9',
+    ]);
 
     $user = User::factory()->create([
         'email' => 'admin@disburse.cash',

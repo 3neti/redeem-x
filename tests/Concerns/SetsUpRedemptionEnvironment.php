@@ -19,6 +19,11 @@ trait SetsUpRedemptionEnvironment
      */
     protected function setUpRedemptionEnvironment(): User
     {
+        // Ensure SYSTEM_USER_ID is set for testing (UserSeeder requires it)
+        if (empty(env('SYSTEM_USER_ID'))) {
+            putenv('SYSTEM_USER_ID=system@test.com');
+        }
+
         // Seed the database with all necessary data
         $this->seed([
             \Database\Seeders\RolePermissionSeeder::class,

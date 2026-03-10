@@ -12,8 +12,12 @@ use Propaganistas\LaravelPhone\PhoneNumber;
  */
 describe('ProcessRedemption Location Validation', function () {
     beforeEach(function () {
+        // Seed instruction items for cost calculations
+        $this->seed(\Database\Seeders\InstructionItemSeeder::class);
+
         // Login a user for voucher generation
         $user = \App\Models\User::first() ?? \App\Models\User::factory()->create();
+        $user->deposit(100000); // Fund wallet for escrow
         Auth::login($user);
 
         // Generate a test voucher with location validation using the actual action
@@ -48,7 +52,7 @@ describe('ProcessRedemption Location Validation', function () {
             'ttl' => 'P30D',
         ];
 
-        [$vouchers, $cashEntities] = GenerateVouchers::run($user, $attribs);
+        $vouchers = GenerateVouchers::run($attribs);
         $this->voucher = $vouchers->first();
 
         // Voucher should already be marked as processed after cash entity is created
@@ -115,8 +119,10 @@ describe('ProcessRedemption Location Validation', function () {
         expect($this->voucher->redeemed_at)->not->toBeNull();
     });
 
-    it('validates location through LocationSpecification (outside radius)', function () {
+    it('allows redemption even with outside-radius location (validation handled by Unified Gateway)', function () {
         // Location outside the allowed radius
+        // ProcessRedemption no longer validates location - it's handled by LocationSpecification
+        // in the Unified Validation Gateway (controller level, not action level)
         $inputs = [
             'latitude' => 14.6547,  // ~11km away (outside 1km radius)
             'longitude' => 121.1244,
@@ -129,21 +135,22 @@ describe('ProcessRedemption Location Validation', function () {
 
         $action = new ProcessRedemption;
 
-        // This should fail because LocationSpecification will reject it
+        // ProcessRedemption does NOT validate location - succeeds regardless
         expect(fn () => $action->handle(
             $this->voucher,
             $this->phoneNumber,
             $inputs,
             $bankAccount
-        ))->toThrow(Exception::class);
+        ))->not->toThrow(Exception::class);
 
-        // Verify voucher was NOT redeemed
+        // Voucher IS redeemed since ProcessRedemption doesn't check location
         $this->voucher->refresh();
-        expect($this->voucher->redeemed_at)->toBeNull();
+        expect($this->voucher->redeemed_at)->not->toBeNull();
     });
 
-    it('validates location through LocationSpecification (missing data)', function () {
+    it('allows redemption without location data (validation handled by Unified Gateway)', function () {
         // No location data provided
+        // ProcessRedemption no longer validates location presence
         $inputs = [
             'name' => 'John Doe',
             'email' => 'john@example.com',
@@ -156,17 +163,17 @@ describe('ProcessRedemption Location Validation', function () {
 
         $action = new ProcessRedemption;
 
-        // This should fail because LocationSpecification requires location
+        // ProcessRedemption does NOT validate location - succeeds regardless
         expect(fn () => $action->handle(
             $this->voucher,
             $this->phoneNumber,
             $inputs,
             $bankAccount
-        ))->toThrow(Exception::class);
+        ))->not->toThrow(Exception::class);
 
-        // Verify voucher was NOT redeemed
+        // Voucher IS redeemed since ProcessRedemption doesn't check location
         $this->voucher->refresh();
-        expect($this->voucher->redeemed_at)->toBeNull();
+        expect($this->voucher->redeemed_at)->not->toBeNull();
     });
 
     it('processes voucher without location validation when not configured', function () {
@@ -192,7 +199,7 @@ describe('ProcessRedemption Location Validation', function () {
             'ttl' => 'P30D',
         ];
 
-        [$vouchers, $cashEntities] = GenerateVouchers::run($user, $attribs);
+        $vouchers = GenerateVouchers::run($attribs);
         $voucherNoLocation = $vouchers->first();
 
         // Wait for cash entity to be created

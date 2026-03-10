@@ -167,9 +167,11 @@ test('complete lifecycle with disbursement disabled', function () {
     // Disable disbursement via env
     putenv('DISBURSE_DISABLE=true');
 
-    // Mock payment gateway - should NOT be called
+    // Mock payment gateway - disburse should NOT be called (disabled via env)
+    // but getRailFee is called during cash entity creation (FeeCalculator)
     $mockGateway = Mockery::mock(PaymentGatewayInterface::class);
     $mockGateway->shouldNotReceive('disburse');
+    $mockGateway->shouldReceive('getRailFee')->andReturn(0);
     app()->instance(PaymentGatewayInterface::class, $mockGateway);
 
     // Step 1: Generate voucher

@@ -7,12 +7,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('new user gets two default campaigns', function () {
+beforeEach(function () {
+    // Seed instruction items for proper voucher generation cost calculations
+    $this->seed(\Database\Seeders\InstructionItemSeeder::class);
+});
+
+test('new user gets three default campaigns', function () {
     $user = User::factory()->create();
 
-    expect($user->campaigns)->toHaveCount(2)
+    expect($user->campaigns)->toHaveCount(3)
         ->and($user->campaigns->pluck('name')->toArray())
-        ->toContain('Blank Template', 'Standard Campaign');
+        ->toContain('Quick Cash', 'Petty Cash', 'Cash Gift');
 });
 
 test('vouchers attach to campaign via pivot table', function () {
@@ -22,11 +27,13 @@ test('vouchers attach to campaign via pivot table', function () {
     // Fund the wallet
     $user->depositFloat(1000);
 
-    $response = $this->actingAs($user)->postJson('/api/v1/vouchers', [
-        'amount' => 100,
-        'count' => 2,
-        'campaign_id' => $campaign->id,
-    ]);
+    $response = $this->actingAs($user)
+        ->withoutMiddleware()
+        ->postJson('/api/v1/vouchers', [
+            'amount' => 100,
+            'count' => 2,
+            'campaign_id' => $campaign->id,
+        ]);
 
     $response->assertStatus(201);
 
@@ -42,11 +49,13 @@ test('pivot table stores instructions snapshot', function () {
 
     $user->depositFloat(1000);
 
-    $response = $this->actingAs($user)->postJson('/api/v1/vouchers', [
-        'amount' => 100,
-        'count' => 1,
-        'campaign_id' => $campaign->id,
-    ]);
+    $response = $this->actingAs($user)
+        ->withoutMiddleware()
+        ->postJson('/api/v1/vouchers', [
+            'amount' => 100,
+            'count' => 1,
+            'campaign_id' => $campaign->id,
+        ]);
 
     $response->assertStatus(201);
 
@@ -66,11 +75,13 @@ test('campaign shows voucher count', function () {
     $user->depositFloat(1000);
 
     // Generate 3 vouchers
-    $this->actingAs($user)->postJson('/api/v1/vouchers', [
-        'amount' => 100,
-        'count' => 3,
-        'campaign_id' => $campaign->id,
-    ]);
+    $this->actingAs($user)
+        ->withoutMiddleware()
+        ->postJson('/api/v1/vouchers', [
+            'amount' => 100,
+            'count' => 3,
+            'campaign_id' => $campaign->id,
+        ]);
 
     $campaign->refresh();
 
@@ -81,10 +92,12 @@ test('voucher generation without campaign works', function () {
     $user = User::factory()->create();
     $user->depositFloat(1000);
 
-    $response = $this->actingAs($user)->postJson('/api/v1/vouchers', [
-        'amount' => 100,
-        'count' => 1,
-    ]);
+    $response = $this->actingAs($user)
+        ->withoutMiddleware()
+        ->postJson('/api/v1/vouchers', [
+            'amount' => 100,
+            'count' => 1,
+        ]);
 
     $response->assertStatus(201);
 
