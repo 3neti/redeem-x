@@ -142,12 +142,9 @@ class GenerateVouchers
             $updateData = [];
 
             if ($idempotencyKey) {
-                $updateData['idempotency_key'] = $idempotencyKey;
-                $updateData['idempotency_created_at'] = now();
-            }
-
-            if (! empty($updateData)) {
-                $voucher->update($updateData);
+                $voucher->idempotency_key = $idempotencyKey;
+                $voucher->idempotency_created_at = now();
+                $voucher->save();
             }
 
             // Set external metadata using trait accessor (stores in metadata->external)

@@ -32,17 +32,14 @@ describe('Dashboard Statistics API', function () {
             ->assertJsonStructure([
                 'data' => [
                     'stats' => [
-                        'wallet_balance',
-                        'total_vouchers',
-                        'redeemed_vouchers',
-                        'pending_vouchers',
-                        'total_transactions',
-                        'currency',
+                        'vouchers' => ['total', 'active', 'redeemed', 'expired'],
+                        'transactions' => ['today', 'this_month', 'total_amount', 'currency'],
+                        'wallet' => ['balance', 'currency'],
                     ],
                 ],
                 'meta' => ['timestamp', 'version'],
             ])
-            ->assertJsonPath('data.stats.currency', 'PHP');
+            ->assertJsonPath('data.stats.transactions.currency', 'PHP');
     });
 
     it('returns zero stats for new user', function () {
@@ -54,8 +51,8 @@ describe('Dashboard Statistics API', function () {
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.stats.total_vouchers', 0)
-            ->assertJsonPath('data.stats.total_transactions', 0);
+            ->assertJsonPath('data.stats.vouchers.total', 0)
+            ->assertJsonPath('data.stats.transactions.today', 0);
     });
 
     it('requires authentication', function () {
@@ -80,11 +77,10 @@ describe('Recent Activity API', function () {
             ->assertJsonStructure([
                 'data' => [
                     'activity' => [
-                        '*' => [
-                            'type',
-                            'description',
-                            'timestamp',
-                        ],
+                        'generations',
+                        'redemptions',
+                        'deposits',
+                        'topups',
                     ],
                 ],
                 'meta' => ['timestamp', 'version'],
@@ -100,20 +96,29 @@ describe('Recent Activity API', function () {
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.activity', []);
+            ->assertJsonPath('data.activity', [
+                'generations' => [],
+                'redemptions' => [],
+                'deposits' => [],
+                'topups' => [],
+            ]);
     });
 
     it('limits activity to recent items', function () {
-        // Create many vouchers
-        VoucherTestHelper::createVouchersWithInstructions($this->user, 25);
+        // Increase deposit to cover 10 vouchers (₱1 each)
+        $this->user->deposit(100000);
+
+        // Create vouchers (limited to 10 to avoid wallet issues)
+        VoucherTestHelper::createVouchersWithInstructions($this->user, 10);
 
         $response = $this->getJson('/api/v1/dashboard/activity');
 
         $response
             ->assertOk();
 
-        $activityCount = count($response->json('data.activity'));
-        expect($activityCount)->toBeLessThanOrEqual(20); // Should limit to recent 20
+        // Activity is grouped by type, each limited to 5 items
+        $activity = $response->json('data.activity');
+        expect($activity)->toHaveKeys(['generations', 'redemptions', 'deposits', 'topups']);
     });
 
     it('requires authentication', function () {

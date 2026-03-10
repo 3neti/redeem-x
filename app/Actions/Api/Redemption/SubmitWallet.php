@@ -84,7 +84,7 @@ class SubmitWallet
 
             // Reload voucher with relationships
             $voucher->refresh();
-            $voucher->load(['contact', 'cash', 'inputs']);
+            $voucher->load(['inputs']);
 
             return ApiResponse::success([
                 'message' => 'Voucher redeemed successfully!',

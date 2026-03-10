@@ -59,18 +59,20 @@ test('it generates vouchers with idempotency key', function () {
 
     $response->assertStatus(201)
         ->assertJsonStructure([
-            'count',
-            'vouchers',
-            'total_amount',
-            'currency',
+            'data' => [
+                'count',
+                'vouchers',
+                'total_amount',
+                'currency',
+            ],
         ])
         ->assertJson([
-            'count' => 2,
+            'data' => ['count' => 2],
         ])
         ->assertHeader('X-Idempotent-Replay', 'false');
 
     // Verify idempotency key was stored in database
-    $voucherCodes = $response->json('vouchers.*.code');
+    $voucherCodes = $response->json('data.vouchers.*.code');
     expect($voucherCodes)->toHaveCount(2);
 
     foreach ($voucherCodes as $code) {
@@ -93,7 +95,7 @@ test('it returns cached response for duplicate voucher generation', function () 
     ]);
 
     $response1->assertStatus(201);
-    $voucherCodes1 = $response1->json('vouchers.*.code');
+    $voucherCodes1 = $response1->json('data.vouchers.*.code');
 
     // Second request with same idempotency key
     $response2 = $this->postJson('/api/v1/vouchers', [
@@ -104,7 +106,7 @@ test('it returns cached response for duplicate voucher generation', function () 
     ]);
 
     $response2->assertStatus(201);
-    $voucherCodes2 = $response2->json('vouchers.*.code');
+    $voucherCodes2 = $response2->json('data.vouchers.*.code');
 
     // Should return exact same vouchers
     expect($voucherCodes1)->toBe($voucherCodes2);
@@ -126,7 +128,7 @@ test('it generates new vouchers with different idempotency key', function () {
     ]);
 
     $response1->assertStatus(201);
-    $voucher1Code = $response1->json('vouchers.0.code');
+    $voucher1Code = $response1->json('data.vouchers.0.code');
 
     // Second request with different idempotency key
     $response2 = $this->postJson('/api/v1/vouchers', [
@@ -137,7 +139,7 @@ test('it generates new vouchers with different idempotency key', function () {
     ]);
 
     $response2->assertStatus(201);
-    $voucher2Code = $response2->json('vouchers.0.code');
+    $voucher2Code = $response2->json('data.vouchers.0.code');
 
     // Should have created different vouchers
     expect($voucher1Code)->not->toBe($voucher2Code);
@@ -184,7 +186,7 @@ test('it scopes idempotency by user', function () {
     ]);
 
     $response1->assertStatus(201);
-    $user1VoucherCode = $response1->json('vouchers.0.code');
+    $user1VoucherCode = $response1->json('data.vouchers.0.code');
 
     // User 2 uses same idempotency key
     $user2 = User::factory()->create();
@@ -199,7 +201,7 @@ test('it scopes idempotency by user', function () {
     ]);
 
     $response2->assertStatus(201);
-    $user2VoucherCode = $response2->json('vouchers.0.code');
+    $user2VoucherCode = $response2->json('data.vouchers.0.code');
 
     // Different users should create different vouchers even with same key
     expect($user1VoucherCode)->not->toBe($user2VoucherCode);

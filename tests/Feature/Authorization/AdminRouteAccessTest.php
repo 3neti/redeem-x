@@ -56,10 +56,10 @@ test('admin override email can access balance monitoring', function () {
         'balance.default_account' => '113-001-00001-9',
     ]);
 
-    $user = User::factory()->create([
-        'email' => 'admin@disburse.cash',
-        'name' => 'Admin User',
-    ]);
+    $user = User::firstOrCreate(
+        ['email' => 'admin@disburse.cash'],
+        ['name' => 'Admin User', 'password' => bcrypt('password')]
+    );
 
     $response = $this->actingAs($user)
         ->get(route('balances.index'));

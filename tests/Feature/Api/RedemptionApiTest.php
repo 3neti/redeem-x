@@ -186,6 +186,8 @@ test('returns cannot redeem for already redeemed voucher', function () {
 test('can redeem voucher with mobile number', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
+    $voucher->processed = true;
+    $voucher->save();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
         'code' => $voucher->code,
@@ -198,7 +200,6 @@ test('can redeem voucher with mobile number', function () {
             'data' => [
                 'message',
                 'voucher',
-                'rider',
             ],
             'meta',
         ])
@@ -238,6 +239,8 @@ test('can redeem voucher with secret', function () {
     auth()->login($this->user);
     $vouchers = GenerateVouchers::run($instructions);
     $voucher = $vouchers->first();
+    $voucher->processed = true;
+    $voucher->save();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
         'code' => $voucher->code,
@@ -250,12 +253,10 @@ test('can redeem voucher with secret', function () {
         ->assertJson([
             'data' => [
                 'message' => 'Voucher redeemed successfully!',
-                'rider' => [
-                    'message' => 'Thank you!',
-                    'url' => 'https://example.com',
-                ],
             ],
-        ]);
+        ])
+        ->assertJsonPath('data.voucher.instructions.rider.message', 'Thank you!')
+        ->assertJsonPath('data.voucher.instructions.rider.url', 'https://example.com');
 });
 
 test('cannot redeem voucher with wrong secret', function () {
@@ -291,9 +292,9 @@ test('cannot redeem voucher with wrong secret', function () {
         'secret' => 'wrong',
     ]);
 
-    $response->assertStatus(400)
+    $response->assertStatus(422)
         ->assertJson([
-            'message' => 'Invalid secret code.',
+            'message' => 'Invalid secret code provided.',
         ]);
 });
 
@@ -324,6 +325,8 @@ test('can redeem voucher with inputs', function () {
     auth()->login($this->user);
     $vouchers = GenerateVouchers::run($instructions);
     $voucher = $vouchers->first();
+    $voucher->processed = true;
+    $voucher->save();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
         'code' => $voucher->code,
@@ -383,6 +386,8 @@ test('cannot redeem invalid voucher code', function () {
 test('cannot redeem already redeemed voucher', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
+    $voucher->processed = true;
+    $voucher->save();
 
     // First redemption
     $this->postJson('/api/v1/redeem/wallet', [
@@ -448,6 +453,8 @@ test('cannot redeem expired voucher', function () {
 test('can redeem with bank account details', function () {
     $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 1);
     $voucher = $vouchers->first();
+    $voucher->processed = true;
+    $voucher->save();
 
     $response = $this->postJson('/api/v1/redeem/wallet', [
         'code' => $voucher->code,

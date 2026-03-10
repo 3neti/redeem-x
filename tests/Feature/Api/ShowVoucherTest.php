@@ -5,7 +5,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\Voucher\Actions\RedeemVoucher;
-use LBHurtado\Voucher\Data\ExternalMetadataData;
 use LBHurtado\Voucher\Data\LocationValidationResultData;
 use LBHurtado\Voucher\Data\TimeValidationResultData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -51,13 +50,13 @@ test('shows external metadata when present', function () {
     $voucher = $vouchers->first();
 
     // Set external metadata
-    $voucher->external_metadata = ExternalMetadataData::from([
+    $voucher->external_metadata = [
         'external_id' => 'quest-999',
         'external_type' => 'questpay',
         'reference_id' => 'ref-999',
         'user_id' => 'player-999',
         'custom' => ['level' => 50, 'mission' => 'final-boss'],
-    ]);
+    ];
     $voucher->save();
 
     $response = $this->getJson("/api/v1/vouchers/{$voucher->code}");
@@ -391,11 +390,11 @@ test('shows complete voucher with all metadata and inputs', function () {
     $voucher = $vouchers->first();
 
     // 1. Set external metadata
-    $voucher->external_metadata = ExternalMetadataData::from([
+    $voucher->external_metadata = [
         'external_id' => 'complete-test',
         'external_type' => 'test',
         'user_id' => 'user-123',
-    ]);
+    ];
     $voucher->save();
 
     // 2. Track timing

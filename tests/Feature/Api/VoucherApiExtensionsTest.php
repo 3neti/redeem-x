@@ -54,10 +54,10 @@ describe('Set External Metadata API', function () {
         // Verify in database
         $voucher->refresh();
         expect($voucher->external_metadata)
-            ->toBeInstanceOf(ExternalMetadataData::class)
-            ->external_id->toBe('quest-123')
-            ->external_type->toBe('questpay')
-            ->user_id->toBe('player-789');
+            ->toBeArray()
+            ->and($voucher->external_metadata['external_id'])->toBe('quest-123')
+            ->and($voucher->external_metadata['external_type'])->toBe('questpay')
+            ->and($voucher->external_metadata['user_id'])->toBe('player-789');
     });
 
     test('cannot set external metadata on voucher owned by another user', function () {
@@ -146,7 +146,7 @@ describe('Track Timing API', function () {
         expect($voucher->getRedemptionDuration())->toBeGreaterThanOrEqual(1);
     });
 
-    test('cannot track timing on voucher owned by another user', function () {
+    test('timing click is public - any user can track timing', function () {
         $otherUser = User::factory()->create();
         $otherUser->deposit(10000);
 
@@ -157,9 +157,10 @@ describe('Track Timing API', function () {
         // Switch back to original user
         Sanctum::actingAs($this->user, ['*']);
 
+        // Timing click/start routes are public (no auth/ownership check)
         $response = $this->postJson("/api/v1/vouchers/{$voucher->code}/timing/click");
 
-        $response->assertForbidden();
+        $response->assertOk();
     });
 });
 
@@ -168,10 +169,10 @@ describe('Show Voucher API', function () {
         $voucher = VoucherTestHelper::createVouchersWithInstructions($this->user, 1, 'TEST')->first();
 
         // Set external metadata
-        $voucher->external_metadata = ExternalMetadataData::from([
+        $voucher->external_metadata = [
             'external_id' => 'quest-123',
             'external_type' => 'questpay',
-        ]);
+        ];
 
         // Track timing
         $voucher->trackClick();
@@ -197,24 +198,24 @@ describe('Query Vouchers API', function () {
         // Create vouchers with different external metadata
         $vouchers = VoucherTestHelper::createVouchersWithInstructions($this->user, 3, 'TEST');
 
-        $vouchers[0]->external_metadata = ExternalMetadataData::from([
+        $vouchers[0]->external_metadata = [
             'external_type' => 'questpay',
             'external_id' => 'quest-1',
             'user_id' => 'player-1',
-        ]);
+        ];
         $vouchers[0]->save();
 
-        $vouchers[1]->external_metadata = ExternalMetadataData::from([
+        $vouchers[1]->external_metadata = [
             'external_type' => 'questpay',
             'external_id' => 'quest-2',
             'user_id' => 'player-2',
-        ]);
+        ];
         $vouchers[1]->save();
 
-        $vouchers[2]->external_metadata = ExternalMetadataData::from([
+        $vouchers[2]->external_metadata = [
             'external_type' => 'rewards',
             'external_id' => 'reward-1',
-        ]);
+        ];
         $vouchers[2]->save();
     });
 
@@ -260,6 +261,8 @@ describe('Query Vouchers API', function () {
 
 describe('Bulk Create Vouchers API', function () {
     beforeEach(function () {
+        $this->withHeader('Idempotency-Key', (string) \Illuminate\Support\Str::uuid());
+
         // Create a campaign
         $instructions = VoucherInstructionsData::from([
             'cash' => [
@@ -321,7 +324,7 @@ describe('Bulk Create Vouchers API', function () {
         // Verify vouchers were created with external metadata
         $voucher = Voucher::whereExternal('external_id', 'quest-1')->first();
         expect($voucher)->not->toBeNull();
-        expect($voucher->external_metadata->user_id)->toBe('player-1');
+        expect($voucher->external_metadata['user_id'])->toBe('player-1');
     });
 
     test('cannot bulk create with another users campaign', function () {

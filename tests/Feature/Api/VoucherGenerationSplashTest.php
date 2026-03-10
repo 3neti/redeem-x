@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use LBHurtado\Voucher\Models\Voucher;
 
 uses(RefreshDatabase::class);
@@ -9,6 +10,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->user = User::factory()->create();
     $this->user->depositFloat(10000);
+    $this->withHeader('Idempotency-Key', (string) Str::uuid());
 });
 
 it('saves splash fields when generating via API endpoint', function () {

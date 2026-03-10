@@ -63,8 +63,8 @@ class SenderData extends Data
             latest_institution_name: $latestInstitution
                 ? Contact::institutionName($latestInstitution)
                 : null,
-            first_transaction_at: $pivot?->first_transaction_at,
-            last_transaction_at: $pivot?->last_transaction_at,
+            first_transaction_at: $pivot?->first_transaction_at ? Carbon::parse($pivot->first_transaction_at) : null,
+            last_transaction_at: $pivot?->last_transaction_at ? Carbon::parse($pivot->last_transaction_at) : null,
         );
     }
 }

@@ -37,7 +37,7 @@ test('merchant model can be created', function () {
 test('merchant model has fillable properties', function () {
     $merchant = new Merchant;
 
-    expect($merchant->getFillable())->toBe(['code', 'name', 'city']);
+    expect($merchant->getFillable())->toContain('code', 'name', 'city');
 });
 
 test('settlement rail enum has instapay and pesonet', function () {

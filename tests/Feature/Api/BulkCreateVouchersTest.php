@@ -116,14 +116,14 @@ test('can bulk create vouchers with external metadata', function () {
     // Verify external metadata was saved
     $voucher1 = Voucher::whereExternal('external_id', 'quest-101')->first();
     expect($voucher1)->not->toBeNull();
-    expect($voucher1->external_metadata->external_type)->toBe('questpay');
-    expect($voucher1->external_metadata->user_id)->toBe('player-101');
-    expect($voucher1->external_metadata->custom['level'])->toBe(5);
+    expect($voucher1->external_metadata['external_type'])->toBe('questpay');
+    expect($voucher1->external_metadata['user_id'])->toBe('player-101');
+    expect($voucher1->external_metadata['custom']['level'])->toBe(5);
 
     $voucher2 = Voucher::whereExternal('external_id', 'quest-102')->first();
     expect($voucher2)->not->toBeNull();
-    expect($voucher2->external_metadata->user_id)->toBe('player-102');
-    expect($voucher2->external_metadata->custom['mission'])->toBe('advanced');
+    expect($voucher2->external_metadata['user_id'])->toBe('player-102');
+    expect($voucher2->external_metadata['custom']['mission'])->toBe('advanced');
 });
 
 test('can bulk create vouchers with mixed metadata presence', function () {

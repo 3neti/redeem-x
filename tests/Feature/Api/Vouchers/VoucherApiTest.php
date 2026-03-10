@@ -6,6 +6,7 @@ use App\Models\User;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use LBHurtado\Voucher\Models\Voucher;
 
@@ -18,6 +19,7 @@ beforeEach(function () {
     // Create user with wallet balance
     $this->user = User::factory()->create();
     $this->user->depositFloat(10000); // Add PHP 10,000 balance
+    $this->withHeader('Idempotency-Key', (string) Str::uuid());
 });
 
 test('unauthenticated user cannot access voucher api', function () {
