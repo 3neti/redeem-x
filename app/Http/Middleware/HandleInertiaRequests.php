@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Settings\VoucherSettings;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 use Laravel\Pennant\Feature;
 use Spatie\LaravelSettings\Exceptions\MissingSettings;
@@ -89,6 +90,7 @@ class HandleInertiaRequests extends Middleware
             'portal_endpoint' => $this->getVoucherSetting('default_portal_endpoint', '/portal'),
             'settlement_enabled' => Feature::active('settlement-vouchers'),
             'telegram_bot_username' => config('messaging-bot.bot_username'),
+            'app_version' => $this->getAppVersion(),
         ]);
     }
 
@@ -102,6 +104,22 @@ class HandleInertiaRequests extends Middleware
         } catch (MissingSettings $e) {
             return $default;
         }
+    }
+
+    /**
+     * Get short git commit hash for version display.
+     */
+    private function getAppVersion(): string
+    {
+        return Cache::remember('app_version', 3600, function () {
+            try {
+                $hash = trim((string) shell_exec('git rev-parse --short HEAD 2>/dev/null'));
+
+                return $hash !== '' ? $hash : 'dev';
+            } catch (\Throwable) {
+                return 'dev';
+            }
+        });
     }
 
     /**
