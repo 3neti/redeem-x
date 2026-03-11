@@ -28,6 +28,7 @@ class ResetPassword
         return Password::reset($data, function ($user, $password) {
             $user->forceFill([
                 'password' => $password,
+                'auth_source' => 'local',
                 'remember_token' => Str::random(60),
             ])->save();
 

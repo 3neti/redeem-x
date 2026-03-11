@@ -158,6 +158,86 @@ make cloud-cmd CMD="tinker --execute=\"App\\Models\\User::count()\""
 - **Cloud capture**: stderr output is captured by Laravel Cloud and available via logs API
 - **Log viewer**: `make cloud-logs` or `make cloud-errors` for filtered view
 
+## Remote Tinker via REST API (Cookbook)
+
+The Cloud REST API is the most reliable way to run tinker commands from AI sessions.
+Below are the exact patterns that work — no trial and error needed.
+
+### Prerequisites
+
+```bash
+# Token contains a pipe character (e.g. 650|8Nu8a1C...) — MUST use single quotes
+export LARAVEL_CLOUD_TOKEN='<token-from-cloud-dashboard>'
+```
+
+**Critical**: Always use single quotes around the token value. The `|` in the token
+will be interpreted as a shell pipe if double-quoted or unquoted.
+
+### Step 1: Submit Command (POST)
+
+Commands MUST include the `php artisan` prefix — the API runs raw bash, not artisan.
+
+```bash
+# Submit and capture command ID
+curl -sf -X POST \
+  -H "Authorization: Bearer $LARAVEL_CLOUD_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"command":"php artisan tinker --execute=\"...\""}'  \
+  "https://cloud.laravel.com/api/environments/env-a06260f2-d81f-4d85-82a3-063db17c7b15/commands"
+```
+
+Response includes `"id":"comm-XXXXX"` and `"status":"pending"`.
+
+### Step 2: Poll Result (GET)
+
+Poll endpoint uses `/api/commands/{id}` (NOT under `/environments/`).
+
+```bash
+# Wait then poll
+sleep 6 && curl -sf \
+  -H "Authorization: Bearer $LARAVEL_CLOUD_TOKEN" \
+  "https://cloud.laravel.com/api/commands/comm-XXXXX"
+```
+
+Response includes `"output"`, `"status":"command.success"`, and `"exit_code"`.
+
+### Common Tinker Patterns
+
+**Query database (SELECT):**
+```bash
+-d '{"command":"php artisan tinker --execute=\"echo json_encode(DB::select(\\\"SELECT id, email, mobile FROM users\\\"));\""}'
+```
+
+**Update a record:**
+```bash
+-d '{"command":"php artisan tinker --execute=\"\\App\\Models\\User::where(\\\"email\\\", \\\"user@example.com\\\")->update([\\\"column\\\" => \\\"value\\\"]);\""}'
+```
+
+**Count records:**
+```bash
+-d '{"command":"php artisan tinker --execute=\"echo \\App\\Models\\User::count();\""}'
+```
+
+**Run a plain artisan command (no tinker):**
+```bash
+-d '{"command":"php artisan migrate:status"}'
+```
+
+### Escaping Rules (for -d JSON payload)
+
+The escaping is deeply nested: shell → JSON → bash → PHP. Follow these rules:
+- Outer JSON string uses `\"` for double quotes
+- PHP namespaces: each `\` becomes `\\\\` (4 backslashes)
+- SQL strings inside tinker: use `\\\"` (escaped escaped quotes)
+- When in doubt, use `DB::select()` with raw SQL — simpler escaping than Eloquent
+
+### Gotchas
+- **No `php artisan` prefix** → `/bin/bash: tinker: command not found`
+- **Token without single quotes** → shell interprets `|` as pipe → `Authorization: Bearer 650` (truncated)
+- **Polling wrong endpoint** → `{"message":"Unauthenticated"}` if using env-scoped URL instead of `/api/commands/{id}`
+- **Tinker output** → tinker `--execute` prints the return value; wrap in `echo json_encode(...)` for structured output
+- **Sleep before poll** → 5-8 seconds is usually enough; tinker commands typically finish in 2-3 seconds
+
 ## Important Notes
 - `$LARAVEL_CLOUD_TOKEN` must be set as an environment variable (never hardcode)
 - Push-to-deploy means every `git push origin main` triggers a production deployment
