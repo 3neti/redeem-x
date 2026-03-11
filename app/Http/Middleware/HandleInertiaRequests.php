@@ -112,6 +112,16 @@ class HandleInertiaRequests extends Middleware
     private function getAppVersion(): string
     {
         return Cache::remember('app_version', 3600, function () {
+            // 1. Build-time VERSION file (works in Laravel Cloud)
+            $versionFile = base_path('VERSION');
+            if (file_exists($versionFile)) {
+                $hash = trim(file_get_contents($versionFile));
+                if ($hash !== '') {
+                    return $hash;
+                }
+            }
+
+            // 2. Git at runtime (works in local dev)
             try {
                 $hash = trim((string) shell_exec('git rev-parse --short HEAD 2>/dev/null'));
 
