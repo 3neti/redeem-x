@@ -33,7 +33,7 @@ it('registers a user with valid data and logs in', function () {
     $user = User::where('email', 'test@example.com')->first();
     expect($user)->not->toBeNull();
     expect($user->auth_source)->toBe('local');
-    expect($user->getRawOriginal('mobile'))->toBe('09171234567');
+    expect($user->getRawOriginal('mobile'))->toBe('+639171234567');
 });
 
 it('hashes the password on registration', function () {

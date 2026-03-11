@@ -242,7 +242,7 @@ const setPayeeMode = (mode: 'anyone' | 'mobile' | 'vendor') => {
   payeeMode.value = mode;
   payeeError.value = '';
   if (mode === 'anyone') payee.value = '';
-  else if (mode === 'mobile' && payeeType.value !== 'mobile') payee.value = '09';
+  else if (mode === 'mobile' && payeeType.value !== 'mobile') payee.value = '';
   else if (mode === 'vendor' && payeeType.value !== 'vendor') payee.value = 'VENDOR-';
   if (mode !== 'anyone') focusPayeeInput();
 };

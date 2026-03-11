@@ -27,7 +27,7 @@ it('excluded channel delegates __get to Eloquent', function () {
     // Property access should go through Eloquent (getMobileAttribute), not channels
     // The column value should be accessible
     $rawValue = $user->getRawOriginal('mobile');
-    expect($rawValue)->toBe('09171234567');
+    expect($rawValue)->toBe('+639171234567');
 });
 
 it('excluded channel delegates __set to Eloquent', function () {
@@ -38,7 +38,7 @@ it('excluded channel delegates __set to Eloquent', function () {
     $user->save();
 
     $fresh = User::find($user->id);
-    expect($fresh->getRawOriginal('mobile'))->toBe('09179999999');
+    expect($fresh->getRawOriginal('mobile'))->toBe('+639179999999');
 });
 
 it('non-excluded channels still intercepted by trait for __get', function () {

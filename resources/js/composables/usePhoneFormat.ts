@@ -1,66 +1,56 @@
 /**
  * Phone number formatting utilities
- * 
- * Formats Philippine mobile numbers in a readable format:
- * - Input: 09171234567 or 639171234567 or +639171234567
- * - Output: (917) 301-1987
+ *
+ * Formats phone numbers for display: +63 (917) 301-1987
+ * Accepts: 09171234567, 639171234567, +639171234567
  */
+
+/**
+ * Extract subscriber digits from any PH phone format.
+ * Returns 10 digits (e.g. 9173011987) or the raw digits if unparseable.
+ */
+function extractSubscriber(number: string): { dialCode: string; subscriber: string } {
+    const digitsOnly = number.replace(/\D/g, '');
+
+    // +63XXXXXXXXXX or 63XXXXXXXXXX (12 digits)
+    if (digitsOnly.startsWith('63') && digitsOnly.length === 12) {
+        return { dialCode: '63', subscriber: digitsOnly.substring(2) };
+    }
+
+    // 0XXXXXXXXXX (11 digits, national)
+    if (digitsOnly.startsWith('0') && digitsOnly.length === 11) {
+        return { dialCode: '63', subscriber: digitsOnly.substring(1) };
+    }
+
+    // 9XXXXXXXXX (10 digits, already subscriber)
+    if (digitsOnly.startsWith('9') && digitsOnly.length === 10) {
+        return { dialCode: '63', subscriber: digitsOnly };
+    }
+
+    return { dialCode: '63', subscriber: digitsOnly };
+}
 
 export function usePhoneFormat() {
     /**
-     * Format phone number with parentheses: (917) 301-1987
-     */
-    const formatWithParentheses = (number: string): string => {
-        if (!number) return '';
-        
-        // Remove any existing formatting and country codes
-        let digitsOnly = number.replace(/\D/g, '');
-        
-        // Remove country code if present (63 for Philippines)
-        if (digitsOnly.startsWith('63') && digitsOnly.length === 12) {
-            digitsOnly = digitsOnly.substring(2); // Remove '63'
-        }
-        
-        // Remove leading 0 if present (for consistent formatting)
-        if (digitsOnly.startsWith('0')) {
-            digitsOnly = digitsOnly.substring(1); // Remove '0'
-        }
-        
-        if (digitsOnly.length >= 10) {
-            // Full format: (917) 301-1987
-            const firstThree = digitsOnly.substring(0, 3);
-            const middleThree = digitsOnly.substring(3, 6);
-            const lastFour = digitsOnly.substring(6, 10);
-            return `(${firstThree}) ${middleThree}-${lastFour}`;
-        } else if (digitsOnly.length >= 6) {
-            // Partial format: (917) 301-xxx
-            const firstThree = digitsOnly.substring(0, 3);
-            const middleThree = digitsOnly.substring(3, 6);
-            const rest = digitsOnly.substring(6);
-            return `(${firstThree}) ${middleThree}${rest ? '-' + rest : ''}`;
-        } else if (digitsOnly.length >= 3) {
-            // Partial format: (917) xxx
-            const firstThree = digitsOnly.substring(0, 3);
-            const rest = digitsOnly.substring(3);
-            return `(${firstThree})${rest ? ' ' + rest : ''}`;
-        }
-        
-        return number;
-    };
-    
-    /**
-     * Format phone number for display with optional prefix
-     * Examples:
-     * - formatForDisplay('09171234567') => '(917) 301-1987'
-     * - formatForDisplay('639171234567') => '(917) 301-1987'
-     * - formatForDisplay('+639171234567') => '(917) 301-1987'
+     * Format as +63 (917) 301-1987
      */
     const formatForDisplay = (number: string): string => {
-        return formatWithParentheses(number);
+        if (!number) return '';
+
+        const { dialCode, subscriber } = extractSubscriber(number);
+
+        if (subscriber.length === 10) {
+            const area = subscriber.substring(0, 3);
+            const mid = subscriber.substring(3, 6);
+            const last = subscriber.substring(6, 10);
+            return `+${dialCode} (${area}) ${mid}-${last}`;
+        }
+
+        // Fallback: return as-is
+        return number;
     };
-    
+
     return {
-        formatWithParentheses,
         formatForDisplay,
     };
 }

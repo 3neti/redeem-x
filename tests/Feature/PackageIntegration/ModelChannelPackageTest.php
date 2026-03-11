@@ -84,7 +84,7 @@ test('user can set channel via magic property', function () {
 
     // Mobile: verify column was written (via Eloquent)
     $fresh = User::find($user->id);
-    expect($fresh->getRawOriginal('mobile'))->toBe('09171234567');
+    expect($fresh->getRawOriginal('mobile'))->toBe('+639171234567');
 
     // Mobile: verify saved event synced to channel
     $mobileChannel = $user->channels()->where('name', 'mobile')->first();

@@ -22,18 +22,11 @@ class RegisterUser
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ])->validate();
 
-        // Normalize mobile to national format (09173011987) for consistent storage
-        $mobile = $validated['mobile'];
-        try {
-            $mobile = phone($mobile, 'PH')->formatForMobileDialingInCountry('PH');
-        } catch (\Throwable) {
-            // Keep raw value if parsing fails
-        }
-
+        // Mobile is normalized to E.164 by User::setMobileAttribute mutator
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'mobile' => $mobile,
+            'mobile' => $validated['mobile'],
             'password' => $validated['password'],
             'auth_source' => 'local',
             'status' => 'active',

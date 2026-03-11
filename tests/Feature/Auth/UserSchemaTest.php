@@ -37,7 +37,7 @@ it('can create a user with a mobile field on the users table', function () {
     ]);
 
     $fresh = User::find($user->id);
-    expect($fresh->getRawOriginal('mobile'))->toBe('09171234567');
+    expect($fresh->getRawOriginal('mobile'))->toBe('+639171234567');
 });
 
 it('defaults auth_source to local for new users', function () {

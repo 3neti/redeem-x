@@ -86,6 +86,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Phone Display Format
+    |--------------------------------------------------------------------------
+    |
+    | Controls how phone numbers are displayed throughout the application.
+    |
+    | Supported: "international_grouped" (+63 (917) 301-1987),
+    |            "international" (+63 917 301 1987),
+    |            "national" (09173011987),
+    |            "e164" (+639173011987)
+    |
+    */
+
+    'phone_display_format' => env('PHONE_DISPLAY_FORMAT', 'international_grouped'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

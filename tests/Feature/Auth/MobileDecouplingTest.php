@@ -50,7 +50,7 @@ it('property assignment writes to column not channels', function () {
 
     // Column should have the value
     $fresh = User::find($user->id);
-    expect($fresh->getRawOriginal('mobile'))->toBe('09179999999');
+    expect($fresh->getRawOriginal('mobile'))->toBe('+639179999999');
 });
 
 it('mass assignment writes to column', function () {
@@ -58,7 +58,7 @@ it('mass assignment writes to column', function () {
 
     $user->update(['mobile' => '09178888888']);
 
-    expect($user->fresh()->getRawOriginal('mobile'))->toBe('09178888888');
+    expect($user->fresh()->getRawOriginal('mobile'))->toBe('+639178888888');
 });
 
 it('saved event syncs column to channel on create', function () {
@@ -89,6 +89,42 @@ it('saved event does not loop when mobile unchanged', function () {
     // Channel count should not increase (no duplicate inserts)
     $channelCountAfter = $user->channels()->where('name', 'mobile')->count();
     expect($channelCountAfter)->toBe($channelCountBefore);
+});
+
+// ── setMobileAttribute mutator (E.164 normalization) ───────────────────
+
+it('mutator normalizes national format to E.164 on create', function () {
+    $user = User::factory()->create(['mobile' => '09171234567']);
+
+    expect($user->getRawOriginal('mobile'))->toBe('+639171234567');
+});
+
+it('mutator normalizes stripped E.164 to full E.164 on create', function () {
+    $user = User::factory()->create(['mobile' => '639171234567']);
+
+    expect($user->getRawOriginal('mobile'))->toBe('+639171234567');
+});
+
+it('mutator keeps full E.164 unchanged', function () {
+    $user = User::factory()->create(['mobile' => '+639171234567']);
+
+    expect($user->getRawOriginal('mobile'))->toBe('+639171234567');
+});
+
+it('mutator normalizes on update via property assignment', function () {
+    $user = User::factory()->create(['mobile' => '+639171234567']);
+
+    $user->mobile = '09189999999';
+    $user->save();
+
+    expect($user->fresh()->getRawOriginal('mobile'))->toBe('+639189999999');
+});
+
+it('getMobileAttribute returns international grouped format for display', function () {
+    $user = User::factory()->create(['mobile' => '+639171234567']);
+
+    // Accessor should return display format: +63 (917) 123-4567
+    expect($user->mobile)->toBe('+63 (917) 123-4567');
 });
 
 it('non-mobile channels unaffected by exclusion', function () {

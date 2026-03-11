@@ -14,20 +14,18 @@ class UniqueMobile implements ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
+        // Normalize to E.164 — auto-detect country, fall back to PH for national format
         try {
-            $phone = phone($value, 'PH');
-            $candidates = array_unique(array_filter([
-                $value,
-                $phone->formatE164(),                          // +639173011987
-                ltrim($phone->formatE164(), '+'),              // 639173011987
-                $phone->formatForMobileDialingInCountry('PH'), // 09173011987
-            ]));
+            $e164 = phone($value)->formatE164();
         } catch (\Throwable) {
-            // Not parseable — just check exact match
-            $candidates = [$value];
+            try {
+                $e164 = phone($value, 'PH')->formatE164();
+            } catch (\Throwable) {
+                $e164 = $value;
+            }
         }
 
-        $query = User::whereIn('mobile', $candidates);
+        $query = User::where('mobile', $e164);
 
         if ($this->ignoreUserId) {
             $query->where('id', '!=', $this->ignoreUserId);

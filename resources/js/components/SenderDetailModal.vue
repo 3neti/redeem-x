@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Loader2, User, Phone, Calendar, TrendingUp, CreditCard } from 'lucide-vue-next';
 import { useDepositApi } from '@/composables/useDepositApi';
+import { usePhoneFormat } from '@/composables/usePhoneFormat';
 import type { SenderData, DepositTransactionData } from '@/composables/useDepositApi';
 
 interface Props {
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const { loading, getSenderDetails } = useDepositApi();
+const { formatForDisplay } = usePhoneFormat();
 const senderData = ref<SenderData | null>(null);
 const transactions = ref<DepositTransactionData[]>([]);
 
@@ -42,13 +44,6 @@ const formatDate = (date: string) => {
     });
 };
 
-const formatMobile = (mobile: string) => {
-    // Format: 639173011987 -> +63 917 301 1987
-    if (mobile.length === 12 && mobile.startsWith('63')) {
-        return `+63 ${mobile.substring(2, 5)} ${mobile.substring(5, 8)} ${mobile.substring(8)}`;
-    }
-    return mobile;
-};
 
 // Load sender details when modal opens
 watch(() => props.open, async (isOpen) => {
@@ -135,7 +130,7 @@ watch(() => props.open, async (isOpen) => {
                             <Phone class="h-5 w-5 text-muted-foreground mt-0.5" />
                             <div>
                                 <div class="text-sm text-muted-foreground">Mobile Number</div>
-                                <div class="font-medium font-mono">{{ formatMobile(senderData.mobile) }}</div>
+                                <div class="font-medium font-mono">{{ formatForDisplay(senderData.mobile) }}</div>
                             </div>
                         </div>
                         <div class="flex items-start gap-3">

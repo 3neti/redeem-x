@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { VueTelInput } from 'vue-tel-input';
-import 'vue-tel-input/vue-tel-input.css';
+import { ref, watch, onMounted } from 'vue';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -21,7 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
     disabled: false,
     readonly: false,
     required: false,
-    placeholder: '09181234567',
+    placeholder: '9XXXXXXXXX',
     autofocus: false,
 });
 
@@ -29,91 +27,88 @@ const emit = defineEmits<{
     'update:modelValue': [value: string];
 }>();
 
-const inputRef = ref<InstanceType<typeof VueTelInput>>();
+const inputRef = ref<HTMLInputElement | null>(null);
+const displayValue = ref('');
+const isFocused = ref(false);
 
-const handleInput = (phone: string, phoneObject: any) => {
-    // Always emit E.164 format if valid, otherwise emit the raw input
-    if (phoneObject?.valid && phoneObject?.number) {
-        emit('update:modelValue', phoneObject.number);
-    } else {
-        emit('update:modelValue', phone);
-    }
-};
+/** Extract up to 10 subscriber digits from any phone format. */
+function extractDigits(value: string): string {
+    if (!value) return '';
+    let digits = value.replace(/\D/g, '');
+    if (digits.startsWith('63') && digits.length > 10) digits = digits.substring(2);
+    if (digits.startsWith('0') && digits.length >= 11) digits = digits.substring(1);
+    return digits.substring(0, 10);
+}
+
+/** Format subscriber digits as (XXX) XXX-XXXX */
+function formatDisplay(digits: string): string {
+    if (!digits) return '';
+    if (digits.length <= 3) return `(${digits})`;
+    if (digits.length <= 6) return `(${digits.substring(0, 3)}) ${digits.substring(3)}`;
+    return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
+}
+
+function handleInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    // While typing, just let the user type freely — no reformatting
+    const digits = extractDigits(input.value);
+    emit('update:modelValue', digits.length ? `+63${digits}` : '');
+}
+
+function handleFocus() {
+    isFocused.value = true;
+    // Switch to raw digits for easy editing
+    const digits = extractDigits(props.modelValue);
+    displayValue.value = digits;
+}
+
+function handleBlur() {
+    isFocused.value = false;
+    // Clean up and format on exit
+    const digits = extractDigits(props.modelValue);
+    displayValue.value = formatDisplay(digits);
+    // Ensure emitted value is clean E.164
+    emit('update:modelValue', digits.length ? `+63${digits}` : '');
+}
+
+// Sync display from external changes (page load, profile data)
+watch(() => props.modelValue, (val) => {
+    if (isFocused.value) return;
+    displayValue.value = formatDisplay(extractDigits(val ?? ''));
+}, { immediate: true });
 
 onMounted(() => {
-    if (props.autofocus && inputRef.value) {
-        const input = (inputRef.value.$el as HTMLElement)?.querySelector('input');
-        if (input) {
-            input.focus();
-        }
-    }
+    if (props.autofocus && inputRef.value) inputRef.value.focus();
 });
 </script>
 
 <template>
     <div :class="cn('w-full', props.class)">
-        <VueTelInput
-            ref="inputRef"
-            :model-value="modelValue"
-            mode="national"
-            :default-country="'PH'"
-            :only-countries="['PH']"
-            :disabled="disabled"
-            :input-options="{
-                placeholder: placeholder,
-                required: required,
-            }"
-            :dropdown-options="{
-                showDialCodeInSelection: true,
-                showDialCodeInList: true,
-            }"
-            :valid-characters-only="true"
-            :auto-format="true"
-            @update:model-value="handleInput"
-        />
+        <div
+            class="flex items-center rounded-md border border-input shadow-xs"
+            :class="[
+                disabled ? 'opacity-50' : '',
+                error ? 'border-red-500' : 'focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]',
+            ]"
+        >
+            <span class="inline-flex items-center gap-1.5 pl-3 pr-2 text-sm text-muted-foreground select-none border-r border-input">
+                🇵🇭 +63
+            </span>
+            <input
+                ref="inputRef"
+                type="tel"
+                v-model="displayValue"
+                :disabled="disabled"
+                :readonly="readonly"
+                :required="required"
+                :placeholder="placeholder"
+                class="flex-1 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+                @input="handleInput"
+                @focus="handleFocus"
+                @blur="handleBlur"
+            />
+        </div>
         <p v-if="error" class="text-sm text-red-600 mt-1">{{ error }}</p>
     </div>
 </template>
-
-<style scoped>
-/* Match existing Input component styling */
-:deep(.vue-tel-input) {
-    border: 1px solid hsl(var(--input));
-    border-radius: 0.375rem;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    background: transparent;
-}
-
-:deep(.vue-tel-input:focus-within) {
-    border-color: hsl(var(--ring));
-    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.5);
-}
-
-:deep(.vti__input) {
-    border: none;
-    background: transparent;
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
-    height: 2.25rem;
-}
-
-:deep(.vti__input:focus) {
-    outline: none;
-    box-shadow: none;
-}
-
-:deep(.vti__dropdown) {
-    background: transparent;
-    border: none;
-}
-
-:deep(.vti__dropdown:hover) {
-    background: hsl(var(--muted) / 0.5);
-}
-
-/* Hide the +63 dial code from appearing in the input field */
-:deep(.vti__input) {
-    text-indent: 0 !important;
-}
-</style>
 

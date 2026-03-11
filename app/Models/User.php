@@ -208,20 +208,34 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
     }
 
     /**
-     * Get the mobile value for display.
-     *
-     * Reads from users.mobile column first (canonical).
-     * Falls back to channels table for backward compat (un-migrated users).
-     *
-     * Returns mobile in national format for PH (09173011987)
-     * instead of E.164 format (639173011987).
+     * Normalize mobile to E.164 on write.
+     * This is the single enforcement point — all code paths go through it.
      */
-    public function getMobileAttribute(): ?string
+    public function setMobileAttribute($value): void
     {
-        // Column-first: read from users.mobile
+        if ($value) {
+            try {
+                // Auto-detect country from E.164 input, fall back to PH for national format
+                $value = phone($value)->formatE164();
+            } catch (\Throwable) {
+                try {
+                    $value = phone($value, 'PH')->formatE164();
+                } catch (\Throwable) {
+                    // Keep raw if unparseable
+                }
+            }
+        }
+        $this->attributes['mobile'] = $value;
+    }
+
+    /**
+     * Get the raw E.164 mobile value from storage.
+     * Reads column first, falls back to channels table.
+     */
+    public function getRawMobile(): ?string
+    {
         $mobile = $this->attributes['mobile'] ?? null;
 
-        // Fallback: read from channels table (backward compat)
         if (! $mobile) {
             $channel = $this->relationLoaded('channels')
                 ? $this->channels->firstWhere('name', 'mobile')
@@ -230,15 +244,24 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
             $mobile = $channel?->value;
         }
 
+        return $mobile ?: null;
+    }
+
+    /**
+     * Get the mobile value formatted for display.
+     *
+     * Format is configurable via config('app.phone_display_format').
+     * Default: +63 (917) 301-1987
+     */
+    public function getMobileAttribute(): ?string
+    {
+        $mobile = $this->getRawMobile();
+
         if (! $mobile) {
             return null;
         }
 
-        try {
-            return phone($mobile, 'PH')->formatForMobileDialingInCountry('PH');
-        } catch (\Throwable $e) {
-            return $mobile;
-        }
+        return \App\Support\PhoneFormatter::forDisplay($mobile);
     }
 
     /**
@@ -259,10 +282,11 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
 
     /**
      * Route notifications for the EngageSpark channel.
+     * Returns raw E.164 format — SMS APIs need machine-readable numbers.
      */
     public function routeNotificationForEngageSpark(): ?string
     {
-        return $this->mobile;
+        return $this->getRawMobile();
     }
 
     /**
@@ -276,20 +300,18 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
      */
     public function getAccountNumberAttribute(): ?string
     {
-        $mobile = $this->mobile;
+        $raw = $this->getRawMobile();
 
-        if (! $mobile) {
+        if (! $raw) {
             return null;
         }
 
-        // Mobile is stored in E.164 format without + (e.g., 639173011987)
-        // Convert to national format (09173011987)
-        if (str_starts_with($mobile, '63') && strlen($mobile) === 12) {
-            return '0'.substr($mobile, 2);
+        // Payment gateway needs national format (09173011987)
+        try {
+            return phone($raw, 'PH')->formatForMobileDialingInCountry('PH');
+        } catch (\Throwable) {
+            return $raw;
         }
-
-        // If already in national format or other format, return as-is
-        return $mobile;
     }
 
     /**

@@ -41,20 +41,18 @@ class LoginWithPassword
             return User::where('email', $login)->first();
         }
 
-        // Mobile login — normalize to all common formats and match any
+        // Mobile login — normalize to E.164 (canonical storage format)
+        // Auto-detect country from input, fall back to PH for national format
         try {
-            $phone = phone($login, 'PH');
-            $candidates = array_unique(array_filter([
-                $login,
-                $phone->formatE164(),                          // +639173011987
-                ltrim($phone->formatE164(), '+'),              // 639173011987
-                $phone->formatForMobileDialingInCountry('PH'), // 09173011987
-            ]));
-
-            return User::whereIn('mobile', $candidates)->first();
+            $e164 = phone($login)->formatE164();
         } catch (\Throwable) {
-            // Not a parseable phone number — try exact match as fallback
-            return User::where('mobile', $login)->first();
+            try {
+                $e164 = phone($login, 'PH')->formatE164();
+            } catch (\Throwable) {
+                return User::where('mobile', $login)->first();
+            }
         }
+
+        return User::where('mobile', $e164)->first();
     }
 }
