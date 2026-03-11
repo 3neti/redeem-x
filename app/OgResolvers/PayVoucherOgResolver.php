@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\OgResolvers;
 
 use App\OgResolvers\Concerns\GeneratesQrDataUri;
+use App\OgResolvers\Concerns\ResolvesOgImage;
 use App\OgResolvers\Concerns\ResolvesOgTitle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use LBHurtado\Voucher\Models\Voucher;
 class PayVoucherOgResolver extends ModelOgResolver
 {
     use GeneratesQrDataUri;
+    use ResolvesOgImage;
     use ResolvesOgTitle;
 
     protected string $model = Voucher::class;
@@ -71,6 +73,8 @@ class PayVoucherOgResolver extends ModelOgResolver
         $validation = $model->instructions->cash->validation;
         $payee = $validation->payable ?? $validation->mobile ?? 'CASH';
 
+        $imageFields = $this->resolveImageFields($rider, $status, $model);
+
         return new OgMetaData(
             title: $this->resolveOgTitle($rider, $status, $model),
             description: ucfirst($type).' voucher — '.$formattedTarget,
@@ -80,8 +84,10 @@ class PayVoucherOgResolver extends ModelOgResolver
             url: url("/pay?code={$model->code}"),
             cacheKey: $model->code,
             httpMaxAge: $this->cacheTtl($status),
+            splashHtml: $imageFields['splashHtml'],
             typeBadge: $type,
             payeeBadge: $payee,
+            overlayImage: $imageFields['overlayImage'],
         );
     }
 
