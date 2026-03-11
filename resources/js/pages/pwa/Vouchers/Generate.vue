@@ -78,6 +78,11 @@ const targetAmount = ref<number | null>(null);
 const interestRate = ref<number>(0);
 const payee = ref<string>('');
 
+// Code & Expiry
+const prefix = ref<string>('');
+const mask = ref<string>('');
+const ttlDays = ref<number | null>(null);
+
 // Advanced configuration
 const validationSecret = ref<string>('');
 const locationValidation = ref<any>({ latitude: null, longitude: null, radius: null });
@@ -94,6 +99,7 @@ const riderUrl = ref<string>('');
 const riderRedirectTimeout = ref<number | null>(null);
 const riderSplash = ref<string>('');
 const riderSplashTimeout = ref<number | null>(null);
+const ogMetaSource = ref<'message' | 'url' | 'splash' | null>(null);
 
 // Settlement envelope
 const envelopeConfig = ref<any>(null);
@@ -125,6 +131,7 @@ const sheetState = ref({
   rider: { open: false },
   envelope: { open: false },
   railFees: { open: false },
+  codeExpiry: { open: false },
   options: { open: false }, // Menu sheet
 });
 
@@ -551,14 +558,41 @@ const payeeTypeDescription = computed(() => {
   }
 });
 
+// Code & Expiry summary
+const codeExpirySummary = computed(() => {
+  const parts = [];
+  if (prefix.value) parts.push(prefix.value);
+  if (mask.value) parts.push(mask.value);
+  if (ttlDays.value) parts.push(`${ttlDays.value}d`);
+  return parts.length > 0 ? parts.join(' · ') : 'Default';
+});
+
+const hasCodeExpiry = computed(() => !!prefix.value || !!mask.value || !!ttlDays.value);
+
+// Mask validation
+const maskError = computed(() => {
+  if (!mask.value) return '';
+  if (!/^[*\-]+$/.test(mask.value)) return 'Only * and - characters allowed';
+  const asterisks = (mask.value.match(/\*/g) || []).length;
+  if (asterisks < 4) return `Need at least 4 asterisks (currently ${asterisks})`;
+  if (asterisks > 8) return `Maximum 8 asterisks (currently ${asterisks})`;
+  return '';
+});
+
 // Rider config summary
 const riderConfigSummary = computed(() => {
   const items = [];
   if (riderMessage.value) items.push('Message');
   if (riderUrl.value) items.push('URL');
   if (riderSplash.value) items.push('Splash');
-  return items.length > 0 ? items.join(', ') : 'Not configured';
+  const base = items.length > 0 ? items.join(', ') : 'Not configured';
+  return ogMetaSource.value ? `${base} · OG: ${ogMetaSource.value}` : base;
 });
+
+// OG Meta source toggle — radio that can be deselected
+const toggleOgSource = (field: 'message' | 'url' | 'splash') => {
+  ogMetaSource.value = ogMetaSource.value === field ? null : field;
+};
 
 // Envelope config summary
 const envelopeConfigSummary = computed(() => {
@@ -786,15 +820,18 @@ const handleGenerate = async () => {
     if (feedbackMobile.value) requestData.feedback_mobile = feedbackMobile.value;
     if (feedbackWebhook.value) requestData.feedback_webhook = feedbackWebhook.value;
     
-    // Add rider
-    if (riderMessage.value || riderUrl.value) {
-      requestData.rider = {};
-      if (riderMessage.value) requestData.rider.message = riderMessage.value;
-      if (riderUrl.value) requestData.rider.url = riderUrl.value;
-      if (riderRedirectTimeout.value !== null) requestData.rider.redirect_timeout = riderRedirectTimeout.value;
-      if (riderSplash.value) requestData.rider.splash = riderSplash.value;
-      if (riderSplashTimeout.value !== null) requestData.rider.splash_timeout = riderSplashTimeout.value;
-    }
+    // Add rider (flat keys — API expects rider_message, rider_url, etc.)
+    if (riderMessage.value) requestData.rider_message = riderMessage.value;
+    if (riderUrl.value) requestData.rider_url = riderUrl.value;
+    if (riderRedirectTimeout.value !== null) requestData.rider_redirect_timeout = riderRedirectTimeout.value;
+    if (riderSplash.value) requestData.rider_splash = riderSplash.value;
+    if (riderSplashTimeout.value !== null) requestData.rider_splash_timeout = riderSplashTimeout.value;
+    if (ogMetaSource.value) requestData.rider_og_source = ogMetaSource.value;
+    
+    // Add code & expiry
+    if (prefix.value) requestData.prefix = prefix.value;
+    if (mask.value) requestData.mask = mask.value;
+    if (ttlDays.value) requestData.ttl_days = ttlDays.value;
     
     // Add settlement rail and fee strategy
     if (settlementRail.value && settlementRail.value !== 'auto') {
@@ -905,11 +942,22 @@ const applyCampaign = (campaign: Campaign | null) => {
       if (instructions.rider.redirect_timeout) riderRedirectTimeout.value = instructions.rider.redirect_timeout;
       if (instructions.rider.splash) riderSplash.value = instructions.rider.splash;
       if (instructions.rider.splash_timeout) riderSplashTimeout.value = instructions.rider.splash_timeout;
+      ogMetaSource.value = instructions.rider.og_source || null;
     }
     
     // Apply count if present
     if (instructions.count) {
       count.value = instructions.count;
+    }
+    
+    // Apply code & expiry
+    prefix.value = instructions.prefix || '';
+    mask.value = instructions.mask || '';
+    if (instructions.ttl) {
+      const match = instructions.ttl.match?.(/P(\d+)D/);
+      ttlDays.value = match ? parseInt(match[1]) : null;
+    } else {
+      ttlDays.value = null;
     }
   }
   
@@ -954,12 +1002,16 @@ const clearRider = () => {
   riderRedirectTimeout.value = null;
   riderSplash.value = '';
   riderSplashTimeout.value = null;
+  ogMetaSource.value = null;
 };
 
 // Full reset — everything back to factory defaults
 const handleClearAll = () => {
   resetState();
   clearRider();
+  prefix.value = '';
+  mask.value = '';
+  ttlDays.value = null;
   envelopeConfig.value = null;
   selectedDriverKey.value = '';
   settlementRail.value = null;
@@ -1040,13 +1092,14 @@ const saveAsCampaign = async () => {
         redirect_timeout: riderRedirectTimeout.value,
         splash: riderSplash.value || null,
         splash_timeout: riderSplashTimeout.value,
+        og_source: ogMetaSource.value,
       },
       
       // Required fields
       count: count.value || 1,
-      prefix: null,
-      mask: null,
-      ttl: null,
+      prefix: prefix.value || null,
+      mask: mask.value || null,
+      ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
       
       // Optional voucher type fields
       voucher_type: voucherType.value !== 'redeemable' ? voucherType.value : null,
@@ -1133,6 +1186,9 @@ const resetState = () => {
   feedbackEmail.value = '';
   feedbackMobile.value = '';
   feedbackWebhook.value = '';
+  prefix.value = '';
+  mask.value = '';
+  ttlDays.value = null;
   selectedCampaignId.value = '';
   selectedCampaign.value = null;
   autoAddedFields.value.clear();
@@ -1173,9 +1229,13 @@ const saveState = () => {
       feedbackEmail: feedbackEmail.value,
       feedbackMobile: feedbackMobile.value,
       feedbackWebhook: feedbackWebhook.value,
+      prefix: prefix.value,
+      mask: mask.value,
+      ttlDays: ttlDays.value,
       settlementRail: settlementRail.value,
       feeStrategy: feeStrategy.value,
       selectedCampaignId: selectedCampaignId.value,
+      ogMetaSource: ogMetaSource.value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -1207,9 +1267,13 @@ const restoreState = () => {
       if (state.feedbackEmail) feedbackEmail.value = state.feedbackEmail;
       if (state.feedbackMobile) feedbackMobile.value = state.feedbackMobile;
       if (state.feedbackWebhook) feedbackWebhook.value = state.feedbackWebhook;
+      if (state.prefix) prefix.value = state.prefix;
+      if (state.mask) mask.value = state.mask;
+      if (state.ttlDays) ttlDays.value = state.ttlDays;
       if (state.settlementRail) settlementRail.value = state.settlementRail;
       if (state.feeStrategy) feeStrategy.value = state.feeStrategy;
       if (state.selectedCampaignId) selectedCampaignId.value = state.selectedCampaignId;
+      if (state.ogMetaSource) ogMetaSource.value = state.ogMetaSource;
     }
   } catch (e) {
     console.error('Failed to restore state:', e);
@@ -1227,7 +1291,7 @@ const clearSavedState = () => {
 
 // Watch key fields and save state on change
 watch(
-  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail],
+  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, prefix, mask, ttlDays, ogMetaSource],
   () => {
     saveState();
   },
@@ -1603,6 +1667,20 @@ watch(payeeType, (newType, oldType) => {
               <div class="text-xs text-muted-foreground mt-0.5">{{ campaignDisplay }}</div>
             </div>
             <Badge v-if="selectedCampaign" variant="secondary" class="ml-2">Selected</Badge>
+          </button>
+          
+          <!-- Code & Expiry -->
+          <button
+            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+            @click="openSheet('codeExpiry')"
+          >
+            <div class="flex-1">
+              <div class="font-medium text-sm">Code & Expiry</div>
+              <div class="text-xs text-muted-foreground mt-0.5">
+                {{ codeExpirySummary }}
+              </div>
+            </div>
+            <Badge v-if="hasCodeExpiry" variant="secondary" class="ml-2">Active</Badge>
           </button>
           
           <!-- Rider Config -->
@@ -2165,100 +2243,230 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
     
+    <!-- Code & Expiry Sheet -->
+    <Sheet v-model:open="sheetState.codeExpiry.open">
+      <SheetContent side="bottom" class="h-auto max-h-[80vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Code & Expiry</SheetTitle>
+          <SheetDescription>
+            Customize voucher code format and expiration
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-4 px-1 space-y-5">
+          <!-- Prefix -->
+          <div class="space-y-2">
+            <Label for="code-prefix">Code Prefix</Label>
+            <Input
+              id="code-prefix"
+              v-model="prefix"
+              placeholder="e.g. PROMO"
+              maxlength="10"
+            />
+            <p class="text-xs text-muted-foreground">
+              Prepended to generated codes (1-10 characters)
+            </p>
+          </div>
+          
+          <!-- Mask -->
+          <div class="space-y-2">
+            <Label for="code-mask">Code Mask</Label>
+            <Input
+              id="code-mask"
+              v-model="mask"
+              class="font-mono"
+              :class="{ 'border-red-500': maskError }"
+            />
+            <p v-if="maskError" class="text-xs text-red-600">{{ maskError }}</p>
+            <p class="text-xs text-muted-foreground">
+              Use * for random characters, - as separator. Needs 4-8 asterisks.
+            </p>
+          </div>
+          
+          <!-- TTL -->
+          <div class="space-y-3">
+            <Label for="code-ttl">Expires After</Label>
+            <Input
+              id="code-ttl"
+              v-model.number="ttlDays"
+              type="number"
+              placeholder="No expiry"
+              min="1"
+            />
+            <p class="text-xs text-muted-foreground">
+              Days until voucher expires (leave empty for no expiry)
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <Button v-for="d in [7, 14, 30, 60, 90]" :key="d" variant="outline" size="sm"
+                :class="ttlDays === d && 'border-primary bg-primary/5'"
+                @click="ttlDays = ttlDays === d ? null : d"
+              >{{ d }}d</Button>
+            </div>
+          </div>
+          
+          <!-- Preview -->
+          <div v-if="hasCodeExpiry" class="p-3 bg-muted/50 rounded-lg space-y-1 text-xs text-muted-foreground">
+            <p class="font-medium text-foreground text-sm mb-1">Preview</p>
+            <p v-if="prefix">Prefix: <span class="font-mono">{{ prefix }}-</span></p>
+            <p v-if="mask">Pattern: <span class="font-mono">{{ prefix ? prefix + '-' : '' }}{{ mask }}</span></p>
+            <p v-if="ttlDays">Expires: {{ ttlDays }} days after generation</p>
+          </div>
+          
+          <!-- Clear -->
+          <Button
+            v-if="hasCodeExpiry"
+            variant="outline"
+            class="w-full"
+            @click="prefix = ''; mask = ''; ttlDays = null;"
+          >
+            Clear All
+          </Button>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button @click="sheetState.codeExpiry.open = false" class="w-full">
+            Done
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
     <!-- Rider Sheet (Phase 8 - Advanced) -->
     <Sheet v-model:open="sheetState.rider.open">
       <SheetContent side="bottom" class="h-[85dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Rider Configuration</SheetTitle>
           <SheetDescription>
-            Advanced settings for redemption experience
+            Customize the redemption experience
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Rider Message -->
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-5">
+          <!-- Customer Message -->
           <div class="space-y-2">
-            <Label for="rider-message">Custom Message</Label>
+            <div class="flex items-center gap-2">
+              <Label for="rider-message" class="flex-1">Customer Message</Label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                :class="ogMetaSource === 'message'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                @click="toggleOgSource('message')"
+              >OG</button>
+            </div>
             <Textarea
               id="rider-message"
               v-model="riderMessage"
-              placeholder="Thank you for redeeming!"
               rows="3"
             />
             <p class="text-xs text-muted-foreground">
-              Message displayed to redeemer during redemption
+              Shown to the redeemer after redemption
             </p>
           </div>
           
-          <!-- Rider URL -->
+          <!-- Custom URL -->
           <div class="space-y-2">
-            <Label for="rider-url">Custom URL</Label>
+            <div class="flex items-center gap-2">
+              <Label for="rider-url" class="flex-1">Custom URL</Label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                :class="ogMetaSource === 'url'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                @click="toggleOgSource('url')"
+              >OG</button>
+            </div>
             <Input
               id="rider-url"
               v-model="riderUrl"
               type="url"
-              placeholder="https://your-website.com"
             />
             <p class="text-xs text-muted-foreground">
-              Optional URL to redirect after redemption
+              Redirect destination after redemption
             </p>
           </div>
           
           <!-- Redirect Timeout -->
           <div class="space-y-2">
-            <Label for="rider-redirect-timeout">Redirect Timeout (seconds)</Label>
-            <Input
-              id="rider-redirect-timeout"
-              v-model.number="riderRedirectTimeout"
-              type="number"
-              placeholder="5"
-              min="0"
-              max="60"
-            />
+            <Label for="rider-redirect-timeout">Redirect Delay</Label>
+            <div class="flex items-center gap-2">
+              <Input
+                id="rider-redirect-timeout"
+                v-model.number="riderRedirectTimeout"
+                type="number"
+                min="0"
+                max="60"
+                class="flex-1"
+              />
+              <span class="text-xs text-muted-foreground whitespace-nowrap">seconds</span>
+            </div>
             <p class="text-xs text-muted-foreground">
-              Delay before redirecting to custom URL (0 = immediate)
+              Wait before redirecting (0 = immediate)
             </p>
           </div>
           
           <!-- Splash Text -->
           <div class="space-y-2">
-            <Label for="rider-splash">Splash Text</Label>
+            <div class="flex items-center gap-2">
+              <Label for="rider-splash" class="flex-1">Splash Text</Label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                :class="ogMetaSource === 'splash'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                @click="toggleOgSource('splash')"
+              >OG</button>
+            </div>
             <Textarea
               id="rider-splash"
               v-model="riderSplash"
-              placeholder="Success! Redirecting..."
               rows="2"
             />
             <p class="text-xs text-muted-foreground">
-              Text shown during redirect countdown
+              Content shown during redirect countdown (supports HTML, Markdown, SVG)
             </p>
           </div>
           
-          <!-- Splash Timeout -->
+          <!-- Splash Duration -->
           <div class="space-y-2">
-            <Label for="rider-splash-timeout">Splash Duration (seconds)</Label>
-            <Input
-              id="rider-splash-timeout"
-              v-model.number="riderSplashTimeout"
-              type="number"
-              placeholder="3"
-              min="0"
-              max="30"
-            />
+            <Label for="rider-splash-timeout">Splash Duration</Label>
+            <div class="flex items-center gap-2">
+              <Input
+                id="rider-splash-timeout"
+                v-model.number="riderSplashTimeout"
+                type="number"
+                min="0"
+                max="30"
+                class="flex-1"
+              />
+              <span class="text-xs text-muted-foreground whitespace-nowrap">seconds</span>
+            </div>
             <p class="text-xs text-muted-foreground">
-              How long to show splash text before redirect
+              How long splash is visible before redirect
             </p>
+          </div>
+          
+          <!-- OG Meta hint -->
+          <div v-if="ogMetaSource" class="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <span class="text-xs leading-relaxed text-primary/80">
+              <span class="font-medium">OG Override:</span>
+              The <span class="font-medium">{{ ogMetaSource }}</span> field will be used as the link preview title when this voucher is shared.
+            </span>
           </div>
           
           <!-- Preview -->
-          <div v-if="riderMessage || riderUrl || riderSplash" class="p-4 bg-muted/50 rounded-lg">
+          <div v-if="riderMessage || riderUrl || riderSplash" class="p-3 bg-muted/50 rounded-lg">
             <p class="text-sm font-medium mb-2">Preview</p>
-            <div class="space-y-2 text-xs text-muted-foreground">
+            <div class="space-y-1.5 text-xs text-muted-foreground">
               <p v-if="riderMessage">Message: "{{ riderMessage }}"</p>
-              <p v-if="riderUrl">Redirect to: {{ riderUrl }}</p>
-              <p v-if="riderRedirectTimeout !== null">Wait {{ riderRedirectTimeout }}s before redirect</p>
-              <p v-if="riderSplash">Show splash: "{{ riderSplash }}"</p>
+              <p v-if="riderUrl">Redirect: {{ riderUrl }}</p>
+              <p v-if="riderRedirectTimeout !== null">Delay: {{ riderRedirectTimeout }}s</p>
+              <p v-if="riderSplash">Splash: "{{ riderSplash.length > 60 ? riderSplash.substring(0, 60) + '…' : riderSplash }}"</p>
               <p v-if="riderSplashTimeout !== null">Splash duration: {{ riderSplashTimeout }}s</p>
+              <p v-if="ogMetaSource" class="text-primary/70 font-medium">OG source: {{ ogMetaSource }}</p>
             </div>
           </div>
           
@@ -2267,7 +2475,7 @@ watch(payeeType, (newType, oldType) => {
             variant="outline"
             class="w-full"
             @click="clearRider"
-            v-if="riderMessage || riderUrl || riderSplash"
+            v-if="riderMessage || riderUrl || riderSplash || ogMetaSource"
           >
             Clear All
           </Button>

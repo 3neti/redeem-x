@@ -378,6 +378,7 @@ class GenerateVouchers
             'rider_redirect_timeout' => 'nullable|integer|min:0|max:300',
             'rider_splash' => 'nullable|string|max:51200',
             'rider_splash_timeout' => 'nullable|integer|min:0|max:60',
+            'rider_og_source' => 'nullable|string|in:message,url,splash',
 
             // Settlement rail and fee strategy
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
@@ -536,6 +537,7 @@ class GenerateVouchers
                 'redirect_timeout' => $validated['rider_redirect_timeout'] ?? null,
                 'splash' => $validated['rider_splash'] ?? null,
                 'splash_timeout' => $validated['rider_splash_timeout'] ?? null,
+                'og_source' => $validated['rider_og_source'] ?? null,
             ],
             'validation' => isset($validated['validation_location']) || isset($validated['validation_time']) ? [
                 'location' => isset($validated['validation_location']) ? [

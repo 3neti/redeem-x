@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\OgResolvers;
 
 use App\OgResolvers\Concerns\GeneratesQrDataUri;
+use App\OgResolvers\Concerns\ResolvesOgTitle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use LBHurtado\OgMeta\Data\OgMetaData;
@@ -14,6 +15,8 @@ use LBHurtado\Voucher\Models\Voucher;
 class PayVoucherOgResolver extends ModelOgResolver
 {
     use GeneratesQrDataUri;
+    use ResolvesOgTitle;
+
     protected string $model = Voucher::class;
 
     protected string $findBy = 'code';
@@ -69,7 +72,7 @@ class PayVoucherOgResolver extends ModelOgResolver
         $payee = $validation->payable ?? $validation->mobile ?? 'CASH';
 
         return new OgMetaData(
-            title: $rider->message ?? $this->defaultTitle($status),
+            title: $this->resolveOgTitle($rider, $status, $model),
             description: ucfirst($type).' voucher — '.$formattedTarget,
             status: $status,
             headline: $model->code,

@@ -12,5 +12,6 @@ class RiderInstructionData extends Data
         public ?int $redirect_timeout = null,
         public ?string $splash = null,
         public ?int $splash_timeout = null,
+        public ?string $og_source = null,
     ) {}
 }
