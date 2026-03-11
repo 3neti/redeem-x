@@ -128,6 +128,11 @@ trait HasChannels
 
     public function __get($key)
     {
+        // Skip interception for excluded channels — delegate to Eloquent
+        if ($this->isExcludedChannel($key)) {
+            return parent::__get($key);
+        }
+
         // Check if the key matches any Channel enum value
         if ($channel = $this->getChannelFromEnum($key)) {
             return $this->getChannelAttribute($channel->value);
@@ -139,6 +144,13 @@ trait HasChannels
 
     public function __set($key, $value)
     {
+        // Skip interception for excluded channels — delegate to Eloquent
+        if ($this->isExcludedChannel($key)) {
+            parent::__set($key, $value);
+
+            return;
+        }
+
         // Check if the key matches any Channel enum value
         if ($channel = $this->getChannelFromEnum($key)) {
 
@@ -149,6 +161,16 @@ trait HasChannels
 
         // Delegate to the parent method for non-magic properties
         parent::__set($key, $value);
+    }
+
+    /**
+     * Check if a channel key is excluded from __get/__set interception.
+     * Models can define: protected array $excludedChannels = ['mobile'];
+     */
+    protected function isExcludedChannel(string $key): bool
+    {
+        return property_exists($this, 'excludedChannels')
+            && in_array($key, $this->excludedChannels, true);
     }
 
     protected function getChannelAttribute(string $name): ?string

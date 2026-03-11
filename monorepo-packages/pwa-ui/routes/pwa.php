@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 use LBHurtado\PwaUi\Http\Controllers\PwaPortalController;
 use LBHurtado\PwaUi\Http\Controllers\PwaVoucherController;
 use LBHurtado\PwaUi\Http\Controllers\PwaWalletController;
@@ -19,7 +18,7 @@ use LBHurtado\PwaUi\Http\Controllers\PwaSettingsController;
 |
 */
 
-Route::middleware(['web', 'auth', ValidateSessionWithWorkOS::class])
+Route::middleware(['web', 'auth'])
     ->prefix('pwa')
     ->name('pwa.')
     ->group(function () {

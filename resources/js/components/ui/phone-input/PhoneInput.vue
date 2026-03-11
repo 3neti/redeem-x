@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { VueTelInput } from 'vue-tel-input';
 import 'vue-tel-input/vue-tel-input.css';
 import { cn } from '@/lib/utils';
@@ -30,116 +30,23 @@ const emit = defineEmits<{
 }>();
 
 const inputRef = ref<InstanceType<typeof VueTelInput>>();
-const displayValue = ref('');
 
 const handleInput = (phone: string, phoneObject: any) => {
-    // Emit E.164 format if valid, otherwise emit the formatted number
+    // Always emit E.164 format if valid, otherwise emit the raw input
     if (phoneObject?.valid && phoneObject?.number) {
         emit('update:modelValue', phoneObject.number);
     } else {
         emit('update:modelValue', phone);
     }
-    
-    // Update display value to strip +63 from the input field
-    nextTick(() => {
-        stripDialCodeFromDisplay();
-    });
 };
-
-// Strip +63 from the input display while keeping it in the actual value
-const stripDialCodeFromDisplay = () => {
-    if (!inputRef.value) return;
-    
-    const inputElement = (inputRef.value.$el as HTMLElement)?.querySelector('input') as HTMLInputElement;
-    if (!inputElement) return;
-    
-    const currentValue = inputElement.value;
-    
-    // If value starts with +63, remove it and format with parentheses
-    if (currentValue.startsWith('+63 ')) {
-        let withoutDialCode = currentValue.substring(4); // Remove '+63 '
-        // Format as (917) 301 1987
-        withoutDialCode = formatWithParentheses(withoutDialCode);
-        displayValue.value = withoutDialCode;
-        inputElement.value = withoutDialCode;
-    } else if (currentValue.startsWith('+63')) {
-        let withoutDialCode = currentValue.substring(3); // Remove '+63'
-        // Format as (917) 301 1987
-        withoutDialCode = formatWithParentheses(withoutDialCode);
-        displayValue.value = withoutDialCode;
-        inputElement.value = withoutDialCode;
-    }
-};
-
-// Format number as (917) 301-1987
-const formatWithParentheses = (number: string): string => {
-    // Remove any existing formatting
-    const digitsOnly = number.replace(/\D/g, '');
-    
-    if (digitsOnly.length >= 10) {
-        // Full format: (917) 301-1987
-        const firstThree = digitsOnly.substring(0, 3);
-        const middleThree = digitsOnly.substring(3, 6);
-        const lastFour = digitsOnly.substring(6, 10);
-        return `(${firstThree}) ${middleThree}-${lastFour}`;
-    } else if (digitsOnly.length >= 6) {
-        // Partial format: (917) 301-xxx
-        const firstThree = digitsOnly.substring(0, 3);
-        const middleThree = digitsOnly.substring(3, 6);
-        const rest = digitsOnly.substring(6);
-        return `(${firstThree}) ${middleThree}${rest ? '-' + rest : ''}`;
-    } else if (digitsOnly.length >= 3) {
-        // Partial format: (917) xxx
-        const firstThree = digitsOnly.substring(0, 3);
-        const rest = digitsOnly.substring(3);
-        return `(${firstThree})${rest ? ' ' + rest : ''}`;
-    }
-    
-    return number;
-};
-
-// Watch for external value changes
-watch(() => props.modelValue, () => {
-    nextTick(() => {
-        stripDialCodeFromDisplay();
-    });
-});
 
 onMounted(() => {
     if (props.autofocus && inputRef.value) {
-        // Find the actual input element and focus it
         const input = (inputRef.value.$el as HTMLElement)?.querySelector('input');
         if (input) {
             input.focus();
         }
     }
-    
-    // Add focus listener to select all on focus
-    if (inputRef.value) {
-        const input = (inputRef.value.$el as HTMLElement)?.querySelector('input');
-        if (input) {
-            input.addEventListener('focus', (event) => {
-                // Use setTimeout to ensure selection happens after any internal handlers
-                setTimeout(() => {
-                    input.select();
-                }, 0);
-            });
-            
-            // Also handle click events (when user clicks into the field)
-            input.addEventListener('click', (event) => {
-                if (document.activeElement === input) {
-                    setTimeout(() => {
-                        input.select();
-                    }, 0);
-                }
-            });
-        }
-    }
-    
-    // Initial strip of dial code
-    nextTick(() => {
-        stripDialCodeFromDisplay();
-    });
 });
 </script>
 
@@ -148,14 +55,13 @@ onMounted(() => {
         <VueTelInput
             ref="inputRef"
             :model-value="modelValue"
-            mode="international"
+            mode="national"
             :default-country="'PH'"
             :only-countries="['PH']"
             :disabled="disabled"
             :input-options="{
                 placeholder: placeholder,
                 required: required,
-                styleClasses: 'hide-dial-code',
             }"
             :dropdown-options="{
                 showDialCodeInSelection: true,

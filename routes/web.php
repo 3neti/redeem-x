@@ -2,9 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\WorkOS\Http\Middleware\ValidateSessionWithWorkOS;
 
-Route::get('/', fn () => Inertia::render('Welcome'));
+Route::get('/', fn () => Inertia::render('Welcome', [
+    'canRegister' => config('auth_modes.enable_registration', false),
+]));
 
 // Public health check (no authentication for uptime monitoring)
 Route::get('/health', function () {
@@ -64,7 +65,6 @@ Route::get('/pay/confirmed/{paymentRequest}', function (\App\Models\PaymentReque
 
 Route::middleware([
     'auth',
-    ValidateSessionWithWorkOS::class,
 ])->group(function () {
     // Portal landing page (requires onboarding: mobile + balance)
     Route::get('/portal', [\App\Http\Controllers\PortalController::class, 'show'])

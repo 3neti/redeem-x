@@ -34,6 +34,13 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
     use HasApiTokens, HasFactory, Notifiable;
     use HasChannels;
     use HasMerchant;
+
+    /**
+     * Exclude 'mobile' from HasChannels __get/__set interception.
+     * Mobile is stored on the users.mobile column (canonical for auth).
+     * The trait still handles webhook, telegram, whatsapp, viber.
+     */
+    protected array $excludedChannels = ['mobile'];
     use HasPlatformWallets;
     use HasRoles;
     use HasTopUps;
@@ -49,7 +56,12 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
     protected $fillable = [
         'name',
         'email',
+        'password',
+        'mobile',
         'workos_id',
+        'auth_source',
+        'status',
+        'last_login_at',
         'avatar',
         'ui_preferences',
         'bank_accounts',
@@ -61,6 +73,7 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
      * @var list<string>
      */
     protected $hidden = [
+        'password',
         'workos_id',
         'remember_token',
     ];
@@ -85,6 +98,8 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'mobile_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'ip_whitelist' => 'array',
             'ip_whitelist_enabled' => 'boolean',
@@ -128,6 +143,11 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
         ];
     }
 
+    public function authIdentities(): HasMany
+    {
+        return $this->hasMany(AuthIdentity::class);
+    }
+
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
@@ -169,33 +189,54 @@ class User extends Authenticatable implements Confirmable, Customer, Wallet
     }
 
     /**
-     * Get the mobile channel value formatted for display.
+     * Boot method for User model.
+     * Syncs users.mobile column → channels table on save.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (User $user) {
+            $mobile = $user->getAttribute('mobile');
+            if (! $mobile) {
+                return;
+            }
+
+            // Sync on create (wasRecentlyCreated) or update (wasChanged)
+            if ($user->wasRecentlyCreated || $user->wasChanged('mobile')) {
+                $user->setChannel('mobile', $mobile);
+            }
+        });
+    }
+
+    /**
+     * Get the mobile value for display.
      *
-     * This accessor makes the magic property from HasChannels trait
-     * available in JSON serialization (via $appends).
+     * Reads from users.mobile column first (canonical).
+     * Falls back to channels table for backward compat (un-migrated users).
      *
      * Returns mobile in national format for PH (09173011987)
      * instead of E.164 format (639173011987).
      */
     public function getMobileAttribute(): ?string
     {
-        // Get raw mobile value from channels
-        $channel = $this->relationLoaded('channels')
-            ? $this->channels->firstWhere('name', 'mobile')
-            : $this->channels()->where('name', 'mobile')->first();
+        // Column-first: read from users.mobile
+        $mobile = $this->attributes['mobile'] ?? null;
 
-        $mobile = $channel?->value;
+        // Fallback: read from channels table (backward compat)
+        if (! $mobile) {
+            $channel = $this->relationLoaded('channels')
+                ? $this->channels->firstWhere('name', 'mobile')
+                : $this->channels()->where('name', 'mobile')->first();
+
+            $mobile = $channel?->value;
+        }
 
         if (! $mobile) {
             return null;
         }
 
         try {
-            // Format for mobile dialing in Philippines (removes country code, adds leading 0)
-            // E.164: 639173011987 → National: 09173011987
             return phone($mobile, 'PH')->formatForMobileDialingInCountry('PH');
         } catch (\Throwable $e) {
-            // If formatting fails, return as-is
             return $mobile;
         }
     }

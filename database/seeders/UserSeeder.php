@@ -19,6 +19,7 @@ class UserSeeder extends Seeder
             ['email' => $systemEmail],
             [
                 'name' => 'Lester B. Hurtado',
+                'password' => 'password',
                 'workos_id' => 'user_01K9V1DWFP0M2312PPCTHKPK9C',
                 'avatar' => 'https://ui-avatars.com/api/?name=Lester+B+Hurtado&background=random',
             ]
@@ -34,13 +35,12 @@ class UserSeeder extends Seeder
             ['email' => 'lester@hurtado.ph'],
             [
                 'name' => 'Lester Hurtado',
+                'password' => 'password',
+                'mobile' => '09173011987',
                 'workos_id' => 'user_01K9H6FQS9S11T5S4MM55KA72S',
                 'avatar' => 'https://workoscdn.com/images/v1/SWYo_esN8VqHMcvV6Z1SQZ0c8cAmKIr4AT_cKrzmICA',
             ]
         );
-
-        // Set mobile number via HasChannels magic property
-        $user->mobile = '09173011987';
 
         // Update Cash Gift campaign with mobile (campaigns created by UserObserver before mobile was set)
         $user->load('channels'); // Ensure channels are loaded

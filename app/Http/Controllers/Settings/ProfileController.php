@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\UniqueMobile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -69,7 +70,7 @@ class ProfileController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'mobile' => ['required', 'phone:PH,mobile'],
+            'mobile' => ['required', 'phone:PH,mobile', new UniqueMobile($request->user()->id)],
             'webhook' => ['nullable', 'url'],
         ]);
 
