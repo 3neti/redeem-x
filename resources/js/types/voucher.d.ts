@@ -55,8 +55,7 @@ export interface RiderInstruction {
     redirect_timeout?: number | null;
     splash?: string | null;
     splash_timeout?: number | null;
-}
-    splash_timeout?: number | null;
+    og_source?: 'message' | 'url' | 'splash' | null;
 }
 
 export interface VoucherInstructions {

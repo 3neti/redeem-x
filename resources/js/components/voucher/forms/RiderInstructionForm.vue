@@ -34,6 +34,13 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
         [field]: value || null,
     };
 };
+
+const toggleOgSource = (source: 'message' | 'url' | 'splash') => {
+    localValue.value = {
+        ...localValue.value,
+        og_source: localValue.value.og_source === source ? null : source,
+    };
+};
 </script>
 
 <template>
@@ -49,7 +56,18 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
         </CardHeader>
         <CardContent class="space-y-4">
             <div class="space-y-2">
-                <Label for="rider_message">Message</Label>
+                <div class="flex items-center gap-2">
+                    <Label for="rider_message">Message</Label>
+                    <button
+                        v-if="!readonly"
+                        type="button"
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                        :class="localValue.og_source === 'message'
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                        @click="toggleOgSource('message')"
+                    >OG</button>
+                </div>
                 <Textarea
                     id="rider_message"
                     v-model="localValue.message"
@@ -66,7 +84,18 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
             </div>
 
             <div class="space-y-2">
-                <Label for="rider_url">URL</Label>
+                <div class="flex items-center gap-2">
+                    <Label for="rider_url">URL</Label>
+                    <button
+                        v-if="!readonly"
+                        type="button"
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                        :class="localValue.og_source === 'url'
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                        @click="toggleOgSource('url')"
+                    >OG</button>
+                </div>
                 <Input
                     id="rider_url"
                     v-model="localValue.url"
@@ -101,7 +130,18 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
             </div>
 
             <div class="space-y-2">
-                <Label for="rider_splash">Splash Page Content</Label>
+                <div class="flex items-center gap-2">
+                    <Label for="rider_splash">Splash Page Content</Label>
+                    <button
+                        v-if="!readonly"
+                        type="button"
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                        :class="localValue.og_source === 'splash'
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                        @click="toggleOgSource('splash')"
+                    >OG</button>
+                </div>
                 <Textarea
                     id="rider_splash"
                     v-model="localValue.splash"
@@ -133,6 +173,13 @@ const updateField = (field: keyof RiderInstruction, value: string | null) => {
                 <p class="text-xs text-muted-foreground">
                     Time to wait before auto-advancing from splash page (0 = manual only, leave empty for default: 5s)
                 </p>
+            </div>
+
+            <div v-if="localValue.og_source" class="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <span class="text-xs leading-relaxed text-primary/80">
+                    <span class="font-medium">OG Override:</span>
+                    The <span class="font-medium">{{ localValue.og_source }}</span> field will be used as the link preview title when this voucher is shared.
+                </span>
             </div>
 
             <div class="rounded-lg bg-muted p-3 text-sm">

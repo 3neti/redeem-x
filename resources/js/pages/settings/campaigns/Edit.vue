@@ -58,6 +58,7 @@ const parseInstructions = (inst: any) => {
         riderRedirectTimeout: inst.rider?.redirect_timeout ?? null,
         riderSplash: inst.rider?.splash || '',
         riderSplashTimeout: inst.rider?.splash_timeout ?? null,
+        riderOgSource: inst.rider?.og_source || null,
         locationValidation: inst.validation?.location || null,
         timeValidation: inst.validation?.time || null,
         settlementRail: inst.cash?.settlement_rail || null,
@@ -119,6 +120,7 @@ const form = useForm({
             redirect_timeout: instructionsFormData.value.riderRedirectTimeout ?? null,
             splash: instructionsFormData.value.riderSplash || null,
             splash_timeout: instructionsFormData.value.riderSplashTimeout ?? null,
+            og_source: instructionsFormData.value.riderOgSource || null,
         },
         validation: {
             location: instructionsFormData.value.locationValidation || null,

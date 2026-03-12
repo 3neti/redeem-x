@@ -76,6 +76,7 @@ interface Props {
         riderRedirectTimeout: number | null;
         riderSplash: string;
         riderSplashTimeout: number | null;
+        riderOgSource: string | null;
         locationValidation: LocationValidation | null;
         timeValidation: TimeValidation | null;
         settlementRail: string | null;
@@ -173,6 +174,7 @@ const riderInstruction = computed<RiderInstruction>({
         redirect_timeout: localValue.value.riderRedirectTimeout ?? null,
         splash: localValue.value.riderSplash || null,
         splash_timeout: localValue.value.riderSplashTimeout ?? null,
+        og_source: (localValue.value.riderOgSource as RiderInstruction['og_source']) ?? null,
     }),
     set: (value) => {
         localValue.value = {
@@ -182,6 +184,7 @@ const riderInstruction = computed<RiderInstruction>({
             riderRedirectTimeout: value.redirect_timeout ?? null,
             riderSplash: value.splash || '',
             riderSplashTimeout: value.splash_timeout ?? null,
+            riderOgSource: value.og_source ?? null,
         };
     },
 });
@@ -234,6 +237,7 @@ const jsonPreview = computed(() => {
             message: localValue.value.riderMessage || null,
             url: localValue.value.riderUrl || null,
             redirect_timeout: localValue.value.riderRedirectTimeout ?? null,
+            og_source: localValue.value.riderOgSource || null,
         },
         validation: {
             location: localValue.value.locationValidation || null,
