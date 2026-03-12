@@ -124,6 +124,7 @@ steps:
         label: "Mobile Number"
         required: true
         emphasis: "hero"                                   # Large, prominent display
+        persist: true                                      # Remember last value
         help_text: "Enter your mobile number to receive the cash"
       
       # Endorsement Fields (grouped together)
@@ -136,12 +137,14 @@ steps:
         default: "GXCHPHM2XXX"                            # GCash BIC code
         required: true
         group: "endorsement"                               # Groups with account_number
+        persist: true                                      # Remember last value
         help_text: "INSTAPAY"                             # Payment rail indicator
       - name: "account_number"
         type: "text"
         label: "Account Number"
         required: true
         group: "endorsement"                               # Groups with bank_code
+        persist: true                                      # Remember last value
   
   # Step 2: KYC Verification
   # ========================

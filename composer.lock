@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2a94e6617df5e746642a3f9c9d516e47",
+    "content-hash": "a016ebc2ba6d8c835f02a25bc457928f",
     "packages": [
         {
             "name": "3neti/form-flow",
-            "version": "v1.7.2",
+            "version": "v1.7.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/3neti/form-flow.git",
-                "reference": "a3add875bc47a87949d96690c571d18ed85a83dd"
+                "reference": "06acf36a2dee13b7ace321eb4ecd5dc9cc73b058"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-flow/zipball/a3add875bc47a87949d96690c571d18ed85a83dd",
-                "reference": "a3add875bc47a87949d96690c571d18ed85a83dd",
+                "url": "https://api.github.com/repos/3neti/form-flow/zipball/06acf36a2dee13b7ace321eb4ecd5dc9cc73b058",
+                "reference": "06acf36a2dee13b7ace321eb4ecd5dc9cc73b058",
                 "shasum": ""
             },
             "require": {
@@ -70,9 +70,9 @@
             ],
             "support": {
                 "issues": "https://github.com/3neti/form-flow/issues",
-                "source": "https://github.com/3neti/form-flow/tree/v1.7.2"
+                "source": "https://github.com/3neti/form-flow/tree/v1.7.4"
             },
-            "time": "2026-03-12T04:37:00+00:00"
+            "time": "2026-03-12T05:32:33+00:00"
         },
         {
             "name": "3neti/form-handler-kyc",

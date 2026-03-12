@@ -34,6 +34,7 @@ interface FieldDefinition {
     group?: string;
     help_text?: string;
     variant?: 'readonly-badge' | 'normal';
+    persist?: boolean;
 }
 
 interface AutoSyncConfig {
@@ -48,6 +49,7 @@ interface AutoSyncConfig {
 interface Props {
     flow_id: string;
     step_index: number;
+    step_name?: string;
     title?: string;
     description?: string;
     fields: FieldDefinition[];
@@ -55,6 +57,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    step_name: undefined,
     title: 'Form',
     description: undefined,
     auto_sync: undefined,
@@ -91,12 +94,47 @@ const initializeFormData = () => {
     });
 };
 
+// localStorage persistence for fields with persist: true
+const PERSIST_KEY = props.step_name ? `form_flow_persist_${props.step_name}` : null;
+
+function loadPersistedValues() {
+    if (!PERSIST_KEY) return;
+    try {
+        const raw = localStorage.getItem(PERSIST_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        props.fields.forEach((field) => {
+            if (field.persist && saved[field.name] !== undefined) {
+                // Only restore if no explicit backend default was set
+                if (field.default === undefined || field.default === null) {
+                    formData.value[field.name] = saved[field.name];
+                }
+            }
+        });
+    } catch { /* ignore corrupt data */ }
+}
+
+function savePersistedValues() {
+    if (!PERSIST_KEY) return;
+    try {
+        const toSave: Record<string, any> = {};
+        props.fields.forEach((field) => {
+            if (field.persist && formData.value[field.name]) {
+                toSave[field.name] = formData.value[field.name];
+            }
+        });
+        localStorage.setItem(PERSIST_KEY, JSON.stringify(toSave));
+    } catch { /* ignore storage errors */ }
+}
+
 // Initialize immediately (props are available in setup)
 initializeFormData();
+loadPersistedValues();
 
 // Re-initialize when fields change (Inertia navigation to next step)
 watch(() => props.fields, () => {
     initializeFormData();
+    loadPersistedValues();
 }, { deep: true });
 
 // Debounce helper
@@ -269,7 +307,7 @@ async function handleSubmit() {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: (page) => {
-                    // Inertia will automatically handle navigation to next step
+                    savePersistedValues();
                     console.log('[GenericForm] Form submitted successfully');
                 },
                 onError: (pageErrors) => {
