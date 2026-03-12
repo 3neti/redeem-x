@@ -55,6 +55,7 @@ return [
     */
 
     'app_author' => env('SPLASH_APP_AUTHOR', '3neti R&D OPC'),
+    'app_logo' => env('SPLASH_APP_LOGO', '/images/logo-orange.png'),
     'copyright_holder' => env('SPLASH_COPYRIGHT_HOLDER', '3neti R&D OPC'),
     'copyright_year' => env('SPLASH_COPYRIGHT_YEAR', date('Y')),
 

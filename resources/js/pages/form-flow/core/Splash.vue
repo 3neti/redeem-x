@@ -13,12 +13,24 @@ interface Props {
     content: string;
     timeout?: number;
     button_label?: string;
+    is_default_splash?: boolean;
+    voucher_code?: string;
+    app_name?: string;
+    app_logo?: string;
+    app_author?: string;
+    copyright_text?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     title: undefined,
     timeout: 5,
     button_label: 'Continue Now',
+    is_default_splash: false,
+    voucher_code: undefined,
+    app_name: undefined,
+    app_logo: undefined,
+    app_author: undefined,
+    copyright_text: undefined,
 });
 
 const remainingSeconds = ref(props.timeout);
@@ -133,48 +145,122 @@ async function handleContinue() {
 <template>
     <Head :title="title || 'Welcome'" />
 
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <!-- ============================================================ -->
+    <!-- Default Splash: full-screen, logo-centric launch screen      -->
+    <!-- ============================================================ -->
+    <div
+        v-if="is_default_splash"
+        class="default-splash min-h-screen relative flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-6 select-none"
+    >
+        <!-- Hero logo -->
+        <img
+            v-if="app_logo"
+            :src="app_logo"
+            :alt="app_name ?? 'Logo'"
+            class="w-36 h-36 sm:w-40 sm:h-40 object-contain drop-shadow-lg mb-6 animate-fade-in"
+        />
+
+        <!-- App name -->
+        <p class="text-lg sm:text-xl font-medium tracking-wide text-gray-400 dark:text-gray-500 mb-10 animate-fade-in-delay">
+            {{ app_name }}
+        </p>
+
+        <!-- Voucher code badge (Pay Code Framing Convention: || CODE ||) -->
+        <div v-if="voucher_code" class="text-center mb-14 animate-fade-in-delay">
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gray-400 dark:text-gray-600 mb-2">
+                Redeeming
+            </p>
+            <span class="inline-flex items-center gap-2 px-5 py-1.5 text-lg sm:text-xl font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
+                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                {{ voucher_code }}
+                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+            </span>
+        </div>
+
+        <!-- Continue button + progress -->
+        <div class="w-full max-w-xs space-y-3">
+            <Button
+                @click="handleContinue"
+                :disabled="submitting"
+                size="lg"
+                class="w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10"
+            >
+                <span v-if="submitting">Please wait…</span>
+                <span v-else>{{ button_label }}</span>
+            </Button>
+
+            <div v-if="timeout > 0" class="space-y-1">
+                <div class="w-full bg-gray-200/60 dark:bg-gray-800 rounded-full h-1 overflow-hidden">
+                    <div
+                        class="h-full rounded-full bg-amber-400/70 dark:bg-amber-500/50 transition-all duration-1000 ease-linear"
+                        :style="{ width: `${progressPercentage}%` }"
+                    />
+                </div>
+                <p class="text-center text-[11px] text-gray-400 dark:text-gray-600">
+                    {{ remainingSeconds }}s
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="absolute bottom-5 inset-x-0 text-center space-y-0.5">
+            <p v-if="app_author" class="text-[10px] text-gray-300 dark:text-gray-700">
+                {{ app_author }}
+            </p>
+            <p v-if="copyright_text" class="text-[10px] text-gray-300 dark:text-gray-700">
+                {{ copyright_text }}
+            </p>
+        </footer>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Custom Splash: Card-based layout for rider->splash content   -->
+    <!-- ============================================================ -->
+    <div
+        v-else
+        class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4"
+    >
         <Card class="w-full max-w-2xl overflow-visible">
             <CardHeader v-if="title">
                 <CardTitle class="text-center text-2xl">{{ title }}</CardTitle>
             </CardHeader>
-            
+
             <CardContent class="space-y-6 overflow-visible">
                 <!-- Rendered content -->
-                <div 
+                <div
                     v-if="contentType !== 'text'"
                     v-html="renderedContent"
                     class="prose prose-base max-w-none dark:prose-invert text-center overflow-visible"
                 />
-                <div 
+                <div
                     v-else
                     class="text-center text-lg text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
                 >
                     {{ content }}
                 </div>
-                
-                <!-- Countdown progress (only if timeout > 0) -->
+
+                <!-- Countdown progress -->
                 <div v-if="timeout > 0" class="space-y-2">
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                        <div 
+                        <div
                             class="bg-primary h-full transition-all duration-1000 ease-linear"
                             :style="{ width: `${progressPercentage}%` }"
                         />
                     </div>
                     <p class="text-center text-sm text-gray-500 dark:text-gray-400">
-                        Continuing in {{ remainingSeconds }} second{{ remainingSeconds !== 1 ? 's' : '' }}...
+                        Continuing in {{ remainingSeconds }} second{{ remainingSeconds !== 1 ? 's' : '' }}…
                     </p>
                 </div>
-                
+
                 <!-- Continue button -->
                 <div class="flex justify-center">
-                    <Button 
+                    <Button
                         @click="handleContinue"
                         :disabled="submitting"
                         size="lg"
                         class="min-w-[200px]"
                     >
-                        <span v-if="submitting">Please wait...</span>
+                        <span v-if="submitting">Please wait…</span>
                         <span v-else>{{ button_label }}</span>
                     </Button>
                 </div>
@@ -184,14 +270,27 @@ async function handleContinue() {
 </template>
 
 <style scoped>
-/* Ensure images in prose content are responsive and contained */
+/* Default splash entrance animations */
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.6s ease-out both;
+}
+
+.animate-fade-in-delay {
+    animation: fade-in 0.6s ease-out 0.15s both;
+}
+
+/* Prose overrides for custom splash content */
 .prose :deep(img) {
     max-width: 100% !important;
     height: auto !important;
     display: block;
 }
 
-/* Prevent content from being cropped - apply to all levels */
 .prose {
     overflow: visible !important;
 }
@@ -200,7 +299,6 @@ async function handleContinue() {
     max-width: 100%;
 }
 
-/* Override any Card overflow constraints */
 :deep(.card) {
     overflow: visible !important;
 }

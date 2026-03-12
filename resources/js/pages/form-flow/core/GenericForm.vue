@@ -454,8 +454,10 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                     <div v-if="(heroFields.length > 0) && (Object.keys(groupedFields).length > 0 || normalFields.length > 0)" class="relative my-8">
                         <Separator />
                         <div v-if="voucherCode" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
-                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-bold">
-                                {{ voucherCode }}
+                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-bold font-mono tracking-wider">
+                                <span class="text-muted-foreground/50" aria-hidden="true">||</span>
+                                <span class="mx-1">{{ voucherCode }}</span>
+                                <span class="text-muted-foreground/50" aria-hidden="true">||</span>
                             </Badge>
                         </div>
                     </div>
