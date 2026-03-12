@@ -9,8 +9,8 @@ const currentRoute = computed(() => page.url);
 
 const navItems = [
     { name: 'Home', href: '/pwa/portal', icon: Home },
-    { name: 'Generate', href: '/pwa/vouchers/generate', icon: Plus },
     { name: 'Vouchers', href: '/pwa/vouchers', icon: Ticket },
+    { name: 'Generate', href: '/pwa/vouchers/generate', icon: Plus },
     { name: 'Wallet', href: '/pwa/wallet', icon: Wallet },
     { name: 'Settings', href: '/pwa/settings', icon: Settings },
 ];

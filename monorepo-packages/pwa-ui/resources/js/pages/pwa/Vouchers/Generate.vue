@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useChargeBreakdown } from '@/composables/useChargeBreakdown';
@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Wallet, Plus, Settings as SettingsIcon, Loader2, Trash2, Save } from 'lucide-vue-next';
+import { ArrowLeft, Wallet, Plus, Minus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw } from 'lucide-vue-next';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast/use-toast';
 import NumericKeypad from '@/components/NumericKeypad.vue';
@@ -78,6 +78,11 @@ const targetAmount = ref<number | null>(null);
 const interestRate = ref<number>(0);
 const payee = ref<string>('');
 
+// Code & Expiry
+const prefix = ref<string>('');
+const mask = ref<string>('');
+const ttlDays = ref<number | null>(null);
+
 // Advanced configuration
 const validationSecret = ref<string>('');
 const locationValidation = ref<any>({ latitude: null, longitude: null, radius: null });
@@ -94,6 +99,7 @@ const riderUrl = ref<string>('');
 const riderRedirectTimeout = ref<number | null>(null);
 const riderSplash = ref<string>('');
 const riderSplashTimeout = ref<number | null>(null);
+const ogMetaSource = ref<'message' | 'url' | 'splash' | null>(null);
 
 // Settlement envelope
 const envelopeConfig = ref<any>(null);
@@ -112,20 +118,172 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const showAmountKeypad = ref(false);
 const showCountKeypad = ref(false);
+const showTargetAmountKeypad = ref(false);
+const showInterestRateKeypad = ref(false);
 const showCostBreakdownModal = ref(false);
 
 // Sheet state management (following plan architecture)
 const sheetState = ref({
   campaign: { open: false },
-  voucherType: { open: false },
   inputs: { open: false },
-  validation: { open: false, activeTab: 'location' as 'location' | 'time' | 'secret' | 'payee' },
+  validation: { open: false, activeTab: 'payee' as 'payee' | 'secret' | 'location' | 'time' },
   feedback: { open: false },
   rider: { open: false },
   envelope: { open: false },
   railFees: { open: false },
+  codeExpiry: { open: false },
   options: { open: false }, // Menu sheet
 });
+
+// Conditions presets — configurable
+const secretPresets = [
+  { label: 'Fruits', words: ['Mango', 'Apple', 'Cherry', 'Banana', 'Grape', 'Melon'] },
+  { label: 'Animals', words: ['Tiger', 'Eagle', 'Shark', 'Panda', 'Wolf', 'Falcon'] },
+  { label: 'Cars', words: ['Tesla', 'Honda', 'BMW', 'Toyota', 'Audi', 'Ford'] },
+];
+
+const locationPresets = [
+  { name: 'BGC', latitude: 14.5547, longitude: 121.0508, radius: 500 },
+  { name: 'Makati CBD', latitude: 14.5547, longitude: 121.0244, radius: 500 },
+  { name: 'Ortigas', latitude: 14.5880, longitude: 121.0614, radius: 500 },
+];
+
+const timePresets = [
+  { name: 'Office Hours', start_time: '09:00', end_time: '17:00' },
+  { name: 'Business Hours', start_time: '08:00', end_time: '18:00' },
+  { name: 'Morning', start_time: '06:00', end_time: '12:00' },
+  { name: 'Afternoon', start_time: '12:00', end_time: '18:00' },
+  { name: 'Evening', start_time: '18:00', end_time: '22:00' },
+];
+
+// Saved favorites (localStorage)
+const savedPlaces = ref<{ name: string; latitude: number; longitude: number; radius: number }[]>([]);
+const savedTimes = ref<{ name: string; start_time: string; end_time: string }[]>([]);
+const savePlaceName = ref('');
+const saveTimeName = ref('');
+const showSavePlaceInput = ref(false);
+const showSaveTimeInput = ref(false);
+
+const loadSavedPlaces = () => {
+  try {
+    const raw = localStorage.getItem('pwa_saved_places');
+    if (raw) savedPlaces.value = JSON.parse(raw);
+  } catch { /* ignore */ }
+};
+
+const loadSavedTimes = () => {
+  try {
+    const raw = localStorage.getItem('pwa_saved_times');
+    if (raw) savedTimes.value = JSON.parse(raw);
+  } catch { /* ignore */ }
+};
+
+const savePlace = () => {
+  if (!savePlaceName.value.trim() || !locationValidation.value?.latitude) return;
+  savedPlaces.value.push({
+    name: savePlaceName.value.trim(),
+    latitude: locationValidation.value.latitude,
+    longitude: locationValidation.value.longitude,
+    radius: locationValidation.value.radius || 100,
+  });
+  localStorage.setItem('pwa_saved_places', JSON.stringify(savedPlaces.value));
+  savePlaceName.value = '';
+  showSavePlaceInput.value = false;
+};
+
+const deletePlace = (index: number) => {
+  savedPlaces.value.splice(index, 1);
+  localStorage.setItem('pwa_saved_places', JSON.stringify(savedPlaces.value));
+};
+
+const applyPlace = (place: { latitude: number; longitude: number; radius: number }) => {
+  locationValidation.value = { latitude: place.latitude, longitude: place.longitude, radius: place.radius };
+};
+
+const saveTimeWindow = () => {
+  if (!saveTimeName.value.trim() || !timeValidation.value?.start_time) return;
+  savedTimes.value.push({
+    name: saveTimeName.value.trim(),
+    start_time: timeValidation.value.start_time,
+    end_time: timeValidation.value.end_time,
+  });
+  localStorage.setItem('pwa_saved_times', JSON.stringify(savedTimes.value));
+  saveTimeName.value = '';
+  showSaveTimeInput.value = false;
+};
+
+const deleteTimeWindow = (index: number) => {
+  savedTimes.value.splice(index, 1);
+  localStorage.setItem('pwa_saved_times', JSON.stringify(savedTimes.value));
+};
+
+const applyTimeWindow = (tw: { start_time: string; end_time: string }) => {
+  timeValidation.value = { start_time: tw.start_time, end_time: tw.end_time, timezone: 'Asia/Manila' };
+};
+
+const payeeMode = ref<'anyone' | 'mobile' | 'vendor'>('anyone');
+const payeeError = ref('');
+
+const payeeInputRef = ref<HTMLElement | null>(null);
+const vendorInputRef = ref<HTMLInputElement | null>(null);
+const secretInputRef = ref<HTMLInputElement | null>(null);
+
+const pickSecret = (word: string) => {
+  validationSecret.value = validationSecret.value === word ? '' : word;
+};
+
+const focusPayeeInput = () => {
+  nextTick(() => {
+    if (payeeMode.value === 'mobile' && payeeInputRef.value) {
+      const input = payeeInputRef.value.$el?.querySelector?.('input') as HTMLInputElement
+        ?? payeeInputRef.value?.querySelector?.('input') as HTMLInputElement;
+      if (input) { input.focus(); input.select(); }
+    } else if (payeeMode.value === 'vendor' && vendorInputRef.value) {
+      const el = (vendorInputRef.value as any)?.$el ?? vendorInputRef.value;
+      if (el?.focus) { el.focus(); el.select?.(); }
+    }
+  });
+};
+
+const setPayeeMode = (mode: 'anyone' | 'mobile' | 'vendor') => {
+  payeeMode.value = mode;
+  payeeError.value = '';
+  if (mode === 'anyone') payee.value = '';
+  else if (mode === 'mobile' && payeeType.value !== 'mobile') payee.value = '';
+  else if (mode === 'vendor' && payeeType.value !== 'vendor') payee.value = 'VENDOR-';
+  if (mode !== 'anyone') focusPayeeInput();
+};
+
+const validateConditions = (): boolean => {
+  payeeError.value = '';
+  if (payeeMode.value === 'mobile') {
+    const ph = payee.value.trim();
+    // Extract digits only — accepts E.164 (+639173011987), 09-format, or formatted (917) 301-1987
+    const digits = ph.replace(/\D/g, '');
+    const isValid = /^\+63\d{10}$/.test(ph)        // E.164
+      || /^63\d{10}$/.test(digits)                  // 63 + 10 digits
+      || /^09\d{9}$/.test(digits)                   // 09 + 9 digits
+      || /^9\d{9}$/.test(digits);                   // 9 + 9 digits (no leading 0)
+    if (!ph || !isValid) {
+      payeeError.value = 'Enter a valid Philippine mobile number';
+      sheetState.value.validation.activeTab = 'payee';
+      return false;
+    }
+  } else if (payeeMode.value === 'vendor') {
+    if (!payee.value.trim()) {
+      payeeError.value = 'Enter a vendor alias';
+      sheetState.value.validation.activeTab = 'payee';
+      return false;
+    }
+  }
+  return true;
+};
+
+const closeConditions = () => {
+  if (validateConditions()) {
+    sheetState.value.validation.open = false;
+  }
+};
 
 // ============================================================================
 // COMPUTED PROPERTIES
@@ -168,6 +326,23 @@ const generateButtonText = computed(() => {
     default:
       return `Generate ${countText}Redeemable ${voucherText}`;
   }
+});
+
+// Input field categories — configurable ordering and grouping
+const inputFieldCategories = [
+  { label: 'Capture', fields: ['signature', 'selfie', 'location'] },
+  { label: 'Verification', fields: ['otp', 'kyc'] },
+  { label: 'Details', fields: ['email', 'reference_code', 'name', 'address', 'birth_date'] },
+];
+
+// Map categories to full option objects from props
+const categorizedFields = computed(() => {
+  return inputFieldCategories.map(category => ({
+    label: category.label,
+    options: category.fields
+      .map(value => props.inputFieldOptions.find(opt => opt.value === value))
+      .filter((opt): opt is InputFieldOption => !!opt),
+  }));
 });
 
 // Input field selection summary
@@ -383,14 +558,41 @@ const payeeTypeDescription = computed(() => {
   }
 });
 
+// Code & Expiry summary
+const codeExpirySummary = computed(() => {
+  const parts = [];
+  if (prefix.value) parts.push(prefix.value);
+  if (mask.value) parts.push(mask.value);
+  if (ttlDays.value) parts.push(`${ttlDays.value}d`);
+  return parts.length > 0 ? parts.join(' · ') : 'Default';
+});
+
+const hasCodeExpiry = computed(() => !!prefix.value || !!mask.value || !!ttlDays.value);
+
+// Mask validation
+const maskError = computed(() => {
+  if (!mask.value) return '';
+  if (!/^[*\-]+$/.test(mask.value)) return 'Only * and - characters allowed';
+  const asterisks = (mask.value.match(/\*/g) || []).length;
+  if (asterisks < 4) return `Need at least 4 asterisks (currently ${asterisks})`;
+  if (asterisks > 8) return `Maximum 8 asterisks (currently ${asterisks})`;
+  return '';
+});
+
 // Rider config summary
 const riderConfigSummary = computed(() => {
   const items = [];
   if (riderMessage.value) items.push('Message');
   if (riderUrl.value) items.push('URL');
   if (riderSplash.value) items.push('Splash');
-  return items.length > 0 ? items.join(', ') : 'Not configured';
+  const base = items.length > 0 ? items.join(', ') : 'Not configured';
+  return ogMetaSource.value ? `${base} · OG: ${ogMetaSource.value}` : base;
 });
+
+// OG Meta source toggle — radio that can be deselected
+const toggleOgSource = (field: 'message' | 'url' | 'splash') => {
+  ogMetaSource.value = ogMetaSource.value === field ? null : field;
+};
 
 // Envelope config summary
 const envelopeConfigSummary = computed(() => {
@@ -519,6 +721,36 @@ const confirmCount = (value: number) => {
   showCountKeypad.value = false;
 };
 
+const incrementCount = () => {
+  count.value = Math.min(count.value + 1, 100);
+};
+
+const decrementCount = () => {
+  count.value = Math.max(count.value - 1, 1);
+};
+
+const openTargetAmountKeypad = () => {
+  showTargetAmountKeypad.value = true;
+};
+
+const openInterestRateKeypad = () => {
+  showInterestRateKeypad.value = true;
+};
+
+const confirmTargetAmount = (value: number) => {
+  targetAmount.value = value;
+  // Back-calculate interest rate in settlement mode
+  if (voucherType.value === 'settlement' && amount.value && amount.value > 0) {
+    interestRate.value = parseFloat((((value / amount.value) - 1) * 100).toFixed(2));
+  }
+  showTargetAmountKeypad.value = false;
+};
+
+const confirmInterestRate = (value: number) => {
+  interestRate.value = value;
+  showInterestRateKeypad.value = false;
+};
+
 // Generate voucher (Phase 11 - from Portal.vue)
 const handleGenerate = async () => {
   if (!canGenerate.value) return;
@@ -588,15 +820,18 @@ const handleGenerate = async () => {
     if (feedbackMobile.value) requestData.feedback_mobile = feedbackMobile.value;
     if (feedbackWebhook.value) requestData.feedback_webhook = feedbackWebhook.value;
     
-    // Add rider
-    if (riderMessage.value || riderUrl.value) {
-      requestData.rider = {};
-      if (riderMessage.value) requestData.rider.message = riderMessage.value;
-      if (riderUrl.value) requestData.rider.url = riderUrl.value;
-      if (riderRedirectTimeout.value !== null) requestData.rider.redirect_timeout = riderRedirectTimeout.value;
-      if (riderSplash.value) requestData.rider.splash = riderSplash.value;
-      if (riderSplashTimeout.value !== null) requestData.rider.splash_timeout = riderSplashTimeout.value;
-    }
+    // Add rider (flat keys — API expects rider_message, rider_url, etc.)
+    if (riderMessage.value) requestData.rider_message = riderMessage.value;
+    if (riderUrl.value) requestData.rider_url = riderUrl.value;
+    if (riderRedirectTimeout.value !== null) requestData.rider_redirect_timeout = riderRedirectTimeout.value;
+    if (riderSplash.value) requestData.rider_splash = riderSplash.value;
+    if (riderSplashTimeout.value !== null) requestData.rider_splash_timeout = riderSplashTimeout.value;
+    if (ogMetaSource.value) requestData.rider_og_source = ogMetaSource.value;
+    
+    // Add code & expiry
+    if (prefix.value) requestData.prefix = prefix.value;
+    if (mask.value) requestData.mask = mask.value;
+    if (ttlDays.value) requestData.ttl_days = ttlDays.value;
     
     // Add settlement rail and fee strategy
     if (settlementRail.value && settlementRail.value !== 'auto') {
@@ -707,11 +942,22 @@ const applyCampaign = (campaign: Campaign | null) => {
       if (instructions.rider.redirect_timeout) riderRedirectTimeout.value = instructions.rider.redirect_timeout;
       if (instructions.rider.splash) riderSplash.value = instructions.rider.splash;
       if (instructions.rider.splash_timeout) riderSplashTimeout.value = instructions.rider.splash_timeout;
+      ogMetaSource.value = instructions.rider.og_source || null;
     }
     
     // Apply count if present
     if (instructions.count) {
       count.value = instructions.count;
+    }
+    
+    // Apply code & expiry
+    prefix.value = instructions.prefix || '';
+    mask.value = instructions.mask || '';
+    if (instructions.ttl) {
+      const match = instructions.ttl.match?.(/P(\d+)D/);
+      ttlDays.value = match ? parseInt(match[1]) : null;
+    } else {
+      ttlDays.value = null;
     }
   }
   
@@ -756,50 +1002,29 @@ const clearRider = () => {
   riderRedirectTimeout.value = null;
   riderSplash.value = '';
   riderSplashTimeout.value = null;
+  ogMetaSource.value = null;
 };
 
-// Clear all instructions
-const clearAllInstructions = () => {
-  // Clear input fields (except auto-added ones)
-  selectedInputFields.value = selectedInputFields.value.filter(field => 
-    autoAddedFields.value.has(field)
-  );
-  
-  // Clear validation
-  validationSecret.value = '';
-  locationValidation.value = { latitude: null, longitude: null, radius: null };
-  timeValidation.value = { start_time: '', end_time: '', timezone: 'Asia/Manila' };
-  payee.value = '';
-  
-  // Clear feedback
-  feedbackEmail.value = '';
-  feedbackMobile.value = '';
-  feedbackWebhook.value = '';
-  
-  // Clear rider
+// Full reset — everything back to factory defaults
+const handleClearAll = () => {
+  resetState();
   clearRider();
-  
-  // Clear envelope
+  prefix.value = '';
+  mask.value = '';
+  ttlDays.value = null;
   envelopeConfig.value = null;
   selectedDriverKey.value = '';
-  
-  // Clear rail & fees (reset to defaults)
   settlementRail.value = null;
   feeStrategy.value = 'absorb';
-  
-  // Clear campaign selection
-  selectedCampaignId.value = '';
-  selectedCampaign.value = null;
-  
-  // Clear localStorage
+  riderMessage.value = '';
+  riderUrl.value = '';
+  riderRedirectTimeout.value = null;
+  riderSplash.value = '';
+  riderSplashTimeout.value = null;
   clearSavedState();
-  
-  // Close options menu
-  sheetState.value.options.open = false;
-  
   toast({
-    title: 'All cleared',
-    description: 'All instructions and settings have been reset',
+    title: 'Reset',
+    description: 'All settings cleared',
   });
 };
 
@@ -867,13 +1092,14 @@ const saveAsCampaign = async () => {
         redirect_timeout: riderRedirectTimeout.value,
         splash: riderSplash.value || null,
         splash_timeout: riderSplashTimeout.value,
+        og_source: ogMetaSource.value,
       },
       
       // Required fields
       count: count.value || 1,
-      prefix: null,
-      mask: null,
-      ttl: null,
+      prefix: prefix.value || null,
+      mask: mask.value || null,
+      ttl: ttlDays.value ? `P${ttlDays.value}D` : null,
       
       // Optional voucher type fields
       voucher_type: voucherType.value !== 'redeemable' ? voucherType.value : null,
@@ -953,12 +1179,16 @@ const resetState = () => {
   targetAmount.value = null;
   interestRate.value = 0;
   payee.value = '';
+  payeeMode.value = 'anyone';
   validationSecret.value = '';
   locationValidation.value = { latitude: null, longitude: null, radius: null };
   timeValidation.value = { start_time: '', end_time: '', timezone: 'Asia/Manila' };
   feedbackEmail.value = '';
   feedbackMobile.value = '';
   feedbackWebhook.value = '';
+  prefix.value = '';
+  mask.value = '';
+  ttlDays.value = null;
   selectedCampaignId.value = '';
   selectedCampaign.value = null;
   autoAddedFields.value.clear();
@@ -966,8 +1196,8 @@ const resetState = () => {
 
 // Watch for settlement type changes (from Portal.vue)
 watch(voucherType, (newType) => {
-  if (newType === 'settlement' && amount.value && interestRate.value >= 0) {
-    targetAmount.value = parseFloat((amount.value * (1 + interestRate.value / 100)).toFixed(2));
+  if (newType === 'settlement' && amount.value && Number(interestRate.value || 0) >= 0) {
+    targetAmount.value = parseFloat((amount.value * (1 + Number(interestRate.value || 0) / 100)).toFixed(2));
   }
   if (newType === 'payable') {
     amount.value = 0;
@@ -975,8 +1205,9 @@ watch(voucherType, (newType) => {
 });
 
 watch([amount, interestRate], ([newAmount, newRate]) => {
-  if (voucherType.value === 'settlement' && newAmount && newRate >= 0) {
-    targetAmount.value = parseFloat((newAmount * (1 + newRate / 100)).toFixed(2));
+  const rate = Number(newRate || 0);
+  if (voucherType.value === 'settlement' && newAmount && rate >= 0) {
+    targetAmount.value = parseFloat((newAmount * (1 + rate / 100)).toFixed(2));
   }
 });
 
@@ -998,9 +1229,13 @@ const saveState = () => {
       feedbackEmail: feedbackEmail.value,
       feedbackMobile: feedbackMobile.value,
       feedbackWebhook: feedbackWebhook.value,
+      prefix: prefix.value,
+      mask: mask.value,
+      ttlDays: ttlDays.value,
       settlementRail: settlementRail.value,
       feeStrategy: feeStrategy.value,
       selectedCampaignId: selectedCampaignId.value,
+      ogMetaSource: ogMetaSource.value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -1019,15 +1254,26 @@ const restoreState = () => {
       if (state.voucherType) voucherType.value = state.voucherType;
       if (state.selectedInputFields) selectedInputFields.value = state.selectedInputFields;
       if (state.targetAmount) targetAmount.value = state.targetAmount;
-      if (state.interestRate !== undefined) interestRate.value = state.interestRate;
-      if (state.payee) payee.value = state.payee;
+      if (state.interestRate !== undefined) interestRate.value = Number(state.interestRate) || 0;
+      if (state.payee) {
+        payee.value = state.payee;
+        // Sync payeeMode from restored value
+        const normalized = state.payee.trim();
+        if (!normalized || normalized.toUpperCase() === 'CASH') payeeMode.value = 'anyone';
+        else if (/^(\+|09|\+63)/.test(normalized)) payeeMode.value = 'mobile';
+        else payeeMode.value = 'vendor';
+      }
       if (state.validationSecret) validationSecret.value = state.validationSecret;
       if (state.feedbackEmail) feedbackEmail.value = state.feedbackEmail;
       if (state.feedbackMobile) feedbackMobile.value = state.feedbackMobile;
       if (state.feedbackWebhook) feedbackWebhook.value = state.feedbackWebhook;
+      if (state.prefix) prefix.value = state.prefix;
+      if (state.mask) mask.value = state.mask;
+      if (state.ttlDays) ttlDays.value = state.ttlDays;
       if (state.settlementRail) settlementRail.value = state.settlementRail;
       if (state.feeStrategy) feeStrategy.value = state.feeStrategy;
       if (state.selectedCampaignId) selectedCampaignId.value = state.selectedCampaignId;
+      if (state.ogMetaSource) ogMetaSource.value = state.ogMetaSource;
     }
   } catch (e) {
     console.error('Failed to restore state:', e);
@@ -1045,7 +1291,7 @@ const clearSavedState = () => {
 
 // Watch key fields and save state on change
 watch(
-  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail],
+  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, prefix, mask, ttlDays, ogMetaSource],
   () => {
     saveState();
   },
@@ -1055,6 +1301,8 @@ watch(
 // Restore state on mount
 onMounted(() => {
   restoreState();
+  loadSavedPlaces();
+  loadSavedTimes();
 });
 
 // Watch for mobile payee - auto-add OTP (same logic as Portal.vue)
@@ -1092,20 +1340,64 @@ watch(payeeType, (newType, oldType) => {
             <ArrowLeft class="h-5 w-5" />
           </Button>
           <div>
-            <h1 class="text-lg font-semibold">Generate</h1>
-            <p class="text-xs text-muted-foreground">{{ voucherTypeDisplay }}</p>
+            <div class="flex items-center">
+              <h1 class="text-lg font-semibold">Generate</h1>
+              <button 
+                class="ml-1.5 p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors disabled:invisible"
+                :disabled="count <= 1"
+                @click="decrementCount"
+              >
+                <Minus class="h-3 w-3" />
+              </button>
+              <button 
+                class="text-lg font-semibold tabular-nums px-0.5 hover:text-primary/70 transition-colors"
+                @click="openCountKeypad"
+              >{{ count }}</button>
+              <button 
+                class="p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors disabled:opacity-20"
+                :disabled="count >= 100"
+                @click="incrementCount"
+              >
+                <Plus class="h-3 w-3" />
+              </button>
+              <span class="text-lg font-semibold">{{ count === 1 ? 'voucher' : 'vouchers' }}</span>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <button class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  {{ voucherTypeDisplay }}
+                  <ChevronDown class="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem @click="voucherType = 'redeemable'">
+                  <span :class="voucherType === 'redeemable' && 'font-semibold'">Redeemable</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="voucherType = 'payable'">
+                  <span :class="voucherType === 'payable' && 'font-semibold'">Payable</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="voucherType = 'settlement'">
+                  <span :class="voucherType === 'settlement' && 'font-semibold'">Settlement</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        <Button variant="ghost" size="icon" @click="openSheet('options')">
-          <SettingsIcon class="h-5 w-5" />
-        </Button>
+        <div class="flex items-center">
+          <Button variant="ghost" size="icon" @click="handleClearAll">
+            <RotateCcw class="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" @click="openSheet('options')">
+            <SettingsIcon class="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </header>
 
     <!-- Main Content -->
-    <div class="flex flex-col h-[calc(100vh-64px-56px)]">
+    <div class="flex flex-col h-[calc(100dvh-64px-80px)]">
       <!-- Scrollable Config Summary -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div class="flex-1 overflow-y-auto p-4 space-y-2">
         <!-- Campaign Indicator -->
         <Card v-if="selectedCampaign" class="p-3 bg-primary/5 border-primary/20">
           <div class="flex items-center justify-between">
@@ -1120,11 +1412,11 @@ watch(payeeType, (newType, oldType) => {
         </Card>
 
         <!-- Config Summary Chips -->
-        <div class="space-y-2">
-          <!-- Input Fields -->
+        <div class="space-y-2 rounded-lg bg-[var(--section-chips)]">
+          <!-- Required Info -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('inputs')">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-muted-foreground">Input Fields</p>
+              <p class="text-xs text-muted-foreground">Required Info</p>
               <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
             <div v-if="selectedInputFields.length === 0" class="text-sm font-medium text-muted-foreground">
@@ -1137,10 +1429,10 @@ watch(payeeType, (newType, oldType) => {
             </div>
           </div>
 
-          <!-- Validation -->
+          <!-- Conditions -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('validation')">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-muted-foreground">Validation</p>
+              <p class="text-xs text-muted-foreground">Conditions</p>
               <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
             <div v-if="validationBadges.length === 0" class="text-sm font-medium text-muted-foreground">
@@ -1161,7 +1453,7 @@ watch(payeeType, (newType, oldType) => {
           <!-- Feedback -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('feedback')">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-muted-foreground">Notifications</p>
+              <p class="text-xs text-muted-foreground">Feedback</p>
               <Plus class="h-4 w-4 text-muted-foreground" />
             </div>
             <div v-if="feedbackBadges.length === 0" class="text-sm font-medium text-muted-foreground">
@@ -1180,39 +1472,81 @@ watch(payeeType, (newType, oldType) => {
           </div>
         </div>
 
-        <!-- Amount Display (Large) - Clickable -->
-        <div class="text-center py-8">
-          <p class="text-sm text-muted-foreground mb-2">Amount</p>
+        <!-- Amount Display (Large) - Context-Aware -->
+
+        <!-- Redeemable: Single amount -->
+        <div v-if="voucherType === 'redeemable'" class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+          <p class="text-sm text-muted-foreground mb-1">Amount</p>
           <p 
-            class="text-5xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+            class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
             @click="openAmountKeypad"
           >
             {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
+        </div>
+
+        <!-- Payable: Target amount -->
+        <div v-else-if="voucherType === 'payable'" class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+          <p class="text-sm text-muted-foreground mb-1">Target Amount</p>
           <p 
-            v-if="count > 1" 
-            class="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors"
-            @click="openCountKeypad"
+            class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+            @click="openTargetAmountKeypad"
           >
-            × {{ count }} vouchers
+            {{ targetAmount ? `₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
         </div>
 
-        <!-- Quick Amount Grid -->
-        <div class="grid grid-cols-3 gap-2">
-          <Button variant="outline" @click="amount = 100">₱100</Button>
-          <Button variant="outline" @click="amount = 500">₱500</Button>
-          <Button variant="outline" @click="amount = 1000">₱1K</Button>
-          <Button variant="outline" @click="amount = 2000">₱2K</Button>
-          <Button variant="outline" @click="amount = 5000">₱5K</Button>
-          <Button variant="outline" @click="amount = 10000">₱10K</Button>
+        <!-- Settlement: Principal -->
+        <div v-else class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+          <div class="flex items-center justify-center gap-3">
+            <div class="cursor-pointer hover:text-primary transition-colors" @click="openAmountKeypad">
+              <p class="text-xs text-muted-foreground mb-1">Principal</p>
+              <p class="text-2xl font-bold tabular-nums">
+                {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+              </p>
+            </div>
+            <span class="text-muted-foreground/40 text-lg select-none mt-4">→</span>
+            <div class="cursor-pointer hover:text-primary transition-colors" @click="openTargetAmountKeypad">
+              <p class="text-xs text-muted-foreground mb-1">Target</p>
+              <p class="text-2xl font-bold tabular-nums">
+                {{ targetAmount ? `₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
+              </p>
+            </div>
+          </div>
+          <p 
+            class="text-xs text-muted-foreground mt-2 cursor-pointer hover:text-primary transition-colors underline decoration-dotted"
+            @click="openInterestRateKeypad"
+          >
+            {{ Number(interestRate || 0).toFixed(2) }}% interest
+          </p>
         </div>
+
+
+        <!-- Quick Amount Grid -->
+        <div class="grid grid-cols-3 gap-2 rounded-lg p-2 bg-[var(--section-quickgrid)]">
+          <template v-if="voucherType === 'payable'">
+            <Button variant="outline" size="sm" @click="targetAmount = 100">₱100</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 500">₱500</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 1000">₱1K</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 2000">₱2K</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 5000">₱5K</Button>
+            <Button variant="outline" size="sm" @click="targetAmount = 10000">₱10K</Button>
+          </template>
+          <template v-else>
+            <Button variant="outline" size="sm" @click="amount = 100">₱100</Button>
+            <Button variant="outline" size="sm" @click="amount = 500">₱500</Button>
+            <Button variant="outline" size="sm" @click="amount = 1000">₱1K</Button>
+            <Button variant="outline" size="sm" @click="amount = 2000">₱2K</Button>
+            <Button variant="outline" size="sm" @click="amount = 5000">₱5K</Button>
+            <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
+          </template>
+        </div>
+
       </div>
 
-      <!-- Fixed Bottom Section -->
-      <div class="border-t bg-background p-4 space-y-3">
-        <!-- Wallet Balance & Cost -->
-        <div class="flex items-center justify-between text-sm">
+      <!-- Fixed Bottom: Balance + Generate -->
+      <div class="px-4 py-2 space-y-1.5 bg-[var(--section-generate)]">
+        <div class="flex items-center justify-between text-sm rounded-lg px-2 py-1 bg-[var(--section-balance)]">
           <div class="flex items-center gap-2 text-muted-foreground">
             <Wallet class="h-4 w-4" />
             <span>{{ formattedBalance }}</span>
@@ -1225,10 +1559,7 @@ watch(payeeType, (newType, oldType) => {
             Cost: ₱{{ estimatedCost.toFixed(2) }}
           </div>
         </div>
-
-        <!-- Generate Button -->
         <Button
-          size="lg"
           class="w-full"
           :disabled="!canGenerate"
           @click="handleGenerate"
@@ -1338,16 +1669,18 @@ watch(payeeType, (newType, oldType) => {
             <Badge v-if="selectedCampaign" variant="secondary" class="ml-2">Selected</Badge>
           </button>
           
-          <!-- Voucher Type -->
+          <!-- Code & Expiry -->
           <button
             class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
-            @click="openSheet('voucherType')"
+            @click="openSheet('codeExpiry')"
           >
             <div class="flex-1">
-              <div class="font-medium text-sm">Voucher Type</div>
-              <div class="text-xs text-muted-foreground mt-0.5">{{ voucherTypeDisplay }}</div>
+              <div class="font-medium text-sm">Code & Expiry</div>
+              <div class="text-xs text-muted-foreground mt-0.5">
+                {{ codeExpirySummary }}
+              </div>
             </div>
-            <Badge variant="default" class="ml-2">{{ voucherTypeDisplay }}</Badge>
+            <Badge v-if="hasCodeExpiry" variant="secondary" class="ml-2">Active</Badge>
           </button>
           
           <!-- Rider Config -->
@@ -1394,25 +1727,15 @@ watch(payeeType, (newType, oldType) => {
         </div>
         
         <!-- Action Buttons -->
-        <div class="py-4 px-1 space-y-2 border-t">
-          <div class="grid grid-cols-2 gap-2">
-            <Button 
-              variant="outline" 
-              class="w-full" 
-              @click="openSaveCampaignDialog"
-            >
-              <Save class="mr-2 h-4 w-4" />
-              Save as Campaign
-            </Button>
-            <Button 
-              variant="outline" 
-              class="w-full text-destructive hover:text-destructive" 
-              @click="clearAllInstructions"
-            >
-              <Trash2 class="mr-2 h-4 w-4" />
-              Clear All
-            </Button>
-          </div>
+        <div class="py-4 px-1 border-t">
+          <Button 
+            variant="outline" 
+            class="w-full" 
+            @click="openSaveCampaignDialog"
+          >
+            <Save class="mr-2 h-4 w-4" />
+            Save as Campaign
+          </Button>
         </div>
         
         <SheetFooter>
@@ -1467,7 +1790,7 @@ watch(payeeType, (newType, oldType) => {
 
     <!-- Campaign Selection Sheet (Phase 3) -->
     <Sheet v-model:open="sheetState.campaign.open">
-      <SheetContent side="bottom" class="h-[80vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[80dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Select Campaign</SheetTitle>
           <SheetDescription>
@@ -1539,503 +1862,470 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
 
-    <!-- Voucher Type Sheet (Phase 4) -->
-    <Sheet v-model:open="sheetState.voucherType.open">
-      <SheetContent side="bottom" class="h-auto max-h-[90vh] flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Voucher Type</SheetTitle>
-          <SheetDescription>
-            Choose the type of voucher to generate
-          </SheetDescription>
-        </SheetHeader>
-        
-        <div class="flex-1 overflow-y-auto mt-6 space-y-4">
-          <RadioGroup v-model="voucherType">
-            <!-- Redeemable -->
-            <div
-              :class="[
-                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                voucherType === 'redeemable' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-              ]"
-              @click="voucherType = 'redeemable'"
-            >
-              <RadioGroupItem value="redeemable" id="type-redeemable" class="mt-1" />
-              <div class="flex-1">
-                <Label for="type-redeemable" class="font-semibold text-base cursor-pointer">
-                  Redeemable
-                </Label>
-                <p class="text-sm text-muted-foreground mt-1">
-                  Standard one-time redemption voucher. Redeemer receives the full amount.
-                </p>
-              </div>
-            </div>
-            
-            <!-- Payable -->
-            <div
-              :class="[
-                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                voucherType === 'payable' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-              ]"
-              @click="voucherType = 'payable'"
-            >
-              <RadioGroupItem value="payable" id="type-payable" class="mt-1" />
-              <div class="flex-1">
-                <Label for="type-payable" class="font-semibold text-base cursor-pointer">
-                  Payable
-                </Label>
-                <p class="text-sm text-muted-foreground mt-1">
-                  Accepts payments until target amount is reached. Anyone can contribute.
-                </p>
-              </div>
-            </div>
-            
-            <!-- Settlement -->
-            <div
-              :class="[
-                'flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                voucherType === 'settlement' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-              ]"
-              @click="voucherType = 'settlement'"
-            >
-              <RadioGroupItem value="settlement" id="type-settlement" class="mt-1" />
-              <div class="flex-1">
-                <Label for="type-settlement" class="font-semibold text-base cursor-pointer">
-                  Settlement
-                </Label>
-                <p class="text-sm text-muted-foreground mt-1">
-                  Enterprise settlement instrument. Supports multi-payment with interest calculation.
-                </p>
-              </div>
-            </div>
-          </RadioGroup>
-          
-          <!-- Conditional Fields for Payable -->
-          <div v-if="voucherType === 'payable'" class="space-y-3 pt-4 border-t">
-            <div class="space-y-2">
-              <Label for="target-amount">Target Amount</Label>
-              <Input
-                id="target-amount"
-                v-model.number="targetAmount"
-                type="number"
-                placeholder="Enter target amount"
-                min="1"
-                step="0.01"
-              />
-              <p class="text-xs text-muted-foreground">
-                Total amount to collect before voucher closes
-              </p>
-            </div>
-          </div>
-          
-          <!-- Conditional Fields for Settlement -->
-          <div v-if="voucherType === 'settlement'" class="space-y-3 pt-4 border-t">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="space-y-2">
-                <Label for="loan-amount">Loan Amount</Label>
-                <Input
-                  id="loan-amount"
-                  v-model.number="amount"
-                  type="number"
-                  placeholder="Enter amount"
-                  min="1"
-                  step="0.01"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="interest-rate">Interest Rate</Label>
-                <Input
-                  id="interest-rate"
-                  v-model.number="interestRate"
-                  type="number"
-                  placeholder="0"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-              </div>
-            </div>
-            <p class="text-xs text-muted-foreground">
-              Target amount: ₱{{ targetAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00' }} 
-              (principal + {{ interestRate.toFixed(2) }}% interest)
-            </p>
-          </div>
-        </div>
-        
-        <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.voucherType.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.voucherType.open = false" class="flex-1">
-            Apply
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-    
-    <!-- Input Fields Sheet (Phase 5) -->
+    <!-- Required Info Sheet -->
     <Sheet v-model:open="sheetState.inputs.open">
-      <SheetContent side="bottom" class="h-[80vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[80dvh] flex flex-col">
         <SheetHeader>
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <SheetTitle>Input Fields</SheetTitle>
-              <SheetDescription>
-                Select fields to collect during redemption
-              </SheetDescription>
-            </div>
-            <Button 
+          <SheetTitle>Required Info</SheetTitle>
+          <div class="flex items-baseline justify-between">
+            <SheetDescription>
+              What should the redeemer provide?
+            </SheetDescription>
+            <button 
               v-if="selectedInputFields.length > 0" 
-              variant="ghost" 
-              size="sm" 
+              class="text-xs text-muted-foreground hover:text-destructive transition-colors shrink-0"
               @click="clearAllInputFields"
-              class="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              Clear All
-            </Button>
+            >Clear</button>
           </div>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Input Field Checkboxes -->
-          <div class="space-y-3">
-            <div
-              v-for="option in props.inputFieldOptions"
-              :key="option.value"
-              :class="[
-                'flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                selectedInputFields.includes(option.value) ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
-                option.value === 'otp' && autoAddedFields.has('otp') && 'opacity-60'
-              ]"
-              @click="option.value === 'otp' && autoAddedFields.has('otp') ? null : toggleInputField(option.value)"
-            >
-              <Checkbox
-                :id="`input-${option.value}`"
-                :checked="selectedInputFields.includes(option.value)"
-                :disabled="option.value === 'otp' && autoAddedFields.has('otp')"
-                @click.stop
-              />
-              <div class="flex-1">
-                <Label
-                  :for="`input-${option.value}`"
-                  :class="[
-                    'font-semibold text-base cursor-pointer flex items-center gap-2',
-                    option.value === 'otp' && autoAddedFields.has('otp') && 'cursor-not-allowed'
-                  ]"
-                >
-                  <span v-if="option.icon" class="text-xl">{{ option.icon }}</span>
-                  {{ option.label }}
-                </Label>
-                <p v-if="option.value === 'otp' && autoAddedFields.has('otp')" class="text-xs text-muted-foreground mt-1">
-                  Required for mobile validation
-                </p>
-              </div>
+        <div class="flex-1 overflow-y-auto mt-4 px-1 space-y-5">
+          <div v-for="category in categorizedFields" :key="category.label" class="space-y-2">
+            <p class="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest px-1">{{ category.label }}</p>
+            <div class="space-y-1.5">
+              <button
+                v-for="option in category.options"
+                :key="option.value"
+                :class="[
+                  'w-full text-left px-3.5 py-2.5 rounded-xl border transition-all duration-150',
+                  selectedInputFields.includes(option.value)
+                    ? 'bg-primary/8 border-primary/30 text-foreground'
+                    : 'border-border text-muted-foreground hover:bg-muted/40',
+                  option.value === 'otp' && autoAddedFields.has('otp') && 'opacity-50 cursor-default'
+                ]"
+                @click="option.value === 'otp' && autoAddedFields.has('otp') ? null : toggleInputField(option.value)"
+              >
+                <span class="text-sm font-medium">{{ option.label }}</span>
+                <span 
+                  v-if="option.value === 'otp' && autoAddedFields.has('otp')" 
+                  class="text-[10px] text-muted-foreground ml-2"
+                >Required</span>
+              </button>
             </div>
-          </div>
-          
-          <!-- Empty State -->
-          <div v-if="props.inputFieldOptions.length === 0" class="py-12 text-center">
-            <p class="text-sm text-muted-foreground">No input fields configured</p>
-          </div>
-          
-          <!-- Info Box -->
-          <div v-if="selectedInputFields.length > 0" class="p-4 bg-muted/50 rounded-lg">
-            <p class="text-sm font-medium mb-1">Selected: {{ selectedInputFields.length }} field{{ selectedInputFields.length > 1 ? 's' : '' }}</p>
-            <p class="text-xs text-muted-foreground">
-              Redeemers will need to provide: {{ selectedInputFields.join(', ') }}
-            </p>
           </div>
         </div>
         
         <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.inputs.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.inputs.open = false" class="flex-1">
-            Apply ({{ selectedInputFields.length }})
+          <Button @click="sheetState.inputs.open = false" class="w-full">
+            Done
           </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
     
-    <!-- Validation Sheet (Phase 6) -->
+    <!-- Conditions Sheet -->
     <Sheet v-model:open="sheetState.validation.open">
-      <SheetContent side="bottom" class="h-[85vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[85dvh] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Validation Rules</SheetTitle>
+          <SheetTitle>Conditions</SheetTitle>
           <SheetDescription>
-            Add validation rules to restrict redemption
+            Control who, what, where, and when
           </SheetDescription>
         </SheetHeader>
         
-        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col mt-4">
+        <Tabs :default-value="sheetState.validation.activeTab" @update:model-value="(val: any) => sheetState.validation.activeTab = val" class="flex-1 flex flex-col min-h-0 mt-4">
           <TabsList class="grid w-full grid-cols-4">
-            <TabsTrigger value="location">Location</TabsTrigger>
-            <TabsTrigger value="time">Time</TabsTrigger>
-            <TabsTrigger value="secret">Secret</TabsTrigger>
-            <TabsTrigger value="payee">Payee</TabsTrigger>
+            <TabsTrigger value="payee">Who</TabsTrigger>
+            <TabsTrigger value="secret">What</TabsTrigger>
+            <TabsTrigger value="location">Where</TabsTrigger>
+            <TabsTrigger value="time">When</TabsTrigger>
           </TabsList>
           
-          <!-- Location Tab -->
-          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
+          <!-- Who Tab -->
+          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 px-3 space-y-4">
             <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="location-lat">Latitude</Label>
-                <Input
-                  id="location-lat"
-                  v-model.number="locationValidation.latitude"
-                  type="number"
-                  placeholder="14.5995"
-                  step="0.0001"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="location-lng">Longitude</Label>
-                <Input
-                  id="location-lng"
-                  v-model.number="locationValidation.longitude"
-                  type="number"
-                  placeholder="120.9842"
-                  step="0.0001"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="location-radius">Radius (meters)</Label>
-                <Input
-                  id="location-radius"
-                  v-model.number="locationValidation.radius"
-                  type="number"
-                  placeholder="100"
-                  min="1"
-                />
-              </div>
-              <p class="text-xs text-muted-foreground">
-                Redemption allowed within {{ locationValidation?.radius || 100 }}m of specified location
-              </p>
-              <Button
-                variant="outline"
-                class="w-full"
-                @click="locationValidation = null"
-                v-if="locationValidation"
+              <!-- Mode cards -->
+              <button
+                class="w-full text-left p-4 rounded-xl border transition-all duration-150"
+                :class="payeeMode === 'anyone' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                @click="setPayeeMode('anyone')"
               >
-                Clear Location
-              </Button>
+                <p class="text-sm font-medium">Anyone</p>
+                <p class="text-xs text-muted-foreground">No restriction — any redeemer</p>
+              </button>
+              <button
+                class="w-full text-left p-4 rounded-xl border transition-all duration-150"
+                :class="payeeMode === 'mobile' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                @click="setPayeeMode('mobile')"
+              >
+                <p class="text-sm font-medium">Mobile number</p>
+                <p class="text-xs text-muted-foreground">Only this phone can redeem</p>
+              </button>
+              <button
+                class="w-full text-left p-4 rounded-xl border transition-all duration-150"
+                :class="payeeMode === 'vendor' ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                @click="setPayeeMode('vendor')"
+              >
+                <p class="text-sm font-medium">Vendor</p>
+                <p class="text-xs text-muted-foreground">Restrict to a vendor alias</p>
+              </button>
+
+              <!-- Inline input when mobile/vendor selected -->
+              <div v-if="payeeMode === 'mobile'" class="pt-1">
+                <PhoneInput ref="payeeInputRef" v-model="payee" :error="payeeError" />
+              </div>
+              <div v-else-if="payeeMode === 'vendor'" class="pt-1 space-y-1">
+                <Input ref="vendorInputRef" v-model="payee" type="text" class="text-base" :class="{ 'border-red-500': payeeError }" />
+                <p v-if="payeeError" class="text-xs text-red-600">{{ payeeError }}</p>
+              </div>
+
+              <!-- Clear -->
+              <button
+                v-if="payee"
+                class="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                @click="payee = ''; payeeMode = 'anyone'"
+              >Clear</button>
             </div>
           </TabsContent>
-          
-          <!-- Time Tab -->
-          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="time-start">Start Time</Label>
-                <Input
-                  id="time-start"
-                  v-model="timeValidation.start_time"
-                  type="time"
-                  placeholder="09:00"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="time-end">End Time</Label>
-                <Input
-                  id="time-end"
-                  v-model="timeValidation.end_time"
-                  type="time"
-                  placeholder="17:00"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="time-timezone">Timezone</Label>
-                <Input
-                  id="time-timezone"
-                  v-model="timeValidation.timezone"
-                  type="text"
-                  placeholder="Asia/Manila"
-                />
-              </div>
-              <p class="text-xs text-muted-foreground">
-                Redemption allowed between {{ timeValidation?.start_time || '00:00' }} - {{ timeValidation?.end_time || '23:59' }}
-              </p>
-              <Button
-                variant="outline"
-                class="w-full"
-                @click="timeValidation = null"
-                v-if="timeValidation"
-              >
-                Clear Time
-              </Button>
+
+          <!-- What Tab -->
+          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+            <!-- Prominent input -->
+            <div class="shrink-0">
+              <Input
+                ref="secretInputRef"
+                v-model="validationSecret"
+                type="text"
+                placeholder="Enter a secret code"
+              />
             </div>
-          </TabsContent>
-          
-          <!-- Secret Tab -->
-          <TabsContent value="secret" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="secret">Secret Code</Label>
-                <Input
-                  id="secret"
-                  v-model="validationSecret"
-                  type="text"
-                  placeholder="Enter secret code"
-                />
-                <p class="text-xs text-muted-foreground">
-                  Redeemer must enter this secret code to redeem voucher
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                class="w-full"
-                @click="validationSecret = ''"
-                v-if="validationSecret"
-              >
-                Clear Secret
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <!-- Payee Tab -->
-          <TabsContent value="payee" class="flex-1 overflow-y-auto mt-4 px-1 space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-2">
-                <Label for="payee">{{ payeeLabel }}</Label>
-                <Input
-                  id="payee"
-                  v-model="payee"
-                  type="text"
-                  placeholder="CASH, mobile number, or vendor alias"
-                />
-                <p class="text-xs text-muted-foreground">
-                  {{ payeeContextHelp }}
-                </p>
-              </div>
-              
-              <!-- Payee Type Info -->
-              <div class="p-3 bg-muted/50 rounded-lg">
-                <p class="text-sm font-medium mb-1">Detected: {{ payeeTypeDisplay }}</p>
-                <p class="text-xs text-muted-foreground">
-                  {{ payeeTypeDescription }}
-                </p>
-              </div>
-              
-              <!-- Quick Presets -->
-              <div class="space-y-2">
-                <Label class="text-xs">Quick Presets:</Label>
-                <div class="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" @click="payee = ''">
-                    Anyone (CASH)
-                  </Button>
-                  <Button variant="outline" size="sm" @click="payee = '09171234567'">
-                    Mobile Sample
-                  </Button>
+            <button
+              v-if="validationSecret"
+              class="text-xs text-muted-foreground hover:text-destructive transition-colors"
+              @click="validationSecret = ''"
+            >Clear</button>
+
+            <!-- Quick suggestions -->
+            <div class="space-y-4 pt-2">
+              <p class="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest">Or pick one</p>
+              <div v-for="cat in secretPresets" :key="cat.label" class="space-y-2">
+                <p class="text-xs text-muted-foreground/50">{{ cat.label }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="word in cat.words"
+                    :key="word"
+                    class="px-3 py-1.5 rounded-full text-sm border transition-all duration-150"
+                    :class="validationSecret === word ? 'bg-primary/8 border-primary/30 font-medium text-foreground' : 'text-muted-foreground border-muted hover:bg-muted/30'"
+                    @click="pickSecret(word)"
+                  >{{ word }}</button>
                 </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <!-- Where Tab -->
+          <TabsContent value="location" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+            <!-- Preset places -->
+            <div v-if="locationPresets.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Presets</p>
+              <div class="space-y-2">
+                <button
+                  v-for="place in locationPresets"
+                  :key="place.name"
+                  class="w-full text-left p-3 rounded-xl border transition-all duration-150"
+                  :class="locationValidation?.latitude === place.latitude && locationValidation?.longitude === place.longitude ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                  @click="applyPlace(place)"
+                >
+                  <p class="text-sm font-medium">{{ place.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ place.latitude.toFixed(4) }}, {{ place.longitude.toFixed(4) }} · {{ place.radius }}m</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- Saved places -->
+            <div v-if="savedPlaces.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Saved</p>
+              <div class="space-y-2">
+                <div
+                  v-for="(place, idx) in savedPlaces"
+                  :key="idx"
+                  class="flex items-center gap-2"
+                >
+                  <button
+                    class="flex-1 text-left p-3 rounded-xl border transition-all duration-150"
+                    :class="locationValidation?.latitude === place.latitude && locationValidation?.longitude === place.longitude ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                    @click="applyPlace(place)"
+                  >
+                    <p class="text-sm font-medium">{{ place.name }}</p>
+                    <p class="text-xs text-muted-foreground">{{ place.latitude.toFixed(4) }}, {{ place.longitude.toFixed(4) }} · {{ place.radius }}m</p>
+                  </button>
+                  <button class="p-1.5 text-muted-foreground/60 hover:text-destructive transition-colors" @click="deletePlace(idx)">×</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom coordinates -->
+            <div class="space-y-3">
+              <p class="text-xs text-muted-foreground">Custom</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <Label class="text-xs">Lat</Label>
+                  <Input v-model.number="locationValidation.latitude" type="number" step="0.0001" class="text-sm" />
+                </div>
+                <div class="space-y-1">
+                  <Label class="text-xs">Lng</Label>
+                  <Input v-model.number="locationValidation.longitude" type="number" step="0.0001" class="text-sm" />
+                </div>
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs">Radius (m)</Label>
+                <Input v-model.number="locationValidation.radius" type="number" min="1" class="text-sm" />
+              </div>
+
+              <!-- Save / Clear -->
+              <div v-if="locationValidation?.latitude" class="flex items-center gap-2">
+                <template v-if="!showSavePlaceInput">
+                  <button class="text-xs text-primary hover:underline" @click="showSavePlaceInput = true">Save this place</button>
+                  <span class="text-xs text-muted-foreground/40">·</span>
+                  <button class="text-xs text-muted-foreground hover:text-destructive transition-colors" @click="locationValidation = null">Clear</button>
+                </template>
+                <template v-else>
+                  <Input v-model="savePlaceName" class="text-sm flex-1" @keyup.enter="savePlace" />
+                  <Button size="sm" variant="ghost" @click="savePlace">Save</Button>
+                  <button class="text-xs text-muted-foreground" @click="showSavePlaceInput = false">Cancel</button>
+                </template>
+              </div>
+            </div>
+          </TabsContent>
+
+          <!-- When Tab -->
+          <TabsContent value="time" class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+            <!-- Preset windows -->
+            <div v-if="timePresets.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Presets</p>
+              <div class="space-y-2">
+                <button
+                  v-for="tw in timePresets"
+                  :key="tw.name"
+                  class="w-full text-left p-3 rounded-xl border transition-all duration-150"
+                  :class="timeValidation?.start_time === tw.start_time && timeValidation?.end_time === tw.end_time ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                  @click="applyTimeWindow(tw)"
+                >
+                  <p class="text-sm font-medium">{{ tw.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ tw.start_time }} – {{ tw.end_time }}</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- Saved windows -->
+            <div v-if="savedTimes.length" class="space-y-2">
+              <p class="text-xs text-muted-foreground">Saved</p>
+              <div class="space-y-2">
+                <div
+                  v-for="(tw, idx) in savedTimes"
+                  :key="idx"
+                  class="flex items-center gap-2"
+                >
+                  <button
+                    class="flex-1 text-left p-3 rounded-xl border transition-all duration-150"
+                    :class="timeValidation?.start_time === tw.start_time && timeValidation?.end_time === tw.end_time ? 'bg-primary/8 border-primary/30' : 'hover:bg-muted/50'"
+                    @click="applyTimeWindow(tw)"
+                  >
+                    <p class="text-sm font-medium">{{ tw.name }}</p>
+                    <p class="text-xs text-muted-foreground">{{ tw.start_time }} – {{ tw.end_time }}</p>
+                  </button>
+                  <button class="p-1.5 text-muted-foreground/60 hover:text-destructive transition-colors" @click="deleteTimeWindow(idx)">×</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom time inputs -->
+            <div class="space-y-3">
+              <p class="text-xs text-muted-foreground">Custom</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <Label class="text-xs">Start</Label>
+                  <Input v-model="timeValidation.start_time" type="time" class="text-sm" />
+                </div>
+                <div class="space-y-1">
+                  <Label class="text-xs">End</Label>
+                  <Input v-model="timeValidation.end_time" type="time" class="text-sm" />
+                </div>
+              </div>
+
+              <!-- Save / Clear -->
+              <div v-if="timeValidation?.start_time" class="flex items-center gap-2">
+                <template v-if="!showSaveTimeInput">
+                  <button class="text-xs text-primary hover:underline" @click="showSaveTimeInput = true">Save this window</button>
+                  <span class="text-xs text-muted-foreground/40">·</span>
+                  <button class="text-xs text-muted-foreground hover:text-destructive transition-colors" @click="timeValidation = null">Clear</button>
+                </template>
+                <template v-else>
+                  <Input v-model="saveTimeName" class="text-sm flex-1" @keyup.enter="saveTimeWindow" />
+                  <Button size="sm" variant="ghost" @click="saveTimeWindow">Save</Button>
+                  <button class="text-xs text-muted-foreground" @click="showSaveTimeInput = false">Cancel</button>
+                </template>
               </div>
             </div>
           </TabsContent>
         </Tabs>
         
         <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.validation.open = false" class="flex-1">
-            Cancel
-          </Button>
-          <Button @click="sheetState.validation.open = false" class="flex-1">
-            Apply
+          <Button @click="closeConditions" class="w-full">
+            Done
           </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
     
-    <!-- Feedback Sheet (Phase 7) -->
+    <!-- Feedback Sheet -->
     <Sheet v-model:open="sheetState.feedback.open">
-      <SheetContent side="bottom" class="h-auto max-h-[80vh] flex flex-col">
+      <SheetContent side="bottom" class="h-auto max-h-[80dvh] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Notifications</SheetTitle>
+          <SheetTitle>Feedback</SheetTitle>
           <SheetDescription>
-            Configure notification channels for redemption events
+            Get notified when vouchers are redeemed
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Email Notification -->
-          <div class="space-y-2">
-            <Label for="feedback-email">Email Notification</Label>
+        <div class="flex-1 overflow-y-auto mt-4 px-3 space-y-5">
+          <!-- Email -->
+          <div class="space-y-1.5">
+            <div class="flex items-baseline justify-between">
+              <Label for="feedback-email" class="text-sm">Email</Label>
+              <button 
+                v-if="!feedbackEmail && (page.props as any).auth?.user?.email" 
+                class="text-xs text-primary/60 hover:text-primary transition-colors"
+                @click="feedbackEmail = (page.props as any).auth.user.email"
+              >Use mine</button>
+            </div>
             <Input
               id="feedback-email"
               v-model="feedbackEmail"
               type="email"
-              placeholder="recipient@example.com"
               :class="{ 'border-red-500': feedbackEmailError }"
             />
-            <p v-if="feedbackEmailError" class="text-xs text-red-600">
-              {{ feedbackEmailError }}
-            </p>
-            <p v-else class="text-xs text-muted-foreground">
-              Send redemption notification to this email
-            </p>
+            <p v-if="feedbackEmailError" class="text-xs text-red-600">{{ feedbackEmailError }}</p>
           </div>
           
-          <!-- SMS Notification -->
-          <div class="space-y-2">
-            <Label for="feedback-mobile">SMS Notification</Label>
+          <!-- SMS -->
+          <div class="space-y-1.5">
+            <div class="flex items-baseline justify-between">
+              <Label for="feedback-mobile" class="text-sm">SMS</Label>
+              <button 
+                v-if="!feedbackMobile && (page.props as any).auth?.user?.mobile" 
+                class="text-xs text-primary/60 hover:text-primary transition-colors"
+                @click="feedbackMobile = (page.props as any).auth.user.mobile"
+              >Use mine</button>
+            </div>
             <PhoneInput
               id="feedback-mobile"
               v-model="feedbackMobile"
-              placeholder="(917) 301-1987"
               :error="feedbackMobileError"
             />
-            <p v-if="!feedbackMobileError" class="text-xs text-muted-foreground">
-              Send SMS notification to this mobile number
-            </p>
           </div>
           
-          <!-- Webhook Notification -->
-          <div class="space-y-2">
-            <Label for="feedback-webhook">Webhook URL</Label>
+          <!-- Webhook -->
+          <div class="space-y-1.5">
+            <div class="flex items-baseline justify-between">
+              <Label for="feedback-webhook" class="text-sm">Webhook</Label>
+              <button 
+                v-if="!feedbackWebhook && (page.props as any).auth?.user?.webhook" 
+                class="text-xs text-primary/60 hover:text-primary transition-colors"
+                @click="feedbackWebhook = (page.props as any).auth.user.webhook"
+              >Use mine</button>
+            </div>
             <Input
               id="feedback-webhook"
               v-model="feedbackWebhook"
               type="url"
-              placeholder="https://your-server.com/webhook"
               :class="{ 'border-red-500': feedbackWebhookError }"
             />
-            <p v-if="feedbackWebhookError" class="text-xs text-red-600">
-              {{ feedbackWebhookError }}
-            </p>
-            <p v-else class="text-xs text-muted-foreground">
-              POST redemption data to this endpoint
-            </p>
-          </div>
-          
-          <!-- Info Box -->
-          <div v-if="feedbackEmail || feedbackMobile || feedbackWebhook" class="p-4 bg-muted/50 rounded-lg mt-6">
-            <p class="text-sm font-medium mb-1">Active Channels</p>
-            <ul class="text-xs text-muted-foreground space-y-1">
-              <li v-if="feedbackEmail" class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                Email: {{ feedbackEmail }}
-              </li>
-              <li v-if="feedbackMobile" class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                SMS: {{ feedbackMobile }}
-              </li>
-              <li v-if="feedbackWebhook" class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                Webhook: {{ feedbackWebhook.substring(0, 40) }}{{ feedbackWebhook.length > 40 ? '...' : '' }}
-              </li>
-            </ul>
-          </div>
-          
-          <!-- Empty State -->
-          <div v-else class="py-8 text-center">
-            <p class="text-sm text-muted-foreground">No notification channels configured</p>
-            <p class="text-xs text-muted-foreground mt-1">Enable at least one channel above</p>
+            <p v-if="feedbackWebhookError" class="text-xs text-red-600">{{ feedbackWebhookError }}</p>
           </div>
         </div>
         
         <SheetFooter class="mt-4">
-          <Button variant="outline" @click="sheetState.feedback.open = false" class="flex-1">
-            Cancel
+          <Button @click="sheetState.feedback.open = false" class="w-full" :disabled="hasFeedbackErrors">
+            Done
           </Button>
-          <Button @click="sheetState.feedback.open = false" class="flex-1" :disabled="hasFeedbackErrors">
-            Apply
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    
+    <!-- Code & Expiry Sheet -->
+    <Sheet v-model:open="sheetState.codeExpiry.open">
+      <SheetContent side="bottom" class="h-auto max-h-[80vh] flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Code & Expiry</SheetTitle>
+          <SheetDescription>
+            Customize voucher code format and expiration
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="flex-1 overflow-y-auto mt-4 px-1 space-y-5">
+          <!-- Prefix -->
+          <div class="space-y-2">
+            <Label for="code-prefix">Code Prefix</Label>
+            <Input
+              id="code-prefix"
+              v-model="prefix"
+              placeholder="e.g. PROMO"
+              maxlength="10"
+            />
+            <p class="text-xs text-muted-foreground">
+              Prepended to generated codes (1-10 characters)
+            </p>
+          </div>
+          
+          <!-- Mask -->
+          <div class="space-y-2">
+            <Label for="code-mask">Code Mask</Label>
+            <Input
+              id="code-mask"
+              v-model="mask"
+              class="font-mono"
+              :class="{ 'border-red-500': maskError }"
+            />
+            <p v-if="maskError" class="text-xs text-red-600">{{ maskError }}</p>
+            <p class="text-xs text-muted-foreground">
+              Use * for random characters, - as separator. Needs 4-8 asterisks.
+            </p>
+          </div>
+          
+          <!-- TTL -->
+          <div class="space-y-3">
+            <Label for="code-ttl">Expires After</Label>
+            <Input
+              id="code-ttl"
+              v-model.number="ttlDays"
+              type="number"
+              placeholder="No expiry"
+              min="1"
+            />
+            <p class="text-xs text-muted-foreground">
+              Days until voucher expires (leave empty for no expiry)
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <Button v-for="d in [7, 14, 30, 60, 90]" :key="d" variant="outline" size="sm"
+                :class="ttlDays === d && 'border-primary bg-primary/5'"
+                @click="ttlDays = ttlDays === d ? null : d"
+              >{{ d }}d</Button>
+            </div>
+          </div>
+          
+          <!-- Preview -->
+          <div v-if="hasCodeExpiry" class="p-3 bg-muted/50 rounded-lg space-y-1 text-xs text-muted-foreground">
+            <p class="font-medium text-foreground text-sm mb-1">Preview</p>
+            <p v-if="prefix">Prefix: <span class="font-mono">{{ prefix }}-</span></p>
+            <p v-if="mask">Pattern: <span class="font-mono">{{ prefix ? prefix + '-' : '' }}{{ mask }}</span></p>
+            <p v-if="ttlDays">Expires: {{ ttlDays }} days after generation</p>
+          </div>
+          
+          <!-- Clear -->
+          <Button
+            v-if="hasCodeExpiry"
+            variant="outline"
+            class="w-full"
+            @click="prefix = ''; mask = ''; ttlDays = null;"
+          >
+            Clear All
+          </Button>
+        </div>
+        
+        <SheetFooter class="mt-4">
+          <Button @click="sheetState.codeExpiry.open = false" class="w-full">
+            Done
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -2043,98 +2333,140 @@ watch(payeeType, (newType, oldType) => {
     
     <!-- Rider Sheet (Phase 8 - Advanced) -->
     <Sheet v-model:open="sheetState.rider.open">
-      <SheetContent side="bottom" class="h-[85vh] flex flex-col">
+      <SheetContent side="bottom" class="h-[85dvh] flex flex-col">
         <SheetHeader>
           <SheetTitle>Rider Configuration</SheetTitle>
           <SheetDescription>
-            Advanced settings for redemption experience
+            Customize the redemption experience
           </SheetDescription>
         </SheetHeader>
         
-        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-4">
-          <!-- Rider Message -->
+        <div class="flex-1 overflow-y-auto mt-6 px-1 space-y-5">
+          <!-- Customer Message -->
           <div class="space-y-2">
-            <Label for="rider-message">Custom Message</Label>
+            <div class="flex items-center gap-2">
+              <Label for="rider-message" class="flex-1">Customer Message</Label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                :class="ogMetaSource === 'message'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                @click="toggleOgSource('message')"
+              >OG</button>
+            </div>
             <Textarea
               id="rider-message"
               v-model="riderMessage"
-              placeholder="Thank you for redeeming!"
               rows="3"
             />
             <p class="text-xs text-muted-foreground">
-              Message displayed to redeemer during redemption
+              Shown to the redeemer after redemption
             </p>
           </div>
           
-          <!-- Rider URL -->
+          <!-- Custom URL -->
           <div class="space-y-2">
-            <Label for="rider-url">Custom URL</Label>
+            <div class="flex items-center gap-2">
+              <Label for="rider-url" class="flex-1">Custom URL</Label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                :class="ogMetaSource === 'url'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                @click="toggleOgSource('url')"
+              >OG</button>
+            </div>
             <Input
               id="rider-url"
               v-model="riderUrl"
               type="url"
-              placeholder="https://your-website.com"
             />
             <p class="text-xs text-muted-foreground">
-              Optional URL to redirect after redemption
+              Redirect destination after redemption
             </p>
           </div>
           
           <!-- Redirect Timeout -->
           <div class="space-y-2">
-            <Label for="rider-redirect-timeout">Redirect Timeout (seconds)</Label>
-            <Input
-              id="rider-redirect-timeout"
-              v-model.number="riderRedirectTimeout"
-              type="number"
-              placeholder="5"
-              min="0"
-              max="60"
-            />
+            <Label for="rider-redirect-timeout">Redirect Delay</Label>
+            <div class="flex items-center gap-2">
+              <Input
+                id="rider-redirect-timeout"
+                v-model.number="riderRedirectTimeout"
+                type="number"
+                min="0"
+                max="60"
+                class="flex-1"
+              />
+              <span class="text-xs text-muted-foreground whitespace-nowrap">seconds</span>
+            </div>
             <p class="text-xs text-muted-foreground">
-              Delay before redirecting to custom URL (0 = immediate)
+              Wait before redirecting (0 = immediate)
             </p>
           </div>
           
           <!-- Splash Text -->
           <div class="space-y-2">
-            <Label for="rider-splash">Splash Text</Label>
+            <div class="flex items-center gap-2">
+              <Label for="rider-splash" class="flex-1">Splash Text</Label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-150"
+                :class="ogMetaSource === 'splash'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80'"
+                @click="toggleOgSource('splash')"
+              >OG</button>
+            </div>
             <Textarea
               id="rider-splash"
               v-model="riderSplash"
-              placeholder="Success! Redirecting..."
               rows="2"
             />
             <p class="text-xs text-muted-foreground">
-              Text shown during redirect countdown
+              Content shown during redirect countdown (supports HTML, Markdown, SVG)
             </p>
           </div>
           
-          <!-- Splash Timeout -->
+          <!-- Splash Duration -->
           <div class="space-y-2">
-            <Label for="rider-splash-timeout">Splash Duration (seconds)</Label>
-            <Input
-              id="rider-splash-timeout"
-              v-model.number="riderSplashTimeout"
-              type="number"
-              placeholder="3"
-              min="0"
-              max="30"
-            />
+            <Label for="rider-splash-timeout">Splash Duration</Label>
+            <div class="flex items-center gap-2">
+              <Input
+                id="rider-splash-timeout"
+                v-model.number="riderSplashTimeout"
+                type="number"
+                min="0"
+                max="30"
+                class="flex-1"
+              />
+              <span class="text-xs text-muted-foreground whitespace-nowrap">seconds</span>
+            </div>
             <p class="text-xs text-muted-foreground">
-              How long to show splash text before redirect
+              How long splash is visible before redirect
             </p>
+          </div>
+          
+          <!-- OG Meta hint -->
+          <div v-if="ogMetaSource" class="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <span class="text-xs leading-relaxed text-primary/80">
+              <span class="font-medium">OG Override:</span>
+              The <span class="font-medium">{{ ogMetaSource }}</span> field will be used as the link preview title when this voucher is shared.
+            </span>
           </div>
           
           <!-- Preview -->
-          <div v-if="riderMessage || riderUrl || riderSplash" class="p-4 bg-muted/50 rounded-lg">
+          <div v-if="riderMessage || riderUrl || riderSplash" class="p-3 bg-muted/50 rounded-lg">
             <p class="text-sm font-medium mb-2">Preview</p>
-            <div class="space-y-2 text-xs text-muted-foreground">
+            <div class="space-y-1.5 text-xs text-muted-foreground">
               <p v-if="riderMessage">Message: "{{ riderMessage }}"</p>
-              <p v-if="riderUrl">Redirect to: {{ riderUrl }}</p>
-              <p v-if="riderRedirectTimeout !== null">Wait {{ riderRedirectTimeout }}s before redirect</p>
-              <p v-if="riderSplash">Show splash: "{{ riderSplash }}"</p>
+              <p v-if="riderUrl">Redirect: {{ riderUrl }}</p>
+              <p v-if="riderRedirectTimeout !== null">Delay: {{ riderRedirectTimeout }}s</p>
+              <p v-if="riderSplash">Splash: "{{ riderSplash.length > 60 ? riderSplash.substring(0, 60) + '…' : riderSplash }}"</p>
               <p v-if="riderSplashTimeout !== null">Splash duration: {{ riderSplashTimeout }}s</p>
+              <p v-if="ogMetaSource" class="text-primary/70 font-medium">OG source: {{ ogMetaSource }}</p>
             </div>
           </div>
           
@@ -2143,7 +2475,7 @@ watch(payeeType, (newType, oldType) => {
             variant="outline"
             class="w-full"
             @click="clearRider"
-            v-if="riderMessage || riderUrl || riderSplash"
+            v-if="riderMessage || riderUrl || riderSplash || ogMetaSource"
           >
             Clear All
           </Button>
@@ -2435,6 +2767,28 @@ watch(payeeType, (newType, oldType) => {
       :allow-decimal="false"
       title="Number of Vouchers"
       @confirm="confirmCount"
+    />
+    
+    <NumericKeypad
+      v-model:open="showTargetAmountKeypad"
+      :model-value="targetAmount"
+      mode="amount"
+      :min="1"
+      :allow-decimal="true"
+      title="Enter Target Amount"
+      @confirm="confirmTargetAmount"
+    />
+    
+    <NumericKeypad
+      v-model:open="showInterestRateKeypad"
+      :model-value="interestRate"
+      mode="amount"
+      :min="0"
+      :max="100"
+      :allow-decimal="true"
+      :hide-currency="true"
+      title="Interest Rate (%)"
+      @confirm="confirmInterestRate"
     />
   </PwaLayout>
 </template>

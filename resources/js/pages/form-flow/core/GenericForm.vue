@@ -381,16 +381,15 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 autofocus
                             />
                             
-                            <!-- Hero phone input with larger styling -->
+                            <!-- Hero phone input -->
                             <PhoneInput
                                 v-else-if="field.type === 'tel'"
                                 v-model="formData[field.name]"
                                 :error="errors[field.name]"
-                                :placeholder="getFieldPlaceholder(field)"
+                                :placeholder="field.placeholder || ''"
                                 :required="field.required"
                                 :readonly="field.readonly"
                                 :disabled="field.disabled"
-                                :class="'ring-2 ring-primary/20 focus-within:ring-4 focus-within:ring-primary/30 transition-all [&_input]:font-bold [&_input]:text-lg [&_input]:tracking-widest [&_input]:text-center [&_input]:placeholder:text-center'"
                                 autofocus
                             />
                             
@@ -410,10 +409,6 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 {{ field.help_text }}
                             </p>
                             
-                            <!-- Error message -->
-                            <p v-if="errors[field.name]" class="text-sm text-destructive">
-                                {{ errors[field.name] }}
-                            </p>
                         </div>
                     </div>
 
@@ -473,16 +468,13 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                         <PhoneInput
                                             v-model="formData[field.name]"
                                             :error="errors[field.name]"
-                                            :placeholder="getFieldPlaceholder(field)"
+                                            :placeholder="field.placeholder || ''"
                                             :required="field.required"
                                             :readonly="field.readonly"
                                             :disabled="field.disabled"
                                         />
                                         <p v-if="field.help_text" class="text-xs text-muted-foreground">
                                             {{ field.help_text }}
-                                        </p>
-                                        <p v-if="errors[field.name]" class="text-sm text-destructive">
-                                            {{ errors[field.name] }}
                                         </p>
                                     </template>
 
@@ -583,14 +575,11 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                             <PhoneInput
                                 v-model="formData[field.name]"
                                 :error="errors[field.name]"
-                                :placeholder="getFieldPlaceholder(field)"
+                                :placeholder="field.placeholder || ''"
                                 :required="field.required"
                                 :readonly="field.readonly"
                                 :disabled="field.disabled"
                             />
-                            <p v-if="errors[field.name]" class="text-sm text-destructive">
-                                {{ errors[field.name] }}
-                            </p>
                         </div>
 
                         <!-- Textarea -->

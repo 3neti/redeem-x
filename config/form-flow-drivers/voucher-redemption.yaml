@@ -122,7 +122,6 @@ steps:
       - name: "mobile"
         type: "tel"                                        # Phone number input
         label: "Mobile Number"
-        placeholder: "09181234567"                        # Philippine format
         required: true
         emphasis: "hero"                                   # Large, prominent display
         help_text: "Enter your mobile number to receive the cash"
@@ -141,7 +140,6 @@ steps:
       - name: "account_number"
         type: "text"
         label: "Account Number"
-        placeholder: "09181234567"                        # For INSTAPAY = mobile
         required: true
         group: "endorsement"                               # Groups with bank_code
   

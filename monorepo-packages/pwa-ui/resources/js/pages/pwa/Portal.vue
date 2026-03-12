@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import { useToast } from '@/components/ui/toast/use-toast';
 import PwaLayout from '@/layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,23 @@ const props = withDefaults(defineProps<Props>(), {
     skinConfig: null,
     campaignData: null,
 });
+
+const { toast } = useToast();
+const page = usePage();
+const appVersion = computed(() => (page.props as Record<string, unknown>).app_version as string | undefined);
+const copied = ref(false);
+
+const copyVersion = async () => {
+    if (!appVersion.value) return;
+    try {
+        await navigator.clipboard.writeText(appVersion.value);
+        copied.value = true;
+        toast({ title: 'Copied', description: `Version ${appVersion.value} copied to clipboard` });
+        setTimeout(() => (copied.value = false), 2000);
+    } catch {
+        // clipboard not available (e.g. non-HTTPS)
+    }
+};
 
 // ============================================================================
 // KIOSK SKIN DETECTION
@@ -156,7 +174,15 @@ const kioskConfig = computed(() => {
             <div class="flex items-center justify-between px-4 py-3">
                 <div>
                     <h1 class="text-lg font-semibold">Redeem-X</h1>
-                    <p class="text-xs text-muted-foreground">Mobile Voucher Platform</p>
+                    <p
+                        v-if="appVersion && appVersion !== 'dev'"
+                        class="text-xs text-muted-foreground/50 font-mono cursor-pointer select-none"
+                        title="Tap to copy version"
+                        @click="copyVersion"
+                    >
+                        v. {{ appVersion }}
+                    </p>
+                    <p v-else class="text-xs text-muted-foreground">Mobile Voucher Platform</p>
                 </div>
             </div>
         </header>
