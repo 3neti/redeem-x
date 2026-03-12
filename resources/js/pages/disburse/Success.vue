@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, ExternalLink } from 'lucide-vue-next';
 import { marked } from 'marked';
@@ -39,14 +38,13 @@ const countdown = ref(0);
 const isRedirecting = ref(false);
 
 const hasRiderUrl = computed(() => !!props.rider?.url);
-
 const hasCustomContent = computed(() => !!props.rider?.processed_content);
 
 const renderedContent = computed(() => {
     if (!hasCustomContent.value) return null;
-    
+
     const { type, content } = props.rider!.processed_content!;
-    
+
     switch (type) {
         case 'markdown':
             return DOMPurify.sanitize(marked.parse(content) as string);
@@ -65,21 +63,15 @@ const displayMessage = computed(() => {
     return props.rider?.message || 'The funds will be disbursed to your account shortly. You will receive a confirmation via SMS and email.';
 });
 
-const countdownMessage = computed(() => {
-    return `You will be redirected in ${countdown.value} second${countdown.value !== 1 ? 's' : ''}...`;
-});
-
 const handleRedirect = () => {
     if (!hasRiderUrl.value) return;
     isRedirecting.value = true;
-    // Use window.location for full page navigation - allows inertia()->location() to work
     window.location.href = `/disburse/${props.voucher.code}/redirect`;
 };
 
 onMounted(() => {
-    // Start countdown if rider URL exists
     if (hasRiderUrl.value && props.rider?.url) {
-        const timeout = (props.redirect_timeout ?? 10) * 1000; // Convert to milliseconds
+        const timeout = (props.redirect_timeout ?? 10) * 1000;
         countdown.value = Math.ceil(timeout / 1000);
 
         const interval = setInterval(() => {
@@ -95,75 +87,73 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-        <Head title="Redemption Successful" />
-        <div class="w-full max-w-md">
-            <Card>
-                <CardHeader class="text-center">
-                    <div class="flex justify-center mb-4">
-                        <CheckCircle2 class="h-16 w-16 text-green-600" />
-                    </div>
-                    <CardTitle class="text-2xl">Redemption Successful!</CardTitle>
-                    <CardDescription>
-                        Your voucher has been redeemed successfully
-                    </CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="border rounded-lg p-4 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-muted-foreground">Voucher Code:</span>
-                            <span class="font-mono font-semibold">{{ voucher.code }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-muted-foreground">Amount:</span>
-                            <span class="text-lg font-semibold text-green-600">{{ voucher.formatted_amount }}</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Message section -->
-                    <div v-if="hasCustomContent">
-                        <div 
-                            v-html="renderedContent"
-                            class="prose prose-sm max-w-none dark:prose-invert text-center"
-                        />
-                    </div>
-                    <p v-else class="text-sm text-muted-foreground text-center">
-                        {{ displayMessage }}
-                    </p>
-                    
-                    <!-- Redirect Section (with countdown) -->
-                    <div v-if="hasRiderUrl && !isRedirecting" class="space-y-3 pt-2">
-                        <div class="text-center">
-                            <p class="text-xs text-muted-foreground">
-                                {{ countdownMessage }}
-                            </p>
-                        </div>
-                        <Button 
-                            class="w-full" 
-                            @click="handleRedirect">
-                            {{ config?.button_labels?.continue || 'Continue Now' }}
-                            <ExternalLink :size="16" class="ml-2" />
-                        </Button>
-                    </div>
+    <Head title="Redemption Successful" />
 
-                    <!-- Redirecting State -->
-                    <div v-else-if="hasRiderUrl && isRedirecting" class="text-center pt-2">
-                        <p class="text-sm text-muted-foreground">
-                            Redirecting...
-                        </p>
-                    </div>
+    <div class="min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8">
+        <div class="mx-auto max-w-md space-y-8">
 
-                    <!-- Default Actions (no rider URL) -->
-                    <div v-else class="flex gap-3">
-                        <Button variant="outline" class="flex-1" @click="router.visit('/')">
-                            {{ config?.button_labels?.dashboard || 'Go to Dashboard' }}
-                        </Button>
-                        <Button class="flex-1" @click="router.visit('/disburse')">
-                            {{ config?.button_labels?.redeem_another || 'Redeem Another' }}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+            <!-- Hero: success + amount + voucher code -->
+            <div class="text-center pt-4 space-y-3">
+                <CheckCircle2 class="h-8 w-8 text-green-500 mx-auto" />
+                <p class="text-4xl font-bold tracking-tight text-foreground">
+                    {{ voucher.formatted_amount }}
+                </p>
+                <div class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
+                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                    {{ voucher.code }}
+                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                </div>
+            </div>
+
+            <!-- Rider content (markdown/HTML/SVG/URL/text) -->
+            <div v-if="hasCustomContent" class="overflow-visible">
+                <div
+                    v-html="renderedContent"
+                    class="prose prose-sm max-w-none dark:prose-invert text-center overflow-visible"
+                />
+            </div>
+            <p v-else class="text-sm text-muted-foreground text-center">
+                {{ displayMessage }}
+            </p>
+
+            <!-- Redirect with countdown -->
+            <div v-if="hasRiderUrl && !isRedirecting" class="space-y-3">
+                <Button
+                    @click="handleRedirect"
+                    size="lg"
+                    class="w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10"
+                >
+                    {{ config?.button_labels?.continue || 'Continue Now' }}
+                    <ExternalLink :size="14" class="ml-1.5" />
+                </Button>
+                <p class="text-center text-[11px] text-gray-400 dark:text-gray-600">
+                    Redirecting in {{ countdown }}s
+                </p>
+            </div>
+
+            <!-- Redirecting -->
+            <p v-else-if="hasRiderUrl && isRedirecting" class="text-center text-sm text-muted-foreground">
+                Redirecting…
+            </p>
+
+            <!-- Default actions (no rider URL) -->
+            <div v-else class="space-y-3">
+                <Button
+                    size="lg"
+                    class="w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10"
+                    @click="router.visit('/disburse')"
+                >
+                    {{ config?.button_labels?.redeem_another || 'Redeem Another' }}
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="lg"
+                    class="w-full rounded-full"
+                    @click="router.visit('/')"
+                >
+                    {{ config?.button_labels?.dashboard || 'Go to Dashboard' }}
+                </Button>
+            </div>
         </div>
     </div>
 </template>
