@@ -26,7 +26,7 @@ const isProcessing = ref(false);
 const showError = ref(false);
 const errorMessage = ref('');
 const elapsedTime = ref(0);
-const expectedDuration = 15; // Expected duration in seconds (matches timeout)
+const expectedDuration = 15;
 let timerInterval: number | null = null;
 let redirectTimeout: number | null = null;
 
@@ -37,7 +37,6 @@ const isDisburseFlow = computed(() => props.state.reference_id.startsWith('disbu
 const voucherCode = computed(() => {
     if (!isDisburseFlow.value) return null;
     const parts = props.state.reference_id.split('-');
-    // Remove 'disburse' prefix and timestamp suffix
     return parts.slice(1, -1).join('-');
 });
 
@@ -82,36 +81,30 @@ function stopTimer() {
 
 function handleClose() {
     if (isDisburseFlow.value && voucherCode.value) {
-        // Show processing state
         isProcessing.value = true;
         showError.value = false;
         errorMessage.value = '';
         startTimer();
         
-        // POST to redeem endpoint with flow_id and reference_id
         router.post(`/disburse/${voucherCode.value}/redeem`, {
             flow_id: props.flow_id,
             reference_id: props.state.reference_id,
         }, {
             onError: (errors) => {
-                // Stop timer and show error
                 stopTimer();
                 showError.value = true;
                 errorMessage.value = errors.code || errors.error || 'An error occurred during processing';
                 
-                // Wait 3 seconds before allowing redirect
                 redirectTimeout = window.setTimeout(() => {
                     isProcessing.value = false;
                 }, 3000);
             },
             onSuccess: () => {
-                // Success - stop timer and allow immediate redirect
                 stopTimer();
                 isProcessing.value = false;
             },
         });
     } else {
-        // Redirect back to demo or close window
         window.location.href = '/form-flow-demo.html';
     }
 }
@@ -125,48 +118,134 @@ onUnmounted(() => {
 });
 
 // Data summary transformation
-const { flattenCollectedData, groupDataBySection } = useFormFlowSummary();
-const dataSections = computed(() => {
-    const flattened = flattenCollectedData(props.state.collected_data);
-    return groupDataBySection(flattened);
-});
+const { flattenCollectedData, extractHeroData, groupDataBySection } = useFormFlowSummary();
+
+const flatData = computed(() => flattenCollectedData(props.state.collected_data));
+const heroData = computed(() => extractHeroData(flatData.value));
+const dataSections = computed(() => groupDataBySection(flatData.value));
 </script>
 
 <template>
     <Head title="Flow Complete" />
 
-    <div class="container mx-auto max-w-2xl px-4 py-8">
+    <!-- ============================================================ -->
+    <!-- Disburse Flow: clean, branded layout                         -->
+    <!-- ============================================================ -->
+    <template v-if="isDisburseFlow">
+
+        <!-- Processing State -->
+        <div v-if="isProcessing" class="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-6">
+            <!-- Error -->
+            <div v-if="showError" class="w-full max-w-sm text-center space-y-6">
+                <AlertCircle class="h-12 w-12 text-destructive mx-auto" />
+                <p class="text-lg font-medium">Processing Failed</p>
+                <Alert variant="destructive">
+                    <AlertCircle class="h-4 w-4" />
+                    <AlertDescription>{{ errorMessage }}</AlertDescription>
+                </Alert>
+                <p class="text-xs text-muted-foreground">Redirecting in 3 seconds…</p>
+            </div>
+
+            <!-- Active Processing -->
+            <div v-else class="w-full max-w-sm text-center space-y-6">
+                <div class="relative mx-auto w-fit">
+                    <Spinner class="h-14 w-14 text-amber-500" />
+                    <Clock class="h-5 w-5 text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <p class="text-lg font-medium">Processing Redemption</p>
+                <p class="text-sm text-muted-foreground">{{ statusMessage }}</p>
+                <div class="space-y-1">
+                    <div class="h-1 bg-gray-200/60 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                            class="h-full rounded-full bg-amber-400/70 dark:bg-amber-500/50 transition-all duration-1000 ease-linear"
+                            :style="{ width: `${progress}%` }"
+                        />
+                    </div>
+                    <p class="text-[11px] text-muted-foreground font-mono">{{ formattedTime }}</p>
+                </div>
+                <p v-if="elapsedTime >= expectedDuration" class="text-xs text-muted-foreground">
+                    The bank is taking longer than usual. Please keep waiting.
+                </p>
+            </div>
+        </div>
+
+        <!-- Completed / Review State -->
+        <div v-else class="min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8">
+            <div class="mx-auto max-w-md space-y-8">
+
+                <!-- Hero: amount + voucher code -->
+                <div class="text-center pt-4 space-y-3">
+                    <CheckCircle2 class="h-8 w-8 text-green-500 mx-auto" />
+                    <p v-if="heroData.amount" class="text-4xl font-bold tracking-tight text-foreground">
+                        {{ heroData.amount }}
+                    </p>
+                    <div v-if="voucherCode" class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
+                        <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                        {{ voucherCode }}
+                        <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                    </div>
+                    <p v-if="heroData.bankName" class="text-sm text-muted-foreground">
+                        {{ heroData.bankName }}<template v-if="heroData.settlementRail"> &middot; {{ heroData.settlementRail }}</template>
+                    </p>
+                </div>
+
+                <!-- Compact summary sections -->
+                <div class="space-y-5">
+                    <div v-for="section in dataSections" :key="section.title">
+                        <p class="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-2">{{ section.title }}</p>
+                        <div class="space-y-1.5">
+                            <div v-for="field in section.fields" :key="field.key" class="flex justify-between items-baseline gap-4">
+                                <span class="text-sm text-muted-foreground shrink-0">{{ field.label }}</span>
+                                <span class="text-sm font-medium text-foreground text-right truncate">{{ field.value }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirm button -->
+                <Button
+                    @click="handleClose"
+                    :disabled="isProcessing"
+                    size="lg"
+                    class="w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10"
+                >
+                    Confirm Redemption
+                </Button>
+
+                <!-- Reference ID: subtle footer -->
+                <p class="text-center text-[10px] text-gray-300 dark:text-gray-700 font-mono">
+                    {{ state.reference_id }}
+                </p>
+            </div>
+        </div>
+    </template>
+
+    <!-- ============================================================ -->
+    <!-- Non-disburse: existing Card layout                           -->
+    <!-- ============================================================ -->
+    <div v-else class="container mx-auto max-w-2xl px-4 py-8">
         <Card>
             <!-- Processing State -->
             <template v-if="isProcessing">
-                <!-- Error State (during 3-second delay) -->
                 <template v-if="showError">
                     <CardHeader class="text-center">
                         <div class="flex justify-center mb-4">
                             <AlertCircle class="h-16 w-16 text-destructive" />
                         </div>
                         <CardTitle class="text-2xl">Processing Failed</CardTitle>
-                        <CardDescription>
-                            Redirecting back in 3 seconds...
-                        </CardDescription>
+                        <CardDescription>Redirecting back in 3 seconds…</CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-6">
-                        <!-- Error Message -->
                         <Alert variant="destructive">
                             <AlertCircle class="h-4 w-4" />
-                            <AlertDescription>
-                                {{ errorMessage }}
-                            </AlertDescription>
+                            <AlertDescription>{{ errorMessage }}</AlertDescription>
                         </Alert>
-                        
-                        <!-- Final time display -->
                         <div class="text-center text-sm text-muted-foreground">
                             Processing took {{ formattedTime }}
                         </div>
                     </CardContent>
                 </template>
-                
-                <!-- Active Processing State -->
+
                 <template v-else>
                     <CardHeader class="text-center">
                         <div class="flex justify-center mb-4">
@@ -176,33 +255,24 @@ const dataSections = computed(() => {
                             </div>
                         </div>
                         <CardTitle class="text-2xl">Processing Redemption</CardTitle>
-                        <CardDescription>
-                            Please wait while we process your voucher...
-                        </CardDescription>
+                        <CardDescription>Please wait while we process your voucher…</CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-6">
-                        <!-- Status Message -->
                         <Alert>
-                            <AlertDescription class="text-center">
-                                {{ statusMessage }}
-                            </AlertDescription>
+                            <AlertDescription class="text-center">{{ statusMessage }}</AlertDescription>
                         </Alert>
-                    
-                    <!-- Progress Bar -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm text-muted-foreground">
-                            <span>Elapsed time</span>
-                            <span class="font-mono">{{ formattedTime }}</span>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm text-muted-foreground">
+                                <span>Elapsed time</span>
+                                <span class="font-mono">{{ formattedTime }}</span>
+                            </div>
+                            <div class="h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                    class="h-full bg-primary transition-all duration-1000 ease-linear"
+                                    :style="{ width: `${progress}%` }"
+                                />
+                            </div>
                         </div>
-                        <div class="h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
-                                class="h-full bg-primary transition-all duration-1000 ease-linear"
-                                :style="{ width: `${progress}%` }"
-                            />
-                        </div>
-                    </div>
-                    
-                        <!-- Warning if taking too long -->
                         <Alert v-if="elapsedTime >= expectedDuration" variant="default">
                             <AlertCircle class="h-4 w-4" />
                             <AlertDescription>
@@ -212,33 +282,24 @@ const dataSections = computed(() => {
                     </CardContent>
                 </template>
             </template>
-            
+
             <!-- Completed State -->
             <template v-else>
                 <CardHeader class="text-center">
                     <div class="flex justify-center mb-4">
                         <CheckCircle2 class="h-16 w-16 text-green-500" />
                     </div>
-                    <CardTitle class="text-2xl">Form Flow Completed!</CardTitle>
-                    <CardDescription>
-                        Your submission has been received successfully.
-                    </CardDescription>
+                    <CardTitle class="text-2xl">Flow Completed</CardTitle>
+                    <CardDescription>Your submission has been received successfully.</CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-6">
-                    <!-- Data Summary -->
                     <div class="space-y-4">
-                        <h3 class="font-semibold mb-3">Summary</h3>
-                        
-                        <!-- Section Cards -->
                         <div v-for="section in dataSections" :key="section.title" class="border rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-3">
                                 <component :is="section.icon" class="h-5 w-5 text-muted-foreground" />
                                 <h4 class="font-medium">{{ section.title }}</h4>
                             </div>
-                            
                             <Separator class="mb-3" />
-                            
-                            <!-- Field Grid -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div v-for="field in section.fields" :key="field.key" class="space-y-1">
                                     <p class="text-sm text-muted-foreground">{{ field.label }}</p>
@@ -246,28 +307,20 @@ const dataSections = computed(() => {
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Debug Toggle -->
+
                         <details class="mt-4">
                             <summary class="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Raw Data</summary>
                             <pre class="text-xs mt-2 p-2 bg-muted rounded overflow-auto">{{ JSON.stringify(state.collected_data, null, 2) }}</pre>
                         </details>
                     </div>
 
-                    <!-- Reference ID (Beautified) -->
-                    <div class="border-2 border-primary/20 bg-primary/5 p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reference ID</p>
-                                <p class="text-base font-mono font-semibold text-foreground">{{ state.reference_id }}</p>
-                            </div>
-                        </div>
+                    <div class="text-center">
+                        <p class="text-[10px] text-muted-foreground font-mono">{{ state.reference_id }}</p>
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex justify-center pt-4">
                         <Button @click="handleClose" :disabled="isProcessing">
-                            {{ isDisburseFlow ? 'Confirm Redemption' : 'Back to Demo' }}
+                            Back to Demo
                         </Button>
                     </div>
                 </CardContent>

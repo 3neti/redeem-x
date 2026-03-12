@@ -45,6 +45,12 @@ const SETTLEMENT_RAIL_LABELS: Record<string, string> = {
     'PESONET': 'PESONet (Next Day)',
 }
 
+export interface HeroData {
+    amount: string | null
+    bankName: string | null
+    settlementRail: string | null
+}
+
 export function useFormFlowSummary() {
     function flattenCollectedData(collectedData: any[]): Record<string, any> {
         const flattened: Record<string, any> = {}
@@ -56,6 +62,18 @@ export function useFormFlowSummary() {
         })
         
         return flattened
+    }
+    
+    /**
+     * Extract hero-level fields for prominent display.
+     * Returns formatted amount, bank name, and settlement rail.
+     */
+    function extractHeroData(data: Record<string, any>): HeroData {
+        return {
+            amount: 'amount' in data ? formatFieldValue('amount', data.amount) : null,
+            bankName: 'bank_code' in data ? (BANK_NAMES[data.bank_code] || data.bank_code) : null,
+            settlementRail: 'settlement_rail' in data ? (SETTLEMENT_RAIL_LABELS[data.settlement_rail] || data.settlement_rail) : null,
+        }
     }
     
     function formatFieldValue(key: string, value: any): string {
@@ -218,6 +236,7 @@ export function useFormFlowSummary() {
     
     return {
         flattenCollectedData,
+        extractHeroData,
         formatFieldValue,
         getFieldLabel,
         groupDataBySection
