@@ -83,6 +83,13 @@ export function useFormFlowSummary() {
             case 'amount':
                 return `₱${Number(value).toFixed(2)}`
             
+            case 'mobile': {
+                const s = String(value)
+                // Format +639173011987 → +63 (917) 301-1987
+                const match = s.match(/^\+(\d{2})(\d{3})(\d{3})(\d{4})$/)
+                return match ? `+${match[1]} (${match[2]}) ${match[3]}-${match[4]}` : s
+            }
+            
             case 'bank_code':
                 return BANK_NAMES[value] || value
             

@@ -187,13 +187,7 @@ const riderHostname = computed(() => {
 
         <!-- Rider Message Card -->
         <Card v-if="instructions.rider && instructions.rider.message">
-            <CardHeader>
-                <div class="flex items-center gap-2">
-                    <FileText class="h-5 w-5 text-muted-foreground" />
-                    <CardTitle>Message</CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent>
+            <CardContent class="pt-6">
                 <p class="text-base font-medium text-gray-900 dark:text-gray-100">{{ instructions.rider.message }}</p>
                 <div v-if="instructions.rider.url && riderFaviconUrl" class="mt-4 flex justify-end">
                     <a 
@@ -215,10 +209,7 @@ const riderHostname = computed(() => {
 
         <!-- Validity Card -->
         <Card>
-            <CardHeader>
-                <CardTitle>Validity</CardTitle>
-            </CardHeader>
-            <CardContent class="space-y-3">
+            <CardContent class="pt-6 space-y-3">
                 <!-- Scheduled voucher -->
                 <div v-if="voucherStatus === 'scheduled' && formattedStartsAt" class="flex items-start gap-3">
                     <Calendar class="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
