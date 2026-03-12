@@ -1388,6 +1388,30 @@ Code currently in the host app that will be extracted to monorepo packages once 
 
 **Workflow:** Host app first → iterate → extract to package → vendor:publish support
 
+## Package Stub Sync (CRITICAL for AI Agents)
+
+**⚠️ `composer.json` `post-update-cmd` runs `vendor:publish --force` on EVERY `composer update`, overwriting host app files with package stubs. If stubs are out of date, your customizations get silently reverted.**
+
+**Two packages are affected:**
+
+1. **`3neti/form-flow`** (External Packagist, `^1.7.x`)
+   - Overwrites: `resources/js/pages/form-flow/core/GenericForm.vue`
+   - After editing GenericForm.vue: sync to `~/PhpstormProjects/packages/form-flow-manager/stubs/`, tag + push, then `composer update`
+   - YAML drivers (`config/form-flow-drivers/`) are host-app only — no sync needed
+   - **Full SOP:** `docs/guides/ai-development/FORM_FLOW_UI_UPDATE_SOP.md`
+
+2. **`3neti/pwa-ui`** (Monorepo `@dev`, symlinked)
+   - Overwrites: `resources/js/pages/pwa/`, `resources/js/layouts/`, `resources/js/components/pwa/`, `resources/js/composables/pwa/`
+   - After editing ANY of these files: sync back to `monorepo-packages/pwa-ui/resources/js/` in the same commit
+   - **Full SOP:** `docs/guides/ai-development/PWA_UI_STUB_SYNC_SOP.md`
+
+**Quick recovery if files were overwritten:**
+```bash
+git checkout HEAD -- resources/js/pages/pwa/ resources/js/layouts/PwaLayout.vue \
+    resources/js/components/pwa/PwaBottomNav.vue
+# Then sync restored files back to package stubs (see SOPs)
+```
+
 ## PWA Service Worker
 
 **CRITICAL: The service worker can cache stale assets and survive hard refreshes, incognito windows, and even clearing site data.**
