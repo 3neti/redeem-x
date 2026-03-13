@@ -174,7 +174,9 @@ function submit() {
             <Button 
                 ref="submitButton"
                 type="submit"
-                class="w-full"
+                :class="routePrefix === 'disburse'
+                    ? 'w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10'
+                    : 'w-full'"
                 :disabled="form.processing || !hasValidCode"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}

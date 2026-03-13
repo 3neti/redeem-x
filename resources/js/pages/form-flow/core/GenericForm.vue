@@ -226,6 +226,9 @@ const voucherCode = computed(() => {
     return match ? match[1] : null;
 });
 
+// Detect disburse flow from description ("Redeeming voucher CODE from ...")
+const isDisburseFlow = computed(() => !!voucherCode.value);
+
 // Field organization by UI metadata
 // Hide amount badge since we show it in progress flow
 const summaryFields = computed(() => 
@@ -258,10 +261,28 @@ const normalFields = computed(() =>
     )
 );
 
-// Auto-focus hero field on mount
+// Smart auto-focus: if hero field already has a value (from persist/default),
+// focus the first editable body field so the hero displays formatted (e.g. phone number)
 onMounted(() => {
     nextTick(() => {
         const heroField = heroFields.value[0];
+        const heroHasValue = heroField && formData.value[heroField.name];
+
+        if (heroHasValue) {
+            const bodyFields = [
+                ...Object.values(groupedFields.value).flat(),
+                ...normalFields.value,
+            ];
+            const firstInput = bodyFields.find(f =>
+                ['text', 'email', 'number', 'tel'].includes(f.type) && !f.readonly
+            );
+            if (firstInput) {
+                const el = document.getElementById(firstInput.name) as HTMLInputElement;
+                if (el) { el.focus(); return; }
+            }
+        }
+
+        // Default: focus hero field
         if (heroField) {
             const inputElement = document.getElementById(heroField.name) as HTMLInputElement;
             inputElement?.focus();
@@ -353,9 +374,12 @@ function getFieldPlaceholder(field: FieldDefinition): string {
 <template>
     <Head :title="pageTitle" />
 
-    <div class="container mx-auto max-w-2xl px-4 py-8">
+    <div :class="isDisburseFlow
+        ? 'min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8'
+        : 'container mx-auto max-w-2xl px-4 py-8'"
+    >
         <!-- Error Alert -->
-        <Alert v-if="apiError" variant="destructive" class="mb-6">
+        <Alert v-if="apiError" variant="destructive" class="mb-6" :class="isDisburseFlow ? 'mx-auto max-w-md' : ''">
             <AlertCircle class="h-4 w-4" />
             <AlertDescription>
                 {{ apiError }}
@@ -363,7 +387,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
         </Alert>
 
         <!-- Form Card -->
-        <Card>
+        <Card :class="isDisburseFlow ? 'mx-auto max-w-md border-0 shadow-sm bg-white/80 dark:bg-gray-900/80' : ''">
             <CardHeader>
                 <CardTitle>{{ title }}</CardTitle>
             </CardHeader>
@@ -454,11 +478,11 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                     <div v-if="(heroFields.length > 0) && (Object.keys(groupedFields).length > 0 || normalFields.length > 0)" class="relative my-8">
                         <Separator />
                         <div v-if="voucherCode" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
-                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-bold font-mono tracking-wider">
-                                <span class="text-muted-foreground/50" aria-hidden="true">||</span>
-                                <span class="mx-1">{{ voucherCode }}</span>
-                                <span class="text-muted-foreground/50" aria-hidden="true">||</span>
-                            </Badge>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
+                                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                                {{ voucherCode }}
+                                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                            </span>
                         </div>
                     </div>
 
@@ -772,6 +796,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                             type="button"
                             variant="outline"
                             class="flex-1"
+                            :class="isDisburseFlow ? 'rounded-full' : ''"
                             @click="handleCancel"
                             :disabled="submitting"
                         >
@@ -779,7 +804,9 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         </Button>
                         <Button
                             type="submit"
-                            class="flex-1"
+                            :class="isDisburseFlow
+                                ? 'flex-1 rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10'
+                                : 'flex-1'"
                             :disabled="submitting"
                         >
                             <Loader2 v-if="submitting" class="h-4 w-4 animate-spin mr-2" />
