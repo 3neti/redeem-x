@@ -39,6 +39,7 @@ const isRedirecting = ref(false);
 
 const hasRiderUrl = computed(() => !!props.rider?.url);
 const hasCustomContent = computed(() => !!props.rider?.processed_content);
+const hasNonZeroAmount = computed(() => (props.voucher.amount ?? 0) > 0);
 
 const renderedContent = computed(() => {
     if (!hasCustomContent.value) return null;
@@ -64,9 +65,12 @@ const displayMessage = computed(() => {
 });
 
 const handleRedirect = () => {
-    if (!hasRiderUrl.value) return;
+    if (!hasRiderUrl.value || !props.rider?.url) return;
     isRedirecting.value = true;
-    window.location.href = `/disburse/${props.voucher.code}/redirect`;
+
+    // Navigate directly to the external URL.  Cross-origin URLs bypass the
+    // service worker, so this works reliably in both local and production.
+    window.location.href = props.rider.url;
 };
 
 onMounted(() => {
@@ -92,29 +96,33 @@ onMounted(() => {
     <div class="min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8">
         <div class="mx-auto max-w-md space-y-8">
 
-            <!-- Hero: success + amount + voucher code -->
-            <div class="text-center pt-4 space-y-3">
+            <!-- Hero: rider message is the star, amount + code are supporting -->
+            <div class="text-center pt-4 space-y-4">
                 <CheckCircle2 class="h-8 w-8 text-green-500 mx-auto" />
-                <p class="text-4xl font-bold tracking-tight text-foreground">
+
+                <!-- Rider content (prominent) -->
+                <div v-if="hasCustomContent" class="overflow-visible">
+                    <div
+                        v-html="renderedContent"
+                        class="prose prose-lg max-w-none dark:prose-invert text-center overflow-visible font-semibold"
+                    />
+                </div>
+                <p v-else class="text-lg font-medium text-foreground text-center">
+                    {{ displayMessage }}
+                </p>
+
+                <!-- Amount (only when non-zero) -->
+                <p v-if="hasNonZeroAmount" class="text-2xl font-bold tracking-tight text-foreground">
                     {{ voucher.formatted_amount }}
                 </p>
+
+                <!-- Voucher code badge -->
                 <div class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
                     <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
                     {{ voucher.code }}
                     <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
                 </div>
             </div>
-
-            <!-- Rider content (markdown/HTML/SVG/URL/text) -->
-            <div v-if="hasCustomContent" class="overflow-visible">
-                <div
-                    v-html="renderedContent"
-                    class="prose prose-sm max-w-none dark:prose-invert text-center overflow-visible"
-                />
-            </div>
-            <p v-else class="text-sm text-muted-foreground text-center">
-                {{ displayMessage }}
-            </p>
 
             <!-- Redirect with countdown -->
             <div v-if="hasRiderUrl && !isRedirecting" class="space-y-3">

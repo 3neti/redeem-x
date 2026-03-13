@@ -33,7 +33,13 @@ const props = withDefaults(defineProps<Props>(), {
     copyright_text: undefined,
 });
 
-const remainingSeconds = ref(props.timeout);
+// Coerce timeout to number (env values may arrive as strings)
+const timeoutSeconds = computed(() => {
+    const val = Number(props.timeout);
+    return isNaN(val) ? 5 : val;
+});
+
+const remainingSeconds = ref(timeoutSeconds.value);
 const submitting = ref(false);
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -89,13 +95,13 @@ const renderedContent = computed(() => {
 
 // Progress percentage (0-100)
 const progressPercentage = computed(() => {
-    if (props.timeout === 0) return 0;
-    return ((props.timeout - remainingSeconds.value) / props.timeout) * 100;
+    if (timeoutSeconds.value === 0) return 0;
+    return ((timeoutSeconds.value - remainingSeconds.value) / timeoutSeconds.value) * 100;
 });
 
 // Start countdown
 onMounted(() => {
-    if (props.timeout > 0) {
+    if (timeoutSeconds.value > 0) {
         intervalId = setInterval(() => {
             remainingSeconds.value -= 1;
             
@@ -189,7 +195,7 @@ async function handleContinue() {
                 <span v-else>{{ button_label }}</span>
             </Button>
 
-            <div v-if="timeout > 0" class="space-y-1">
+            <div v-if="timeoutSeconds > 0" class="space-y-1">
                 <div class="w-full bg-gray-200/60 dark:bg-gray-800 rounded-full h-1 overflow-hidden">
                     <div
                         class="h-full rounded-full bg-amber-400/70 dark:bg-amber-500/50 transition-all duration-1000 ease-linear"
@@ -240,7 +246,7 @@ async function handleContinue() {
                 </div>
 
                 <!-- Countdown progress -->
-                <div v-if="timeout > 0" class="space-y-2">
+                <div v-if="timeoutSeconds > 0" class="space-y-2">
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                         <div
                             class="bg-primary h-full transition-all duration-1000 ease-linear"

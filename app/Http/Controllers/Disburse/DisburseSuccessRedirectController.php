@@ -37,13 +37,29 @@ class DisburseSuccessRedirectController extends Controller
         $redirectUrl = $voucher->instructions->rider->url ?? null;
 
         if ($redirectUrl) {
-            Log::info("[DisburseSuccessRedirectController] Redirecting to rider URL: {$redirectUrl}");
+            // Only redirect to http(s) URLs — intent:// and other app-specific
+            // schemes fail silently on desktop browsers.
+            if (preg_match('#^https?://#i', $redirectUrl)) {
+                Log::info("[DisburseSuccessRedirectController] Redirecting to rider URL: {$redirectUrl}");
 
-            return inertia()->location($redirectUrl);
+                return inertia()->location($redirectUrl);
+            }
+
+            // Try to extract browser_fallback_url from Android intent:// URIs
+            if (str_starts_with($redirectUrl, 'intent://')) {
+                if (preg_match('/S\.browser_fallback_url=([^;]+)/', $redirectUrl, $m)) {
+                    $fallback = urldecode($m[1]);
+                    Log::info("[DisburseSuccessRedirectController] Extracted intent fallback URL: {$fallback}");
+
+                    return inertia()->location($fallback);
+                }
+            }
+
+            Log::warning("[DisburseSuccessRedirectController] Unsupported URL scheme, skipping redirect: {$redirectUrl}");
         }
 
         $fallbackUrl = config('disburse.success.redirect.fallback_url', '/disburse');
-        Log::warning("[DisburseSuccessRedirectController] No rider URL found; redirecting to fallback: {$fallbackUrl}");
+        Log::warning("[DisburseSuccessRedirectController] No usable rider URL; redirecting to fallback: {$fallbackUrl}");
 
         return inertia()->location($fallbackUrl);
     }

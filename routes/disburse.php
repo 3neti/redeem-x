@@ -43,5 +43,6 @@ Route::prefix('disburse')->name('disburse.')->group(function () {
     Route::get('/{voucher:code}/success', [DisburseController::class, 'success'])->name('success');
 
     // Redirect to external URL (rider URL)
-    Route::get('/{code}/redirect', DisburseSuccessRedirectController::class)->name('redirect');
+    // GET: legacy browser redirect  |  POST: fire-and-forget beacon from Success.vue
+    Route::match(['get', 'post'], '/{code}/redirect', DisburseSuccessRedirectController::class)->name('redirect');
 });

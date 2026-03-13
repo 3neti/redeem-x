@@ -36,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // CSRF exemptions for server-to-server callbacks
         $middleware->validateCsrfTokens(except: [
             'disburse/*/complete',  // Form flow completion callback
+            'disburse/*/redirect',  // Fire-and-forget beacon from Success page
             'api/bot/selfie-upload',  // Telegram Mini App selfie upload
             'api/bot/signature-upload',  // Telegram Mini App signature upload
         ]);
