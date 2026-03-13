@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/InputError.vue';
 import VoucherInstructionsDisplay from '@/components/voucher/VoucherInstructionsDisplay.vue';
 import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
-import { AlertCircle } from 'lucide-vue-next';
+import { AlertCircle, Palette } from 'lucide-vue-next';
 import { useVoucherPreview } from '@/composables/useVoucherPreview';
+import { useTheme } from '@/composables/useTheme';
 import { wallet, start } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
 
 interface Props {
@@ -34,6 +36,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const { currentTheme, setTheme, availableThemes } = useTheme();
 const page = usePage();
 const appName = (page.props.name as string) || 'Redeem-X';
 const errors = computed(() => page.props.errors as Record<string, string>);
@@ -171,20 +174,10 @@ function submit() {
             </div>
 
             <!-- Submit Button -->
-            <button
-                v-if="routePrefix === 'disburse'"
-                ref="submitButton"
-                type="submit"
-                :disabled="form.processing || !hasValidCode"
-                class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
-            >
-                {{ form.processing ? config.buttonProcessingText : config.buttonText }}
-            </button>
             <Button
-                v-else
                 ref="submitButton"
                 type="submit"
-                class="w-full"
+                :class="routePrefix === 'disburse' ? 'w-full rounded-full' : 'w-full'"
                 :disabled="form.processing || !hasValidCode"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}
@@ -243,11 +236,48 @@ function submit() {
                         </Alert>
                     </TabsContent>
                     
-                    <TabsContent value="system-info" class="mt-4">
+                    <TabsContent value="system-info" class="mt-4 space-y-4">
                         <VoucherMetadataDisplay 
                             :metadata="voucherData.metadata"
                             :show-all-fields="true"
                         />
+
+                        <!-- Theme Picker -->
+                        <Card v-if="routePrefix === 'disburse'">
+                            <CardHeader class="pb-3">
+                                <div class="flex items-center gap-2">
+                                    <Palette class="h-4 w-4 text-primary" />
+                                    <CardTitle class="text-sm">Theme</CardTitle>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button
+                                        v-for="theme in availableThemes"
+                                        :key="theme.id"
+                                        @click="setTheme(theme.id)"
+                                        :class="[
+                                            'relative rounded-lg border-2 p-2 text-left transition-all',
+                                            currentTheme === theme.id
+                                                ? 'border-primary ring-1 ring-primary/20'
+                                                : 'border-border hover:border-primary/40',
+                                        ]"
+                                    >
+                                        <div class="mb-1.5 flex h-5 gap-0.5 rounded overflow-hidden">
+                                            <div :class="[theme.preview.bg, 'flex-1']" />
+                                            <div :class="[theme.preview.accent, 'w-2']" />
+                                        </div>
+                                        <div class="font-medium text-xs">{{ theme.name }}</div>
+                                        <div
+                                            v-if="currentTheme === theme.id"
+                                            class="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-primary flex items-center justify-center"
+                                        >
+                                            <span class="text-primary-foreground text-[8px]">✓</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>

@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { initializeTheme } from '@/composables/useTheme';
+
+initializeTheme();
 
 interface Props {
     flow_id: string;
@@ -159,7 +162,7 @@ async function handleContinue() {
     <!-- ============================================================ -->
     <div
         v-if="is_default_splash"
-        class="default-splash min-h-screen relative flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-6 select-none"
+        class="default-splash min-h-screen relative flex flex-col items-center justify-center bg-gradient-to-b from-primary/5 via-background to-background px-6 select-none"
     >
         <!-- Hero logo -->
         <img
@@ -179,32 +182,32 @@ async function handleContinue() {
             <p class="text-[11px] uppercase tracking-[0.2em] text-gray-400 dark:text-gray-600 mb-2">
                 Redeeming
             </p>
-            <span class="inline-flex items-center gap-2 px-5 py-1.5 text-lg sm:text-xl font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
-                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+            <span class="inline-flex items-center gap-2 px-5 py-1.5 text-lg sm:text-xl font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                <span class="text-primary/40" aria-hidden="true">||</span>
                 {{ voucher_code }}
-                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                <span class="text-primary/40" aria-hidden="true">||</span>
             </span>
         </div>
 
         <!-- Continue button + progress -->
         <div class="w-full max-w-xs space-y-3">
-            <button
+            <Button
                 @click="handleContinue"
                 :disabled="submitting"
-                class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
+                class="w-full rounded-full"
             >
                 <span v-if="submitting">Please wait…</span>
                 <span v-else>{{ button_label }}</span>
-            </button>
+            </Button>
 
             <div v-if="timeoutSeconds > 0" class="space-y-1">
-                <div class="w-full bg-gray-200/60 dark:bg-gray-800 rounded-full h-1 overflow-hidden">
+                <div class="w-full bg-muted rounded-full h-1 overflow-hidden">
                     <div
-                        class="h-full rounded-full bg-amber-400/70 dark:bg-amber-500/50 transition-all duration-1000 ease-linear"
+                        class="h-full rounded-full bg-primary/50 transition-all duration-1000 ease-linear"
                         :style="{ width: `${progressPercentage}%` }"
                     />
                 </div>
-                <p class="text-center text-[11px] text-gray-400 dark:text-gray-600">
+                <p class="text-center text-[11px] text-muted-foreground">
                     {{ remainingSeconds }}s
                 </p>
             </div>
@@ -227,10 +230,10 @@ async function handleContinue() {
     <div
         v-else
         :class="isDisburseFlow
-            ? 'min-h-screen flex items-center justify-center bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4'
+            ? 'min-h-screen flex items-center justify-center bg-gradient-to-b from-primary/5 via-background to-background p-4'
             : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4'"
     >
-        <Card :class="isDisburseFlow ? 'w-full max-w-2xl overflow-visible border-0 shadow-sm bg-white/80 dark:bg-gray-900/80' : 'w-full max-w-2xl overflow-visible'">
+        <Card :class="isDisburseFlow ? 'w-full max-w-2xl overflow-visible border-0 shadow-sm bg-card/80' : 'w-full max-w-2xl overflow-visible'">
             <CardHeader v-if="title">
                 <CardTitle class="text-center text-2xl">{{ title }}</CardTitle>
             </CardHeader>
@@ -252,18 +255,18 @@ async function handleContinue() {
                 <!-- Countdown progress -->
                 <div v-if="timeoutSeconds > 0" class="space-y-2">
                     <div :class="isDisburseFlow
-                        ? 'w-full bg-gray-200/60 dark:bg-gray-800 rounded-full h-1 overflow-hidden'
+                        ? 'w-full bg-muted rounded-full h-1 overflow-hidden'
                         : 'w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'"
                     >
                         <div
                             :class="isDisburseFlow
-                                ? 'h-full rounded-full bg-amber-400/70 dark:bg-amber-500/50 transition-all duration-1000 ease-linear'
+                                ? 'h-full rounded-full bg-primary/50 transition-all duration-1000 ease-linear'
                                 : 'bg-primary h-full transition-all duration-1000 ease-linear'"
                             :style="{ width: `${progressPercentage}%` }"
                         />
                     </div>
                     <p :class="isDisburseFlow
-                        ? 'text-center text-[11px] text-gray-400 dark:text-gray-600'
+                        ? 'text-center text-[11px] text-muted-foreground'
                         : 'text-center text-sm text-gray-500 dark:text-gray-400'"
                     >
                         <template v-if="isDisburseFlow">{{ remainingSeconds }}s</template>
@@ -273,21 +276,11 @@ async function handleContinue() {
 
                 <!-- Continue button -->
                 <div class="flex justify-center">
-                    <button
-                        v-if="isDisburseFlow"
-                        @click="handleContinue"
-                        :disabled="submitting"
-                        class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
-                    >
-                        <span v-if="submitting">Please wait…</span>
-                        <span v-else>{{ button_label }}</span>
-                    </button>
                     <Button
-                        v-else
                         @click="handleContinue"
                         :disabled="submitting"
-                        size="lg"
-                        class="min-w-[200px]"
+                        :size="isDisburseFlow ? 'default' : 'lg'"
+                        :class="isDisburseFlow ? 'w-full rounded-full' : 'min-w-[200px]'"
                     >
                         <span v-if="submitting">Please wait…</span>
                         <span v-else>{{ button_label }}</span>

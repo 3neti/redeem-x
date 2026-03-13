@@ -8,6 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-vue-next';
 import { computed, ref, onUnmounted } from 'vue';
 import { useFormFlowSummary } from '@/composables/useFormFlowSummary';
+import { initializeTheme } from '@/composables/useTheme';
+
+initializeTheme();
 
 interface Props {
     flow_id: string;
@@ -134,7 +137,7 @@ const dataSections = computed(() => groupDataBySection(flatData.value));
     <template v-if="isDisburseFlow">
 
         <!-- Processing State -->
-        <div v-if="isProcessing" class="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-6">
+        <div v-if="isProcessing" class="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary/5 via-background to-background px-6">
             <!-- Error -->
             <div v-if="showError" class="w-full max-w-sm text-center space-y-6">
                 <AlertCircle class="h-12 w-12 text-destructive mx-auto" />
@@ -149,15 +152,15 @@ const dataSections = computed(() => groupDataBySection(flatData.value));
             <!-- Active Processing -->
             <div v-else class="w-full max-w-sm text-center space-y-6">
                 <div class="relative mx-auto w-fit">
-                    <Spinner class="h-14 w-14 text-amber-500" />
+                    <Spinner class="h-14 w-14 text-primary" />
                     <Clock class="h-5 w-5 text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                 </div>
                 <p class="text-lg font-medium">Processing Redemption</p>
                 <p class="text-sm text-muted-foreground">{{ statusMessage }}</p>
                 <div class="space-y-1">
-                    <div class="h-1 bg-gray-200/60 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-1 bg-muted rounded-full overflow-hidden">
                         <div
-                            class="h-full rounded-full bg-amber-400/70 dark:bg-amber-500/50 transition-all duration-1000 ease-linear"
+                            class="h-full rounded-full bg-primary/50 transition-all duration-1000 ease-linear"
                             :style="{ width: `${progress}%` }"
                         />
                     </div>
@@ -170,7 +173,7 @@ const dataSections = computed(() => groupDataBySection(flatData.value));
         </div>
 
         <!-- Completed / Review State -->
-        <div v-else class="min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8">
+        <div v-else class="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background px-5 py-8">
             <div class="mx-auto max-w-md space-y-8">
 
                 <!-- Hero: amount + voucher code -->
@@ -179,10 +182,10 @@ const dataSections = computed(() => groupDataBySection(flatData.value));
                     <p v-if="heroData.amount" class="text-4xl font-bold tracking-tight text-foreground">
                         {{ heroData.amount }}
                     </p>
-                    <div v-if="voucherCode" class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
-                        <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                    <div v-if="voucherCode" class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                        <span class="text-primary/40" aria-hidden="true">||</span>
                         {{ voucherCode }}
-                        <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                        <span class="text-primary/40" aria-hidden="true">||</span>
                     </div>
                     <p v-if="heroData.bankName" class="text-sm text-muted-foreground">
                         {{ heroData.bankName }}<template v-if="heroData.settlementRail"> &middot; {{ heroData.settlementRail }}</template>
@@ -203,13 +206,13 @@ const dataSections = computed(() => groupDataBySection(flatData.value));
                 </div>
 
                 <!-- Confirm button -->
-                <button
+                <Button
                     @click="handleClose"
                     :disabled="isProcessing"
-                    class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
+                    class="w-full rounded-full"
                 >
                     Confirm Redemption
-                </button>
+                </Button>
 
                 <!-- Reference ID: subtle footer -->
                 <p class="text-center text-[10px] text-gray-300 dark:text-gray-700 font-mono">

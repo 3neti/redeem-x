@@ -1,6 +1,6 @@
 import { ref, onMounted } from 'vue';
 
-export type ThemeId = 'default' | 'steampunk';
+export type ThemeId = 'default' | 'steampunk' | 'amber';
 
 export interface ThemeOption {
     id: ThemeId;
@@ -23,6 +23,12 @@ const availableThemes: ThemeOption[] = [
         name: 'Steampunk',
         description: 'Warm brass & aged parchment',
         preview: { bg: 'bg-amber-50 dark:bg-amber-950', accent: 'bg-amber-700', text: 'text-amber-900 dark:text-amber-100' },
+    },
+    {
+        id: 'amber',
+        name: 'Amber',
+        description: 'Sunlit gold, quiet warmth',
+        preview: { bg: 'bg-orange-50 dark:bg-orange-950', accent: 'bg-orange-500', text: 'text-orange-900 dark:text-orange-100' },
     },
 ];
 

@@ -14,6 +14,9 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
 import { CountrySelect, SettlementRailSelect, BankEMISelect } from '@/components/financial';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
+import { initializeTheme } from '@/composables/useTheme';
+
+initializeTheme();
 
 interface FieldDefinition {
     name: string;
@@ -390,7 +393,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
     <Head :title="pageTitle" />
 
     <div :class="isDisburseFlow
-        ? 'min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8'
+        ? 'min-h-screen bg-gradient-to-b from-primary/5 via-background to-background px-5 py-8'
         : 'container mx-auto max-w-2xl px-4 py-8'"
     >
         <!-- Error Alert -->
@@ -402,7 +405,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
         </Alert>
 
         <!-- Form Card -->
-        <Card :class="isDisburseFlow ? 'mx-auto max-w-md border-0 shadow-sm bg-white/80 dark:bg-gray-900/80' : ''">
+        <Card :class="isDisburseFlow ? 'mx-auto max-w-md border-0 shadow-sm bg-card/80' : ''">
             <CardHeader>
                 <CardTitle>{{ title }}</CardTitle>
             </CardHeader>
@@ -493,10 +496,10 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                     <div v-if="(heroFields.length > 0) && (Object.keys(groupedFields).length > 0 || normalFields.length > 0)" class="relative my-8">
                         <Separator />
                         <div v-if="voucherCode" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
-                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
-                                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                                <span class="text-primary/40" aria-hidden="true">||</span>
                                 {{ voucherCode }}
-                                <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                                <span class="text-primary/40" aria-hidden="true">||</span>
                             </span>
                         </div>
                     </div>
@@ -633,10 +636,10 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         <div v-if="groupIndex === 0 && Object.keys(groupedFields).length > 1 && voucherCode && heroFields.length === 0" class="relative my-8">
                             <Separator />
                             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-0.5 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
-                                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-0.5 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                                    <span class="text-primary/40" aria-hidden="true">||</span>
                                     {{ voucherCode }}
-                                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                                    <span class="text-primary/40" aria-hidden="true">||</span>
                                 </span>
                             </div>
                         </div>
@@ -841,19 +844,9 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         >
                             Cancel
                         </Button>
-                        <button
-                            v-if="isDisburseFlow"
-                            type="submit"
-                            :disabled="submitting"
-                            class="inline-flex items-center justify-center flex-1 h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
-                        >
-                            <Loader2 v-if="submitting" class="h-4 w-4 animate-spin mr-2" />
-                            {{ submitting ? 'Submitting...' : 'Continue' }}
-                        </button>
                         <Button
-                            v-else
                             type="submit"
-                            class="flex-1"
+                            :class="isDisburseFlow ? 'flex-1 rounded-full' : 'flex-1'"
                             :disabled="submitting"
                         >
                             <Loader2 v-if="submitting" class="h-4 w-4 animate-spin mr-2" />

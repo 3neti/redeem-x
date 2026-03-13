@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, ExternalLink } from 'lucide-vue-next';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { initializeTheme } from '@/composables/useTheme';
+
+initializeTheme();
 
 interface Props {
     voucher: {
@@ -93,7 +96,7 @@ onMounted(() => {
 <template>
     <Head title="Redemption Successful" />
 
-    <div class="min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-5 py-8">
+    <div class="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background px-5 py-8">
         <div class="mx-auto max-w-md space-y-8">
 
             <!-- Hero: rider message is the star, amount + code are supporting -->
@@ -117,22 +120,22 @@ onMounted(() => {
                 </p>
 
                 <!-- Voucher code badge -->
-                <div class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
-                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                <div class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                    <span class="text-primary/40" aria-hidden="true">||</span>
                     {{ voucher.code }}
-                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                    <span class="text-primary/40" aria-hidden="true">||</span>
                 </div>
             </div>
 
             <!-- Redirect with countdown -->
             <div v-if="hasRiderUrl && !isRedirecting" class="space-y-3">
-                <button
+                <Button
                     @click="handleRedirect"
-                    class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
+                    class="w-full rounded-full"
                 >
                     {{ config?.button_labels?.continue || 'Continue Now' }}
                     <ExternalLink :size="14" class="ml-1.5" />
-                </button>
+                </Button>
                 <p class="text-center text-[11px] text-gray-400 dark:text-gray-600">
                     Redirecting in {{ countdown }}s
                 </p>
@@ -145,12 +148,12 @@ onMounted(() => {
 
             <!-- Default actions (no rider URL) -->
             <div v-else class="space-y-3">
-                <button
-                    class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
+                <Button
+                    class="w-full rounded-full"
                     @click="router.visit('/disburse')"
                 >
                     {{ config?.button_labels?.redeem_another || 'Redeem Another' }}
-                </button>
+                </Button>
                 <Button
                     variant="ghost"
                     size="lg"

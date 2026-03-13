@@ -240,6 +240,66 @@
     --section-generate: hsl(25 15% 11%);
 }
 
+/*
+ * Amber — warm, confident, sunlit gold
+ * The everyday warmth: inviting without being loud.
+ */
+.theme-amber {
+    --background: hsl(38 40% 97%);
+    --foreground: hsl(28 15% 12%);
+    --card: hsl(38 35% 95%);
+    --card-foreground: hsl(28 15% 12%);
+    --popover: hsl(38 35% 95%);
+    --popover-foreground: hsl(28 15% 12%);
+    --primary: hsl(33 95% 44%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(36 25% 90%);
+    --secondary-foreground: hsl(28 20% 15%);
+    --muted: hsl(38 20% 93%);
+    --muted-foreground: hsl(28 10% 42%);
+    --accent: hsl(40 40% 88%);
+    --accent-foreground: hsl(28 20% 15%);
+    --destructive: hsl(0 72% 51%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(35 25% 84%);
+    --input: hsl(35 20% 86%);
+    --ring: hsl(33 95% 44%);
+
+    --section-chips: hsl(38 30% 94%);
+    --section-amount: hsl(40 35% 92%);
+    --section-quickgrid: hsl(35 28% 93%);
+    --section-balance: hsl(42 30% 91%);
+    --section-generate: hsl(33 30% 90%);
+}
+
+.theme-amber.dark {
+    --background: hsl(30 10% 8%);
+    --foreground: hsl(38 25% 90%);
+    --card: hsl(30 8% 11%);
+    --card-foreground: hsl(38 25% 90%);
+    --popover: hsl(30 8% 11%);
+    --popover-foreground: hsl(38 25% 90%);
+    --primary: hsl(36 95% 55%);
+    --primary-foreground: hsl(30 10% 8%);
+    --secondary: hsl(32 10% 16%);
+    --secondary-foreground: hsl(38 25% 90%);
+    --muted: hsl(30 8% 15%);
+    --muted-foreground: hsl(33 15% 52%);
+    --accent: hsl(40 30% 20%);
+    --accent-foreground: hsl(38 25% 90%);
+    --destructive: hsl(0 72% 51%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(32 10% 18%);
+    --input: hsl(32 8% 16%);
+    --ring: hsl(36 95% 55%);
+
+    --section-chips: hsl(30 8% 12%);
+    --section-amount: hsl(34 12% 11%);
+    --section-quickgrid: hsl(28 10% 13%);
+    --section-balance: hsl(38 10% 12%);
+    --section-generate: hsl(30 12% 10%);
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;

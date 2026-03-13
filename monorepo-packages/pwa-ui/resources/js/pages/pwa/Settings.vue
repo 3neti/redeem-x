@@ -141,7 +141,7 @@ const formattedMobile = props.user.mobile ? formatForDisplay(props.user.mobile) 
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-3">
                         <button
                             v-for="theme in availableThemes"
                             :key="theme.id"
