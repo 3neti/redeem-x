@@ -183,7 +183,14 @@ export interface InspectInstructions {
     rider?: {
         message?: string;
         url?: string;
+        splash?: string;
     };
+}
+
+export interface OgMeta {
+    og_title?: string | null;
+    og_description?: string | null;
+    og_image?: string | null;
 }
 
 export interface PreviewPolicy {
@@ -200,4 +207,7 @@ export interface InspectResponse {
     info: any;
     preview?: PreviewPolicy;
     instructions?: InspectInstructions;
+    redeemed_at?: string | null;
+    expired_at?: string | null;
+    og_meta?: OgMeta | null;
 }

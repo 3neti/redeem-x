@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Api\Vouchers;
 
+use App\Services\UrlUnfurler;
 use Dedoc\Scramble\Attributes\Group;
 use FrittenKeeZ\Vouchers\Models\Voucher;
 use Illuminate\Http\JsonResponse;
@@ -41,13 +42,23 @@ class InspectVoucher
         $instructions = $voucher->metadata['instructions'] ?? [];
         $metadata = $instructions['metadata'] ?? null;
 
+        $status = $this->getVoucherStatus($voucher);
+
         // Build response
         $response = [
             'success' => true,
             'code' => $voucher->code,
-            'status' => $this->getVoucherStatus($voucher),
+            'status' => $status,
             'metadata' => $metadata,
         ];
+
+        // Add status timestamp for non-active vouchers
+        if ($status === 'redeemed' && $voucher->redeemed_at) {
+            $response['redeemed_at'] = $voucher->redeemed_at->toISOString();
+        }
+        if ($status === 'expired' && $voucher->expires_at) {
+            $response['expired_at'] = $voucher->expires_at->toISOString();
+        }
 
         // Include basic voucher info (non-sensitive)
         if ($metadata) {
@@ -102,6 +113,18 @@ class InspectVoucher
                     'code' => $voucher->code,
                     'error' => $e->getMessage(),
                 ]);
+            }
+        }
+
+        // Add OG meta for rider URL (server-side unfurl, cached)
+        if (isset($response['instructions']['rider']['url']) && ! empty($response['instructions']['rider']['url'])) {
+            try {
+                $ogMeta = app(UrlUnfurler::class)->unfurl($response['instructions']['rider']['url']);
+                if ($ogMeta) {
+                    $response['og_meta'] = $ogMeta;
+                }
+            } catch (\Exception $e) {
+                // Silently fail — OG meta is nice-to-have
             }
         }
 
@@ -190,10 +213,11 @@ class InspectVoucher
         }
 
         // Add rider info if present
-        if ($instructions->rider && ($instructions->rider->message || $instructions->rider->url)) {
+        if ($instructions->rider && ($instructions->rider->message || $instructions->rider->url || $instructions->rider->splash)) {
             $response['rider'] = [
                 'message' => $instructions->rider->message,
                 'url' => $instructions->rider->url,
+                'splash' => $instructions->rider->splash,
             ];
         }
 

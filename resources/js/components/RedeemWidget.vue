@@ -13,10 +13,14 @@ import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/InputError.vue';
 import VoucherInstructionsDisplay from '@/components/voucher/VoucherInstructionsDisplay.vue';
 import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
+import VoucherStatusStamp from '@/components/voucher/VoucherStatusStamp.vue';
+import OgPreviewCard from '@/components/voucher/OgPreviewCard.vue';
 import { AlertCircle, Palette } from 'lucide-vue-next';
 import { useVoucherPreview } from '@/composables/useVoucherPreview';
 import { useTheme } from '@/composables/useTheme';
 import { wallet, start } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface Props {
     showLogo?: boolean;
@@ -100,6 +104,45 @@ onMounted(() => {
 
 const voucherInput = ref<HTMLInputElement | null>(null);
 const submitButton = ref<HTMLButtonElement | null>(null);
+
+// Non-active voucher state detection
+const isNonActive = computed(() => {
+    const s = voucherData.value?.status;
+    return s === 'redeemed' || s === 'expired';
+});
+
+const statusDate = computed(() => {
+    if (!voucherData.value) return null;
+    if (voucherData.value.status === 'redeemed') return voucherData.value.redeemed_at;
+    if (voucherData.value.status === 'expired') return voucherData.value.expired_at;
+    return null;
+});
+
+// Check if current device is the redeemer (has persisted wallet data)
+const isReturningRedeemer = computed(() => {
+    try {
+        const raw = localStorage.getItem('form_flow_persist_wallet_info');
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        return !!saved.mobile;
+    } catch {
+        return false;
+    }
+});
+
+// Render rider splash content (markdown/html/svg)
+const renderedSplash = computed(() => {
+    const splash = voucherData.value?.instructions?.rider?.splash;
+    if (!splash) return null;
+    // Detect type and render
+    if (splash.trim().startsWith('<svg') || splash.trim().startsWith('<SVG')) {
+        return DOMPurify.sanitize(splash);
+    }
+    if (splash.trim().startsWith('<')) {
+        return DOMPurify.sanitize(splash);
+    }
+    return DOMPurify.sanitize(marked.parse(splash) as string);
+});
 
 function submit() {
     // Use preview code if available, otherwise fall back to form code
@@ -207,7 +250,47 @@ function submit() {
                 </AlertDescription>
             </Alert>
 
-            <!-- Preview Tabs -->
+            <!-- Non-Active State: Stamp + Rider Content -->
+            <div v-else-if="voucherData && isNonActive" class="space-y-4">
+                <!-- Status Stamp -->
+                <VoucherStatusStamp
+                    :status="voucherData.status as 'redeemed' | 'expired'"
+                    :status-date="statusDate"
+                    :voucher-code="voucherData.code"
+                    :formatted-amount="voucherData.instructions?.formatted_amount"
+                />
+
+                <!-- Rider Content (only for returning redeemers) -->
+                <template v-if="isReturningRedeemer">
+                    <!-- Rider Message -->
+                    <Card v-if="voucherData.instructions?.rider?.message">
+                        <CardContent class="pt-5 pb-5">
+                            <p class="text-sm font-medium text-foreground leading-relaxed">
+                                {{ voucherData.instructions.rider.message }}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Rider Splash -->
+                    <Card v-if="renderedSplash">
+                        <CardContent class="pt-5 pb-5">
+                            <div
+                                v-html="renderedSplash"
+                                class="prose prose-sm max-w-none dark:prose-invert"
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <!-- OG Link Preview -->
+                    <OgPreviewCard
+                        v-if="voucherData.instructions?.rider?.url"
+                        :url="voucherData.instructions.rider.url"
+                        :og-meta="voucherData.og_meta"
+                    />
+                </template>
+            </div>
+
+            <!-- Active State: Preview Tabs -->
             <div v-else-if="voucherData">
                 <!-- Preview Message (if provided by issuer) -->
                 <Alert v-if="voucherData.preview && voucherData.preview.message" class="mb-4" variant="default">
