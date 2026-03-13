@@ -41,43 +41,51 @@ const statusConfig = computed(() => {
     }
 });
 
-const formattedDate = computed(() => {
+const timeDisplay = computed(() => {
     if (!props.statusDate) return null;
     const date = new Date(props.statusDate);
-    return date.toLocaleString('en-PH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60_000);
+    const diffHr = Math.floor(diffMs / 3_600_000);
+    const diffDay = Math.floor(diffMs / 86_400_000);
+
+    // Relative for recent, absolute for older
+    if (diffMin < 1) return { prefix: statusConfig.value.datePrefix.replace(' on', ''), text: 'just now' };
+    if (diffMin < 60) return { prefix: statusConfig.value.datePrefix.replace(' on', ''), text: `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago` };
+    if (diffHr < 24) return { prefix: statusConfig.value.datePrefix.replace(' on', ''), text: `${diffHr} hour${diffHr !== 1 ? 's' : ''} ago` };
+    if (diffDay < 7) return { prefix: statusConfig.value.datePrefix.replace(' on', ''), text: `${diffDay} day${diffDay !== 1 ? 's' : ''} ago` };
+
+    return {
+        prefix: statusConfig.value.datePrefix,
+        text: date.toLocaleString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    };
 });
 </script>
 
 <template>
     <Card class="overflow-hidden">
-        <CardContent class="relative pt-6 pb-6">
-            <!-- Amount (if present) -->
-            <div class="text-center space-y-3">
+        <CardContent class="relative pt-4 pb-4">
+            <div class="text-center space-y-1.5">
                 <component
                     :is="statusConfig.icon"
-                    :class="['h-8 w-8 mx-auto', statusConfig.iconColor]"
+                    :class="['h-6 w-6 mx-auto', statusConfig.iconColor]"
                 />
 
-                <p v-if="formattedAmount" class="text-3xl font-bold tracking-tight text-foreground">
+                <p v-if="formattedAmount" class="text-2xl font-bold tracking-tight text-foreground">
                     {{ formattedAmount }}
                 </p>
 
                 <!-- Voucher code badge -->
-                <div v-if="voucherCode" class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                <div v-if="voucherCode" class="inline-flex items-center gap-1 px-3 py-0.5 text-xs font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
                     <span class="text-primary/40" aria-hidden="true">||</span>
                     {{ voucherCode }}
                     <span class="text-primary/40" aria-hidden="true">||</span>
                 </div>
 
-                <!-- Date -->
-                <p v-if="formattedDate" class="text-sm text-muted-foreground">
-                    {{ statusConfig.datePrefix }} {{ formattedDate }}
+                <!-- Date (relative for recent, absolute for older) -->
+                <p v-if="timeDisplay" class="text-xs text-muted-foreground">
+                    {{ timeDisplay.prefix }} {{ timeDisplay.text }}
                 </p>
             </div>
 
@@ -85,8 +93,8 @@ const formattedDate = computed(() => {
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
                 <div
                     :class="[
-                        'border-[3px] rounded-md px-5 py-1.5 -rotate-12',
-                        'text-[2.5rem] font-black uppercase tracking-[0.15em] leading-none',
+                        'border-[3px] rounded-md px-4 py-1 -rotate-12',
+                        'text-[2rem] font-black uppercase tracking-[0.15em] leading-none',
                         statusConfig.stampColor,
                     ]"
                 >

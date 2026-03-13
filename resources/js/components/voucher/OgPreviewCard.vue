@@ -41,7 +41,7 @@ const hasContent = computed(() => !!props.ogMeta?.og_title || !!props.ogMeta?.og
     >
         <Card class="overflow-hidden transition-all hover:ring-1 hover:ring-primary/20">
             <!-- OG Image -->
-            <div v-if="hasImage" class="aspect-[1.91/1] overflow-hidden bg-muted">
+            <div v-if="hasImage" class="aspect-[2.4/1] overflow-hidden bg-muted">
                 <img
                     :src="ogMeta!.og_image!"
                     :alt="ogMeta?.og_title || hostname"
@@ -51,7 +51,7 @@ const hasContent = computed(() => !!props.ogMeta?.og_title || !!props.ogMeta?.og
                 />
             </div>
 
-            <CardContent :class="hasImage ? 'pt-3 pb-3' : 'pt-4 pb-4'">
+            <CardContent :class="hasImage ? 'pt-2 pb-2' : 'pt-3 pb-3'">
                 <div class="space-y-1.5">
                     <!-- Title -->
                     <p v-if="ogMeta?.og_title" class="text-sm font-medium leading-snug line-clamp-2">
@@ -59,7 +59,7 @@ const hasContent = computed(() => !!props.ogMeta?.og_title || !!props.ogMeta?.og
                     </p>
 
                     <!-- Description -->
-                    <p v-if="ogMeta?.og_description" class="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                    <p v-if="ogMeta?.og_description" class="text-xs text-muted-foreground leading-relaxed line-clamp-1">
                         {{ ogMeta.og_description }}
                     </p>
 

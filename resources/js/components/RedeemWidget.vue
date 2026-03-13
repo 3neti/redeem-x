@@ -173,8 +173,8 @@ function submit() {
 
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Logo and App Name -->
-        <div v-if="config.showLogo || config.showAppName" class="flex flex-col items-center gap-2">
+        <!-- Logo and App Name (hidden for non-active vouchers) -->
+        <div v-if="(config.showLogo || config.showAppName) && !isNonActive" class="flex flex-col items-center gap-2">
             <!-- Logo only (icon) -->
             <div v-if="config.showLogo && !config.showAppName" class="flex items-center justify-center">
                 <AppLogoIcon class="h-20 w-auto" />
@@ -191,16 +191,16 @@ function submit() {
             </div>
         </div>
 
-        <!-- Title and Description -->
-        <div v-if="config.showTitle || config.showDescription" class="space-y-2 text-center">
+        <!-- Title and Description (hidden for non-active vouchers) -->
+        <div v-if="(config.showTitle || config.showDescription) && !isNonActive" class="space-y-2 text-center">
             <h1 v-if="config.showTitle" class="text-xl font-medium">{{ config.title }}</h1>
             <p v-if="config.showDescription && config.description" class="text-center text-sm text-muted-foreground">
                 {{ config.description }}
             </p>
         </div>
 
-        <!-- Form -->
-        <form @submit.prevent="submit" class="space-y-6">
+        <!-- Form (hidden for non-active vouchers) -->
+        <form v-if="!isNonActive" @submit.prevent="submit" class="space-y-6">
             <!-- Voucher Code -->
             <div class="flex flex-col gap-2">
                 <Label v-if="config.showLabel" for="code">{{ config.label }}</Label>
@@ -228,7 +228,7 @@ function submit() {
         </form>
 
         <!-- Voucher Preview -->
-        <div v-if="showPreview" class="mt-6">
+        <div v-if="showPreview" :class="isNonActive ? '' : 'mt-6'">
             <!-- Loading State -->
             <div v-if="loading" class="flex items-center justify-center gap-2 py-8 text-muted-foreground">
                 <Spinner class="h-5 w-5" />
@@ -251,7 +251,7 @@ function submit() {
             </Alert>
 
             <!-- Non-Active State: Stamp + Rider Content -->
-            <div v-else-if="voucherData && isNonActive" class="space-y-4">
+            <div v-else-if="voucherData && isNonActive" class="space-y-2.5">
                 <!-- Status Stamp -->
                 <VoucherStatusStamp
                     :status="voucherData.status as 'redeemed' | 'expired'"
@@ -264,7 +264,7 @@ function submit() {
                 <template v-if="isReturningRedeemer">
                     <!-- Rider Message -->
                     <Card v-if="voucherData.instructions?.rider?.message">
-                        <CardContent class="pt-5 pb-5">
+                        <CardContent class="pt-3 pb-3">
                             <p class="text-sm font-medium text-foreground leading-relaxed">
                                 {{ voucherData.instructions.rider.message }}
                             </p>
@@ -273,7 +273,7 @@ function submit() {
 
                     <!-- Rider Splash -->
                     <Card v-if="renderedSplash">
-                        <CardContent class="pt-5 pb-5">
+                        <CardContent class="pt-3 pb-3">
                             <div
                                 v-html="renderedSplash"
                                 class="prose prose-sm max-w-none dark:prose-invert"
