@@ -261,31 +261,46 @@ const normalFields = computed(() =>
     )
 );
 
-// Smart auto-focus: if hero field already has a value (from persist/default),
-// focus the first editable body field so the hero displays formatted (e.g. phone number)
+// Smart auto-focus: if a tel field already has a value (from persist/default),
+// focus the next editable input so the phone number displays formatted
 onMounted(() => {
     nextTick(() => {
-        const heroField = heroFields.value[0];
-        const heroHasValue = heroField && formData.value[heroField.name];
+        const allFields = [
+            ...heroFields.value,
+            ...Object.values(groupedFields.value).flat(),
+            ...normalFields.value,
+        ];
 
-        if (heroHasValue) {
-            const bodyFields = [
-                ...Object.values(groupedFields.value).flat(),
-                ...normalFields.value,
-            ];
-            const firstInput = bodyFields.find(f =>
-                ['text', 'email', 'number', 'tel'].includes(f.type) && !f.readonly
+        // Check if a tel field has a persisted/default value
+        const telWithValue = allFields.find(f =>
+            f.type === 'tel' && formData.value[f.name]
+        );
+
+        if (telWithValue) {
+            // Focus the first editable non-tel input after the tel field
+            const telIndex = allFields.indexOf(telWithValue);
+            const nextInput = allFields.slice(telIndex + 1).find(f =>
+                ['text', 'email', 'number'].includes(f.type) && !f.readonly
             );
-            if (firstInput) {
-                const el = document.getElementById(firstInput.name) as HTMLInputElement;
+            if (nextInput) {
+                const el = document.getElementById(nextInput.name) as HTMLInputElement;
                 if (el) { el.focus(); return; }
             }
         }
 
-        // Default: focus hero field
+        // Default: focus first hero field, or first editable input
+        const heroField = heroFields.value[0];
         if (heroField) {
             const inputElement = document.getElementById(heroField.name) as HTMLInputElement;
             inputElement?.focus();
+        } else {
+            const firstEditable = allFields.find(f =>
+                ['text', 'email', 'number', 'tel'].includes(f.type) && !f.readonly
+            );
+            if (firstEditable) {
+                const el = document.getElementById(firstEditable.name) as HTMLInputElement;
+                el?.focus();
+            }
         }
     });
 });
@@ -474,7 +489,7 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         </div>
                     </div>
 
-                    <!-- Separator before grouped/normal fields -->
+                    <!-- Separator before grouped/normal fields (when hero fields present) -->
                     <div v-if="(heroFields.length > 0) && (Object.keys(groupedFields).length > 0 || normalFields.length > 0)" class="relative my-8">
                         <Separator />
                         <div v-if="voucherCode" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
@@ -486,8 +501,9 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         </div>
                     </div>
 
-                    <!-- Grouped Fields Sections -->
-                    <div v-for="(groupFields, groupName) in groupedFields" :key="groupName" class="space-y-4">
+                    <!-- Grouped Fields Sections (with voucher code separator between first and remaining groups) -->
+                    <template v-for="(groupFields, groupName, groupIndex) in groupedFields" :key="groupName">
+                        <div class="space-y-4">
                         <fieldset class="border rounded-lg p-4 bg-muted/5">
                             <legend class="text-sm font-medium text-muted-foreground px-2">{{ groupName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}</legend>
                             
@@ -537,7 +553,17 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                             :readonly="field.readonly"
                                             :disabled="field.disabled"
                                         />
-                                        <p v-if="field.help_text" class="text-xs text-muted-foreground">
+                                        <!-- Transaction badges below mobile field -->
+                                        <div v-if="field.name === 'mobile' && issuerName" class="flex flex-wrap items-center gap-1.5 mt-1">
+                                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                                {{ issuerName }}
+                                            </Badge>
+                                            <span class="text-muted-foreground text-xs">•</span>
+                                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                                {{ formatBadgeValue(props.fields.find(f => f.name === 'amount')) }}
+                                            </Badge>
+                                        </div>
+                                        <p v-if="field.help_text && field.name !== 'mobile'" class="text-xs text-muted-foreground">
                                             {{ field.help_text }}
                                         </p>
                                     </template>
@@ -601,7 +627,20 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 </div>
                             </div>
                         </fieldset>
-                    </div>
+                        </div>
+
+                        <!-- Voucher code separator between first and remaining groups -->
+                        <div v-if="groupIndex === 0 && Object.keys(groupedFields).length > 1 && voucherCode && heroFields.length === 0" class="relative my-8">
+                            <Separator />
+                            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-0.5 text-sm font-mono font-semibold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-700/30 rounded-full">
+                                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                                    {{ voucherCode }}
+                                    <span class="text-amber-400 dark:text-amber-600" aria-hidden="true">||</span>
+                                </span>
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- Normal Fields (non-grouped, non-hero, non-badge) -->
                     <div v-if="normalFields.length > 0" class="space-y-4">
@@ -802,11 +841,19 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         >
                             Cancel
                         </Button>
-                        <Button
+                        <button
+                            v-if="isDisburseFlow"
                             type="submit"
-                            :class="isDisburseFlow
-                                ? 'flex-1 rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10'
-                                : 'flex-1'"
+                            :disabled="submitting"
+                            class="inline-flex items-center justify-center flex-1 h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
+                        >
+                            <Loader2 v-if="submitting" class="h-4 w-4 animate-spin mr-2" />
+                            {{ submitting ? 'Submitting...' : 'Continue' }}
+                        </button>
+                        <Button
+                            v-else
+                            type="submit"
+                            class="flex-1"
                             :disabled="submitting"
                         >
                             <Loader2 v-if="submitting" class="h-4 w-4 animate-spin mr-2" />

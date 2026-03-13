@@ -171,12 +171,20 @@ function submit() {
             </div>
 
             <!-- Submit Button -->
-            <Button 
+            <button
+                v-if="routePrefix === 'disburse'"
                 ref="submitButton"
                 type="submit"
-                :class="routePrefix === 'disburse'
-                    ? 'w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10'
-                    : 'w-full'"
+                :disabled="form.processing || !hasValidCode"
+                class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
+            >
+                {{ form.processing ? config.buttonProcessingText : config.buttonText }}
+            </button>
+            <Button
+                v-else
+                ref="submitButton"
+                type="submit"
+                class="w-full"
                 :disabled="form.processing || !hasValidCode"
             >
                 {{ form.processing ? config.buttonProcessingText : config.buttonText }}

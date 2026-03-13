@@ -79,12 +79,12 @@ steps:
   #
   # Field variants:
   #   - amount: readonly-badge (display as summary badge)
-  #   - mobile: hero (large, prominent styling)
+  #   - mobile: grouped as "redeemer"
   #   - bank_code + account_number: grouped as "endorsement"
   wallet:
     handler: "form"                                      # Generic form handler
     step_name: "wallet_info"                             # Collected data key
-    title: "Redemption Details"                          # Page title
+    title: "Disbursement Details"                         # Page title
     description: "Redeeming voucher {{ code }} from {{ owner_name }}"  # Subtitle
     config:
       auto_sync:                                         # Auto-copy mobile → account_number
@@ -117,15 +117,14 @@ steps:
         default: "INSTAPAY"                              # HARDCODED - needs fixing
         required: false
       
-      # Primary Action Field (hero styling)
-      # ------------------------------------
+      # Primary Action Field (redeemer group)
+      # --------------------------------------
       - name: "mobile"
         type: "tel"                                        # Phone number input
         label: "Mobile Number"
         required: true
-        emphasis: "hero"                                   # Large, prominent display
+        group: "redeemer"                                  # Grouped fieldset display
         persist: true                                      # Remember last value
-        help_text: "Enter your mobile number to receive the cash"
       
       # Endorsement Fields (grouped together)
       # --------------------------------------

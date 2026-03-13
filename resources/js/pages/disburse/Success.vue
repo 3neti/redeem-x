@@ -126,14 +126,13 @@ onMounted(() => {
 
             <!-- Redirect with countdown -->
             <div v-if="hasRiderUrl && !isRedirecting" class="space-y-3">
-                <Button
+                <button
                     @click="handleRedirect"
-                    size="lg"
-                    class="w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10"
+                    class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
                 >
                     {{ config?.button_labels?.continue || 'Continue Now' }}
                     <ExternalLink :size="14" class="ml-1.5" />
-                </Button>
+                </button>
                 <p class="text-center text-[11px] text-gray-400 dark:text-gray-600">
                     Redirecting in {{ countdown }}s
                 </p>
@@ -146,13 +145,12 @@ onMounted(() => {
 
             <!-- Default actions (no rider URL) -->
             <div v-else class="space-y-3">
-                <Button
-                    size="lg"
-                    class="w-full rounded-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10"
+                <button
+                    class="inline-flex items-center justify-center w-full h-10 px-6 rounded-full text-sm font-medium transition-all bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white shadow-lg shadow-amber-600/20 dark:shadow-amber-500/10 disabled:pointer-events-none disabled:opacity-50"
                     @click="router.visit('/disburse')"
                 >
                     {{ config?.button_labels?.redeem_another || 'Redeem Another' }}
-                </Button>
+                </button>
                 <Button
                     variant="ghost"
                     size="lg"
