@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Wallet, Plus, Minus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw } from 'lucide-vue-next';
+import { ArrowLeft, Wallet, Plus, Minus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw, Paperclip, X, FileText } from 'lucide-vue-next';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast/use-toast';
@@ -108,6 +108,14 @@ const selectedDriverKey = ref<string>('');
 // Rail & Fees
 const settlementRail = ref<'auto' | 'INSTAPAY' | 'PESONET' | null>(null);
 const feeStrategy = ref<'absorb' | 'include' | 'add'>('absorb');
+
+// Payment details (payable/settlement)
+const referenceFields = ref<Record<string, string>>({ reference: '' });
+const stagedFiles = ref<File[]>([]);
+const showAddRefField = ref(false);
+const newRefFieldName = ref('');
+const newRefFieldValue = ref('');
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 // Campaign state
 const selectedCampaignId = ref<string>('');
@@ -848,15 +856,53 @@ const handleGenerate = async () => {
         enabled: true,
         driver_id: driverId,
         driver_version: driverVersion,
-        initial_payload: {},
+        initial_payload: collectedMetadata.value || {},
       };
+    }
+    
+    // Add external metadata for payable/settlement (flows to envelope payload)
+    if (voucherType.value !== 'redeemable' && collectedMetadata.value) {
+      requestData.external_metadata = collectedMetadata.value;
     }
     
     const headers: Record<string, string> = {
       'Idempotency-Key': `pwa-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    const response = await axios.post('/api/v1/vouchers', requestData, { headers });
+    // Use FormData if files are staged, otherwise plain JSON
+    let response;
+    if (stagedFiles.value.length > 0) {
+      const formData = new FormData();
+      // Flatten requestData into FormData
+      const flattenToFormData = (obj: any, prefix = '') => {
+        for (const [key, value] of Object.entries(obj)) {
+          const fullKey = prefix ? `${prefix}[${key}]` : key;
+          if (value === null || value === undefined) continue;
+          if (Array.isArray(value)) {
+            value.forEach((item, i) => {
+              if (typeof item === 'object') {
+                flattenToFormData(item, `${fullKey}[${i}]`);
+              } else {
+                formData.append(`${fullKey}[]`, String(item));
+              }
+            });
+          } else if (typeof value === 'object') {
+            flattenToFormData(value, fullKey);
+          } else {
+            formData.append(fullKey, String(value));
+          }
+        }
+      };
+      flattenToFormData(requestData);
+      stagedFiles.value.forEach(file => {
+        formData.append('attachments[]', file);
+      });
+      response = await axios.post('/api/v1/vouchers', formData, {
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      });
+    } else {
+      response = await axios.post('/api/v1/vouchers', requestData, { headers });
+    }
     
     // API wraps data in response.data.data structure
     const apiData = response.data.data;
@@ -1004,6 +1050,53 @@ const clearRider = () => {
   riderSplashTimeout.value = null;
   ogMetaSource.value = null;
 };
+
+// Payment details helpers
+const addRefField = () => {
+  const name = newRefFieldName.value.trim();
+  if (!name || referenceFields.value[name] !== undefined) return;
+  referenceFields.value[name] = newRefFieldValue.value;
+  newRefFieldName.value = '';
+  newRefFieldValue.value = '';
+  showAddRefField.value = false;
+};
+
+const removeRefField = (key: string) => {
+  delete referenceFields.value[key];
+};
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click();
+};
+
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files) return;
+  const remaining = 5 - stagedFiles.value.length;
+  const newFiles = Array.from(input.files).slice(0, remaining);
+  stagedFiles.value.push(...newFiles);
+  input.value = ''; // reset so same file can be re-selected
+};
+
+const removeStagedFile = (index: number) => {
+  stagedFiles.value.splice(index, 1);
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+};
+
+// Computed: non-empty reference fields for API payload
+const collectedMetadata = computed(() => {
+  const result: Record<string, string> = {};
+  for (const [key, val] of Object.entries(referenceFields.value)) {
+    if (val.trim()) result[key] = val.trim();
+  }
+  return Object.keys(result).length > 0 ? result : null;
+});
 
 // Full reset — everything back to factory defaults
 const handleClearAll = () => {
@@ -1192,6 +1285,11 @@ const resetState = () => {
   selectedCampaignId.value = '';
   selectedCampaign.value = null;
   autoAddedFields.value.clear();
+  referenceFields.value = { reference: '' };
+  stagedFiles.value = [];
+  showAddRefField.value = false;
+  newRefFieldName.value = '';
+  newRefFieldValue.value = '';
 };
 
 // Watch for settlement type changes (from Portal.vue)
@@ -1236,6 +1334,7 @@ const saveState = () => {
       feeStrategy: feeStrategy.value,
       selectedCampaignId: selectedCampaignId.value,
       ogMetaSource: ogMetaSource.value,
+      referenceFields: referenceFields.value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -1274,6 +1373,9 @@ const restoreState = () => {
       if (state.feeStrategy) feeStrategy.value = state.feeStrategy;
       if (state.selectedCampaignId) selectedCampaignId.value = state.selectedCampaignId;
       if (state.ogMetaSource) ogMetaSource.value = state.ogMetaSource;
+      if (state.referenceFields && typeof state.referenceFields === 'object') {
+        referenceFields.value = state.referenceFields;
+      }
     }
   } catch (e) {
     console.error('Failed to restore state:', e);
@@ -1291,7 +1393,7 @@ const clearSavedState = () => {
 
 // Watch key fields and save state on change
 watch(
-  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, prefix, mask, ttlDays, ogMetaSource],
+  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, prefix, mask, ttlDays, ogMetaSource, referenceFields],
   () => {
     saveState();
   },
@@ -1540,6 +1642,90 @@ watch(payeeType, (newType, oldType) => {
             <Button variant="outline" size="sm" @click="amount = 5000">₱5K</Button>
             <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
           </template>
+        </div>
+
+        <!-- Payment Details (payable/settlement only) -->
+        <div v-if="voucherType !== 'redeemable'" class="space-y-3 rounded-lg border p-3">
+          <p class="text-xs text-muted-foreground">Payment Details</p>
+
+          <!-- Reference fields -->
+          <div
+            v-for="(value, key) in referenceFields"
+            :key="key"
+            class="flex items-center gap-2"
+          >
+            <div class="flex-1 space-y-1">
+              <Label class="text-xs capitalize">{{ key.replace(/_/g, ' ') }}</Label>
+              <Input
+                :model-value="referenceFields[key]"
+                @update:model-value="(v: string) => referenceFields[key] = v"
+                :placeholder="`Enter ${key.replace(/_/g, ' ')}...`"
+                class="h-9 text-sm"
+              />
+            </div>
+            <button
+              v-if="key !== 'reference'"
+              class="mt-5 p-1 text-muted-foreground/60 hover:text-destructive transition-colors"
+              @click="removeRefField(key)"
+            >
+              <X class="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <!-- Add field -->
+          <div v-if="showAddRefField" class="space-y-2 rounded-lg border border-dashed p-2">
+            <Input v-model="newRefFieldName" placeholder="Field name" class="h-8 text-xs" />
+            <Input v-model="newRefFieldValue" placeholder="Value (optional)" class="h-8 text-xs" @keyup.enter="addRefField" />
+            <div class="flex gap-2">
+              <Button size="sm" variant="default" class="flex-1 h-7 text-xs" @click="addRefField">Add</Button>
+              <Button size="sm" variant="ghost" class="flex-1 h-7 text-xs" @click="showAddRefField = false">Cancel</Button>
+            </div>
+          </div>
+          <button
+            v-else
+            class="text-xs text-primary/60 hover:text-primary transition-colors"
+            @click="showAddRefField = true"
+          >
+            + Add field
+          </button>
+
+          <!-- Attachments -->
+          <div class="pt-2 border-t space-y-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-muted-foreground flex items-center gap-1">
+                <Paperclip class="h-3 w-3" />
+                Attachments
+                <span v-if="stagedFiles.length" class="text-foreground font-medium">({{ stagedFiles.length }}/5)</span>
+              </p>
+            </div>
+
+            <!-- Staged files -->
+            <div v-for="(file, idx) in stagedFiles" :key="idx" class="flex items-center gap-2 text-xs">
+              <FileText class="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span class="flex-1 truncate">{{ file.name }}</span>
+              <span class="text-muted-foreground flex-shrink-0">{{ formatFileSize(file.size) }}</span>
+              <button class="p-0.5 text-muted-foreground/60 hover:text-destructive transition-colors" @click="removeStagedFile(idx)">
+                <X class="h-3 w-3" />
+              </button>
+            </div>
+
+            <!-- Upload trigger -->
+            <button
+              v-if="stagedFiles.length < 5"
+              class="w-full rounded-lg border border-dashed p-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary/70 transition-colors text-center"
+              @click="triggerFileInput"
+            >
+              Tap to attach invoice or document
+            </button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              multiple
+              accept=".jpeg,.jpg,.png,.pdf"
+              class="hidden"
+              @change="handleFileSelect"
+            />
+          </div>
         </div>
 
       </div>
