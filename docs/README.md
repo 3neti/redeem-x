@@ -71,6 +71,10 @@
 | API Testing | [Postman](api/postman/) |
 | Debug | [Troubleshooting](troubleshooting/) |
 
+## 🏦 For IT / Procurement
+
+- **[External Services & Subscriptions](EXTERNAL_SERVICES.md)** — Complete list of internet services needed to run Redeem-X, with Required/Optional status, env vars, and alternatives
+
 ## 🔍 For Auditors
 
 - **Security**: [Security Spec](reference/SECURITY_SPECIFICATION.md), [Data Retention](reference/DATA_RETENTION_POLICY.md)
