@@ -35,10 +35,14 @@ interface Props {
     buttonText?: string;
     buttonProcessingText?: string;
     initialCode?: string | null;
-    routePrefix?: 'redeem' | 'disburse'; // Support both /redeem and /disburse
+    routePrefix?: 'redeem' | 'disburse' | 'pay'; // Support /redeem, /disburse, and /pay
 }
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+    'quote-loaded': [quote: any]
+}>();
 
 const { currentTheme, setTheme, availableThemes } = useTheme();
 const page = usePage();
@@ -47,20 +51,26 @@ const errors = computed(() => page.props.errors as Record<string, string>);
 
 // Get config from props or fallback to shared config
 const config = computed(() => {
-    const widgetConfig = (page.props.redeem as any)?.widget || {};
+    const prefix = props.routePrefix || 'redeem';
+    const widgetConfig = prefix === 'pay'
+        ? (page.props.pay as any)?.widget || {}
+        : (page.props.redeem as any)?.widget || {};
     
-    // Use widgetConfig directly, ignore props for now
+    const defaults = prefix === 'pay'
+        ? { title: 'Pay Voucher', buttonText: 'Continue to Payment', placeholder: 'x x x x', label: 'code' }
+        : { title: 'Redeem Voucher', buttonText: 'Start Redemption', placeholder: 'Enter voucher code', label: 'Voucher Code' };
+
     return {
         showLogo: widgetConfig.show_logo ?? true,
-        showAppName: widgetConfig.show_app_name ?? true,
+        showAppName: widgetConfig.show_app_name ?? (prefix !== 'pay'),
         showLabel: widgetConfig.show_label ?? true,
-        showTitle: widgetConfig.show_title ?? true,
-        showDescription: widgetConfig.show_description ?? false,
-        title: widgetConfig.title ?? 'Redeem Voucher',
+        showTitle: widgetConfig.show_title ?? (prefix !== 'pay'),
+        showDescription: widgetConfig.show_description ?? (prefix === 'pay'),
+        title: widgetConfig.title ?? defaults.title,
         description: widgetConfig.description ?? null,
-        label: widgetConfig.label ?? 'Voucher Code',
-        placeholder: widgetConfig.placeholder ?? 'Enter voucher code',
-        buttonText: widgetConfig.button_text ?? 'Start Redemption',
+        label: widgetConfig.label ?? defaults.label,
+        placeholder: widgetConfig.placeholder ?? defaults.placeholder,
+        buttonText: widgetConfig.button_text ?? defaults.buttonText,
         buttonProcessingText: widgetConfig.button_processing_text ?? 'Checking...',
     };
 });
@@ -144,13 +154,57 @@ const renderedSplash = computed(() => {
     return DOMPurify.sanitize(marked.parse(splash) as string);
 });
 
+// Pay-mode loading state (separate from Inertia form.processing)
+const payLoading = ref(false);
+
+async function submitPay() {
+    const entered = (code.value || form.code || '').trim().toUpperCase();
+    if (!entered) return;
+
+    payLoading.value = true;
+    try {
+        const csrfToken = (page.props as any).csrf_token ||
+            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        const response = await fetch('/pay/quote', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ code: entered }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.log('[RedeemWidget] Pay quote error:', data.error);
+            return;
+        }
+
+        emit('quote-loaded', data);
+    } catch (err: any) {
+        console.error('[RedeemWidget] Pay quote fetch error:', err);
+    } finally {
+        payLoading.value = false;
+    }
+}
+
 function submit() {
+    const prefix = props.routePrefix || 'redeem';
+
+    // Pay mode: fetch quote via API and emit to parent
+    if (prefix === 'pay') {
+        submitPay();
+        return;
+    }
+
     // Use preview code if available, otherwise fall back to form code
     const entered = code.value || form.code;
     form.code = (entered || '').trim().toUpperCase();
     
     // Determine route based on routePrefix prop
-    const prefix = props.routePrefix || 'redeem';
     const submitUrl = prefix === 'disburse' ? '/disburse' : start.url();
     
     // Submit to start route which will validate and redirect
@@ -158,9 +212,6 @@ function submit() {
         preserveState: (page) => {
             // Preserve state only if there are no errors
             const hasErrors = Object.keys(page.props.errors || {}).length > 0;
-            console.log('[RedeemWidget] Response errors:', page.props.errors);
-            console.log('[RedeemWidget] Has errors:', hasErrors);
-            console.log('[RedeemWidget] Preserve state:', !hasErrors);
             return !hasErrors;
         },
         preserveScroll: true,
@@ -221,9 +272,9 @@ function submit() {
                 ref="submitButton"
                 type="submit"
                 :class="routePrefix === 'disburse' ? 'w-full rounded-full' : 'w-full'"
-                :disabled="form.processing || !hasValidCode"
+                :disabled="(routePrefix === 'pay' ? payLoading : form.processing) || !hasValidCode"
             >
-                {{ form.processing ? config.buttonProcessingText : config.buttonText }}
+                {{ (routePrefix === 'pay' ? payLoading : form.processing) ? config.buttonProcessingText : config.buttonText }}
             </Button>
         </form>
 
@@ -310,6 +361,7 @@ function submit() {
                             v-if="voucherData.instructions"
                             :instructions="voucherData.instructions"
                             :voucher-status="voucherData.status"
+                            :flow="routePrefix === 'pay' ? 'pay' : 'redeem'"
                         />
                         <Alert v-else>
                             <AlertCircle class="h-4 w-4" />
@@ -326,7 +378,7 @@ function submit() {
                         />
 
                         <!-- Theme Picker -->
-                        <Card v-if="routePrefix === 'disburse'">
+                        <Card v-if="routePrefix === 'disburse' || routePrefix === 'pay'">
                             <CardHeader class="pb-3">
                                 <div class="flex items-center gap-2">
                                     <Palette class="h-4 w-4 text-primary" />

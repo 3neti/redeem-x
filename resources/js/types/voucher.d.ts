@@ -166,9 +166,12 @@ export interface PayableValidation {
 }
 
 export interface InspectInstructions {
+    voucher_type?: 'redeemable' | 'payable' | 'settlement';
     amount?: number; // optional when scope = requirements_only/none
     currency?: string; // optional
     formatted_amount?: string; // optional
+    target_amount?: number | null; // payable/settlement target
+    formatted_target_amount?: string | null; // formatted target
     required_inputs?: RequiredInput[];
     expires_at?: string | null;
     starts_at?: string | null;

@@ -6,7 +6,7 @@ namespace App\Actions\Api\Vouchers;
 
 use App\Services\UrlUnfurler;
 use Dedoc\Scramble\Attributes\Group;
-use FrittenKeeZ\Vouchers\Models\Voucher;
+use LBHurtado\Voucher\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
@@ -139,15 +139,21 @@ class InspectVoucher
         // Parse instructions from metadata (accessor may fail for some vouchers)
         $instructions = VoucherInstructionsData::from($voucher->metadata['instructions']);
 
-        // Format amount
+        // Check if this is a B2B voucher (has payable restriction)
+        // B2B vouchers ONLY validate vendor alias, skip all other validations
+        $isB2B = ! empty($instructions->cash->validation->payable);
+
+        // Format cash amount (disbursement amount for redeemable/settlement, 0 for payable)
         $formattedAmount = Number::currency(
             $instructions->cash->amount,
             $instructions->cash->currency
         );
 
-        // Check if this is a B2B voucher (has payable restriction)
-        // B2B vouchers ONLY validate vendor alias, skip all other validations
-        $isB2B = ! empty($instructions->cash->validation->payable);
+        // Format target amount if voucher has one (payable/settlement)
+        $targetAmount = $voucher->target_amount ?: null;
+        $formattedTargetAmount = $targetAmount
+            ? Number::currency($targetAmount, $instructions->cash->currency)
+            : null;
 
         // Get required inputs with labels (skip for B2B vouchers)
         $requiredInputs = [];
@@ -162,9 +168,12 @@ class InspectVoucher
 
         // Build instructions response
         $response = [
+            'voucher_type' => $voucher->voucher_type?->value,
             'amount' => $instructions->cash->amount,
             'currency' => $instructions->cash->currency,
             'formatted_amount' => $formattedAmount,
+            'target_amount' => $targetAmount,
+            'formatted_target_amount' => $formattedTargetAmount,
             'required_inputs' => $requiredInputs,
             'expires_at' => $voucher->expires_at?->toISOString(),
             'starts_at' => $voucher->starts_at?->toISOString(),

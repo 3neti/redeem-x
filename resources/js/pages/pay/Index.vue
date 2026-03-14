@@ -2,9 +2,10 @@
 import { ref } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
-import PayWidget from '@/components/PayWidget.vue'
+import RedeemWidget from '@/components/RedeemWidget.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { useQrShare } from '@/composables/useQrShare'
+import { initializeTheme } from '@/composables/useTheme'
 import { ChevronDown, FileText, Download, Info } from 'lucide-vue-next'
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 }
 
 defineProps<Props>()
+
+initializeTheme()
 
 const page = usePage()
 const { toast } = useToast()
@@ -229,12 +232,13 @@ function handleDownloadQr() {
 <template>
   <Head title="Pay Voucher" />
 
-  <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+  <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-gradient-to-b from-primary/5 via-background to-background p-6 md:p-10">
     <div class="w-full max-w-sm">
-      <!-- Step 1: Enter Voucher Code (PayWidget) -->
+      <!-- Step 1: Enter Voucher Code (RedeemWidget with x-ray preview) -->
       <div v-if="!quote">
-        <PayWidget 
-          :initial-code="initial_code" 
+        <RedeemWidget
+          route-prefix="pay"
+          :initial-code="initial_code"
           @quote-loaded="handleQuoteLoaded"
         />
       </div>

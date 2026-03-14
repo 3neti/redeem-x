@@ -31,9 +31,13 @@ interface Props {
     instructions: InspectInstructions;
     voucherStatus: 'active' | 'redeemed' | 'expired' | 'scheduled';
     compact?: boolean;
+    flow?: 'redeem' | 'pay';
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    compact: false,
+    flow: 'redeem',
+});
 
 const statusBadgeVariant = computed(() => {
     switch (props.voucherStatus) {
@@ -55,7 +59,15 @@ const statusText = computed(() => {
 });
 
 const showAmountCard = computed(() => {
-    return !!props.instructions?.formatted_amount;
+    return !!props.instructions?.formatted_amount || !!props.instructions?.formatted_target_amount;
+});
+
+const amountLabel = computed(() => {
+    const type = props.instructions?.voucher_type;
+    if (type === 'payable') return 'Target Amount';
+    if (type === 'settlement') return 'Amount';
+    // Fallback: use flow prop for backward compat (x-ray from /pay vs /disburse)
+    return props.flow === 'pay' ? 'Target Amount' : 'You will receive';
 });
 
 const formattedExpiresAt = computed(() => {
@@ -174,8 +186,25 @@ const riderHostname = computed(() => {
                             <Coins class="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <p class="text-sm text-muted-foreground">You will receive</p>
-                            <p class="text-2xl font-bold">{{ instructions.formatted_amount }}</p>
+                            <!-- Settlement: show "Amount → Target Amount" -->
+                            <template v-if="instructions.voucher_type === 'settlement' && instructions.formatted_target_amount">
+                                <p class="text-sm text-muted-foreground">Amount → Target Amount</p>
+                                <p class="text-2xl font-bold">
+                                    {{ instructions.formatted_amount }}
+                                    <span class="text-base font-normal text-muted-foreground">→</span>
+                                    {{ instructions.formatted_target_amount }}
+                                </p>
+                            </template>
+                            <!-- Payable: show target amount only -->
+                            <template v-else-if="instructions.voucher_type === 'payable' && instructions.formatted_target_amount">
+                                <p class="text-sm text-muted-foreground">Target Amount</p>
+                                <p class="text-2xl font-bold">{{ instructions.formatted_target_amount }}</p>
+                            </template>
+                            <!-- Redeemable (default): show cash amount -->
+                            <template v-else>
+                                <p class="text-sm text-muted-foreground">{{ amountLabel }}</p>
+                                <p class="text-2xl font-bold">{{ instructions.formatted_amount }}</p>
+                            </template>
                         </div>
                     </div>
                     <Badge :variant="statusBadgeVariant">
