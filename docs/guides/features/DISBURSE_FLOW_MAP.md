@@ -1,13 +1,14 @@
 # /disburse Endpoint — UI Rendering Flow Map
 
-**Version**: 1.0
-**Last Updated**: 2025-03-12
+**Version**: 1.1
+**Last Updated**: 2025-03-13
 **Audience**: Human developers + AI agents (Claude Code, Warp Oz, Junie)
 
 This document maps the complete UI rendering sequence for the `/disburse` endpoint — from code entry to success page, including the post-redemption pipeline, events, listeners, and rollback behavior.
 
 > **For form-flow package internals**, see `docs/guides/features/form-flow/`.
 > **For env var reference**, see `docs/guides/features/form-flow/ENV_VARS.md`.
+> **For pay flow comparison**, see `docs/guides/features/PAY_FLOW_MAP.md`.
 
 ---
 
@@ -104,7 +105,33 @@ This document maps the complete UI rendering sequence for the `/disburse` endpoi
 **Route**: `GET /disburse` → `app/Http/Controllers/Disburse/DisburseController.php::start()`
 **Vue**: `resources/js/pages/disburse/Start.vue` → wraps `resources/js/components/RedeemWidget.vue`
 
-`RedeemWidget.vue` renders a single code-input form. On submit it fires `GET /disburse?code=X`.
+### Theme Initialization
+
+`Start.vue` calls `initializeTheme()` from `resources/js/composables/useTheme.ts` on mount. This reads the saved theme from `localStorage` (`pwa-theme` key) and applies the corresponding `theme-{id}` class to `<html>`. Three themes are available: **default** (neutral), **steampunk** (brass & parchment), **amber** (sunlit gold). Theme choice persists across sessions.
+
+All disburse flow pages (`Start.vue`, `Splash.vue`, `GenericForm.vue`, `Complete.vue`, `Success.vue`, `RedeemWidget.vue`) use CSS variable-based theme-aware classes (e.g., `bg-primary/5`, `text-primary`, `border-primary/20`) instead of hardcoded color classes. The theme picker is accessible in `RedeemWidget.vue` under the System Info debug tab (Palette icon).
+
+### Code Entry & Voucher Preview
+
+`RedeemWidget.vue` renders a single code-input form with live voucher preview (via `useVoucherPreview` composable, 500ms debounce, minimum 4 characters). On submit it fires `GET /disburse?code=X`.
+
+### Non-Active Voucher State
+
+When the voucher preview returns a **redeemed** or **expired** status, `RedeemWidget.vue` switches to a compact non-active state designed to fit within iMessage link preview fold:
+
+- Logo, title, code input, and submit button are **hidden** (`v-if="!isNonActive"`)
+- `VoucherStatusStamp.vue` renders: status icon (checkmark/clock), formatted amount, voucher code badge, and human-readable relative date ("3 hours ago" for <7 days, absolute date for older)
+- Tilted passport-style stamp overlay with status text ("REDEEMED" / "EXPIRED")
+- For **returning redeemers** (detected via `form_flow_persist_wallet_info` in localStorage): shows rider splash content (rendered as markdown/HTML/SVG) and OG preview card
+- `OgPreviewCard.vue` displays: OG image (2.4:1 aspect crop), title, single-line description, domain with favicon
+- All shown in tighter spacing (`space-y-2.5`, compact padding) for mobile/embed contexts
+
+**Key new components**:
+- `resources/js/components/voucher/VoucherStatusStamp.vue` — status stamp with relative time
+- `resources/js/components/voucher/OgPreviewCard.vue` — link preview card from OG meta
+- `resources/js/composables/useTheme.ts` — theme management (3 themes, localStorage persistence)
+
+### Flow Initiation
 
 `DisburseController::start()` receives the code, validates the voucher exists and is redeemable, then calls `initiateFlow()`:
 
@@ -116,8 +143,11 @@ This document maps the complete UI rendering sequence for the `/disburse` endpoi
 **Key files (host app)**:
 - `routes/disburse.php` — route definitions
 - `app/Http/Controllers/Disburse/DisburseController.php` — controller
-- `resources/js/pages/disburse/Start.vue` — code entry page
-- `resources/js/components/RedeemWidget.vue` — reusable code input widget
+- `resources/js/pages/disburse/Start.vue` — code entry page (calls `initializeTheme()`)
+- `resources/js/components/RedeemWidget.vue` — reusable code input widget (theme-aware, non-active state)
+- `resources/js/components/voucher/VoucherStatusStamp.vue` — non-active voucher status stamp
+- `resources/js/components/voucher/OgPreviewCard.vue` — OG meta link preview card
+- `resources/js/composables/useTheme.ts` — theme management composable
 - `config/form-flow-drivers/voucher-redemption.yaml` — YAML driver (host-app config)
 
 ---
@@ -136,10 +166,12 @@ When all steps are done, the controller:
 
 **Vue pages** (published to host app at `resources/js/pages/form-flow/`):
 
-- `core/Splash.vue` — splash/welcome screen
-- `core/GenericForm.vue` — dynamic form (wallet, bio steps)
-- `core/Complete.vue` — summary + confirm button
+- `core/Splash.vue` — splash/welcome screen (theme-aware: uses CSS variable classes)
+- `core/GenericForm.vue` — dynamic form, wallet & bio steps (theme-aware: hero field, badges, cards all use `bg-primary/*`, `text-primary`, `border-primary/*` instead of hardcoded amber)
+- `core/Complete.vue` — summary + confirm button (theme-aware)
 - `core/MissingHandler.vue` — fallback for uninstalled handler packages
+
+**Note**: `Splash.vue`, `GenericForm.vue`, and `Complete.vue` are published from the `3neti/form-flow` package (v1.7.11+). After editing these files in the host app, stubs must be synced back to the package. See `docs/guides/ai-development/FORM_FLOW_UI_UPDATE_SOP.md`.
 - `kyc/KYCInitiatePage.vue` — starts HyperVerge flow
 - `kyc/KYCStatusPage.vue` — polls KYC result
 - `otp/OtpCapturePage.vue` — SMS code entry
@@ -337,7 +369,7 @@ When a disbursement fails at redemption time, the voucher is redeemed but `Withd
 **Vue**: `resources/js/pages/disburse/Success.vue`
 
 Displays:
-- Success confirmation with voucher code and amount
+- Success confirmation with voucher code and amount (theme-aware: uses `text-primary`, `bg-primary/10` classes)
 - Rider message rendered by content type (markdown → parsed, HTML/SVG → sanitized, URL → iframe, text → line breaks)
 - Countdown redirect to rider URL (if `rider.url` is set with `rider.redirect_timeout`)
 
@@ -570,10 +602,40 @@ Defined in the YAML driver under `callbacks:`:
 
 ---
 
+## Theming
+
+### CSS Variable-Based Theme System
+
+All disburse flow pages use CSS variable-based classes that respond to theme selection. The `useTheme` composable manages theme state.
+
+**Available themes** (defined in `resources/js/composables/useTheme.ts`):
+
+| Theme ID | Name | CSS class | Description |
+|----------|------|-----------|-------------|
+| `default` | Default | (none — base variables) | Clean, neutral interface |
+| `steampunk` | Steampunk | `theme-steampunk` | Warm brass & aged parchment |
+| `amber` | Amber | `theme-amber` | Sunlit gold, quiet warmth |
+
+**Theme-aware class patterns** (used throughout the flow):
+- Backgrounds: `bg-primary/5`, `bg-primary/10`, `bg-primary/20`
+- Text: `text-primary`, `text-primary-foreground`
+- Borders: `border-primary/20`, `border-primary/30`
+- These resolve to different actual colors depending on the active theme's CSS variables.
+
+**Theme picker**: Located in `RedeemWidget.vue` → System Info tab (toggle via Palette icon). Includes visual previews for each theme.
+
+**Persistence**: Theme ID stored in `localStorage` key `pwa-theme`. Applied on mount via `initializeTheme()` which adds `theme-{id}` class to `<html>`.
+
+**Package sync note**: When editing theme classes in `Splash.vue`, `GenericForm.vue`, or `Complete.vue`, stubs must be synced to `3neti/form-flow` package. See `docs/guides/ai-development/FORM_FLOW_UI_UPDATE_SOP.md`.
+
+---
+
 ## Related Documentation
 
+- Pay flow map: `docs/guides/features/PAY_FLOW_MAP.md`
 - Form-flow package internals: `docs/guides/features/form-flow/`
 - Form-flow env vars: `docs/guides/features/form-flow/ENV_VARS.md`
+- Form-flow UI update SOP: `docs/guides/ai-development/FORM_FLOW_UI_UPDATE_SOP.md`
 - Notification templates: `docs/NOTIFICATION_TEMPLATES.md`
 - Disbursement failure alerts: `docs/DISBURSEMENT_FAILURE_ALERTS.md`
 - Settlement envelope architecture: `docs/architecture/SETTLEMENT_ENVELOPE_ARCHITECTURE.md`
