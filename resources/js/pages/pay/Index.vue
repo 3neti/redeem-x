@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
 import RedeemWidget from '@/components/RedeemWidget.vue'
+import NumericKeypad from '@/components/NumericKeypad.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { useQrShare } from '@/composables/useQrShare'
 import { initializeTheme } from '@/composables/useTheme'
-import { Download, Info, AlertCircle, ArrowLeft, QrCode } from 'lucide-vue-next'
+import { Download, Info, AlertCircle, ArrowLeft, QrCode, Loader2 } from 'lucide-vue-next'
 
 interface Props {
     initial_code?: string | null;
+    initial_action?: string | null;
+    initial_amount?: number | null;
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 initializeTheme()
 
@@ -34,6 +36,77 @@ const paymentQr = ref<any>(null)
 const qrLoading = ref(false)
 const markingDone = ref(false)
 const paymentMarkedDone = ref(false)
+const showAmountKeypad = ref(false)
+const autoFlowRunning = ref(false)
+const autoFlowError = ref('')
+
+// Auto-flow: skip Steps 1-2 when action=generate_qr
+onMounted(async () => {
+  if (props.initial_action !== 'generate_qr' || !props.initial_code) return
+
+  autoFlowRunning.value = true
+  autoFlowError.value = ''
+  voucherCode.value = props.initial_code
+
+  try {
+    // Step 1: Fetch quote
+    const csrfToken = (page.props as any).csrf_token ||
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+
+    const quoteRes = await fetch('/pay/quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ code: props.initial_code }),
+    })
+
+    const quoteData = await quoteRes.json()
+
+    if (!quoteRes.ok) {
+      autoFlowError.value = quoteData.error || 'Invalid voucher code'
+      autoFlowRunning.value = false
+      return
+    }
+
+    quote.value = quoteData
+    const autoAmount = props.initial_amount ?? quoteData.remaining
+    amount.value = autoAmount.toString()
+
+    // Step 2: Generate QR
+    const qrRes = await fetch('/api/v1/pay/generate-qr', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        voucher_code: quoteData.voucher_code,
+        amount: autoAmount,
+      }),
+    })
+
+    const qrData = await qrRes.json()
+
+    if (!qrRes.ok) {
+      // Quote succeeded but QR failed — show Step 2 with error
+      autoFlowError.value = ''
+      error.value = qrData.message || 'Failed to generate QR code'
+      autoFlowRunning.value = false
+      return
+    }
+
+    paymentQr.value = qrData.data
+    showQrStep.value = true
+  } catch (err: any) {
+    autoFlowError.value = err.message || 'Network error'
+  } finally {
+    autoFlowRunning.value = false
+  }
+})
 
 // Handle quote loaded from PayWidget
 function handleQuoteLoaded(quoteData: any) {
@@ -238,8 +311,31 @@ function handleDownloadQr() {
 
   <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-gradient-to-b from-primary/5 via-background to-background p-6 md:p-10">
     <div class="w-full max-w-sm">
+      <!-- Auto-flow loading state -->
+      <div v-if="autoFlowRunning" class="space-y-4">
+        <Card>
+          <CardContent class="pt-8 pb-8 flex flex-col items-center gap-4">
+            <Loader2 class="h-8 w-8 animate-spin text-primary" />
+            <p class="text-sm text-muted-foreground">Preparing payment...</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Auto-flow error fallback (quote failed — show Step 1 with error) -->
+      <div v-else-if="autoFlowError">
+        <Alert variant="destructive" class="mb-4">
+          <AlertCircle class="h-4 w-4" />
+          <AlertDescription>{{ autoFlowError }}</AlertDescription>
+        </Alert>
+        <RedeemWidget
+          route-prefix="pay"
+          :initial-code="initial_code"
+          @quote-loaded="handleQuoteLoaded"
+        />
+      </div>
+
       <!-- Step 1: Enter Voucher Code (RedeemWidget with x-ray preview) -->
-      <div v-if="!quote">
+      <div v-else-if="!quote">
         <RedeemWidget
           route-prefix="pay"
           :initial-code="initial_code"
@@ -273,25 +369,37 @@ function handleDownloadQr() {
             </CardContent>
           </Card>
 
-          <!-- Amount Input -->
-          <Card>
-            <CardContent class="pt-6 space-y-2">
-              <Label for="amount">Payment Amount</Label>
-              <Input
-                id="amount"
-                v-model="amount"
-                type="number"
-                :min="quote.min_amount"
-                :max="quote.max_amount"
-                step="0.01"
-                placeholder="Enter amount"
-                class="text-center text-lg"
-              />
-              <p class="text-xs text-muted-foreground text-center">
-                {{ formatCurrency(quote.min_amount) }} – {{ formatCurrency(quote.max_amount) }}
-              </p>
-            </CardContent>
-          </Card>
+          <!-- Amount Display (tappable → opens keypad) -->
+          <div class="text-center py-4">
+            <p class="text-sm text-muted-foreground mb-1">Payment Amount</p>
+            <p
+              class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
+              @click="showAmountKeypad = true"
+            >
+              {{ amount ? formatCurrency(parseFloat(amount)) : '₱0.00' }}
+            </p>
+            <p class="text-xs text-muted-foreground mt-1">
+              {{ formatCurrency(quote.min_amount) }} – {{ formatCurrency(quote.max_amount) }}
+            </p>
+          </div>
+
+          <!-- Quick Amount Buttons -->
+          <div class="grid grid-cols-3 gap-2">
+            <Button variant="outline" size="sm" @click="amount = Math.ceil(quote.remaining * 0.25).toString()">25%</Button>
+            <Button variant="outline" size="sm" @click="amount = Math.ceil(quote.remaining * 0.5).toString()">50%</Button>
+            <Button variant="outline" size="sm" @click="amount = quote.remaining.toString()">Full</Button>
+          </div>
+
+          <NumericKeypad
+            :open="showAmountKeypad"
+            :model-value="amount ? parseFloat(amount) : null"
+            mode="amount"
+            :min="quote.min_amount"
+            :max="quote.max_amount"
+            :allow-decimal="true"
+            @update:open="showAmountKeypad = $event"
+            @confirm="(v: number) => { amount = v.toString() }"
+          />
 
           <!-- Error -->
           <Alert v-if="error" variant="destructive">

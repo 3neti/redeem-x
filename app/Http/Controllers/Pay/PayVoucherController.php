@@ -28,10 +28,14 @@ class PayVoucherController extends Controller
         }
 
         $code = request()->query('code');
+        $action = request()->query('action');
+        $amount = request()->query('amount');
 
         return inertia('pay/Index', [
             'pay' => config('pay'),
             'initial_code' => $code,
+            'initial_action' => $action,
+            'initial_amount' => $amount ? (float) $amount : null,
         ]);
     }
 
