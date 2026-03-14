@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Banknote, ChevronDown, Code, Lock, Send, Ban, RotateCcw, Loader2 } from 'lucide-vue-next';
+import { Banknote, ChevronDown, Code, Lock, Send, Ban, RotateCcw, Loader2, FileText, Paperclip, ExternalLink, CheckCircle2, Clock as ClockIcon } from 'lucide-vue-next';
 import RedemptionSummary from './RedemptionSummary.vue';
 import DeductionBreakdown from './DeductionBreakdown.vue';
 import PaymentTimeline from './PaymentTimeline.vue';
@@ -120,6 +120,51 @@ const handleOpenChange = (value: boolean) => {
 const hasEnvelope = computed(() => !!props.voucherData.envelope);
 const envelope = computed(() => props.voucherData.envelope);
 const canUpload = computed(() => envelope.value?.status_helpers?.can_edit ?? false);
+
+// Envelope reference & documents for Payments tab
+const envelopePayload = computed(() => envelope.value?.payload || {});
+const hasPayload = computed(() => Object.keys(envelopePayload.value).length > 0);
+const envelopeAttachments = computed(() => envelope.value?.attachments ?? []);
+const hasAttachments = computed(() => envelopeAttachments.value.length > 0);
+
+const humanizeKey = (key: string): string => {
+  return key
+    .replace(/[_-]/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, c => c.toUpperCase());
+};
+
+const flattenPayload = (obj: Record<string, any>, prefix = ''): Array<{ key: string; value: string }> => {
+  const entries: Array<{ key: string; value: string }> = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const label = prefix ? `${prefix} › ${humanizeKey(k)}` : humanizeKey(k);
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      entries.push(...flattenPayload(v, label));
+    } else if (v !== null && v !== undefined && v !== '') {
+      entries.push({ key: label, value: Array.isArray(v) ? v.join(', ') : String(v) });
+    }
+  }
+  return entries;
+};
+
+const payloadEntries = computed(() => flattenPayload(envelopePayload.value));
+
+const formatFileSize = (bytes?: number | null): string => {
+  if (!bytes) return '';
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+};
+
+const getReviewIcon = (status: string) => {
+  return status === 'accepted' ? CheckCircle2 : ClockIcon;
+};
+
+const getReviewColor = (status: string): string => {
+  return status === 'accepted' 
+    ? 'text-green-600 dark:text-green-400' 
+    : 'text-muted-foreground';
+};
 
 // Envelope actions
 const envelopeLoading = ref(false);
@@ -318,7 +363,72 @@ const formatCurrency = (amount: number) => {
                 :target-amount="voucherData.target_amount"
                 :voucher-type="voucherData.voucher_type"
                 @payment-confirmed="emit('paymentConfirmed')"
-              />
+              >
+                <template #after-target>
+                  <!-- Reference Data -->
+                  <Card v-if="hasEnvelope && hasPayload">
+                    <CardHeader class="pb-3">
+                      <div class="flex items-center gap-2">
+                        <FileText class="h-4 w-4 text-muted-foreground" />
+                        <CardTitle class="text-base">Reference</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent class="pt-0">
+                      <div class="divide-y">
+                        <div
+                          v-for="entry in payloadEntries"
+                          :key="entry.key"
+                          class="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
+                        >
+                          <span class="text-sm text-muted-foreground shrink-0">{{ entry.key }}</span>
+                          <span class="text-sm font-medium text-right truncate">{{ entry.value }}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <!-- Documents -->
+                  <Card v-if="hasEnvelope && hasAttachments">
+                    <CardHeader class="pb-3">
+                      <div class="flex items-center gap-2">
+                        <Paperclip class="h-4 w-4 text-muted-foreground" />
+                        <CardTitle class="text-base">Documents</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent class="pt-0">
+                      <div class="divide-y">
+                        <a
+                          v-for="att in envelopeAttachments"
+                          :key="att.id"
+                          :href="att.url || '#'"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="flex items-center gap-3 py-3 first:pt-0 last:pb-0 group"
+                        >
+                          <div class="shrink-0 w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+                            <FileText class="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                              {{ att.original_filename || att.doc_type.toLowerCase().replace(/_/g, ' ') }}
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                              {{ att.doc_type.toLowerCase().replace(/_/g, ' ') }}
+                              <span v-if="att.size"> · {{ formatFileSize(att.size) }}</span>
+                            </p>
+                          </div>
+                          <component
+                            :is="getReviewIcon(att.review_status)"
+                            class="h-4 w-4 shrink-0"
+                            :class="getReviewColor(att.review_status)"
+                          />
+                          <ExternalLink class="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                        </a>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </template>
+              </PaymentTimeline>
             </TabsContent>
 
             <TabsContent value="envelope" class="mt-0">

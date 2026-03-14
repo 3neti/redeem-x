@@ -405,6 +405,9 @@ onMounted(() => {
         </div>
       </CardContent>
     </Card>
+
+    <!-- Slot for injecting content between target and stats -->
+    <slot name="after-target" />
     
     <!-- Summary Stats -->
     <div v-if="transactions.length > 0" class="grid grid-cols-2 gap-4">
