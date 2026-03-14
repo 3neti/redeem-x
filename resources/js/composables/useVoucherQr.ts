@@ -7,7 +7,11 @@ export interface VoucherQrData {
     voucher_code: string;   // Just the code
 }
 
-export function useVoucherQr(voucherCode: MaybeRef<string>, redemptionPath: MaybeRef<string> = '/disburse') {
+export function useVoucherQr(
+    voucherCode: MaybeRef<string>,
+    redemptionPath: MaybeRef<string> = '/disburse',
+    extraParams: MaybeRef<Record<string, string>> = {},
+) {
     const qrData = ref<VoucherQrData | null>(null);
     const loading = ref(false);
     const error = ref<string | null>(null);
@@ -20,7 +24,8 @@ export function useVoucherQr(voucherCode: MaybeRef<string>, redemptionPath: Mayb
             // Unwrap reactive values at generation time
             const code = unref(voucherCode);
             const path = unref(redemptionPath);
-            const redemptionUrl = `${window.location.origin}${path}?code=${code}`;
+            const params = new URLSearchParams({ code, ...unref(extraParams) });
+            const redemptionUrl = `${window.location.origin}${path}?${params.toString()}`;
             
             // Generate QR code as data URL
             const qrCode = await QRCode.toDataURL(redemptionUrl, {

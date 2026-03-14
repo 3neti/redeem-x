@@ -83,9 +83,19 @@ const getRedemptionPath = () => {
     }
 };
 
+// Extra params for payable/settlement QR codes — triggers auto-QR flow when scanned
+const qrExtraParams = computed(() => {
+    if (props.voucher.voucher_type === 'payable' || props.voucher.voucher_type === 'settlement') {
+        const amount = props.voucher.target_amount || props.voucher.amount;
+        return { action: 'generate_qr', amount: String(amount) };
+    }
+    return {};
+});
+
 const { qrData, loading: qrLoading, error: qrError, generateQr } = useVoucherQr(
-    props.voucher.code, 
-    getRedemptionPath()
+    props.voucher.code,
+    getRedemptionPath(),
+    qrExtraParams,
 );
 
 // Generate QR on mount
