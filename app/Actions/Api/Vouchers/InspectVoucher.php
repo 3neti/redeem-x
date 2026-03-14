@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Number;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
+use LBHurtado\Voucher\Enums\VoucherType;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -114,6 +115,11 @@ class InspectVoucher
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        // Add envelope data for payable/settlement vouchers (reference details + documents)
+        if (in_array($voucher->voucher_type, [VoucherType::PAYABLE, VoucherType::SETTLEMENT])) {
+            $response['envelope'] = $this->formatEnvelopeData($voucher);
         }
 
         // Add OG meta for rider URL (server-side unfurl, cached)
@@ -341,6 +347,56 @@ class InspectVoucher
     private function formatPayableDescription(string $payable): string
     {
         return "This is a business-to-business voucher restricted to vendor {$payable}. Only authorized personnel from this vendor can redeem this voucher.";
+    }
+
+    /**
+     * Format envelope data (payload + attachments) for public display.
+     */
+    private function formatEnvelopeData(Voucher $voucher): ?array
+    {
+        $envelope = $voucher->envelope;
+        if (! $envelope) {
+            return null;
+        }
+
+        $data = [
+            'payload' => $envelope->payload,
+        ];
+
+        $attachments = $envelope->attachments;
+        if ($attachments && $attachments->isNotEmpty()) {
+            $data['attachments'] = $attachments->map(function ($attachment) {
+                return [
+                    'id' => $attachment->id,
+                    'file_name' => $attachment->original_filename,
+                    'mime_type' => $attachment->mime_type,
+                    'size' => $attachment->size,
+                    'human_readable_size' => $this->humanReadableSize($attachment->size),
+                    'url' => \Storage::disk($attachment->disk ?? 'public')->url($attachment->file_path),
+                ];
+            })->toArray();
+        }
+
+        return $data;
+    }
+
+    /**
+     * Convert bytes to human readable size.
+     */
+    private function humanReadableSize(?int $bytes): string
+    {
+        if (! $bytes) {
+            return '0 B';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**

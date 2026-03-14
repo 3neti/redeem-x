@@ -15,7 +15,8 @@ import VoucherInstructionsDisplay from '@/components/voucher/VoucherInstructions
 import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.vue';
 import VoucherStatusStamp from '@/components/voucher/VoucherStatusStamp.vue';
 import OgPreviewCard from '@/components/voucher/OgPreviewCard.vue';
-import { AlertCircle, Palette } from 'lucide-vue-next';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { AlertCircle, Palette, FileText, Download, ChevronDown, Info } from 'lucide-vue-next';
 import { useVoucherPreview } from '@/composables/useVoucherPreview';
 import { useTheme } from '@/composables/useTheme';
 import { wallet, start } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
@@ -139,6 +140,14 @@ const isReturningRedeemer = computed(() => {
         return false;
     }
 });
+
+// Envelope data helpers for pay-mode x-ray
+const envelopePayload = computed(() => voucherData.value?.envelope?.payload ?? null);
+const envelopeAttachments = computed(() => voucherData.value?.envelope?.attachments ?? []);
+const hasEnvelopePayload = computed(() => envelopePayload.value && Object.keys(envelopePayload.value).length > 0);
+const hasEnvelopeAttachments = computed(() => envelopeAttachments.value.length > 0);
+
+const titleCase = (str: string) => str.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // Render rider splash content (markdown/html/svg)
 const renderedSplash = computed(() => {
@@ -341,7 +350,125 @@ function submit() {
                 </template>
             </div>
 
-            <!-- Active State: Preview Tabs -->
+            <!-- Active State: Pay-mode single-card x-ray -->
+            <div v-else-if="voucherData && routePrefix === 'pay'" class="space-y-3">
+                <!-- Preview Message -->
+                <Alert v-if="voucherData.preview && voucherData.preview.message" variant="default">
+                    <AlertDescription>
+                        <strong class="font-semibold">Note from issuer:</strong> {{ voucherData.preview.message }}
+                    </AlertDescription>
+                </Alert>
+
+                <!-- 1. Amount Card -->
+                <VoucherInstructionsDisplay
+                    v-if="voucherData.instructions"
+                    :instructions="voucherData.instructions"
+                    :voucher-status="voucherData.status"
+                    flow="pay"
+                    compact
+                />
+
+                <!-- 2. Reference Details -->
+                <Card v-if="hasEnvelopePayload">
+                    <CardHeader class="pb-2 pt-4 px-4">
+                        <CardTitle class="text-sm font-medium text-muted-foreground">Reference Details</CardTitle>
+                    </CardHeader>
+                    <CardContent class="px-4 pb-4 pt-0">
+                        <div class="space-y-2">
+                            <div
+                                v-for="(value, key) in envelopePayload"
+                                :key="key"
+                                class="flex justify-between items-baseline gap-4"
+                            >
+                                <span class="text-xs text-muted-foreground shrink-0">{{ titleCase(String(key)) }}</span>
+                                <span class="text-sm font-medium text-right truncate">{{ value }}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- 3. Documents -->
+                <Card v-if="hasEnvelopeAttachments">
+                    <CardHeader class="pb-2 pt-4 px-4">
+                        <CardTitle class="text-sm font-medium text-muted-foreground">Documents</CardTitle>
+                    </CardHeader>
+                    <CardContent class="px-4 pb-4 pt-0">
+                        <div class="space-y-2">
+                            <a
+                                v-for="attachment in envelopeAttachments"
+                                :key="attachment.id"
+                                :href="attachment.url"
+                                target="_blank"
+                                class="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 group"
+                            >
+                                <FileText class="h-4 w-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">{{ attachment.file_name }}</div>
+                                    <div class="text-xs text-muted-foreground">{{ attachment.human_readable_size }}</div>
+                                </div>
+                                <Download class="h-4 w-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                            </a>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- 4. System Info (collapsed by default) -->
+                <Collapsible>
+                    <CollapsibleTrigger class="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <Info class="h-4 w-4" />
+                            <span>System Info</span>
+                        </div>
+                        <ChevronDown class="h-4 w-4 transition-transform [[data-state=open]>&]:rotate-180" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent class="pt-3 space-y-3">
+                        <VoucherMetadataDisplay
+                            :metadata="voucherData.metadata"
+                            :show-all-fields="true"
+                            compact
+                        />
+
+                        <!-- Theme Picker -->
+                        <Card>
+                            <CardHeader class="pb-3">
+                                <div class="flex items-center gap-2">
+                                    <Palette class="h-4 w-4 text-primary" />
+                                    <CardTitle class="text-sm">Theme</CardTitle>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button
+                                        v-for="theme in availableThemes"
+                                        :key="theme.id"
+                                        @click="setTheme(theme.id)"
+                                        :class="[
+                                            'relative rounded-lg border-2 p-2 text-left transition-all',
+                                            currentTheme === theme.id
+                                                ? 'border-primary ring-1 ring-primary/20'
+                                                : 'border-border hover:border-primary/40',
+                                        ]"
+                                    >
+                                        <div class="mb-1.5 flex h-5 gap-0.5 rounded overflow-hidden">
+                                            <div :class="[theme.preview.bg, 'flex-1']" />
+                                            <div :class="[theme.preview.accent, 'w-2']" />
+                                        </div>
+                                        <div class="font-medium text-xs">{{ theme.name }}</div>
+                                        <div
+                                            v-if="currentTheme === theme.id"
+                                            class="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-primary flex items-center justify-center"
+                                        >
+                                            <span class="text-primary-foreground text-[8px]">✓</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </CollapsibleContent>
+                </Collapsible>
+            </div>
+
+            <!-- Active State: Tabbed preview (redeem/disburse) -->
             <div v-else-if="voucherData">
                 <!-- Preview Message (if provided by issuer) -->
                 <Alert v-if="voucherData.preview && voucherData.preview.message" class="mb-4" variant="default">
@@ -361,7 +488,6 @@ function submit() {
                             v-if="voucherData.instructions"
                             :instructions="voucherData.instructions"
                             :voucher-status="voucherData.status"
-                            :flow="routePrefix === 'pay' ? 'pay' : 'redeem'"
                         />
                         <Alert v-else>
                             <AlertCircle class="h-4 w-4" />
@@ -378,7 +504,7 @@ function submit() {
                         />
 
                         <!-- Theme Picker -->
-                        <Card v-if="routePrefix === 'disburse' || routePrefix === 'pay'">
+                        <Card v-if="routePrefix === 'disburse'">
                             <CardHeader class="pb-3">
                                 <div class="flex items-center gap-2">
                                     <Palette class="h-4 w-4 text-primary" />

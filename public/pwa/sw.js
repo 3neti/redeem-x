@@ -1,5 +1,5 @@
 // Auto-stamped by Vite build plugin — DO NOT edit this line manually
-const SW_BUILD = '2026-03-14T02:29:20.315Z';
+const SW_BUILD = '2026-03-14T03:33:18.695Z';
 const CACHE_NAME = `redeem-x-pwa-${SW_BUILD}`;
 const OFFLINE_URL = '/pwa/offline';
 

@@ -202,6 +202,20 @@ export interface PreviewPolicy {
     message?: string;
 }
 
+export interface EnvelopeAttachment {
+    id: number;
+    file_name: string;
+    mime_type: string;
+    size: number;
+    human_readable_size: string;
+    url: string;
+}
+
+export interface EnvelopeData {
+    payload?: Record<string, any>;
+    attachments?: EnvelopeAttachment[];
+}
+
 export interface InspectResponse {
     success: boolean;
     code: string;
@@ -210,6 +224,7 @@ export interface InspectResponse {
     info: any;
     preview?: PreviewPolicy;
     instructions?: InspectInstructions;
+    envelope?: EnvelopeData | null;
     redeemed_at?: string | null;
     expired_at?: string | null;
     og_meta?: OgMeta | null;

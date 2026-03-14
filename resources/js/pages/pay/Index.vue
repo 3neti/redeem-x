@@ -3,10 +3,15 @@ import { ref } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import QrDisplay from '@/components/shared/QrDisplay.vue'
 import RedeemWidget from '@/components/RedeemWidget.vue'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { useQrShare } from '@/composables/useQrShare'
 import { initializeTheme } from '@/composables/useTheme'
-import { ChevronDown, FileText, Download, Info } from 'lucide-vue-next'
+import { Download, Info, AlertCircle, ArrowLeft, QrCode } from 'lucide-vue-next'
 
 interface Props {
     initial_code?: string | null;
@@ -29,7 +34,6 @@ const paymentQr = ref<any>(null)
 const qrLoading = ref(false)
 const markingDone = ref(false)
 const paymentMarkedDone = ref(false)
-const showExternalMetadata = ref(false)
 
 // Handle quote loaded from PayWidget
 function handleQuoteLoaded(quoteData: any) {
@@ -243,224 +247,173 @@ function handleDownloadQr() {
         />
       </div>
 
-      <!-- Main Card (Steps 2-3) -->
-      <div v-else class="bg-white rounded-lg shadow-md p-6">
+      <!-- Step 2-3 -->
+      <div v-else class="space-y-4">
 
-        <!-- Step 2: Payment Details -->
-        <div v-if="!showQrStep" class="space-y-6">
-          <div>
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment Details</h2>
-            
-            <div class="space-y-3 bg-gray-50 p-4 rounded-lg">
-              <div class="flex justify-between">
-                <span class="text-gray-600">Voucher Code:</span>
-                <span class="font-mono font-semibold">{{ quote.voucher_code }}</span>
+        <!-- Step 2: Payment Action -->
+        <div v-if="!showQrStep" class="space-y-4">
+          <!-- Financial Summary -->
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-base">Payment Summary</CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-muted-foreground">Target</span>
+                <span class="text-sm font-medium">{{ formatCurrency(quote.target_amount) }}</span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Type:</span>
-                <span class="capitalize">{{ quote.voucher_type }}</span>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-muted-foreground">Paid</span>
+                <span class="text-sm font-medium text-emerald-600">{{ formatCurrency(quote.paid_total) }}</span>
               </div>
-              
-              <!-- External Metadata (collapsible if present) -->
-              <div v-if="quote.external_metadata && Object.keys(quote.external_metadata).length > 0" class="border-t pt-3 space-y-2">
-                <button
-                  @click="showExternalMetadata = !showExternalMetadata"
-                  class="w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition"
-                >
-                  <span>Payment Details</span>
-                  <ChevronDown 
-                    class="h-3 w-3 transition-transform" 
-                    :class="{ 'rotate-180': showExternalMetadata }"
-                  />
-                </button>
-                
-                <div v-if="showExternalMetadata" class="space-y-1">
-                  <pre class="overflow-x-auto rounded-md bg-gray-100 p-3 text-xs"><code>{{ JSON.stringify(quote.external_metadata, null, 2) }}</code></pre>
-                </div>
+              <div class="border-t pt-3 flex justify-between items-center">
+                <span class="text-sm font-semibold">Remaining</span>
+                <span class="text-lg font-bold text-primary">{{ formatCurrency(quote.remaining) }}</span>
               </div>
-              
-              <!-- Attachments -->
-              <div v-if="quote.attachments && quote.attachments.length > 0" class="border-t pt-3 space-y-2">
-                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Attachments</div>
-                <div class="space-y-2">
-                  <a
-                    v-for="attachment in quote.attachments"
-                    :key="attachment.id"
-                    :href="attachment.url"
-                    target="_blank"
-                    class="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded hover:bg-gray-50 hover:border-blue-300 transition group"
-                  >
-                    <FileText class="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
-                    <div class="flex-1 min-w-0">
-                      <div class="text-sm font-medium text-gray-900 truncate">{{ attachment.file_name }}</div>
-                      <div class="text-xs text-gray-500">{{ attachment.human_readable_size }}</div>
-                    </div>
-                    <Download class="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
-                  </a>
-                </div>
-              </div>
-              
-              <div class="flex justify-between" :class="{ 'border-t pt-3': quote.external_metadata && Object.keys(quote.external_metadata).length > 0 }">
-                <span class="text-gray-600">Target Amount:</span>
-                <span class="font-semibold">{{ formatCurrency(quote.target_amount) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Paid Total:</span>
-                <span class="text-green-600">{{ formatCurrency(quote.paid_total) }}</span>
-              </div>
-              <div class="flex justify-between border-t pt-3">
-                <span class="text-gray-900 font-semibold">Remaining:</span>
-                <span class="text-blue-600 font-bold text-lg">{{ formatCurrency(quote.remaining) }}</span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div>
-            <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
-              Payment Amount
-            </label>
-            <input
-              id="amount"
-              v-model="amount"
-              type="number"
-              :min="quote.min_amount"
-              :max="quote.max_amount"
-              step="0.01"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter amount"
-            />
-            <p class="text-xs text-gray-500 mt-1">
-              Min: {{ formatCurrency(quote.min_amount) }} | Max: {{ formatCurrency(quote.max_amount) }}
-            </p>
-          </div>
+          <!-- Amount Input -->
+          <Card>
+            <CardContent class="pt-6 space-y-2">
+              <Label for="amount">Payment Amount</Label>
+              <Input
+                id="amount"
+                v-model="amount"
+                type="number"
+                :min="quote.min_amount"
+                :max="quote.max_amount"
+                step="0.01"
+                placeholder="Enter amount"
+                class="text-center text-lg"
+              />
+              <p class="text-xs text-muted-foreground text-center">
+                {{ formatCurrency(quote.min_amount) }} – {{ formatCurrency(quote.max_amount) }}
+              </p>
+            </CardContent>
+          </Card>
 
+          <!-- Error -->
+          <Alert v-if="error" variant="destructive">
+            <AlertCircle class="h-4 w-4" />
+            <AlertDescription>{{ error }}</AlertDescription>
+          </Alert>
+
+          <!-- Actions -->
           <div class="flex gap-3">
-            <button
-              @click="resetFlow"
-              class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-            >
+            <Button variant="outline" class="flex-1" @click="resetFlow">
+              <ArrowLeft class="h-4 w-4 mr-2" />
               Back
-            </button>
-            <button
-              @click="generatePaymentQR"
+            </Button>
+            <Button
+              class="flex-1"
               :disabled="qrLoading || !amount || parseFloat(amount) <= 0"
-              class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+              @click="generatePaymentQR"
             >
+              <QrCode class="h-4 w-4 mr-2" />
               {{ qrLoading ? 'Generating...' : 'Generate QR' }}
-            </button>
+            </Button>
           </div>
 
-          <p v-if="error" class="text-red-600 text-sm text-center">{{ error }}</p>
-
-          <p class="text-xs text-center text-gray-500">
+          <p class="text-xs text-center text-muted-foreground">
             Payment via InstaPay • Secure • Real-time
           </p>
         </div>
         
         <!-- Step 3: QR Code Display -->
-        <div v-else class="space-y-6">
-          <div>
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment QR Code</h2>
-            
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p class="text-sm text-blue-800">
-                <strong>Scan this QR code</strong> to make a payment of 
-                <strong class="text-lg">{{ formatCurrency(parseFloat(amount)) }}</strong>
-                to voucher <strong class="font-mono">{{ quote.voucher_code }}</strong>
+        <div v-else class="space-y-4">
+          <!-- QR Header -->
+          <Card>
+            <CardContent class="pt-6 pb-4 text-center">
+              <p class="text-sm text-muted-foreground">
+                Scan to pay <span class="font-bold text-foreground text-lg">{{ formatCurrency(parseFloat(amount)) }}</span>
               </p>
-            </div>
-            
-            <div class="flex justify-center py-4">
-              <div class="w-full max-w-xs">
-                <QrDisplay
-                  :qr-code="paymentQr?.qr_code ?? null"
-                  :loading="qrLoading"
-                  :error="error"
-                />
-              </div>
-            </div>
-            
-            <!-- Download Button -->
-            <button
-              @click="handleDownloadQr"
-              :disabled="!paymentQr?.qr_code"
-              class="w-full bg-gray-100 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
-            >
-              <Download class="h-5 w-5" />
-              Download QR Code
-            </button>
-            
-            <!-- Mobile Usage Instructions -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div class="text-sm text-blue-800">
-                <strong class="block mb-1">Using a mobile device?</strong>
-                <p>Download this QR code, then upload it in your GCash or Maya app to complete the payment.</p>
-              </div>
-            </div>
-            
-            <div class="text-center space-y-2">
-              <p class="text-sm text-gray-600">
-                Scan with GCash, Maya, or any InstaPay-enabled app
-              </p>
-              <p class="text-xs text-gray-500 font-mono">
-                QR ID: {{ paymentQr?.qr_id }}
-              </p>
-              <p v-if="paymentQr?.expires_at" class="text-xs text-amber-600">
-                Expires: {{ new Date(paymentQr.expires_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) }}
-              </p>
+              <p class="text-xs text-muted-foreground font-mono mt-1">{{ quote.voucher_code }}</p>
+            </CardContent>
+          </Card>
+
+          <!-- QR Code -->
+          <div class="flex justify-center py-2">
+            <div class="w-full max-w-xs">
+              <QrDisplay
+                :qr-code="paymentQr?.qr_code ?? null"
+                :loading="qrLoading"
+                :error="error"
+              />
             </div>
           </div>
-          
-          <!-- Payment Done Confirmation -->
-          <div v-if="!paymentMarkedDone" class="bg-amber-50 border-2 border-amber-300 rounded-lg p-5 shadow-md">
-            <p class="text-sm text-amber-900 mb-4 font-medium text-center">
-              After paying, click here <strong class="text-amber-700">OR</strong> check your SMS
-            </p>
-            <button
-              @click="markPaymentDone"
-              :disabled="markingDone"
-              class="group relative w-full bg-green-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-              :class="{ 'animate-pulse': !markingDone }"
-            >
-              <span class="inline-flex items-center justify-center gap-2">
-                <span class="text-2xl transition-transform group-hover:scale-125 group-hover:rotate-12">✓</span>
-                <span>{{ markingDone ? 'Processing...' : 'Payment Done' }}</span>
-              </span>
-            </button>
-            <p class="text-xs text-amber-700 mt-3 text-center">
-              You'll receive a confirmation link via SMS
+
+          <!-- Download -->
+          <Button
+            variant="outline"
+            class="w-full"
+            :disabled="!paymentQr?.qr_code"
+            @click="handleDownloadQr"
+          >
+            <Download class="h-4 w-4 mr-2" />
+            Download QR Code
+          </Button>
+
+          <!-- Mobile Hint -->
+          <Alert>
+            <Info class="h-4 w-4" />
+            <AlertDescription>
+              <strong>On mobile?</strong> Download the QR code and upload it in your GCash or Maya app.
+            </AlertDescription>
+          </Alert>
+
+          <!-- QR Meta -->
+          <div class="text-center space-y-1">
+            <p class="text-xs text-muted-foreground">GCash · Maya · InstaPay</p>
+            <p class="text-xs text-muted-foreground font-mono">{{ paymentQr?.qr_id }}</p>
+            <p v-if="paymentQr?.expires_at" class="text-xs text-amber-600">
+              Expires {{ new Date(paymentQr.expires_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) }}
             </p>
           </div>
-          
-          <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p class="text-sm text-green-800 text-center">
-              ✓ Payment marked as done! The voucher owner will confirm receipt.
-            </p>
-          </div>
-          
-          <p v-if="error" class="text-red-600 text-sm text-center">{{ error }}</p>
-          
+
+          <!-- Payment Done -->
+          <Card v-if="!paymentMarkedDone" class="border-amber-200 bg-amber-50/50">
+            <CardContent class="pt-5 pb-5 space-y-3">
+              <p class="text-sm text-center text-muted-foreground">
+                After paying, tap below <strong>or</strong> check your SMS
+              </p>
+              <Button
+                class="w-full h-12 text-base"
+                :disabled="markingDone"
+                @click="markPaymentDone"
+              >
+                {{ markingDone ? 'Processing...' : '✓ Payment Done' }}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Alert v-else class="border-emerald-200 bg-emerald-50/50">
+            <AlertDescription class="text-center text-emerald-700">
+              ✓ Payment marked as done. The voucher owner will confirm receipt.
+            </AlertDescription>
+          </Alert>
+
+          <!-- Error -->
+          <Alert v-if="error" variant="destructive">
+            <AlertCircle class="h-4 w-4" />
+            <AlertDescription>{{ error }}</AlertDescription>
+          </Alert>
+
+          <!-- Navigation -->
           <div class="flex gap-3">
-            <button
-              @click="backToDetails"
-              class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-            >
+            <Button variant="outline" class="flex-1" @click="backToDetails">
               Back
-            </button>
-            <button
-              @click="resetFlow"
-              class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-            >
+            </Button>
+            <Button variant="outline" class="flex-1" @click="resetFlow">
               New Payment
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       <!-- Footer -->
-      <p class="text-center text-sm text-gray-500 mt-6">
-        Settlement Vouchers • Powered by x-Change
+      <p class="text-center text-xs text-muted-foreground mt-6">
+        Settlement Vouchers · Powered by x-Change
       </p>
     </div>
   </div>
