@@ -34,7 +34,25 @@ class DisburseCash
             Log::debug('[DisburseCash] Starting', ['voucher' => $voucher->code]);
         }
 
-        $input = DisburseInputData::fromVoucher($voucher);
+        // Compute slice amount for divisible vouchers (first slice on redemption)
+        $sliceAmount = null;
+        $sliceNumber = null;
+        if ($voucher->isDivisible()) {
+            if ($voucher->getSliceMode() === 'fixed') {
+                $sliceAmount = $voucher->getSliceAmount();
+                $sliceNumber = 1;
+            } else {
+                // Open mode: skip auto-disbursement on redemption.
+                // Redeemer chooses amount via /withdraw page.
+                Log::info('[DisburseCash] Open-mode divisible voucher — skipping auto-disburse, redeemer uses /withdraw', [
+                    'voucher' => $voucher->code,
+                ]);
+
+                return $next($voucher);
+            }
+        }
+
+        $input = DisburseInputData::fromVoucher($voucher, amount: $sliceAmount, sliceNumber: $sliceNumber);
 
         event(new DisburseInputPrepared($voucher, $input));
 
@@ -122,6 +140,7 @@ class DisburseCash
 
         // Withdraw funds from cash wallet (money has left the system)
         $cash = $voucher->cash;
+        $withdrawAmountCentavos = $sliceAmount !== null ? (int) ($sliceAmount * 100) : null;
         $withdrawal = WithdrawCash::run(
             $cash,
             $response->transaction_id,
@@ -133,7 +152,9 @@ class DisburseCash
                 'counterparty' => $bankName,
                 'reference' => $input->account_number,
                 'idempotency_key' => $response->uuid,
-            ]
+                'slice_number' => $sliceNumber,
+            ],
+            $withdrawAmountCentavos
         );
 
         $voucher->metadata = array_merge(

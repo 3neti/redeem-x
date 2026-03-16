@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Voucher;
 
+use App\Http\Responses\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Models\Contact;
 use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Actions\WithdrawCash;
+use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -22,6 +25,50 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class WithdrawFromVoucher
 {
     use AsAction;
+
+    /**
+     * API endpoint: POST /api/v1/vouchers/{code}/withdraw
+     */
+    public function asController(Voucher $voucher, ActionRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        // Look up contact by mobile
+        $contact = $voucher->contact;
+
+        if (! $contact) {
+            return ApiResponse::error('This voucher has not been redeemed yet.', 422);
+        }
+
+        // Normalize mobile for comparison (last 10 digits)
+        $normalizedInput = preg_replace('/\D/', '', $validated['mobile']);
+        $normalizedContact = preg_replace('/\D/', '', $contact->mobile ?? '');
+
+        if (substr($normalizedInput, -10) !== substr($normalizedContact, -10)) {
+            return ApiResponse::error('Mobile number does not match the original redeemer.', 403);
+        }
+
+        $amount = isset($validated['amount']) ? (float) $validated['amount'] : null;
+
+        try {
+            $result = $this->handle($voucher, $contact, $amount);
+        } catch (\RuntimeException|\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+
+        return ApiResponse::success($result);
+    }
+
+    /**
+     * Validation rules for API endpoint.
+     */
+    public function rules(): array
+    {
+        return [
+            'mobile' => 'required|string',
+            'amount' => 'nullable|numeric|min:1',
+        ];
+    }
 
     /**
      * @param  Voucher  $voucher  The divisible voucher

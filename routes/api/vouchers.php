@@ -63,6 +63,11 @@ Route::prefix('vouchers')->name('api.vouchers.')->group(function () {
     Route::post('{voucher:code}/timing/submit', [\App\Actions\Api\Vouchers\TrackRedemptionSubmit::class, 'asController'])
         ->name('timing.submit');
 
+    // Withdraw slice from divisible voucher (public-ish — validates via mobile match)
+    // POST /api/v1/vouchers/{code}/withdraw
+    Route::post('{voucher:code}/withdraw', [\App\Actions\Voucher\WithdrawFromVoucher::class, 'asController'])
+        ->name('withdraw');
+
     // Cancel voucher (if not redeemed)
     // DELETE /api/v1/vouchers/{voucher}
     Route::delete('{voucher:code}', [\App\Actions\Api\Vouchers\CancelVoucher::class, 'asController'])
