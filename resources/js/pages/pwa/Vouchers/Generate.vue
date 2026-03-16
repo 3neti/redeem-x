@@ -109,6 +109,12 @@ const selectedDriverKey = ref<string>('');
 const settlementRail = ref<'auto' | 'INSTAPAY' | 'PESONET' | null>(null);
 const feeStrategy = ref<'absorb' | 'include' | 'add'>('absorb');
 
+// Disbursement Mode (Slicing)
+const sliceMode = ref<'single' | 'fixed' | 'open'>('single');
+const slices = ref<number>(2);
+const maxSlices = ref<number>(5);
+const minWithdrawal = ref<number>(100);
+
 // Payment details (payable/settlement)
 const referenceFields = ref<Record<string, string>>({ reference: '' });
 const stagedFiles = ref<File[]>([]);
@@ -622,6 +628,8 @@ const instructionsForPricing = computed(() => ({
   cash: {
     amount: amount.value || 0,
     currency: 'PHP',
+    ...(sliceMode.value === 'fixed' ? { slice_mode: 'fixed', slices: slices.value } : {}),
+    ...(sliceMode.value === 'open' ? { slice_mode: 'open', max_slices: maxSlices.value, min_withdrawal: minWithdrawal.value } : {}),
   },
   inputs: {
     fields: selectedInputFields.value,
@@ -849,6 +857,16 @@ const handleGenerate = async () => {
       requestData.fee_strategy = feeStrategy.value;
     }
     
+    // Add slice mode
+    if (sliceMode.value === 'fixed') {
+      requestData.slice_mode = 'fixed';
+      requestData.slices = slices.value;
+    } else if (sliceMode.value === 'open') {
+      requestData.slice_mode = 'open';
+      requestData.max_slices = maxSlices.value;
+      requestData.min_withdrawal = minWithdrawal.value;
+    }
+    
     // Add envelope config
     if (envelopeConfig.value && selectedDriverKey.value) {
       const [driverId, driverVersion] = selectedDriverKey.value.split('@');
@@ -958,6 +976,18 @@ const applyCampaign = (campaign: Campaign | null) => {
     // Apply cash amount
     if (instructions.cash?.amount) {
       amount.value = instructions.cash.amount;
+    }
+    
+    // Apply slice mode
+    if (instructions.cash?.slice_mode === 'fixed') {
+      sliceMode.value = 'fixed';
+      slices.value = instructions.cash.slices || 2;
+    } else if (instructions.cash?.slice_mode === 'open') {
+      sliceMode.value = 'open';
+      maxSlices.value = instructions.cash.max_slices || 5;
+      minWithdrawal.value = instructions.cash.min_withdrawal || 100;
+    } else {
+      sliceMode.value = 'single';
     }
     
     // Apply input fields
@@ -1109,7 +1139,11 @@ const handleClearAll = () => {
   selectedDriverKey.value = '';
   settlementRail.value = null;
   feeStrategy.value = 'absorb';
-  riderMessage.value = '';
+  sliceMode.value = 'single';
+  slices.value = 2;
+  maxSlices.value = 5;
+  minWithdrawal.value = 100;
+  riderMessage.value = '';  
   riderUrl.value = '';
   riderRedirectTimeout.value = null;
   riderSplash.value = '';
@@ -1156,6 +1190,10 @@ const saveAsCampaign = async () => {
         currency: 'PHP',
         settlement_rail: settlementRail.value || null,
         fee_strategy: feeStrategy.value || 'absorb',
+        slice_mode: sliceMode.value !== 'single' ? sliceMode.value : null,
+        slices: sliceMode.value === 'fixed' ? slices.value : null,
+        max_slices: sliceMode.value === 'open' ? maxSlices.value : null,
+        min_withdrawal: sliceMode.value === 'open' ? minWithdrawal.value : null,
         validation: {
           secret: validationSecret.value || null,
           mobile: (payeeType.value === 'mobile' ? normalizedPayee.value : null) || null,
@@ -1290,6 +1328,10 @@ const resetState = () => {
   showAddRefField.value = false;
   newRefFieldName.value = '';
   newRefFieldValue.value = '';
+  sliceMode.value = 'single';
+  slices.value = 2;
+  maxSlices.value = 5;
+  minWithdrawal.value = 100;
 };
 
 // Watch for settlement type changes (from Portal.vue)
@@ -1332,6 +1374,10 @@ const saveState = () => {
       ttlDays: ttlDays.value,
       settlementRail: settlementRail.value,
       feeStrategy: feeStrategy.value,
+      sliceMode: sliceMode.value,
+      slices: slices.value,
+      maxSlices: maxSlices.value,
+      minWithdrawal: minWithdrawal.value,
       selectedCampaignId: selectedCampaignId.value,
       ogMetaSource: ogMetaSource.value,
       referenceFields: referenceFields.value,
@@ -1371,6 +1417,10 @@ const restoreState = () => {
       if (state.ttlDays) ttlDays.value = state.ttlDays;
       if (state.settlementRail) settlementRail.value = state.settlementRail;
       if (state.feeStrategy) feeStrategy.value = state.feeStrategy;
+      if (state.sliceMode) sliceMode.value = state.sliceMode;
+      if (state.slices) slices.value = state.slices;
+      if (state.maxSlices) maxSlices.value = state.maxSlices;
+      if (state.minWithdrawal) minWithdrawal.value = state.minWithdrawal;
       if (state.selectedCampaignId) selectedCampaignId.value = state.selectedCampaignId;
       if (state.ogMetaSource) ogMetaSource.value = state.ogMetaSource;
       if (state.referenceFields && typeof state.referenceFields === 'object') {
@@ -1393,7 +1443,7 @@ const clearSavedState = () => {
 
 // Watch key fields and save state on change
 watch(
-  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, prefix, mask, ttlDays, ogMetaSource, referenceFields],
+  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, sliceMode, slices, maxSlices, minWithdrawal, prefix, mask, ttlDays, ogMetaSource, referenceFields],
   () => {
     saveState();
   },
@@ -1903,12 +1953,13 @@ watch(payeeType, (newType, oldType) => {
             @click="openSheet('railFees')"
           >
             <div class="flex-1">
-              <div class="font-medium text-sm">Rail & Fees</div>
+              <div class="font-medium text-sm">Rail, Fees & Slicing</div>
               <div class="text-xs text-muted-foreground mt-0.5">
                 {{ settlementRail || 'Auto' }} • {{ feeStrategy === 'absorb' ? 'Absorb fees' : feeStrategy === 'include' ? 'Include in amount' : 'Add to amount' }}
+                {{ sliceMode !== 'single' ? ` • ${sliceMode === 'fixed' ? slices + ' slices' : 'Open (' + maxSlices + ' max)'}` : '' }}
               </div>
             </div>
-            <Badge variant="outline" class="ml-2">{{ settlementRail || 'Auto' }}</Badge>
+            <Badge variant="outline" class="ml-2">{{ sliceMode !== 'single' ? 'Divisible' : settlementRail || 'Auto' }}</Badge>
           </button>
         </div>
         
@@ -2899,12 +2950,109 @@ watch(payeeType, (newType, oldType) => {
               </RadioGroup>
             </div>
             
+            <!-- Disbursement Mode (Slicing) -->
+            <div class="space-y-3 pt-4 border-t">
+              <Label>Disbursement Mode</Label>
+              <RadioGroup v-model="sliceMode">
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    sliceMode === 'single' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="sliceMode = 'single'"
+                >
+                  <RadioGroupItem value="single" id="slice-single" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="slice-single" class="font-semibold cursor-pointer">Single</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Full amount in one disbursement (default)</p>
+                  </div>
+                </div>
+                
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    sliceMode === 'fixed' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="sliceMode = 'fixed'"
+                >
+                  <RadioGroupItem value="fixed" id="slice-fixed" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="slice-fixed" class="font-semibold cursor-pointer">Fixed Slices</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Equal portions — redeemer gets one slice per withdrawal</p>
+                  </div>
+                </div>
+                
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    sliceMode === 'open' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="sliceMode = 'open'"
+                >
+                  <RadioGroupItem value="open" id="slice-open" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="slice-open" class="font-semibold cursor-pointer">Open Slices</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Redeemer chooses amount per withdrawal, up to a max number of withdrawals</p>
+                  </div>
+                </div>
+              </RadioGroup>
+              
+              <!-- Fixed Slices Config -->
+              <div v-if="sliceMode === 'fixed'" class="space-y-3 pl-2 border-l-2 border-primary/30 ml-4">
+                <div class="space-y-1">
+                  <Label for="slice-count" class="text-xs">Number of Slices</Label>
+                  <Input
+                    id="slice-count"
+                    type="number"
+                    v-model.number="slices"
+                    :min="2"
+                    :max="20"
+                    class="h-9"
+                  />
+                </div>
+                <div v-if="amount && slices >= 2" class="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                  ₱{{ amount.toLocaleString() }} ÷ {{ slices }} = <strong>₱{{ (amount / slices).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong> per slice
+                  <span v-if="amount % slices !== 0" class="block text-amber-600 mt-1">⚠ Amount must divide evenly by slices</span>
+                </div>
+              </div>
+              
+              <!-- Open Slices Config -->
+              <div v-if="sliceMode === 'open'" class="space-y-3 pl-2 border-l-2 border-primary/30 ml-4">
+                <div class="space-y-1">
+                  <Label for="max-slices" class="text-xs">Max Withdrawals</Label>
+                  <Input
+                    id="max-slices"
+                    type="number"
+                    v-model.number="maxSlices"
+                    :min="2"
+                    :max="50"
+                    class="h-9"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <Label for="min-withdrawal" class="text-xs">Min Amount per Withdrawal (₱)</Label>
+                  <Input
+                    id="min-withdrawal"
+                    type="number"
+                    v-model.number="minWithdrawal"
+                    :min="1"
+                    class="h-9"
+                  />
+                </div>
+                <div v-if="amount" class="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                  Up to {{ maxSlices }} withdrawals, min ₱{{ minWithdrawal.toLocaleString() }} each
+                </div>
+              </div>
+            </div>
+            
             <!-- Fee Preview -->
             <div class="p-4 bg-muted/50 rounded-lg">
               <p class="text-sm font-medium mb-2">Fee Preview</p>
               <div class="text-xs text-muted-foreground space-y-1">
                 <p>Rail: {{ settlementRail === 'auto' ? 'Auto-select' : settlementRail || 'Not set' }}</p>
                 <p>Strategy: {{ feeStrategy === 'absorb' ? 'Issuer pays' : feeStrategy === 'include' ? 'Deduct from amount' : 'Add to disbursement' }}</p>
+                <p v-if="sliceMode !== 'single'">Mode: {{ sliceMode === 'fixed' ? `${slices} fixed slices` : `Open (max ${maxSlices})` }}</p>
+                <p v-if="sliceMode !== 'single'" class="text-amber-600">Transaction fee charged per slice ({{ sliceMode === 'fixed' ? slices : maxSlices }}×)</p>
                 <p v-if="amount" class="pt-2 border-t mt-2">
                   Example: ₱{{ amount.toLocaleString() }} voucher → 
                   {{ feeStrategy === 'absorb' ? `₱${amount.toLocaleString()} to redeemer` : 

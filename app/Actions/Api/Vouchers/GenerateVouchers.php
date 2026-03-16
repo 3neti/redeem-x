@@ -384,6 +384,12 @@ class GenerateVouchers
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
             'fee_strategy' => 'nullable|string|in:absorb,include,add',
 
+            // Divisible voucher (slice) fields
+            'slice_mode' => 'nullable|string|in:fixed,open',
+            'slices' => 'nullable|integer|min:2|required_if:slice_mode,fixed',
+            'max_slices' => 'nullable|integer|min:2',
+            'min_withdrawal' => 'nullable|numeric|min:1',
+
             // Settlement voucher fields
             'voucher_type' => 'nullable|string|in:redeemable,payable,settlement',
             'target_amount' => 'nullable|numeric|min:0|required_if:voucher_type,payable,settlement',
@@ -519,6 +525,10 @@ class GenerateVouchers
                 ],
                 'settlement_rail' => $validated['settlement_rail'] ?? null,
                 'fee_strategy' => $validated['fee_strategy'] ?? 'absorb',
+                'slice_mode' => $validated['slice_mode'] ?? null,
+                'slices' => $validated['slices'] ?? null,
+                'max_slices' => $validated['max_slices'] ?? null,
+                'min_withdrawal' => $validated['min_withdrawal'] ?? null,
             ],
             'voucher_type' => $validated['voucher_type'] ?? null,
             'target_amount' => $validated['target_amount'] ?? null,
