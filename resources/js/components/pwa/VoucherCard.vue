@@ -13,6 +13,7 @@ interface Voucher {
     redeemed_at?: string | null;
     expires_at?: string | null;
     created_at: string;
+    slice_mode?: 'fixed' | 'open' | null;
 }
 
 interface Props {
@@ -159,6 +160,13 @@ const getDisplayState = (voucher: Voucher) => {
                         ₱{{ getAmountDisplay(voucher) }}
                     </div>
                     <div class="flex gap-1 justify-end flex-wrap">
+                        <Badge
+                            v-if="voucher.slice_mode"
+                            variant="outline"
+                            class="text-xs"
+                        >
+                            {{ voucher.slice_mode === 'fixed' ? 'Fixed' : 'Open' }} Slices
+                        </Badge>
                         <Badge 
                             v-if="showType && voucher.voucher_type" 
                             :variant="getVoucherTypeColor(voucher.voucher_type)" 

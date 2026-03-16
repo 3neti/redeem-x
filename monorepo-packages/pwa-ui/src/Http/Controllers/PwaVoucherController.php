@@ -191,6 +191,18 @@ class PwaVoucherController extends Controller
                 'closed_at' => $voucher->closed_at?->toIso8601String(),
                 'redeem_url' => $this->buildRedemptionUrl($voucher),
 
+                // Slice data for divisible vouchers
+                'slice' => $voucher->isDivisible() ? [
+                    'mode' => $voucher->getSliceMode(),
+                    'slice_amount' => $voucher->getSliceMode() === 'fixed' ? $voucher->getSliceAmount() : null,
+                    'max_slices' => $voucher->getMaxSlices(),
+                    'min_withdrawal' => $voucher->getMinWithdrawal(),
+                    'consumed_slices' => $voucher->getConsumedSlices(),
+                    'remaining_slices' => $voucher->getRemainingSlices(),
+                    'remaining_balance' => $voucher->getRemainingBalance(),
+                    'can_withdraw' => $voucher->canWithdraw(),
+                ] : null,
+
                 // Full voucher data for details sheet
                 'full_data' => array_merge(
                     VoucherData::fromModel($voucher)->toArray(),

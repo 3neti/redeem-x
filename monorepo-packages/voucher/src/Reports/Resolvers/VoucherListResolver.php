@@ -69,6 +69,7 @@ class VoucherListResolver implements ReportResolverInterface
                 'expires_at' => $voucher->expires_at?->toIso8601String(),
                 'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
                 'created_at' => $voucher->created_at->toIso8601String(),
+                'slice_mode' => $voucher->instructions->cash->slice_mode ?? null,
             ];
         })->toArray();
 

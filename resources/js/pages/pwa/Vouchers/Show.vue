@@ -4,7 +4,7 @@ import PwaLayout from '../../../layouts/PwaLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { Ticket, Share2, Copy, ArrowLeft, Ban, Clock, Calendar, Info } from 'lucide-vue-next';
+import { Ticket, Share2, Copy, ArrowLeft, Ban, Clock, Calendar, Info, Wallet } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useVoucherQr } from '@/composables/useVoucherQr';
@@ -15,6 +15,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useToast } from '@/components/ui/toast/use-toast';
 import VoucherStateManager from '@/components/pwa/VoucherStateManager.vue';
 import VoucherDetailsSheet from '../../../components/pwa/VoucherDetailsSheet.vue';
+
+interface SliceData {
+    mode: 'fixed' | 'open';
+    slice_amount: number | null;
+    max_slices: number;
+    min_withdrawal: number;
+    consumed_slices: number;
+    remaining_slices: number;
+    remaining_balance: number;
+    can_withdraw: boolean;
+}
 
 interface Props {
     voucher: {
@@ -33,6 +44,7 @@ interface Props {
         closed_at: string | null;
         redeem_url: string;
         full_data?: any;
+        slice?: SliceData | null;
     };
     input_field_options?: any[];
     settlement?: any;
@@ -350,6 +362,14 @@ const getStateLabel = (state?: string) => {
     }
 };
 
+// Slice helpers
+const hasSlice = computed(() => !!props.voucher.slice);
+const sliceProgress = computed(() => {
+    if (!props.voucher.slice) return 0;
+    const { consumed_slices, max_slices } = props.voucher.slice;
+    return max_slices > 0 ? Math.round((consumed_slices / max_slices) * 100) : 0;
+});
+
 const isExpired = computed(() => {
     if (!props.voucher.expires_at) return false;
     return new Date(props.voucher.expires_at) < new Date();
@@ -413,6 +433,9 @@ const handlePaymentConfirmed = () => {
                                 <Badge v-if="voucher.redeemed_at" variant="default">
                                     Redeemed
                                 </Badge>
+                                <Badge v-if="hasSlice" variant="outline">
+                                    {{ voucher.slice!.mode === 'fixed' ? 'Fixed' : 'Open' }} Slices
+                                </Badge>
                             </div>
                         </div>
                         <div class="py-4 border-y">
@@ -453,6 +476,61 @@ const handlePaymentConfirmed = () => {
                                 Closed: {{ formatDate(voucher.closed_at) }}
                             </div>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Slice Progress Card (divisible vouchers) -->
+            <Card v-if="hasSlice">
+                <CardHeader class="pb-2">
+                    <div class="flex items-center gap-2">
+                        <Wallet class="h-4 w-4 text-primary" />
+                        <CardTitle class="text-sm">Slice Disbursement</CardTitle>
+                    </div>
+                    <CardDescription class="text-xs">
+                        {{ voucher.slice!.mode === 'fixed' ? 'Fixed' : 'Open' }} mode —
+                        {{ voucher.slice!.consumed_slices }} of {{ voucher.slice!.max_slices }} slices used
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <!-- Progress bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-muted-foreground">
+                            <span>{{ voucher.slice!.consumed_slices }} / {{ voucher.slice!.max_slices }} slices</span>
+                            <span>{{ voucher.slice!.remaining_slices }} remaining</span>
+                        </div>
+                        <div class="h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                                class="h-full rounded-full bg-primary transition-all duration-500"
+                                :style="{ width: sliceProgress + '%' }"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="rounded-lg bg-muted/50 p-2 text-center">
+                            <div class="text-xs text-muted-foreground">Remaining</div>
+                            <div class="text-sm font-semibold text-primary">
+                                {{ voucher.currency }} {{ formatAmount(voucher.slice!.remaining_balance) }}
+                            </div>
+                        </div>
+                        <div class="rounded-lg bg-muted/50 p-2 text-center">
+                            <div class="text-xs text-muted-foreground">
+                                {{ voucher.slice!.mode === 'fixed' ? 'Per Slice' : 'Min Withdrawal' }}
+                            </div>
+                            <div class="text-sm font-semibold">
+                                {{ voucher.currency }} {{ formatAmount(voucher.slice!.mode === 'fixed' ? voucher.slice!.slice_amount : voucher.slice!.min_withdrawal) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div v-if="!voucher.slice!.can_withdraw && voucher.slice!.consumed_slices > 0" class="text-center">
+                        <Badge variant="secondary" class="text-xs">Fully Consumed</Badge>
+                    </div>
+                    <div v-else-if="voucher.slice!.can_withdraw" class="text-center">
+                        <Badge variant="default" class="text-xs">{{ voucher.slice!.remaining_slices }} slice{{ voucher.slice!.remaining_slices > 1 ? 's' : '' }} available</Badge>
                     </div>
                 </CardContent>
             </Card>
