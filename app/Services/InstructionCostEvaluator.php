@@ -141,6 +141,16 @@ class InstructionCostEvaluator
 
             $price = $item->getAmountProduct($customer);
 
+            // Scale transaction fee by slice count for divisible vouchers
+            if ($item->index === 'cash.amount' && $source->cash?->slice_mode !== null) {
+                $sliceMultiplier = match ($source->cash->slice_mode) {
+                    'fixed' => $source->cash->slices ?? 1,
+                    'open' => $source->cash->max_slices ?? 1,
+                    default => 1,
+                };
+                $price = $price * $sliceMultiplier;
+            }
+
             if (self::DEBUG) {
                 Log::debug("[InstructionCostEvaluator] Evaluating: {$item->index}", [
                     'value' => $value,

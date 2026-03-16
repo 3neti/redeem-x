@@ -20,6 +20,10 @@ class CashInstructionData extends Data
         #[WithCast(EnumCast::class)]
         public ?SettlementRail $settlement_rail = null,
         public string $fee_strategy = 'absorb',
+        public ?string $slice_mode = null,
+        public ?int $slices = null,
+        public ?int $max_slices = null,
+        public ?float $min_withdrawal = null,
     ) {
         $this->applyRulesAndDefaults();
     }

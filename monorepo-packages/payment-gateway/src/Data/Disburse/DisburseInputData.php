@@ -36,6 +36,8 @@ class DisburseInputData extends Data
     public static function fromVoucher(
         Voucher $voucher,
         ?string $via = null,
+        ?float $amount = null,
+        ?int $sliceNumber = null,
     ): self {
         if (self::DEBUG) {
             Log::debug('[DisburseInputData] fromVoucher beginning', [
@@ -96,8 +98,9 @@ class DisburseInputData extends Data
             ]);
         }
 
-        $reference = "{$voucher->code}-{$contact->mobile}";
-        $amount = $cash->amount->getAmount()->toFloat();
+        $baseReference = "{$voucher->code}-{$contact->mobile}";
+        $reference = $sliceNumber !== null ? "{$baseReference}-S{$sliceNumber}" : $baseReference;
+        $amount = $amount ?? $cash->amount->getAmount()->toFloat();
         $account = $bankAccount->getAccountNumber();
         $bank = $bankAccount->getBankCode();
 

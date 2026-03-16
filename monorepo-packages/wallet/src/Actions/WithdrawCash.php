@@ -35,11 +35,15 @@ class WithdrawCash
      * @param  array  $additionalMeta  Additional metadata to merge with defaults
      * @return Transaction The withdrawal transaction record
      */
+    /**
+     * @param  int|null  $amount  Specific amount in centavos to withdraw. Null = drain full balance.
+     */
     public function handle(
         Wallet $cash,
         ?string $operationId = null,
         ?string $notes = null,
-        array $additionalMeta = []
+        array $additionalMeta = [],
+        ?int $amount = null,
     ): Transaction {
         $balance = $cash->wallet->balance; // In centavos
 
@@ -54,6 +58,14 @@ class WithdrawCash
             );
         }
 
+        $withdrawAmount = $amount ?? $balance;
+
+        if ($withdrawAmount > $balance) {
+            throw new \InvalidArgumentException(
+                "Requested withdrawal {$withdrawAmount} exceeds balance {$balance} on cash #{$cash->getKey()}"
+            );
+        }
+
         // Build base metadata
         $baseMeta = array_filter([
             'type' => 'disbursement',
@@ -65,17 +77,17 @@ class WithdrawCash
         // Merge with additional meta (additional meta takes precedence)
         $meta = array_merge($baseMeta, $additionalMeta);
 
-        // Withdraw entire balance (money leaves system)
+        // Withdraw specified amount (or entire balance if null)
         $transaction = $cash->withdraw(
-            $balance,
+            $withdrawAmount,
             $meta,
             true // confirmed
         );
 
         Log::info('[WithdrawCash] Cash withdrawn after disbursement', [
             'cash_id' => $cash->getKey(),
-            'amount_centavos' => $balance,
-            'amount_php' => $balance / 100,
+            'amount_centavos' => $withdrawAmount,
+            'amount_php' => $withdrawAmount / 100,
             'transaction_uuid' => $transaction->uuid,
             'operation_id' => $operationId,
         ]);

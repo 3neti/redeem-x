@@ -54,6 +54,17 @@ class VoucherData extends Data
         public ?array $external_metadata = null,
         public ?float $target_amount = null,
         public ?string $voucher_type = null,
+        // Slice / Divisible fields
+        public ?string $slice_mode = null,
+        public ?int $max_slices = null,
+        public ?float $slice_amount = null,
+        public ?float $min_withdrawal = null,
+        public int $consumed_slices = 0,
+        public int $remaining_slices = 0,
+        public float $remaining_balance = 0.0,
+        public bool $can_withdraw = false,
+        /** @var DisbursementData[] */
+        public array $disbursements = [],
     ) {}
 
     public static function fromModel(VoucherModel $model): static
@@ -99,6 +110,16 @@ class VoucherData extends Data
             external_metadata: $model->external_metadata,
             target_amount: $model->target_amount,
             voucher_type: $model->voucher_type?->value,
+            // Slice / Divisible fields
+            slice_mode: $model->getSliceMode(),
+            max_slices: $model->getMaxSlices(),
+            slice_amount: $model->getSliceAmount(),
+            min_withdrawal: $model->getMinWithdrawal(),
+            consumed_slices: $model->getConsumedSlices(),
+            remaining_slices: $model->getRemainingSlices(),
+            remaining_balance: $model->getRemainingBalance(),
+            can_withdraw: $model->canWithdraw(),
+            disbursements: DisbursementData::allFromMetadata($model->metadata),
         );
     }
 

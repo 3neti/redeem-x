@@ -283,4 +283,87 @@ class Voucher extends BaseVoucher implements HasMedia, InputInterface
 
         return $this->target_amount - $this->getPaidTotal();
     }
+
+    // Slice / Divisible Voucher Methods
+
+    public function getSliceMode(): ?string
+    {
+        return $this->instructions->cash->slice_mode;
+    }
+
+    public function isDivisible(): bool
+    {
+        return $this->getSliceMode() !== null;
+    }
+
+    public function getSliceAmount(): ?float
+    {
+        if ($this->getSliceMode() !== 'fixed') {
+            return null;
+        }
+
+        return $this->instructions->cash->amount / $this->instructions->cash->slices;
+    }
+
+    public function getMaxSlices(): ?int
+    {
+        return match ($this->getSliceMode()) {
+            'fixed' => $this->instructions->cash->slices,
+            'open' => $this->instructions->cash->max_slices,
+            default => null,
+        };
+    }
+
+    public function getMinWithdrawal(): ?float
+    {
+        return match ($this->getSliceMode()) {
+            'fixed' => $this->getSliceAmount(),
+            'open' => $this->instructions->cash->min_withdrawal ?? config('voucher.min_withdrawal', 100),
+            default => null,
+        };
+    }
+
+    public function getConsumedSlices(): int
+    {
+        if (! $this->cash || ! $this->cash->wallet) {
+            return 0;
+        }
+
+        return (int) $this->cash->wallet->transactions()
+            ->where('type', 'withdraw')
+            ->whereJsonContains('meta->flow', 'redeem')
+            ->where('confirmed', true)
+            ->count();
+    }
+
+    public function getRemainingSlices(): int
+    {
+        $max = $this->getMaxSlices();
+
+        return $max ? max(0, $max - $this->getConsumedSlices()) : 0;
+    }
+
+    public function getRemainingBalance(): float
+    {
+        if (! $this->cash || ! $this->cash->wallet) {
+            return 0.0;
+        }
+
+        return $this->cash->wallet->balance / 100;
+    }
+
+    public function hasRemainingSlices(): bool
+    {
+        return $this->getRemainingSlices() > 0
+            && $this->getRemainingBalance() >= ($this->getMinWithdrawal() ?? 0);
+    }
+
+    public function canWithdraw(): bool
+    {
+        return $this->isRedeemed()
+            && $this->isDivisible()
+            && $this->hasRemainingSlices()
+            && ! $this->isExpired()
+            && $this->state === VoucherState::ACTIVE;
+    }
 }

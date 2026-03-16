@@ -57,6 +57,29 @@ class DisbursementData extends Data
     }
 
     /**
+     * Create all DisbursementData instances from voucher metadata.
+     * Reads 'disbursements' (plural) array first, falls back to singular 'disbursement'.
+     *
+     * @return static[]
+     */
+    public static function allFromMetadata(?array $metadata): array
+    {
+        $disbursements = $metadata['disbursements'] ?? null;
+
+        if (is_array($disbursements) && ! empty($disbursements)) {
+            return array_map(
+                fn (array $d) => static::fromMetadata(['disbursement' => $d]),
+                $disbursements
+            );
+        }
+
+        // Fall back to singular
+        $single = static::fromMetadata($metadata);
+
+        return $single ? [$single] : [];
+    }
+
+    /**
      * Get masked account/identifier
      * Shows only last 4 characters: 09173011987 → ***1987
      */

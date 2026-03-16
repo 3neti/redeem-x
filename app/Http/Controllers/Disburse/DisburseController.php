@@ -64,15 +64,19 @@ class DisburseController extends Controller
     {
         $code = request()->query('code');
 
-        // If code provided and this is Inertia request, validate and redirect
-        if ($code && request()->header('X-Inertia')) {
+        // If code provided, validate and route accordingly
+        if ($code) {
             $code = strtoupper(trim($code));
 
             try {
                 $voucher = Voucher::where('code', $code)->firstOrFail();
 
-                // Validate voucher status
+                // Smart routing: redeemed divisible vouchers go to /withdraw
                 if ($voucher->isRedeemed()) {
+                    if ($voucher->canWithdraw()) {
+                        return redirect('/withdraw?code='.$code);
+                    }
+
                     return redirect()->route('disburse.start')
                         ->withInput(['code' => $code])
                         ->withErrors(['code' => 'This voucher has already been redeemed.']);
