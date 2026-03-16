@@ -64,8 +64,10 @@ class DisburseController extends Controller
     {
         $code = request()->query('code');
 
-        // If code provided, validate and route accordingly
-        if ($code) {
+        // If code provided AND this is an Inertia (SPA) request, validate and route accordingly.
+        // Non-Inertia requests (OG crawlers, initial page loads) must render the full HTML page
+        // so that og-meta middleware tags are included in the <head>.
+        if ($code && request()->header('X-Inertia')) {
             $code = strtoupper(trim($code));
 
             try {

@@ -14,6 +14,9 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->withoutVite();
+    // Disable Inertia middleware to avoid 409 version mismatch.
+    // The controller only checks the raw X-Inertia header, not the middleware.
+    $this->withoutMiddleware(\App\Http\Middleware\HandleInertiaRequests::class);
 });
 
 // ---------------------------------------------------------------------------
@@ -37,8 +40,8 @@ test('disburse redirects to /withdraw for redeemed divisible voucher with remain
     $contact = Contact::factory()->create();
     Vouchers::redeem($voucher->code, $contact);
 
-    // Access /disburse?code=CODE → should redirect to /withdraw
-    $response = $this->get('/disburse?code='.$voucher->code);
+    // Access /disburse?code=CODE via Inertia → should redirect to /withdraw
+    $response = $this->get('/disburse?code='.$voucher->code, ['X-Inertia' => 'true']);
 
     $response->assertRedirect('/withdraw?code='.$voucher->code);
 });
@@ -58,8 +61,8 @@ test('disburse shows error for redeemed non-divisible voucher', function () {
     $contact = Contact::factory()->create();
     Vouchers::redeem($voucher->code, $contact);
 
-    // Access /disburse?code=CODE → should show "already redeemed" error (unchanged behavior)
-    $response = $this->get('/disburse?code='.$voucher->code);
+    // Access /disburse?code=CODE via Inertia → should show "already redeemed" error (unchanged behavior)
+    $response = $this->get('/disburse?code='.$voucher->code, ['X-Inertia' => 'true']);
 
     $response->assertRedirect(route('disburse.start'));
     $response->assertSessionHasErrors('code');
@@ -78,8 +81,8 @@ test('disburse proceeds normally for unredeemed voucher', function () {
     $instructions = VoucherInstructionsData::from($base);
     $voucher = GenerateVouchers::run($instructions)->first();
 
-    // Access /disburse?code=CODE with unredeemed voucher → should redirect to form flow
-    $response = $this->get('/disburse?code='.$voucher->code);
+    // Access /disburse?code=CODE via Inertia with unredeemed voucher → should redirect to form flow
+    $response = $this->get('/disburse?code='.$voucher->code, ['X-Inertia' => 'true']);
 
     $response->assertRedirectContains('/form-flow/');
 });
