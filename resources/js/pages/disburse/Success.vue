@@ -2,7 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, ExternalLink } from 'lucide-vue-next';
+import { ExternalLink } from 'lucide-vue-next';
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { initializeTheme } from '@/composables/useTheme';
@@ -63,9 +64,6 @@ const renderedContent = computed(() => {
     }
 });
 
-const displayMessage = computed(() => {
-    return props.rider?.message || 'The funds will be disbursed to your account shortly. You will receive a confirmation via SMS and email.';
-});
 
 const handleRedirect = () => {
     if (!hasRiderUrl.value || !props.rider?.url) return;
@@ -101,7 +99,7 @@ onMounted(() => {
 
             <!-- Hero: rider message is the star, amount + code are supporting -->
             <div class="text-center pt-4 space-y-4">
-                <CheckCircle2 class="h-8 w-8 text-green-500 mx-auto" />
+                <AppLogoIcon class="h-20 w-auto mx-auto" />
 
                 <!-- Rider content (prominent) -->
                 <div v-if="hasCustomContent" class="overflow-visible">
@@ -110,17 +108,18 @@ onMounted(() => {
                         class="prose prose-lg max-w-none dark:prose-invert text-center overflow-visible font-semibold"
                     />
                 </div>
-                <p v-else class="text-lg font-medium text-foreground text-center">
-                    {{ displayMessage }}
-                </p>
+                <!-- No rider: amount is the hero -->
+                <template v-else>
+                    <p v-if="hasNonZeroAmount" class="text-2xl font-bold tracking-tight text-foreground">
+                        {{ voucher.formatted_amount }}
+                    </p>
+                    <p class="text-lg font-medium text-foreground text-center">
+                        {{ hasNonZeroAmount ? 'Disbursed to your account' : 'Voucher redeemed' }}
+                    </p>
+                </template>
 
-                <!-- Amount (only when non-zero) -->
-                <p v-if="hasNonZeroAmount" class="text-2xl font-bold tracking-tight text-foreground">
-                    {{ voucher.formatted_amount }}
-                </p>
-
-                <!-- Voucher code badge -->
-                <div class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
+                <!-- Voucher code badge (only when rider doesn't already contain it) -->
+                <div v-if="!hasCustomContent" class="inline-flex items-center gap-1.5 px-4 py-1 text-sm font-mono font-semibold tracking-widest text-primary bg-primary/5 border border-primary/20 rounded-full">
                     <span class="text-primary/40" aria-hidden="true">||</span>
                     {{ voucher.code }}
                     <span class="text-primary/40" aria-hidden="true">||</span>
