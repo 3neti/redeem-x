@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Wallet, Plus, Minus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw } from 'lucide-vue-next';
+import { ArrowLeft, Wallet, Plus, Minus, Settings as SettingsIcon, Loader2, Save, ChevronDown, RotateCcw, Paperclip, X, FileText, ShieldCheck } from 'lucide-vue-next';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast/use-toast';
@@ -109,6 +109,25 @@ const selectedDriverKey = ref<string>('');
 const settlementRail = ref<'auto' | 'INSTAPAY' | 'PESONET' | null>(null);
 const feeStrategy = ref<'absorb' | 'include' | 'add'>('absorb');
 
+// Mobile Verification
+const mobileVerificationEnabled = ref(false);
+const mobileVerificationDriver = ref<string | null>(null);
+const mobileVerificationEnforcement = ref<string | null>(null);
+
+// Disbursement Mode (Slicing)
+const sliceMode = ref<'single' | 'fixed' | 'open'>('single');
+const slices = ref<number>(2);
+const maxSlices = ref<number>(5);
+const minWithdrawal = ref<number>(100);
+
+// Payment details (payable/settlement)
+const referenceFields = ref<Record<string, string>>({ reference: '' });
+const stagedFiles = ref<File[]>([]);
+const showAddRefField = ref(false);
+const newRefFieldName = ref('');
+const newRefFieldValue = ref('');
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
 // Campaign state
 const selectedCampaignId = ref<string>('');
 const selectedCampaign = ref<Campaign | null>(null);
@@ -127,6 +146,7 @@ const sheetState = ref({
   campaign: { open: false },
   inputs: { open: false },
   validation: { open: false, activeTab: 'payee' as 'payee' | 'secret' | 'location' | 'time' },
+  mobileVerification: { open: false },
   feedback: { open: false },
   rider: { open: false },
   envelope: { open: false },
@@ -413,6 +433,17 @@ const validationBadges = computed(() => {
       variant: 'secondary'
     });
   }
+
+  // Mobile Verification
+  if (mobileVerificationEnabled.value) {
+    const driver = mobileVerificationDriver.value || 'default';
+    const enforcement = mobileVerificationEnforcement.value || 'default';
+    badges.push({
+      label: 'Verify',
+      value: driver === 'default' && enforcement === 'default' ? 'On' : `${driver} · ${enforcement}`,
+      variant: 'default'
+    });
+  }
   
   return badges;
 });
@@ -614,6 +645,8 @@ const instructionsForPricing = computed(() => ({
   cash: {
     amount: amount.value || 0,
     currency: 'PHP',
+    ...(sliceMode.value === 'fixed' ? { slice_mode: 'fixed', slices: slices.value } : {}),
+    ...(sliceMode.value === 'open' ? { slice_mode: 'open', max_slices: maxSlices.value, min_withdrawal: minWithdrawal.value } : {}),
   },
   inputs: {
     fields: selectedInputFields.value,
@@ -806,6 +839,12 @@ const handleGenerate = async () => {
     if (timeValidation.value?.start_time && timeValidation.value?.end_time) {
       requestData.validation_time = timeValidation.value;
     }
+    if (mobileVerificationEnabled.value) {
+      const hasOverrides = mobileVerificationDriver.value || mobileVerificationEnforcement.value;
+      requestData.mobile_verification = hasOverrides
+        ? { driver: mobileVerificationDriver.value || undefined, enforcement: mobileVerificationEnforcement.value || undefined }
+        : true;
+    }
     
     // Add voucher type for payable/settlement
     if (payeeType.value === 'anyone' && voucherType.value !== 'redeemable') {
@@ -841,6 +880,16 @@ const handleGenerate = async () => {
       requestData.fee_strategy = feeStrategy.value;
     }
     
+    // Add slice mode
+    if (sliceMode.value === 'fixed') {
+      requestData.slice_mode = 'fixed';
+      requestData.slices = slices.value;
+    } else if (sliceMode.value === 'open') {
+      requestData.slice_mode = 'open';
+      requestData.max_slices = maxSlices.value;
+      requestData.min_withdrawal = minWithdrawal.value;
+    }
+    
     // Add envelope config
     if (envelopeConfig.value && selectedDriverKey.value) {
       const [driverId, driverVersion] = selectedDriverKey.value.split('@');
@@ -848,15 +897,53 @@ const handleGenerate = async () => {
         enabled: true,
         driver_id: driverId,
         driver_version: driverVersion,
-        initial_payload: {},
+        initial_payload: collectedMetadata.value || {},
       };
+    }
+    
+    // Add external metadata for payable/settlement (flows to envelope payload)
+    if (voucherType.value !== 'redeemable' && collectedMetadata.value) {
+      requestData.external_metadata = collectedMetadata.value;
     }
     
     const headers: Record<string, string> = {
       'Idempotency-Key': `pwa-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    const response = await axios.post('/api/v1/vouchers', requestData, { headers });
+    // Use FormData if files are staged, otherwise plain JSON
+    let response;
+    if (stagedFiles.value.length > 0) {
+      const formData = new FormData();
+      // Flatten requestData into FormData
+      const flattenToFormData = (obj: any, prefix = '') => {
+        for (const [key, value] of Object.entries(obj)) {
+          const fullKey = prefix ? `${prefix}[${key}]` : key;
+          if (value === null || value === undefined) continue;
+          if (Array.isArray(value)) {
+            value.forEach((item, i) => {
+              if (typeof item === 'object') {
+                flattenToFormData(item, `${fullKey}[${i}]`);
+              } else {
+                formData.append(`${fullKey}[]`, String(item));
+              }
+            });
+          } else if (typeof value === 'object') {
+            flattenToFormData(value, fullKey);
+          } else {
+            formData.append(fullKey, String(value));
+          }
+        }
+      };
+      flattenToFormData(requestData);
+      stagedFiles.value.forEach(file => {
+        formData.append('attachments[]', file);
+      });
+      response = await axios.post('/api/v1/vouchers', formData, {
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      });
+    } else {
+      response = await axios.post('/api/v1/vouchers', requestData, { headers });
+    }
     
     // API wraps data in response.data.data structure
     const apiData = response.data.data;
@@ -914,6 +1001,18 @@ const applyCampaign = (campaign: Campaign | null) => {
       amount.value = instructions.cash.amount;
     }
     
+    // Apply slice mode
+    if (instructions.cash?.slice_mode === 'fixed') {
+      sliceMode.value = 'fixed';
+      slices.value = instructions.cash.slices || 2;
+    } else if (instructions.cash?.slice_mode === 'open') {
+      sliceMode.value = 'open';
+      maxSlices.value = instructions.cash.max_slices || 5;
+      minWithdrawal.value = instructions.cash.min_withdrawal || 100;
+    } else {
+      sliceMode.value = 'single';
+    }
+    
     // Apply input fields
     if (instructions.inputs?.fields) {
       selectedInputFields.value = instructions.inputs.fields;
@@ -926,6 +1025,18 @@ const applyCampaign = (campaign: Campaign | null) => {
       if (instructions.validation.secret) validationSecret.value = instructions.validation.secret;
       if (instructions.validation.mobile) payee.value = instructions.validation.mobile;
       if (instructions.validation.payable) payee.value = instructions.validation.payable;
+    }
+    
+    // Apply mobile verification
+    const mv = instructions.cash?.validation?.mobile_verification;
+    if (mv) {
+      mobileVerificationEnabled.value = true;
+      mobileVerificationDriver.value = mv.driver || null;
+      mobileVerificationEnforcement.value = mv.enforcement || null;
+    } else {
+      mobileVerificationEnabled.value = false;
+      mobileVerificationDriver.value = null;
+      mobileVerificationEnforcement.value = null;
     }
     
     // Apply feedback
@@ -1005,6 +1116,53 @@ const clearRider = () => {
   ogMetaSource.value = null;
 };
 
+// Payment details helpers
+const addRefField = () => {
+  const name = newRefFieldName.value.trim();
+  if (!name || referenceFields.value[name] !== undefined) return;
+  referenceFields.value[name] = newRefFieldValue.value;
+  newRefFieldName.value = '';
+  newRefFieldValue.value = '';
+  showAddRefField.value = false;
+};
+
+const removeRefField = (key: string) => {
+  delete referenceFields.value[key];
+};
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click();
+};
+
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files) return;
+  const remaining = 5 - stagedFiles.value.length;
+  const newFiles = Array.from(input.files).slice(0, remaining);
+  stagedFiles.value.push(...newFiles);
+  input.value = ''; // reset so same file can be re-selected
+};
+
+const removeStagedFile = (index: number) => {
+  stagedFiles.value.splice(index, 1);
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+};
+
+// Computed: non-empty reference fields for API payload
+const collectedMetadata = computed(() => {
+  const result: Record<string, string> = {};
+  for (const [key, val] of Object.entries(referenceFields.value)) {
+    if (val.trim()) result[key] = val.trim();
+  }
+  return Object.keys(result).length > 0 ? result : null;
+});
+
 // Full reset — everything back to factory defaults
 const handleClearAll = () => {
   resetState();
@@ -1016,7 +1174,11 @@ const handleClearAll = () => {
   selectedDriverKey.value = '';
   settlementRail.value = null;
   feeStrategy.value = 'absorb';
-  riderMessage.value = '';
+  sliceMode.value = 'single';
+  slices.value = 2;
+  maxSlices.value = 5;
+  minWithdrawal.value = 100;
+  riderMessage.value = '';  
   riderUrl.value = '';
   riderRedirectTimeout.value = null;
   riderSplash.value = '';
@@ -1063,6 +1225,10 @@ const saveAsCampaign = async () => {
         currency: 'PHP',
         settlement_rail: settlementRail.value || null,
         fee_strategy: feeStrategy.value || 'absorb',
+        slice_mode: sliceMode.value !== 'single' ? sliceMode.value : null,
+        slices: sliceMode.value === 'fixed' ? slices.value : null,
+        max_slices: sliceMode.value === 'open' ? maxSlices.value : null,
+        min_withdrawal: sliceMode.value === 'open' ? minWithdrawal.value : null,
         validation: {
           secret: validationSecret.value || null,
           mobile: (payeeType.value === 'mobile' ? normalizedPayee.value : null) || null,
@@ -1070,6 +1236,12 @@ const saveAsCampaign = async () => {
           country: null,
           location: null,
           radius: null,
+          mobile_verification: mobileVerificationEnabled.value
+            ? {
+                driver: mobileVerificationDriver.value || null,
+                enforcement: mobileVerificationEnforcement.value || null,
+              }
+            : null,
         },
       },
       
@@ -1192,6 +1364,18 @@ const resetState = () => {
   selectedCampaignId.value = '';
   selectedCampaign.value = null;
   autoAddedFields.value.clear();
+  referenceFields.value = { reference: '' };
+  stagedFiles.value = [];
+  showAddRefField.value = false;
+  newRefFieldName.value = '';
+  newRefFieldValue.value = '';
+  sliceMode.value = 'single';
+  slices.value = 2;
+  maxSlices.value = 5;
+  minWithdrawal.value = 100;
+  mobileVerificationEnabled.value = false;
+  mobileVerificationDriver.value = null;
+  mobileVerificationEnforcement.value = null;
 };
 
 // Watch for settlement type changes (from Portal.vue)
@@ -1208,6 +1392,14 @@ watch([amount, interestRate], ([newAmount, newRate]) => {
   const rate = Number(newRate || 0);
   if (voucherType.value === 'settlement' && newAmount && rate >= 0) {
     targetAmount.value = parseFloat((newAmount * (1 + rate / 100)).toFixed(2));
+  }
+});
+
+// Clear mobile verification overrides when toggled off
+watch(mobileVerificationEnabled, (val) => {
+  if (!val) {
+    mobileVerificationDriver.value = null;
+    mobileVerificationEnforcement.value = null;
   }
 });
 
@@ -1234,8 +1426,16 @@ const saveState = () => {
       ttlDays: ttlDays.value,
       settlementRail: settlementRail.value,
       feeStrategy: feeStrategy.value,
+      sliceMode: sliceMode.value,
+      slices: slices.value,
+      maxSlices: maxSlices.value,
+      minWithdrawal: minWithdrawal.value,
       selectedCampaignId: selectedCampaignId.value,
       ogMetaSource: ogMetaSource.value,
+      referenceFields: referenceFields.value,
+      mobileVerificationEnabled: mobileVerificationEnabled.value,
+      mobileVerificationDriver: mobileVerificationDriver.value,
+      mobileVerificationEnforcement: mobileVerificationEnforcement.value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -1272,8 +1472,18 @@ const restoreState = () => {
       if (state.ttlDays) ttlDays.value = state.ttlDays;
       if (state.settlementRail) settlementRail.value = state.settlementRail;
       if (state.feeStrategy) feeStrategy.value = state.feeStrategy;
+      if (state.sliceMode) sliceMode.value = state.sliceMode;
+      if (state.slices) slices.value = state.slices;
+      if (state.maxSlices) maxSlices.value = state.maxSlices;
+      if (state.minWithdrawal) minWithdrawal.value = state.minWithdrawal;
       if (state.selectedCampaignId) selectedCampaignId.value = state.selectedCampaignId;
       if (state.ogMetaSource) ogMetaSource.value = state.ogMetaSource;
+      if (state.referenceFields && typeof state.referenceFields === 'object') {
+        referenceFields.value = state.referenceFields;
+      }
+      if (state.mobileVerificationEnabled) mobileVerificationEnabled.value = state.mobileVerificationEnabled;
+      if (state.mobileVerificationDriver) mobileVerificationDriver.value = state.mobileVerificationDriver;
+      if (state.mobileVerificationEnforcement) mobileVerificationEnforcement.value = state.mobileVerificationEnforcement;
     }
   } catch (e) {
     console.error('Failed to restore state:', e);
@@ -1291,7 +1501,7 @@ const clearSavedState = () => {
 
 // Watch key fields and save state on change
 watch(
-  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, prefix, mask, ttlDays, ogMetaSource],
+  [amount, count, voucherType, selectedInputFields, targetAmount, payee, validationSecret, feedbackEmail, settlementRail, sliceMode, slices, maxSlices, minWithdrawal, prefix, mask, ttlDays, ogMetaSource, referenceFields, mobileVerificationEnabled, mobileVerificationDriver, mobileVerificationEnforcement],
   () => {
     saveState();
   },
@@ -1450,6 +1660,28 @@ watch(payeeType, (newType, oldType) => {
             </div>
           </div>
 
+          <!-- Mobile Verification -->
+          <div class="p-3 rounded-lg border transition-colors" :class="mobileVerificationEnabled ? 'bg-primary/5 border-primary/20' : 'hover:bg-muted/50'">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <ShieldCheck class="h-3.5 w-3.5" :class="mobileVerificationEnabled ? 'text-primary' : 'text-muted-foreground'" />
+                <p class="text-xs" :class="mobileVerificationEnabled ? 'text-foreground font-medium' : 'text-muted-foreground'">Mobile Verification</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="mobileVerificationEnabled"
+                  class="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                  @click.stop="sheetState.mobileVerification.open = true"
+                >Configure</button>
+                <Switch v-model:checked="mobileVerificationEnabled" />
+              </div>
+            </div>
+            <div v-if="mobileVerificationEnabled && (mobileVerificationDriver || mobileVerificationEnforcement)" class="flex gap-1 mt-1.5">
+              <Badge v-if="mobileVerificationDriver" variant="secondary" class="text-[10px]">{{ mobileVerificationDriver }}</Badge>
+              <Badge v-if="mobileVerificationEnforcement" variant="secondary" class="text-[10px]">{{ mobileVerificationEnforcement }}</Badge>
+            </div>
+          </div>
+
           <!-- Feedback -->
           <div class="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" @click="openSheet('feedback')">
             <div class="flex items-center justify-between mb-2">
@@ -1540,6 +1772,90 @@ watch(payeeType, (newType, oldType) => {
             <Button variant="outline" size="sm" @click="amount = 5000">₱5K</Button>
             <Button variant="outline" size="sm" @click="amount = 10000">₱10K</Button>
           </template>
+        </div>
+
+        <!-- Payment Details (payable/settlement only) -->
+        <div v-if="voucherType !== 'redeemable'" class="space-y-3 rounded-lg border p-3">
+          <p class="text-xs text-muted-foreground">Payment Details</p>
+
+          <!-- Reference fields -->
+          <div
+            v-for="(value, key) in referenceFields"
+            :key="key"
+            class="flex items-center gap-2"
+          >
+            <div class="flex-1 space-y-1">
+              <Label class="text-xs capitalize">{{ key.replace(/_/g, ' ') }}</Label>
+              <Input
+                :model-value="referenceFields[key]"
+                @update:model-value="(v: string) => referenceFields[key] = v"
+                :placeholder="`Enter ${key.replace(/_/g, ' ')}...`"
+                class="h-9 text-sm"
+              />
+            </div>
+            <button
+              v-if="key !== 'reference'"
+              class="mt-5 p-1 text-muted-foreground/60 hover:text-destructive transition-colors"
+              @click="removeRefField(key)"
+            >
+              <X class="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <!-- Add field -->
+          <div v-if="showAddRefField" class="space-y-2 rounded-lg border border-dashed p-2">
+            <Input v-model="newRefFieldName" placeholder="Field name" class="h-8 text-xs" />
+            <Input v-model="newRefFieldValue" placeholder="Value (optional)" class="h-8 text-xs" @keyup.enter="addRefField" />
+            <div class="flex gap-2">
+              <Button size="sm" variant="default" class="flex-1 h-7 text-xs" @click="addRefField">Add</Button>
+              <Button size="sm" variant="ghost" class="flex-1 h-7 text-xs" @click="showAddRefField = false">Cancel</Button>
+            </div>
+          </div>
+          <button
+            v-else
+            class="text-xs text-primary/60 hover:text-primary transition-colors"
+            @click="showAddRefField = true"
+          >
+            + Add field
+          </button>
+
+          <!-- Attachments -->
+          <div class="pt-2 border-t space-y-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-muted-foreground flex items-center gap-1">
+                <Paperclip class="h-3 w-3" />
+                Attachments
+                <span v-if="stagedFiles.length" class="text-foreground font-medium">({{ stagedFiles.length }}/5)</span>
+              </p>
+            </div>
+
+            <!-- Staged files -->
+            <div v-for="(file, idx) in stagedFiles" :key="idx" class="flex items-center gap-2 text-xs">
+              <FileText class="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span class="flex-1 truncate">{{ file.name }}</span>
+              <span class="text-muted-foreground flex-shrink-0">{{ formatFileSize(file.size) }}</span>
+              <button class="p-0.5 text-muted-foreground/60 hover:text-destructive transition-colors" @click="removeStagedFile(idx)">
+                <X class="h-3 w-3" />
+              </button>
+            </div>
+
+            <!-- Upload trigger -->
+            <button
+              v-if="stagedFiles.length < 5"
+              class="w-full rounded-lg border border-dashed p-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary/70 transition-colors text-center"
+              @click="triggerFileInput"
+            >
+              Tap to attach invoice or document
+            </button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              multiple
+              accept=".jpeg,.jpg,.png,.pdf"
+              class="hidden"
+              @change="handleFileSelect"
+            />
+          </div>
         </div>
 
       </div>
@@ -1717,12 +2033,13 @@ watch(payeeType, (newType, oldType) => {
             @click="openSheet('railFees')"
           >
             <div class="flex-1">
-              <div class="font-medium text-sm">Rail & Fees</div>
+              <div class="font-medium text-sm">Rail, Fees & Slicing</div>
               <div class="text-xs text-muted-foreground mt-0.5">
                 {{ settlementRail || 'Auto' }} • {{ feeStrategy === 'absorb' ? 'Absorb fees' : feeStrategy === 'include' ? 'Include in amount' : 'Add to amount' }}
+                {{ sliceMode !== 'single' ? ` • ${sliceMode === 'fixed' ? slices + ' slices' : 'Open (' + maxSlices + ' max)'}` : '' }}
               </div>
             </div>
-            <Badge variant="outline" class="ml-2">{{ settlementRail || 'Auto' }}</Badge>
+            <Badge variant="outline" class="ml-2">{{ sliceMode !== 'single' ? 'Divisible' : settlementRail || 'Auto' }}</Badge>
           </button>
         </div>
         
@@ -1913,6 +2230,63 @@ watch(payeeType, (newType, oldType) => {
       </SheetContent>
     </Sheet>
     
+    <!-- Mobile Verification Sheet -->
+    <Sheet v-model:open="sheetState.mobileVerification.open">
+      <SheetContent side="bottom" class="h-auto max-h-[70vh]">
+        <SheetHeader>
+          <SheetTitle>Mobile Verification</SheetTitle>
+          <SheetDescription>
+            Verify the redeemer's mobile number against a policy
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div class="space-y-6 py-6">
+          <!-- Driver -->
+          <div class="space-y-2">
+            <Label class="text-xs text-muted-foreground">Driver</Label>
+            <Select :model-value="mobileVerificationDriver || 'default'" @update:model-value="(v: string) => mobileVerificationDriver = v === 'default' ? null : v">
+              <SelectTrigger>
+                <SelectValue placeholder="Server default" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Server default</SelectItem>
+                <SelectItem value="basic">Basic</SelectItem>
+                <SelectItem value="countries">Countries</SelectItem>
+                <SelectItem value="white_list">White List</SelectItem>
+                <SelectItem value="external_api">External API</SelectItem>
+                <SelectItem value="external_db">External DB</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <!-- Enforcement -->
+          <div class="space-y-2">
+            <Label class="text-xs text-muted-foreground">Enforcement</Label>
+            <Select :model-value="mobileVerificationEnforcement || 'default'" @update:model-value="(v: string) => mobileVerificationEnforcement = v === 'default' ? null : v">
+              <SelectTrigger>
+                <SelectValue placeholder="Server default" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Server default</SelectItem>
+                <SelectItem value="strict">Strict &mdash; block if not verified</SelectItem>
+                <SelectItem value="soft">Soft &mdash; log warning, allow redemption</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <p class="text-[11px] text-muted-foreground/60 leading-relaxed">
+            Driver parameters (API keys, whitelist files, DB connections) are configured server-side via environment variables.
+          </p>
+        </div>
+
+        <SheetFooter>
+          <Button @click="sheetState.mobileVerification.open = false" class="w-full">
+            Done
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+
     <!-- Conditions Sheet -->
     <Sheet v-model:open="sheetState.validation.open">
       <SheetContent side="bottom" class="h-[85dvh] flex flex-col">
@@ -2713,12 +3087,109 @@ watch(payeeType, (newType, oldType) => {
               </RadioGroup>
             </div>
             
+            <!-- Disbursement Mode (Slicing) -->
+            <div class="space-y-3 pt-4 border-t">
+              <Label>Disbursement Mode</Label>
+              <RadioGroup v-model="sliceMode">
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    sliceMode === 'single' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="sliceMode = 'single'"
+                >
+                  <RadioGroupItem value="single" id="slice-single" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="slice-single" class="font-semibold cursor-pointer">Single</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Full amount in one disbursement (default)</p>
+                  </div>
+                </div>
+                
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    sliceMode === 'fixed' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="sliceMode = 'fixed'"
+                >
+                  <RadioGroupItem value="fixed" id="slice-fixed" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="slice-fixed" class="font-semibold cursor-pointer">Fixed Slices</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Equal portions — redeemer gets one slice per withdrawal</p>
+                  </div>
+                </div>
+                
+                <div
+                  :class="[
+                    'flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all',
+                    sliceMode === 'open' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  ]"
+                  @click="sliceMode = 'open'"
+                >
+                  <RadioGroupItem value="open" id="slice-open" class="mt-0.5" />
+                  <div class="flex-1">
+                    <Label for="slice-open" class="font-semibold cursor-pointer">Open Slices</Label>
+                    <p class="text-xs text-muted-foreground mt-1">Redeemer chooses amount per withdrawal, up to a max number of withdrawals</p>
+                  </div>
+                </div>
+              </RadioGroup>
+              
+              <!-- Fixed Slices Config -->
+              <div v-if="sliceMode === 'fixed'" class="space-y-3 pl-2 border-l-2 border-primary/30 ml-4">
+                <div class="space-y-1">
+                  <Label for="slice-count" class="text-xs">Number of Slices</Label>
+                  <Input
+                    id="slice-count"
+                    type="number"
+                    v-model.number="slices"
+                    :min="2"
+                    :max="20"
+                    class="h-9"
+                  />
+                </div>
+                <div v-if="amount && slices >= 2" class="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                  ₱{{ amount.toLocaleString() }} ÷ {{ slices }} = <strong>₱{{ (amount / slices).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong> per slice
+                  <span v-if="amount % slices !== 0" class="block text-amber-600 mt-1">⚠ Amount must divide evenly by slices</span>
+                </div>
+              </div>
+              
+              <!-- Open Slices Config -->
+              <div v-if="sliceMode === 'open'" class="space-y-3 pl-2 border-l-2 border-primary/30 ml-4">
+                <div class="space-y-1">
+                  <Label for="max-slices" class="text-xs">Max Withdrawals</Label>
+                  <Input
+                    id="max-slices"
+                    type="number"
+                    v-model.number="maxSlices"
+                    :min="2"
+                    :max="50"
+                    class="h-9"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <Label for="min-withdrawal" class="text-xs">Min Amount per Withdrawal (₱)</Label>
+                  <Input
+                    id="min-withdrawal"
+                    type="number"
+                    v-model.number="minWithdrawal"
+                    :min="1"
+                    class="h-9"
+                  />
+                </div>
+                <div v-if="amount" class="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                  Up to {{ maxSlices }} withdrawals, min ₱{{ minWithdrawal.toLocaleString() }} each
+                </div>
+              </div>
+            </div>
+            
             <!-- Fee Preview -->
             <div class="p-4 bg-muted/50 rounded-lg">
               <p class="text-sm font-medium mb-2">Fee Preview</p>
               <div class="text-xs text-muted-foreground space-y-1">
                 <p>Rail: {{ settlementRail === 'auto' ? 'Auto-select' : settlementRail || 'Not set' }}</p>
                 <p>Strategy: {{ feeStrategy === 'absorb' ? 'Issuer pays' : feeStrategy === 'include' ? 'Deduct from amount' : 'Add to disbursement' }}</p>
+                <p v-if="sliceMode !== 'single'">Mode: {{ sliceMode === 'fixed' ? `${slices} fixed slices` : `Open (max ${maxSlices})` }}</p>
+                <p v-if="sliceMode !== 'single'" class="text-amber-600">Transaction fee charged per slice ({{ sliceMode === 'fixed' ? slices : maxSlices }}×)</p>
                 <p v-if="amount" class="pt-2 border-t mt-2">
                   Example: ₱{{ amount.toLocaleString() }} voucher → 
                   {{ feeStrategy === 'absorb' ? `₱${amount.toLocaleString()} to redeemer` : 

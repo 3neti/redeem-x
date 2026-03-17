@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Carbon\CarbonInterval;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Number;
+use LBHurtado\Voucher\Data\MobileVerificationConfigData;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Enums\VoucherInputField;
 use Propaganistas\LaravelPhone\Rules\Phone;
@@ -71,6 +72,11 @@ class VoucherGenerationRequest extends FormRequest
             'settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
             'fee_strategy' => 'nullable|string|in:absorb,include,add',
 
+            // Mobile verification policy
+            'mobile_verification' => 'nullable',
+            'mobile_verification.driver' => 'nullable|string|in:basic,countries,white_list,external_api,external_db',
+            'mobile_verification.enforcement' => 'nullable|string|in:strict,soft',
+
             // External metadata for external system integration
             'external_metadata' => 'nullable|array|max:5',
             'external_metadata.external_id' => 'nullable|string|max:255',
@@ -116,6 +122,7 @@ class VoucherGenerationRequest extends FormRequest
                     'country' => config('instructions.cash.validation_rules.country', 'PH'),
                     'location' => null,
                     'radius' => null,
+                    'mobile_verification' => MobileVerificationConfigData::fromMixed($validated['mobile_verification'] ?? null),
                 ],
                 'settlement_rail' => $validated['settlement_rail'] ?? null,
                 'fee_strategy' => $validated['fee_strategy'] ?? 'absorb',

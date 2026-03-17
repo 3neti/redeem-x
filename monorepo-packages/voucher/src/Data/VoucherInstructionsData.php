@@ -52,6 +52,7 @@ class VoucherInstructionsData extends Data
             'cash.validation.country' => 'nullable|string|size:2',
             'cash.validation.location' => 'nullable|string',
             'cash.validation.radius' => 'nullable|string',
+            'cash.validation.mobile_verification' => 'nullable',
             'cash.settlement_rail' => 'nullable|string|in:INSTAPAY,PESONET',
             'cash.fee_strategy' => 'nullable|string|in:absorb,include,add',
 
@@ -140,6 +141,7 @@ class VoucherInstructionsData extends Data
                     'country' => $validated['cash']['validation']['country'] ?? null,
                     'location' => $validated['cash']['validation']['location'] ?? null,
                     'radius' => $validated['cash']['validation']['radius'] ?? null,
+                    'mobile_verification' => $validated['cash']['validation']['mobile_verification'] ?? null,
                 ],
             ],
             'inputs' => [

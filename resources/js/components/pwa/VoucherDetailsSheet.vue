@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Banknote, ChevronDown, Code, Lock, Send, Ban, RotateCcw, Loader2, FileText, Paperclip, ExternalLink, CheckCircle2, Clock as ClockIcon } from 'lucide-vue-next';
+import { Banknote, ChevronDown, Code, Lock, Send, Ban, RotateCcw, Loader2, FileText, Paperclip, ExternalLink, CheckCircle2, Clock as ClockIcon, ShieldCheck } from 'lucide-vue-next';
 import RedemptionSummary from './RedemptionSummary.vue';
 import DeductionBreakdown from './DeductionBreakdown.vue';
 import PaymentTimeline from './PaymentTimeline.vue';
@@ -108,7 +108,13 @@ const instructionsFormData = computed(() => {
     riderSplashTimeout: inst.rider?.splash_timeout ?? null,
     locationValidation: inst.validation?.location || null,
     timeValidation: inst.validation?.time || null,
+    mobileVerification: inst.cash?.validation?.mobile_verification || null,
   };
+});
+
+// Mobile verification display
+const mobileVerificationConfig = computed(() => {
+  return instructionsFormData.value?.mobileVerification || null;
 });
 
 const handleOpenChange = (value: boolean) => {
@@ -269,14 +275,25 @@ const formatCurrency = (amount: number) => {
           <div class="p-6">
             <TabsContent value="instructions" class="mt-0">
               <!-- VoucherInstructionsForm (same as desktop /vouchers/{code} view) -->
-              <VoucherInstructionsForm
-                v-if="voucherData.instructions"
-                :model-value="instructionsFormData"
-                :input-field-options="inputFieldOptions || []"
-                :readonly="true"
-                :show-count-field="false"
-                :show-json-preview="true"
-              />
+              <template v-if="voucherData.instructions">
+                <VoucherInstructionsForm
+                  :model-value="instructionsFormData"
+                  :input-field-options="inputFieldOptions || []"
+                  :readonly="true"
+                  :show-count-field="false"
+                  :show-json-preview="true"
+                />
+                <!-- Mobile Verification (read-only) -->
+                <div v-if="mobileVerificationConfig" class="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3.5 py-2.5">
+                  <ShieldCheck class="h-4 w-4 text-primary flex-shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm font-medium">Mobile Verification</span>
+                    <span class="text-xs text-muted-foreground ml-1.5">
+                      {{ mobileVerificationConfig.driver || 'default' }} · {{ mobileVerificationConfig.enforcement || 'default' }}
+                    </span>
+                  </div>
+                </div>
+              </template>
               <div v-else class="text-sm text-muted-foreground text-center py-8">
                 No instructions available for this voucher.
               </div>
