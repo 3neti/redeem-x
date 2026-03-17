@@ -108,10 +108,7 @@ function loadPersistedValues() {
         const saved = JSON.parse(raw);
         props.fields.forEach((field) => {
             if (field.persist && saved[field.name] !== undefined) {
-                // Only restore if no explicit backend default was set
-                if (field.default === undefined || field.default === null) {
-                    formData.value[field.name] = saved[field.name];
-                }
+                formData.value[field.name] = saved[field.name];
             }
         });
     } catch { /* ignore corrupt data */ }

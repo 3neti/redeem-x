@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "3neti/form-flow",
-            "version": "v1.7.11",
+            "version": "v1.7.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/3neti/form-flow.git",
-                "reference": "bcb978f28ee7fd1d5dce0df2c3da7060e275929e"
+                "reference": "0629dfd952ea072753ff6d1bc1fa4103ee6f0956"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/3neti/form-flow/zipball/bcb978f28ee7fd1d5dce0df2c3da7060e275929e",
-                "reference": "bcb978f28ee7fd1d5dce0df2c3da7060e275929e",
+                "url": "https://api.github.com/repos/3neti/form-flow/zipball/0629dfd952ea072753ff6d1bc1fa4103ee6f0956",
+                "reference": "0629dfd952ea072753ff6d1bc1fa4103ee6f0956",
                 "shasum": ""
             },
             "require": {
@@ -70,9 +70,9 @@
             ],
             "support": {
                 "issues": "https://github.com/3neti/form-flow/issues",
-                "source": "https://github.com/3neti/form-flow/tree/v1.7.11"
+                "source": "https://github.com/3neti/form-flow/tree/v1.7.12"
             },
-            "time": "2026-03-13T12:52:14+00:00"
+            "time": "2026-03-17T12:51:33+00:00"
         },
         {
             "name": "3neti/form-handler-kyc",
