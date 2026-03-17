@@ -89,6 +89,7 @@ return [
     'mobile_verification' => [
         'default' => env('REDEMPTION_MOBILE_VERIFICATION_DRIVER', 'basic'),
         'enforcement' => env('REDEMPTION_MOBILE_VERIFICATION_ENFORCEMENT', 'strict'),
+        'show_in_generate' => env('REDEMPTION_MOBILE_VERIFICATION_SHOW_IN_GENERATE', false),
 
         'drivers' => [
             'basic' => [

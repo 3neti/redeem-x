@@ -410,6 +410,7 @@ class PwaVoucherController extends Controller
             'walletBalance' => $walletBalance,
             'formattedBalance' => $formattedBalance,
             'envelopeDrivers' => $envelopeDrivers,
+            'showMobileVerification' => config('voucher.mobile_verification.show_in_generate', false),
         ]);
     }
 

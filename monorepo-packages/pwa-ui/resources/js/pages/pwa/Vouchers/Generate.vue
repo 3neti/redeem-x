@@ -50,6 +50,7 @@ interface Props {
   walletBalance?: number;
   formattedBalance?: string;
   envelopeDrivers?: EnvelopeDriver[];
+  showMobileVerification?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -58,6 +59,7 @@ const props = withDefaults(defineProps<Props>(), {
   walletBalance: 0,
   formattedBalance: '₱0.00',
   envelopeDrivers: () => [],
+  showMobileVerification: false,
 });
 
 const { toast } = useToast();
@@ -1661,7 +1663,7 @@ watch(payeeType, (newType, oldType) => {
           </div>
 
           <!-- Mobile Verification -->
-          <div class="p-3 rounded-lg border transition-colors" :class="mobileVerificationEnabled ? 'bg-primary/5 border-primary/20' : 'hover:bg-muted/50'">
+          <div v-if="showMobileVerification" class="p-3 rounded-lg border transition-colors" :class="mobileVerificationEnabled ? 'bg-primary/5 border-primary/20' : 'hover:bg-muted/50'">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <ShieldCheck class="h-3.5 w-3.5" :class="mobileVerificationEnabled ? 'text-primary' : 'text-muted-foreground'" />
