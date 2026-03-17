@@ -322,7 +322,11 @@ class DisburseController extends Controller
      */
     public function success(Voucher $voucher): Response
     {
-        $amount = $voucher->instructions->cash->amount ?? 0;
+        // Use actual disbursed amount from metadata (correct for divisible slices),
+        // fall back to face value when disbursement metadata isn't available.
+        $amount = $voucher->metadata['disbursement']['amount']
+            ?? $voucher->instructions->cash->amount
+            ?? 0;
         $currency = $voucher->instructions->cash->currency ?? 'PHP';
         $riderTimeout = $voucher->instructions->rider->redirect_timeout ?? config('redeem.success.redirect.timeout', 10);
         $formattedAmount = '₱'.number_format($amount, 2);

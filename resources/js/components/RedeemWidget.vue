@@ -16,7 +16,7 @@ import VoucherMetadataDisplay from '@/components/voucher/VoucherMetadataDisplay.
 import VoucherStatusStamp from '@/components/voucher/VoucherStatusStamp.vue';
 import OgPreviewCard from '@/components/voucher/OgPreviewCard.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { AlertCircle, Palette, FileText, Download, ChevronDown, Info } from 'lucide-vue-next';
+import { AlertCircle, Palette, FileText, Download, ChevronDown, Info, Wallet } from 'lucide-vue-next';
 import { useVoucherPreview } from '@/composables/useVoucherPreview';
 import { useTheme } from '@/composables/useTheme';
 import { wallet, start } from '@/actions/App/Http/Controllers/Redeem/RedeemController';
@@ -116,11 +116,14 @@ onMounted(() => {
 const voucherInput = ref<HTMLInputElement | null>(null);
 const submitButton = ref<HTMLButtonElement | null>(null);
 
-// Non-active voucher state detection
+// Non-active voucher state detection (partially_redeemed stays active — user can still withdraw)
 const isNonActive = computed(() => {
     const s = voucherData.value?.status;
     return s === 'redeemed' || s === 'expired';
 });
+
+const isPartiallyRedeemed = computed(() => voucherData.value?.status === 'partially_redeemed');
+const divisibleInfo = computed(() => voucherData.value?.divisible ?? null);
 
 const statusDate = computed(() => {
     if (!voucherData.value) return null;
@@ -309,6 +312,33 @@ function submit() {
                     {{ voucherData.preview.message || 'Preview disabled by issuer.' }}
                 </AlertDescription>
             </Alert>
+
+            <!-- Partially Redeemed: compact slice-info card (form stays visible above) -->
+            <div v-else-if="voucherData && isPartiallyRedeemed && divisibleInfo" class="space-y-3">
+                <Card class="overflow-hidden">
+                    <CardContent class="pt-4 pb-4">
+                        <div class="text-center space-y-3">
+                            <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                                <Wallet class="w-5 h-5 text-primary" />
+                            </div>
+                            <p class="text-2xl font-bold tracking-tight text-foreground">{{ divisibleInfo.formatted_remaining }}</p>
+                            <p class="text-sm text-muted-foreground">Remaining balance</p>
+                            <div class="space-y-1 pt-1">
+                                <div class="flex justify-between text-xs text-muted-foreground">
+                                    <span>{{ divisibleInfo.consumed_slices }} of {{ divisibleInfo.max_slices }} withdrawals used</span>
+                                    <span>{{ divisibleInfo.remaining_slices }} left</span>
+                                </div>
+                                <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                    <div
+                                        class="h-full rounded-full bg-primary transition-all duration-500"
+                                        :style="{ width: Math.round((divisibleInfo.consumed_slices / divisibleInfo.max_slices) * 100) + '%' }"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             <!-- Non-Active State: Stamp + Rider Content -->
             <div v-else-if="voucherData && isNonActive" class="space-y-2.5">

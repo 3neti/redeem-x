@@ -53,8 +53,23 @@ class InspectVoucher
             'metadata' => $metadata,
         ];
 
+        // Add divisible voucher info for partially redeemed vouchers
+        if ($status === 'partially_redeemed') {
+            $cash = $voucher->instructions->cash;
+            $response['divisible'] = [
+                'can_withdraw' => true,
+                'slice_mode' => $voucher->getSliceMode(),
+                'remaining_balance' => $voucher->getRemainingBalance(),
+                'formatted_remaining' => Number::currency($voucher->getRemainingBalance(), $cash->currency),
+                'remaining_slices' => $voucher->getRemainingSlices(),
+                'max_slices' => $voucher->getMaxSlices(),
+                'consumed_slices' => $voucher->getConsumedSlices(),
+                'min_withdrawal' => $voucher->getMinWithdrawal(),
+            ];
+        }
+
         // Add status timestamp for non-active vouchers
-        if ($status === 'redeemed' && $voucher->redeemed_at) {
+        if (in_array($status, ['redeemed', 'partially_redeemed']) && $voucher->redeemed_at) {
             $response['redeemed_at'] = $voucher->redeemed_at->toISOString();
         }
         if ($status === 'expired' && $voucher->expires_at) {
@@ -405,7 +420,7 @@ class InspectVoucher
     private function getVoucherStatus(Voucher $voucher): string
     {
         if ($voucher->redeemed_at) {
-            return 'redeemed';
+            return $voucher->canWithdraw() ? 'partially_redeemed' : 'redeemed';
         }
 
         if ($voucher->isExpired()) {
