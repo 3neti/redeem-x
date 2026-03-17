@@ -16,6 +16,7 @@ class CashValidationRulesData extends Data
         public ?string $country,
         public ?string $location,
         public ?string $radius, // future: consider DistanceValueObject
+        public ?MobileVerificationConfigData $mobile_verification = null,
     ) {
         $this->applyRulesAndDefaults();
     }

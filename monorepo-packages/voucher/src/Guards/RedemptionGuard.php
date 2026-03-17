@@ -8,6 +8,7 @@ use LBHurtado\Voucher\Specifications\InputsSpecification;
 use LBHurtado\Voucher\Specifications\KycSpecification;
 use LBHurtado\Voucher\Specifications\LocationSpecification;
 use LBHurtado\Voucher\Specifications\MobileSpecification;
+use LBHurtado\Voucher\Specifications\MobileVerificationSpecification;
 use LBHurtado\Voucher\Specifications\PayableSpecification;
 use LBHurtado\Voucher\Specifications\SecretSpecification;
 use LBHurtado\Voucher\Specifications\TimeLimitSpecification;
@@ -24,6 +25,7 @@ class RedemptionGuard
         private readonly LocationSpecification $locationSpec,
         private readonly TimeWindowSpecification $timeWindowSpec,
         private readonly TimeLimitSpecification $timeLimitSpec,
+        private readonly ?MobileVerificationSpecification $mobileVerificationSpec = null,
     ) {}
 
     /**
@@ -87,6 +89,11 @@ class RedemptionGuard
         // Time limit validation
         if (! $this->timeLimitSpec->passes($voucher, $context)) {
             $failures[] = 'time_limit';
+        }
+
+        // Mobile verification (driver-based, distinct from MobileSpecification's 1:1 match)
+        if ($this->mobileVerificationSpec && ! $this->mobileVerificationSpec->passes($voucher, $context)) {
+            $failures[] = 'mobile_verification';
         }
 
         return new ValidationResult(empty($failures), $failures);

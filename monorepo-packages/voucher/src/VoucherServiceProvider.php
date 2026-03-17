@@ -26,6 +26,13 @@ class VoucherServiceProvider extends ServiceProvider
             'voucher-pipeline'
         );
 
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/vouchers.php',
+            'voucher'
+        );
+
+        $this->app->singleton(MobileVerification\MobileVerificationManager::class);
+
         // Register report driver source path (used by report:install-drivers)
         if (interface_exists(\LBHurtado\ReportRegistry\Contracts\ReportResolverInterface::class)) {
             $sources = $this->app['config']->get('report-registry.driver_sources', []);
