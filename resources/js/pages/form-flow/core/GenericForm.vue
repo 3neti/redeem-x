@@ -38,6 +38,11 @@ interface FieldDefinition {
     help_text?: string;
     variant?: 'readonly-badge' | 'normal';
     persist?: boolean;
+    // Slice / divisible voucher metadata (from YAML driver context)
+    slice_mode?: string | null;
+    min_withdrawal?: number | string | null;
+    available_balance?: number | string | null;
+    max_slices?: number | string | null;
 }
 
 interface AutoSyncConfig {
@@ -229,8 +234,31 @@ const voucherCode = computed(() => {
 // Detect disburse flow from description ("Redeeming voucher CODE from ...")
 const isDisburseFlow = computed(() => !!voucherCode.value);
 
+// Slice / divisible voucher detection
+const amountField = computed(() => props.fields.find(f => f.name === 'amount'));
+const isOpenSlice = computed(() => String(amountField.value?.slice_mode) === 'open');
+const isFixedSlice = computed(() => String(amountField.value?.slice_mode) === 'fixed');
+const isDivisible = computed(() => isOpenSlice.value || isFixedSlice.value);
+
+const sliceMinWithdrawal = computed(() => {
+    const v = amountField.value?.min_withdrawal;
+    return v ? parseFloat(String(v)) : 0;
+});
+const sliceAvailableBalance = computed(() => {
+    const v = amountField.value?.available_balance;
+    return v ? parseFloat(String(v)) : 0;
+});
+const sliceMaxSlices = computed(() => {
+    const v = amountField.value?.max_slices;
+    return v ? parseInt(String(v), 10) : 0;
+});
+
+function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
+}
+
 // Field organization by UI metadata
-// Hide amount badge since we show it in progress flow
+// Hide amount badge since we show it in progress flow (or as editable input for open-mode)
 const summaryFields = computed(() => 
     props.fields.filter(f => f.variant === 'readonly-badge' && f.name !== 'amount')
 );
@@ -427,6 +455,38 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         </div>
                     </div>
 
+                    <!-- Open-mode: editable amount input -->
+                    <div v-if="isOpenSlice" class="space-y-2">
+                        <Label for="amount" :class="{ 'text-destructive': errors['amount'] }">
+                            Withdrawal Amount
+                            <span class="text-destructive">*</span>
+                        </Label>
+                        <Input
+                            id="amount"
+                            v-model.number="formData['amount']"
+                            type="number"
+                            :min="sliceMinWithdrawal"
+                            :max="sliceAvailableBalance"
+                            :step="0.01"
+                            :placeholder="`Min ${formatCurrency(sliceMinWithdrawal)}`"
+                            required
+                            class="text-center text-lg font-semibold"
+                            :class="{ 'border-destructive': errors['amount'] }"
+                        />
+                        <p class="text-xs text-muted-foreground text-center">
+                            {{ formatCurrency(sliceMinWithdrawal) }} – {{ formatCurrency(sliceAvailableBalance) }} • Up to {{ sliceMaxSlices }} withdrawals
+                        </p>
+                        <p v-if="errors['amount']" class="text-sm text-destructive">{{ errors['amount'] }}</p>
+                    </div>
+
+                    <!-- Fixed-mode: show slice info badge -->
+                    <div v-else-if="isFixedSlice && sliceMaxSlices > 0" class="text-center">
+                        <Badge variant="secondary" class="text-base py-2 px-4">
+                            <span class="font-bold">{{ formatBadgeValue(amountField) }}</span>
+                        </Badge>
+                        <p class="text-xs text-muted-foreground mt-1">Slice 1 of {{ sliceMaxSlices }}</p>
+                    </div>
+
                     <!-- Hero Fields Section -->
                     <div v-if="heroFields.length > 0" class="space-y-6 mb-8">
                         <div v-for="field in heroFields" :key="field.name" class="space-y-3">
@@ -470,15 +530,17 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                 autofocus
                             />
                             
-                            <!-- Transaction badges below mobile field -->
+                            <!-- Transaction badges below mobile field (hide amount badge for open-mode since it has its own input) -->
                             <div v-if="field.name === 'mobile' && issuerName" class="flex flex-wrap items-center gap-1.5 mt-2">
                                 <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
                                     {{ issuerName }}
                                 </Badge>
-                                <span class="text-muted-foreground text-xs">•</span>
-                                <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
-                                    {{ formatBadgeValue(props.fields.find(f => f.name === 'amount')) }}
-                                </Badge>
+                                <template v-if="!isOpenSlice">
+                                    <span class="text-muted-foreground text-xs">•</span>
+                                    <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                        {{ formatBadgeValue(props.fields.find(f => f.name === 'amount')) }}
+                                    </Badge>
+                                </template>
                             </div>
                             
                             <!-- Help text (hide for mobile field since badges replace it) -->
@@ -553,15 +615,17 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                                             :readonly="field.readonly"
                                             :disabled="field.disabled"
                                         />
-                                        <!-- Transaction badges below mobile field -->
+                                        <!-- Transaction badges below mobile field (hide amount badge for open-mode) -->
                                         <div v-if="field.name === 'mobile' && issuerName" class="flex flex-wrap items-center gap-1.5 mt-1">
                                             <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
                                                 {{ issuerName }}
                                             </Badge>
-                                            <span class="text-muted-foreground text-xs">•</span>
-                                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
-                                                {{ formatBadgeValue(props.fields.find(f => f.name === 'amount')) }}
-                                            </Badge>
+                                            <template v-if="!isOpenSlice">
+                                                <span class="text-muted-foreground text-xs">•</span>
+                                                <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                                    {{ formatBadgeValue(props.fields.find(f => f.name === 'amount')) }}
+                                                </Badge>
+                                            </template>
                                         </div>
                                         <p v-if="field.help_text && field.name !== 'mobile'" class="text-xs text-muted-foreground">
                                             {{ field.help_text }}

@@ -225,6 +225,11 @@ class DisburseController extends Controller
             ->except(['mobile', 'recipient_country', 'bank_code', 'account_number', 'amount', 'settlement_rail'])
             ->toArray();
 
+        // For open-mode divisible vouchers, pass the user-entered amount so DisburseCash can use it
+        if ($voucher->getSliceMode() === 'open' && isset($flatData['amount'])) {
+            $inputs['requested_amount'] = (float) $flatData['amount'];
+        }
+
         // If KYC data exists in form flow, add kyc_status to inputs for validation
         if ($hasKycData && $flatData['status'] === 'approved') {
             $inputs['kyc_status'] = 'approved';

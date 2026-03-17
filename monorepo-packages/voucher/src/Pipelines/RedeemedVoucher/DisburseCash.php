@@ -42,13 +42,40 @@ class DisburseCash
                 $sliceAmount = $voucher->getSliceAmount();
                 $sliceNumber = 1;
             } else {
-                // Open mode: skip auto-disbursement on redemption.
-                // Redeemer chooses amount via /withdraw page.
-                Log::info('[DisburseCash] Open-mode divisible voucher — skipping auto-disburse, redeemer uses /withdraw', [
-                    'voucher' => $voucher->code,
-                ]);
+                // Open mode: disburse user-chosen amount if provided, otherwise skip.
+                $redeemer = $voucher->redeemers->first();
+                $requestedAmount = $redeemer?->metadata['redemption']['inputs']['requested_amount'] ?? null;
 
-                return $next($voucher);
+                if ($requestedAmount !== null) {
+                    $requestedAmount = (float) $requestedAmount;
+                    $minWithdrawal = $voucher->getMinWithdrawal() ?? 0;
+                    $faceAmount = $voucher->instructions->cash->amount ?? 0;
+
+                    if ($requestedAmount < $minWithdrawal || $requestedAmount > $faceAmount) {
+                        Log::warning('[DisburseCash] Open-mode requested_amount out of range', [
+                            'voucher' => $voucher->code,
+                            'requested' => $requestedAmount,
+                            'min' => $minWithdrawal,
+                            'max' => $faceAmount,
+                        ]);
+
+                        return $next($voucher);
+                    }
+
+                    $sliceAmount = $requestedAmount;
+                    $sliceNumber = 1;
+
+                    Log::info('[DisburseCash] Open-mode — disbursing user-chosen amount', [
+                        'voucher' => $voucher->code,
+                        'amount' => $sliceAmount,
+                    ]);
+                } else {
+                    Log::info('[DisburseCash] Open-mode — no requested_amount, skipping auto-disburse', [
+                        'voucher' => $voucher->code,
+                    ]);
+
+                    return $next($voucher);
+                }
             }
         }
 

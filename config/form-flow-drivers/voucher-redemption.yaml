@@ -98,13 +98,19 @@ steps:
     fields:
       # Summary Fields (readonly, display context)
       # -------------------------------------------
+      # For divisible vouchers (open mode), GenericForm overrides readonly
+      # and renders an editable input with min/max constraints.
       - name: "amount"
         type: "number"
         label: "Amount"
         default: "{{ amount }}"                          # From voucher context
-        readonly: true                                   # User cannot edit
+        readonly: true                                   # User cannot edit (overridden for open-mode)
         required: true
         variant: "readonly-badge"                        # Styled as badge/pill
+        slice_mode: "{{ slice_mode }}"                   # null, 'fixed', or 'open'
+        min_withdrawal: "{{ min_withdrawal }}"           # Minimum per withdrawal (open mode)
+        available_balance: "{{ available_balance }}"     # Remaining balance for withdrawals
+        max_slices: "{{ max_slices }}"                   # Total allowed slices
       
       # Settlement Rail (hidden field)
       # ------------------------------
