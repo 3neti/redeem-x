@@ -288,7 +288,11 @@ class Voucher extends BaseVoucher implements HasMedia, InputInterface
 
     public function getSliceMode(): ?string
     {
-        return $this->instructions->cash->slice_mode;
+        try {
+            return $this->instructions->cash->slice_mode;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function isDivisible(): bool
@@ -302,25 +306,47 @@ class Voucher extends BaseVoucher implements HasMedia, InputInterface
             return null;
         }
 
-        return $this->instructions->cash->amount / $this->instructions->cash->slices;
+        try {
+            return $this->instructions->cash->amount / $this->instructions->cash->slices;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function getMaxSlices(): ?int
     {
-        return match ($this->getSliceMode()) {
-            'fixed' => $this->instructions->cash->slices,
-            'open' => $this->instructions->cash->max_slices,
-            default => null,
-        };
+        $mode = $this->getSliceMode();
+        if (! $mode) {
+            return null;
+        }
+
+        try {
+            return match ($mode) {
+                'fixed' => $this->instructions->cash->slices,
+                'open' => $this->instructions->cash->max_slices,
+                default => null,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function getMinWithdrawal(): ?float
     {
-        return match ($this->getSliceMode()) {
-            'fixed' => $this->getSliceAmount(),
-            'open' => $this->instructions->cash->min_withdrawal ?? config('voucher.min_withdrawal', 100),
-            default => null,
-        };
+        $mode = $this->getSliceMode();
+        if (! $mode) {
+            return null;
+        }
+
+        try {
+            return match ($mode) {
+                'fixed' => $this->getSliceAmount(),
+                'open' => $this->instructions->cash->min_withdrawal ?? config('voucher.min_withdrawal', 100),
+                default => null,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function getConsumedSlices(): int
