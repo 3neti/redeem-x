@@ -74,7 +74,7 @@ class InstructionItem extends Model implements ProductInterface
     {
         return [
             'type' => $this->type,
-            'title' => $this->meta['title'] ?? ucfirst($this->type),
+            'title' => $this->meta['label'] ?? $this->meta['title'] ?? ucfirst($this->type),
             'description' => $this->meta['description'] ?? "Charge for {$this->type} instruction",
         ];
     }

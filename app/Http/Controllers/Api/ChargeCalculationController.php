@@ -23,6 +23,10 @@ class ChargeCalculationController extends Controller
                 'cash.validation.mobile' => 'nullable|string',
                 'cash.validation.payable' => 'nullable|string',
                 'cash.validation.country' => 'nullable|string',
+                'cash.slice_mode' => 'nullable|string|in:fixed,open',
+                'cash.slices' => 'nullable|integer|min:2',
+                'cash.max_slices' => 'nullable|integer|min:2',
+                'cash.min_withdrawal' => 'nullable|numeric|min:0',
                 'inputs' => 'nullable|array',
                 'feedback' => 'nullable|array',
                 'rider' => 'nullable|array',
@@ -41,7 +45,10 @@ class ChargeCalculationController extends Controller
                 'cash' => [
                     'amount' => 0,
                     'currency' => 'PHP',
-                    'validation' => [],
+                    'validation' => [
+                        'secret' => null, 'mobile' => null, 'payable' => null,
+                        'country' => null, 'location' => null, 'radius' => null,
+                    ],
                 ],
                 'inputs' => ['fields' => []],
                 'feedback' => ['email' => null, 'mobile' => null, 'webhook' => null],

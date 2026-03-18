@@ -26,7 +26,11 @@ class ChargeInstructions
                 continue;
             }
 
-            $owner->pay($charge['item']);
+            // pay_count > 1 for slice fees: call pay() once per additional slice
+            $payCount = $charge['pay_count'] ?? 1;
+            for ($i = 0; $i < $payCount; $i++) {
+                $owner->pay($charge['item']);
+            }
         }
 
         return $next($voucher);

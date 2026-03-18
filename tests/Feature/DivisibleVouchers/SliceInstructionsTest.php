@@ -208,7 +208,7 @@ test('voucher canWithdraw returns false for expired divisible voucher', function
 // Pricing — transaction fee × slices
 // ---------------------------------------------------------------------------
 
-test('pricing multiplies transaction fee by slice count for fixed mode', function () {
+test('pricing charges base transaction fee plus separate slice fee for fixed mode', function () {
     $user = User::factory()->create();
 
     // Create the cash.amount InstructionItem (₱15 = 1500 centavos)
@@ -221,6 +221,18 @@ test('pricing multiplies transaction fee by slice count for fixed mode', functio
         'meta' => ['label' => 'Transaction Fee', 'description' => 'InstaPay fund transfer cost'],
     ]);
 
+    // Ensure the cash.slice_fee InstructionItem exists (₱15 per additional slice)
+    InstructionItem::firstOrCreate(
+        ['index' => 'cash.slice_fee'],
+        [
+            'name' => 'Slice Fee',
+            'type' => 'amount',
+            'price' => 1500,
+            'currency' => 'PHP',
+            'meta' => ['label' => 'Slice Disbursement Fee', 'category' => 'base', 'description' => 'Per-slice fund transfer cost'],
+        ]
+    );
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $base['cash']['amount'] = 5000;
     $base['cash']['slice_mode'] = 'fixed';
@@ -230,14 +242,21 @@ test('pricing multiplies transaction fee by slice count for fixed mode', functio
     $evaluator = new InstructionCostEvaluator(new InstructionItemRepository);
     $charges = $evaluator->evaluate($user, $instructions);
 
+    // cash.amount stays at base price (1500) — covers slice 1
     $txnFee = $charges->firstWhere('index', 'cash.amount');
-
     expect($txnFee)->not->toBeNull();
-    // unit_price = 1500, quantity = count (1 voucher), but fee should be 1500 * 5 slices = 7500
-    expect($txnFee['unit_price'])->toBe(1500 * 5);
+    expect($txnFee['unit_price'])->toBe(1500);
+
+    // cash.slice_fee covers additional slices (5 - 1 = 4)
+    $sliceFee = $charges->firstWhere('index', 'cash.slice_fee');
+    expect($sliceFee)->not->toBeNull();
+    expect($sliceFee['unit_price'])->toBe(1500);
+    expect($sliceFee['slice_count'])->toBe(4);
+    expect($sliceFee['pay_count'])->toBe(4);
+    expect($sliceFee['price'])->toBe(1500 * 4 * 1); // 4 slices × 1 voucher
 });
 
-test('pricing multiplies transaction fee by max_slices for open mode', function () {
+test('pricing charges base transaction fee plus separate slice fee for open mode', function () {
     $user = User::factory()->create();
 
     InstructionItem::create([
@@ -249,6 +268,17 @@ test('pricing multiplies transaction fee by max_slices for open mode', function 
         'meta' => ['label' => 'Transaction Fee', 'description' => 'InstaPay fund transfer cost'],
     ]);
 
+    InstructionItem::firstOrCreate(
+        ['index' => 'cash.slice_fee'],
+        [
+            'name' => 'Slice Fee',
+            'type' => 'amount',
+            'price' => 1500,
+            'currency' => 'PHP',
+            'meta' => ['label' => 'Slice Disbursement Fee', 'category' => 'base', 'description' => 'Per-slice fund transfer cost'],
+        ]
+    );
+
     $base = VoucherInstructionsData::generateFromScratch()->toArray();
     $base['cash']['amount'] = 5000;
     $base['cash']['slice_mode'] = 'open';
@@ -259,10 +289,18 @@ test('pricing multiplies transaction fee by max_slices for open mode', function 
     $evaluator = new InstructionCostEvaluator(new InstructionItemRepository);
     $charges = $evaluator->evaluate($user, $instructions);
 
+    // cash.amount stays at base price (1500)
     $txnFee = $charges->firstWhere('index', 'cash.amount');
-
     expect($txnFee)->not->toBeNull();
-    expect($txnFee['unit_price'])->toBe(1500 * 10);
+    expect($txnFee['unit_price'])->toBe(1500);
+
+    // cash.slice_fee covers additional slices (10 - 1 = 9)
+    $sliceFee = $charges->firstWhere('index', 'cash.slice_fee');
+    expect($sliceFee)->not->toBeNull();
+    expect($sliceFee['unit_price'])->toBe(1500);
+    expect($sliceFee['slice_count'])->toBe(9);
+    expect($sliceFee['pay_count'])->toBe(9);
+    expect($sliceFee['price'])->toBe(1500 * 9 * 1); // 9 slices × 1 voucher
 });
 
 test('pricing unchanged for non-divisible voucher', function () {

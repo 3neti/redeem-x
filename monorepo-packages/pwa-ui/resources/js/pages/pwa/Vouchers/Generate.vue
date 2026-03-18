@@ -686,6 +686,7 @@ const chargesByCategory = computed(() => {
 
 // Category labels for display
 const categoryLabels: Record<string, string> = {
+  'base': 'Base Fees',
   'system': 'System Fees',
   'escrow': 'Escrow',
   'gateway': 'Gateway Fees',

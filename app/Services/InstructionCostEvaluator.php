@@ -18,6 +18,7 @@ class InstructionCostEvaluator
         'ttl',
         'starts_at',
         'expires_at',
+        'cash.slice_fee', // Handled separately after the main loop for divisible vouchers
         // NOTE: cash.amount is the processing fee (₱20), NOT the face value.
         // The face value comes from $source->cash->amount (user input).
         // Do NOT exclude cash.amount - it should be charged as a processing fee.
@@ -141,16 +142,6 @@ class InstructionCostEvaluator
 
             $price = $item->getAmountProduct($customer);
 
-            // Scale transaction fee by slice count for divisible vouchers
-            if ($item->index === 'cash.amount' && $source->cash?->slice_mode !== null) {
-                $sliceMultiplier = match ($source->cash->slice_mode) {
-                    'fixed' => $source->cash->slices ?? 1,
-                    'open' => $source->cash->max_slices ?? 1,
-                    default => 1,
-                };
-                $price = $price * $sliceMultiplier;
-            }
-
             if (self::DEBUG) {
                 Log::debug("[InstructionCostEvaluator] Evaluating: {$item->index}", [
                     'value' => $value,
@@ -162,6 +153,7 @@ class InstructionCostEvaluator
 
             if ($shouldCharge) {
                 $label = $item->meta['label'] ?? $item->name;
+                $payCount = 1;
 
                 if (self::DEBUG) {
                     Log::info('[InstructionCostEvaluator] ✅ Chargeable instruction', [
@@ -182,7 +174,50 @@ class InstructionCostEvaluator
                     'price' => $price * $count,
                     'currency' => $item->currency,
                     'label' => $label,
+                    'pay_count' => $payCount,
                 ]);
+            }
+        }
+
+        // Add slice fee as a separate charge for divisible vouchers
+        if ($source->cash?->slice_mode !== null) {
+            $additionalSlices = match ($source->cash->slice_mode) {
+                'fixed' => ($source->cash->slices ?? 1) - 1,
+                'open' => ($source->cash->max_slices ?? 1) - 1,
+                default => 0,
+            };
+
+            if ($additionalSlices > 0) {
+                $sliceFeeItem = $this->repository->findByIndex('cash.slice_fee');
+
+                if ($sliceFeeItem && $sliceFeeItem->price > 0) {
+                    $sliceFeePrice = $sliceFeeItem->getAmountProduct($customer);
+                    $sliceFeeLabel = $sliceFeeItem->meta['label'] ?? $sliceFeeItem->name;
+
+                    if (self::DEBUG) {
+                        Log::info('[InstructionCostEvaluator] ✅ Slice fee charge', [
+                            'index' => 'cash.slice_fee',
+                            'label' => $sliceFeeLabel,
+                            'unit_price' => $sliceFeePrice,
+                            'additional_slices' => $additionalSlices,
+                            'quantity' => $count,
+                            'total_price' => $sliceFeePrice * $additionalSlices * $count,
+                        ]);
+                    }
+
+                    $charges->push([
+                        'index' => 'cash.slice_fee',
+                        'item' => $sliceFeeItem,
+                        'value' => $additionalSlices,
+                        'unit_price' => $sliceFeePrice,
+                        'quantity' => $count,
+                        'price' => $sliceFeePrice * $additionalSlices * $count,
+                        'currency' => $sliceFeeItem->currency,
+                        'label' => $sliceFeeLabel,
+                        'pay_count' => $additionalSlices,
+                        'slice_count' => $additionalSlices,
+                    ]);
+                }
             }
         }
 
