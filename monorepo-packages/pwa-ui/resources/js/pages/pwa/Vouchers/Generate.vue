@@ -664,6 +664,21 @@ const { breakdown, loading: pricingLoading, totalDeduction } = useChargeBreakdow
 
 const estimatedCost = computed(() => totalDeduction.value);
 
+// Instruction badges — surface active non-default settings below the amount figure
+const instructionBadges = computed(() => {
+  const badges: { label: string }[] = [];
+  if (sliceMode.value === 'fixed') badges.push({ label: `${slices.value} slices` });
+  else if (sliceMode.value === 'open') badges.push({ label: `Open · ${maxSlices.value} max` });
+  if (settlementRail.value && settlementRail.value !== 'auto') badges.push({ label: settlementRail.value });
+  if (feeStrategy.value !== 'absorb') badges.push({ label: `Fee: ${feeStrategy.value}` });
+  if (ttlDays.value) badges.push({ label: `${ttlDays.value}d TTL` });
+  if (prefix.value) badges.push({ label: prefix.value });
+  else if (mask.value) badges.push({ label: 'Custom code' });
+  if (riderMessage.value || riderUrl.value || riderSplash.value) badges.push({ label: 'Rider' });
+  if (envelopeConfig.value) badges.push({ label: 'Envelope' });
+  return badges;
+});
+
 // Group charges by category for display
 const chargesByCategory = computed(() => {
   if (!breakdown.value || !breakdown.value.breakdown) return {};
@@ -1710,7 +1725,7 @@ watch(payeeType, (newType, oldType) => {
         <!-- Amount Display (Large) - Context-Aware -->
 
         <!-- Redeemable: Single amount -->
-        <div v-if="voucherType === 'redeemable'" class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+        <div v-if="voucherType === 'redeemable'" class="text-center pt-3 pb-2 rounded-lg bg-[var(--section-amount)]">
           <p class="text-sm text-muted-foreground mb-1">Amount</p>
           <p 
             class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
@@ -1718,10 +1733,15 @@ watch(payeeType, (newType, oldType) => {
           >
             {{ amount ? `₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
+          <div v-if="instructionBadges.length" class="flex gap-1 justify-center overflow-x-auto scrollbar-hide mt-1.5 px-3">
+            <Badge v-for="b in instructionBadges" :key="b.label" variant="outline" class="text-[10px] shrink-0 whitespace-nowrap font-normal tracking-wide">
+              {{ b.label }}
+            </Badge>
+          </div>
         </div>
 
         <!-- Payable: Target amount -->
-        <div v-else-if="voucherType === 'payable'" class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+        <div v-else-if="voucherType === 'payable'" class="text-center pt-3 pb-2 rounded-lg bg-[var(--section-amount)]">
           <p class="text-sm text-muted-foreground mb-1">Target Amount</p>
           <p 
             class="text-4xl font-bold tabular-nums cursor-pointer hover:text-primary transition-colors"
@@ -1729,10 +1749,15 @@ watch(payeeType, (newType, oldType) => {
           >
             {{ targetAmount ? `₱${targetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱0.00' }}
           </p>
+          <div v-if="instructionBadges.length" class="flex gap-1 justify-center overflow-x-auto scrollbar-hide mt-1.5 px-3">
+            <Badge v-for="b in instructionBadges" :key="b.label" variant="outline" class="text-[10px] shrink-0 whitespace-nowrap font-normal tracking-wide">
+              {{ b.label }}
+            </Badge>
+          </div>
         </div>
 
         <!-- Settlement: Principal -->
-        <div v-else class="text-center py-4 rounded-lg bg-[var(--section-amount)]">
+        <div v-else class="text-center pt-3 pb-2 rounded-lg bg-[var(--section-amount)]">
           <div class="flex items-center justify-center gap-3">
             <div class="cursor-pointer hover:text-primary transition-colors" @click="openAmountKeypad">
               <p class="text-xs text-muted-foreground mb-1">Principal</p>
@@ -1754,6 +1779,11 @@ watch(payeeType, (newType, oldType) => {
           >
             {{ Number(interestRate || 0).toFixed(2) }}% interest
           </p>
+          <div v-if="instructionBadges.length" class="flex gap-1 justify-center overflow-x-auto scrollbar-hide mt-1.5 px-3">
+            <Badge v-for="b in instructionBadges" :key="b.label" variant="outline" class="text-[10px] shrink-0 whitespace-nowrap font-normal tracking-wide">
+              {{ b.label }}
+            </Badge>
+          </div>
         </div>
 
 
