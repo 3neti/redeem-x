@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
 import { CountrySelect, SettlementRailSelect, BankEMISelect } from '@/components/financial';
 import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
+import NumberInputWithKeypad from '@/components/NumberInputWithKeypad.vue';
 import { initializeTheme } from '@/composables/useTheme';
 
 initializeTheme();
@@ -455,29 +456,30 @@ function getFieldPlaceholder(field: FieldDefinition): string {
                         </div>
                     </div>
 
-                    <!-- Open-mode: editable amount input -->
-                    <div v-if="isOpenSlice" class="space-y-2">
-                        <Label for="amount" :class="{ 'text-destructive': errors['amount'] }">
-                            Withdrawal Amount
-                            <span class="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="amount"
-                            v-model.number="formData['amount']"
-                            type="number"
+                    <!-- Open-mode: editable amount input with numpad -->
+                    <fieldset v-if="isOpenSlice" class="border rounded-lg px-3 pt-1 pb-3 bg-muted/5">
+                        <legend class="text-sm font-medium text-muted-foreground px-2">Withdrawal Amount</legend>
+                        <NumberInputWithKeypad
+                            v-model="formData['amount']"
+                            prefix="₱"
                             :min="sliceMinWithdrawal"
                             :max="sliceAvailableBalance"
-                            :step="0.01"
-                            :placeholder="`Min ${formatCurrency(sliceMinWithdrawal)}`"
-                            required
-                            class="text-center text-lg font-semibold"
-                            :class="{ 'border-destructive': errors['amount'] }"
+                            :allow-decimal="true"
+                            keypad-mode="amount"
+                            keypad-title="Withdrawal Amount"
+                            hero
                         />
-                        <p class="text-xs text-muted-foreground text-center">
-                            {{ formatCurrency(sliceMinWithdrawal) }} – {{ formatCurrency(sliceAvailableBalance) }} • Up to {{ sliceMaxSlices }} withdrawals
-                        </p>
-                        <p v-if="errors['amount']" class="text-sm text-destructive">{{ errors['amount'] }}</p>
-                    </div>
+                        <div class="flex flex-wrap items-center justify-center gap-1.5 mt-1">
+                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                {{ formatCurrency(sliceMinWithdrawal) }} – {{ formatCurrency(sliceAvailableBalance) }}
+                            </Badge>
+                            <span class="text-muted-foreground text-xs">•</span>
+                            <Badge variant="outline" class="px-2 py-0.5 text-xs font-medium">
+                                Up to {{ sliceMaxSlices }} withdrawals
+                            </Badge>
+                        </div>
+                        <p v-if="errors['amount']" class="text-sm text-destructive text-center mt-1">{{ errors['amount'] }}</p>
+                    </fieldset>
 
                     <!-- Fixed-mode: show slice info badge -->
                     <div v-else-if="isFixedSlice && sliceMaxSlices > 0" class="text-center">

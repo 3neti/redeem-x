@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { NumberInput } from '@/components/ui/number-input';
 import NumericKeypad from '@/components/NumericKeypad.vue';
+import { Pencil } from 'lucide-vue-next';
 
 interface Props {
   modelValue?: number | null;
@@ -16,6 +17,8 @@ interface Props {
   allowDecimal?: boolean;
   keypadMode?: 'amount' | 'count';
   keypadTitle?: string;
+  hero?: boolean;
+  heroLabel?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -24,6 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   step: 1,
   allowDecimal: false,
   keypadMode: 'amount',
+  hero: false,
 });
 
 const emit = defineEmits<{
@@ -34,12 +38,20 @@ const showKeypad = ref(false);
 
 // Format value for display - showing 2 decimals for decimal inputs
 const displayValue = computed(() => {
-  if (props.modelValue === null || props.modelValue === undefined) return '';
-  if (props.allowDecimal) {
-    // For decimal inputs, show with 2 decimal places as string
-    return props.modelValue.toFixed(2);
+  if (props.modelValue === null || props.modelValue === undefined || props.modelValue === '') return '';
+  const num = typeof props.modelValue === 'number' ? props.modelValue : parseFloat(String(props.modelValue));
+  if (isNaN(num)) return '';
+  return props.allowDecimal ? num.toFixed(2) : num.toString();
+});
+
+// Hero mode: formatted with currency prefix and locale grouping
+const heroDisplay = computed(() => {
+  if (props.modelValue === null || props.modelValue === undefined || props.modelValue === '') {
+    return `${props.prefix ?? ''}0.00`;
   }
-  return props.modelValue.toString();
+  const num = typeof props.modelValue === 'number' ? props.modelValue : parseFloat(String(props.modelValue));
+  if (isNaN(num)) return `${props.prefix ?? ''}0.00`;
+  return `${props.prefix ?? ''}${num.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 });
 
 // Determine keypad mode based on props
@@ -74,7 +86,27 @@ const handleConfirm = (value: number) => {
 
 <template>
   <div>
-    <div class="relative">
+    <!-- Hero variant: compact centered tappable display -->
+    <div
+      v-if="hero"
+      class="group text-center py-3 cursor-pointer"
+      :class="{ 'pointer-events-none opacity-50': disabled }"
+      @click="handleClick"
+    >
+      <p v-if="heroLabel" class="text-xs text-muted-foreground mb-1.5 uppercase tracking-wider">{{ heroLabel }}</p>
+      <div class="inline-flex items-center gap-1.5">
+        <span
+          class="text-3xl font-bold tabular-nums transition-colors border-b-2 border-dashed border-primary/25 group-hover:border-primary/50 pb-0.5"
+          :class="modelValue ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground/40 group-hover:text-muted-foreground'"
+        >
+          {{ heroDisplay }}
+        </span>
+        <Pencil class="h-3 w-3 text-muted-foreground/30 group-hover:text-primary/60 transition-colors shrink-0" />
+      </div>
+    </div>
+
+    <!-- Default variant: input-like display -->
+    <div v-else class="relative">
       <!-- Prefix -->
       <span
         v-if="prefix"

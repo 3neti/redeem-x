@@ -2,9 +2,10 @@
 import { ref, computed } from 'vue';
 import { router, Head, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Wallet, ArrowRight, AlertCircle } from 'lucide-vue-next';
+import PhoneInput from '@/components/ui/phone-input/PhoneInput.vue';
+import NumberInputWithKeypad from '@/components/NumberInputWithKeypad.vue';
 import { initializeTheme } from '@/composables/useTheme';
 
 initializeTheme();
@@ -32,8 +33,20 @@ interface Props {
 const props = defineProps<Props>();
 const page = usePage();
 
-const mobile = ref('');
-const amount = ref<number | null>(null);
+// Load mobile from the /disburse flow's persisted wallet_info (same localStorage key as GenericForm)
+function loadPersistedMobile(): string {
+    try {
+        const raw = localStorage.getItem('form_flow_persist_wallet_info');
+        if (!raw) return '';
+        const saved = JSON.parse(raw);
+        return saved.mobile ?? '';
+    } catch { return ''; }
+}
+
+const mobile = ref(loadPersistedMobile());
+const amount = ref<number | null>(
+    props.voucher.slice_mode === 'open' ? props.voucher.remaining_balance : null
+);
 const isSubmitting = ref(false);
 
 const errors = computed(() => page.props.errors as Record<string, string>);
@@ -122,34 +135,33 @@ const handleSubmit = () => {
                 <!-- Mobile verification -->
                 <div class="space-y-2">
                     <Label for="mobile">Mobile Number</Label>
-                    <Input
-                        id="mobile"
+                    <PhoneInput
                         v-model="mobile"
-                        type="tel"
-                        placeholder="09XX XXX XXXX"
+                        :error="errors.mobile"
+                        placeholder="9XXXXXXXXX"
                         required
-                        :class="{ 'border-destructive': errors.mobile }"
                     />
                     <p class="text-xs text-muted-foreground">
                         Enter the mobile number used during redemption
                     </p>
-                    <p v-if="errors.mobile" class="text-xs text-destructive">{{ errors.mobile }}</p>
                 </div>
 
                 <!-- Amount input (open mode only) -->
-                <div v-if="!isFixed" class="space-y-2">
-                    <Label for="amount">Withdrawal Amount ({{ voucher.currency }})</Label>
-                    <Input
-                        id="amount"
-                        v-model.number="amount"
-                        type="number"
+                <div v-if="!isFixed" class="rounded-xl border bg-card p-4 space-y-1">
+                    <NumberInputWithKeypad
+                        v-model="amount"
+                        prefix="₱"
                         :min="voucher.min_withdrawal"
                         :max="voucher.remaining_balance"
-                        :placeholder="`Min ${voucher.min_withdrawal}`"
-                        required
-                        :class="{ 'border-destructive': errors.amount }"
+                        :allow-decimal="true"
+                        keypad-mode="amount"
+                        keypad-title="Withdrawal Amount"
+                        hero
                     />
-                    <p v-if="errors.amount" class="text-xs text-destructive">{{ errors.amount }}</p>
+                    <p class="text-xs text-muted-foreground text-center">
+                        Min {{ voucher.currency }} {{ voucher.min_withdrawal.toLocaleString() }}
+                    </p>
+                    <p v-if="errors.amount" class="text-xs text-destructive text-center">{{ errors.amount }}</p>
                 </div>
 
                 <Button
