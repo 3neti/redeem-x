@@ -5,6 +5,8 @@ use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use LBHurtado\Contact\Models\Contact;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -48,6 +50,19 @@ function redeemAndPrepare(Voucher $voucher, Contact $contact): Voucher
 
 beforeEach(function () {
     $this->withoutVite();
+
+    // Mock payment gateway so WithdrawFromVoucher can disburse
+    $mock = Mockery::mock(PaymentGatewayInterface::class);
+    $mock->shouldReceive('disburse')->andReturn(
+        DisburseResponseData::from([
+            'transaction_id' => 'TXN-WITHDRAW-'.uniqid(),
+            'uuid' => 'uuid-withdraw-'.uniqid(),
+            'status' => 'pending',
+        ])
+    );
+    $mock->shouldReceive('getRailFee')->andReturn(1000);
+    app()->instance(PaymentGatewayInterface::class, $mock);
+
     $this->user = User::factory()->create();
     $this->contact = Contact::factory()->create([
         'mobile' => '+639171234567',

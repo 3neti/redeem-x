@@ -5,6 +5,8 @@ use App\Models\User;
 use FrittenKeeZ\Vouchers\Facades\Vouchers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LBHurtado\Contact\Models\Contact;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
 use LBHurtado\Voucher\Actions\GenerateVouchers;
 use LBHurtado\Voucher\Data\VoucherInstructionsData;
 use LBHurtado\Voucher\Models\Voucher;
@@ -12,6 +14,20 @@ use LBHurtado\Voucher\Models\Voucher;
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    // Mock payment gateway so WithdrawFromVoucher can disburse
+    $mock = Mockery::mock(PaymentGatewayInterface::class);
+    $mock->shouldReceive('disburse')->andReturn(
+        DisburseResponseData::from([
+            'transaction_id' => 'TXN-WITHDRAW-'.uniqid(),
+            'uuid' => 'uuid-withdraw-'.uniqid(),
+            'status' => 'pending',
+        ])
+    );
+    $mock->shouldReceive('getRailFee')->andReturn(1000);
+    app()->instance(PaymentGatewayInterface::class, $mock);
+});
 
 // ---------------------------------------------------------------------------
 // Helper: create a funded voucher

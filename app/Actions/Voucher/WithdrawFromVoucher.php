@@ -9,22 +9,34 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\Contact\Models\Contact;
+use LBHurtado\MoneyIssuer\Support\BankRegistry;
+use LBHurtado\PaymentGateway\Contracts\PaymentGatewayInterface;
 use LBHurtado\PaymentGateway\Data\Disburse\DisburseInputData;
+use LBHurtado\PaymentGateway\Data\Disburse\DisburseResponseData;
+use LBHurtado\PaymentGateway\Enums\DisbursementStatus;
+use LBHurtado\PaymentGateway\Enums\SettlementRail;
 use LBHurtado\Voucher\Models\Voucher;
 use LBHurtado\Wallet\Actions\WithdrawCash;
+use LBHurtado\Wallet\Events\DisbursementFailed;
 use Lorisleiva\Actions\ActionRequest;
 use Lorisleiva\Actions\Concerns\AsAction;
+use RuntimeException;
 
 /**
  * Withdraw a slice from a divisible voucher.
  *
  * This action handles subsequent withdrawals after the initial redemption.
- * It validates state, determines amount, reuses bank account from
- * the original redeemer, withdraws from the wallet, and logs the result.
+ * It validates state, determines amount, calls the payment gateway to
+ * disburse funds externally, then records the wallet withdrawal.
  */
 class WithdrawFromVoucher
 {
     use AsAction;
+
+    public function __construct(
+        protected PaymentGatewayInterface $gateway,
+        protected BankRegistry $bankRegistry,
+    ) {}
 
     /**
      * API endpoint: POST /api/v1/vouchers/{code}/withdraw
@@ -103,28 +115,112 @@ class WithdrawFromVoucher
         // 5. Determine slice number (next slice = consumed + 1)
         $sliceNumber = $voucher->getConsumedSlices() + 1;
 
-        // 6. Get bank account from original redeemer's contact
-        $bankCode = $contact->bank_code;
-        $accountNumber = $contact->account_number;
-
         Log::info('[WithdrawFromVoucher] Processing withdrawal', [
             'voucher' => $voucher->code,
             'contact_id' => $contact->id,
             'amount' => $withdrawAmount,
             'slice_number' => $sliceNumber,
-            'bank_code' => $bankCode,
         ]);
 
-        return DB::transaction(function () use ($voucher, $contact, $withdrawAmount, $sliceNumber, $bankCode, $accountNumber) {
-            // 7. Withdraw from wallet
-            $amountCentavos = (int) ($withdrawAmount * 100);
-            WithdrawCash::run($voucher->cash, null, null, [
-                'flow' => 'redeem',
-                'voucher_code' => $voucher->code,
-                'slice_number' => $sliceNumber,
-            ], $amountCentavos);
+        // 6b. Ensure redeemer is loaded on the model instance.
+        //     Voucher has a typed property `public ?Redeemer $redeemer = null;`
+        //     which shadows the getRedeemerAttribute() accessor. During initial
+        //     redemption the pipeline sets this explicitly, but for subsequent
+        //     withdrawals (fresh DB load) it remains null.
+        $voucher->redeemer = $voucher->redeemers->first();
 
-            // 8. Refresh voucher to get updated balance/slice counts
+        // 7. Build disbursement input (handles reference, bank account, rail selection)
+        $input = DisburseInputData::fromVoucher($voucher, amount: $withdrawAmount, sliceNumber: $sliceNumber);
+
+        // 8. Validate EMI + PESONET combination
+        $rail = SettlementRail::from($input->via);
+        if ($rail === SettlementRail::PESONET && $this->bankRegistry->isEMI($input->bank)) {
+            $bankName = $this->bankRegistry->getBankName($input->bank);
+            throw new RuntimeException(
+                "Cannot disburse to {$bankName} via PESONET. E-money institutions require INSTAPAY."
+            );
+        }
+
+        // 9. Call payment gateway (external I/O — outside DB transaction)
+        try {
+            $response = $this->gateway->disburse($voucher->cash, $input);
+
+            if ($response === false) {
+                throw new RuntimeException('Gateway returned false - disbursement failed');
+            }
+            if (! $response instanceof DisburseResponseData) {
+                throw new RuntimeException('Unexpected response type: '.gettype($response));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[WithdrawFromVoucher] Gateway disbursement failed — recording pending', [
+                'voucher' => $voucher->code,
+                'slice' => $sliceNumber,
+                'amount' => $withdrawAmount,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->recordPendingDisbursement($voucher, $input, $e);
+            event(new DisbursementFailed($voucher, $e, $contact->mobile));
+
+            throw new RuntimeException('Disbursement failed: '.$e->getMessage());
+        }
+
+        // 10. Gateway succeeded — wallet withdrawal + metadata update in transaction
+        return DB::transaction(function () use ($voucher, $contact, $withdrawAmount, $sliceNumber, $input, $response) {
+            $bankName = $this->bankRegistry->getBankName($input->bank);
+            $gatewayName = config('payment-gateway.default', 'netbank');
+            $normalizedStatus = DisbursementStatus::fromGateway($gatewayName, $response->status)->value;
+            $rail = SettlementRail::from($input->via);
+            $feeAmount = $this->gateway->getRailFee($rail);
+            $feeStrategy = $voucher->instructions?->cash?->fee_strategy ?? 'absorb';
+
+            $amountCentavos = (int) ($withdrawAmount * 100);
+            $withdrawal = WithdrawCash::run(
+                $voucher->cash,
+                $response->transaction_id,
+                'Disbursed to external bank account',
+                [
+                    'voucher_id' => $voucher->id,
+                    'voucher_code' => $voucher->code,
+                    'flow' => 'redeem',
+                    'counterparty' => $bankName,
+                    'reference' => $input->account_number,
+                    'idempotency_key' => $response->uuid,
+                    'slice_number' => $sliceNumber,
+                ],
+                $amountCentavos
+            );
+
+            // Update voucher disbursement metadata (overwrites previous slice's data)
+            $voucher->metadata = array_merge($voucher->metadata ?? [], [
+                'disbursement' => [
+                    'gateway' => $gatewayName,
+                    'transaction_id' => $response->transaction_id,
+                    'status' => $normalizedStatus,
+                    'amount' => $input->amount,
+                    'currency' => 'PHP',
+                    'settlement_rail' => $rail->value,
+                    'fee_amount' => $feeAmount,
+                    'total_cost' => ($input->amount * 100) + $feeAmount,
+                    'fee_strategy' => $feeStrategy,
+                    'recipient_identifier' => $input->account_number,
+                    'disbursed_at' => now()->toIso8601String(),
+                    'transaction_uuid' => $response->uuid,
+                    'recipient_name' => $bankName,
+                    'payment_method' => 'bank_transfer',
+                    'cash_withdrawal_uuid' => $withdrawal->uuid,
+                    'slice_number' => $sliceNumber,
+                    'metadata' => [
+                        'bank_code' => $input->bank,
+                        'bank_name' => $bankName,
+                        'bank_logo' => $this->bankRegistry->getBankLogo($input->bank),
+                        'rail' => $input->via,
+                        'is_emi' => $this->bankRegistry->isEMI($input->bank),
+                    ],
+                ],
+            ]);
+            $voucher->save();
+
             $voucher->refresh();
 
             $result = [
@@ -133,16 +229,51 @@ class WithdrawFromVoucher
                 'slice_number' => $sliceNumber,
                 'remaining_slices' => $voucher->getRemainingSlices(),
                 'remaining_balance' => $voucher->getRemainingBalance(),
-                'bank_code' => $bankCode,
-                'account_number' => $accountNumber,
+                'bank_code' => $input->bank,
+                'account_number' => $input->account_number,
             ];
 
-            Log::info('[WithdrawFromVoucher] Withdrawal completed', $result + [
+            Log::info('[WithdrawFromVoucher] Withdrawal disbursed successfully', $result + [
                 'voucher' => $voucher->code,
+                'transaction_id' => $response->transaction_id,
             ]);
 
             return $result;
         });
+    }
+
+    /**
+     * Record a pending disbursement on the voucher when the gateway fails.
+     */
+    private function recordPendingDisbursement(Voucher $voucher, DisburseInputData $input, \Throwable $e): void
+    {
+        $gatewayName = config('payment-gateway.default', 'netbank');
+        $bankName = $this->bankRegistry->getBankName($input->bank);
+
+        $voucher->metadata = array_merge($voucher->metadata ?? [], [
+            'disbursement' => [
+                'gateway' => $gatewayName,
+                'transaction_id' => $input->reference,
+                'status' => DisbursementStatus::PENDING->value,
+                'amount' => $input->amount,
+                'currency' => 'PHP',
+                'settlement_rail' => $input->via,
+                'recipient_identifier' => $input->account_number,
+                'disbursed_at' => now()->toIso8601String(),
+                'recipient_name' => $bankName,
+                'payment_method' => 'bank_transfer',
+                'error' => $e->getMessage(),
+                'requires_reconciliation' => true,
+                'metadata' => [
+                    'bank_code' => $input->bank,
+                    'bank_name' => $bankName,
+                    'bank_logo' => $this->bankRegistry->getBankLogo($input->bank),
+                    'rail' => $input->via,
+                    'is_emi' => $this->bankRegistry->isEMI($input->bank),
+                ],
+            ],
+        ]);
+        $voucher->save();
     }
 
     /**
