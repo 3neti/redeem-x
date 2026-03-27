@@ -4,8 +4,121 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a016ebc2ba6d8c835f02a25bc457928f",
+    "content-hash": "ec09ee677a3089988cd0f7484e4745fe",
     "packages": [
+        {
+            "name": "3neti/cash",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/cash.git",
+                "reference": "f750a3a07881fa93f03990b9cccc48f5aabd7cc4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/cash/zipball/f750a3a07881fa93f03990b9cccc48f5aabd7cc4",
+                "reference": "f750a3a07881fa93f03990b9cccc48f5aabd7cc4",
+                "shasum": ""
+            },
+            "require": {
+                "3neti/wallet": "^v1.0",
+                "brick/money": "^0.10.1",
+                "lorisleiva/laravel-actions": "^2.9",
+                "propaganistas/laravel-phone": "^6.0",
+                "spatie/laravel-data": "^4.16",
+                "spatie/laravel-model-status": "^1.18",
+                "spatie/laravel-tags": "^4.10"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\Cash\\CashServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\Cash\\": "src/",
+                    "LBHurtado\\Cash\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "A package to enable assigning cash to Eloquent Models",
+            "support": {
+                "issues": "https://github.com/3neti/cash/issues",
+                "source": "https://github.com/3neti/cash/tree/v1.0.0"
+            },
+            "time": "2026-03-26T12:46:59+00:00"
+        },
+        {
+            "name": "3neti/contact",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/contact.git",
+                "reference": "a2d821957a0b13a5de5109ffcf27fd2628c74375"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/contact/zipball/a2d821957a0b13a5de5109ffcf27fd2628c74375",
+                "reference": "a2d821957a0b13a5de5109ffcf27fd2628c74375",
+                "shasum": ""
+            },
+            "require": {
+                "propaganistas/laravel-phone": "^6.0",
+                "spatie/laravel-data": "^4.17",
+                "spatie/laravel-schemaless-attributes": "^2.5"
+            },
+            "require-dev": {
+                "3neti/laravel-model-input": "^v1.0",
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\Contact\\ContactServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\Contact\\": "src/",
+                    "LBHurtado\\Contact\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "A package to enable assigning contacts to Eloquent Models",
+            "support": {
+                "issues": "https://github.com/3neti/contact/issues",
+                "source": "https://github.com/3neti/contact/tree/v1.0.0"
+            },
+            "time": "2026-03-26T10:02:46+00:00"
+        },
         {
             "name": "3neti/form-flow",
             "version": "v1.7.15",
@@ -415,12 +528,341 @@
             "time": "2025-12-05T03:39:34+00:00"
         },
         {
-            "name": "3neti/pwa-ui",
-            "version": "dev-main",
+            "name": "3neti/laravel-model-channel",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/laravel-model-channel.git",
+                "reference": "4ab45cd2c55616ea4c7f8fdc3da1eb2b72d512bf"
+            },
             "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/pwa-ui",
-                "reference": "1076be8ec1629375ee7461c015660f1fabfe33f6"
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/laravel-model-channel/zipball/4ab45cd2c55616ea4c7f8fdc3da1eb2b72d512bf",
+                "reference": "4ab45cd2c55616ea4c7f8fdc3da1eb2b72d512bf",
+                "shasum": ""
+            },
+            "require": {
+                "propaganistas/laravel-phone": "^6.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\ModelChannel\\ModelChannelServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\ModelChannel\\": "src/",
+                    "LBHurtado\\ModelChannel\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "A package to enable assigning channels to Eloquent Models",
+            "support": {
+                "issues": "https://github.com/3neti/laravel-model-channel/issues",
+                "source": "https://github.com/3neti/laravel-model-channel/tree/v1.0.0"
+            },
+            "time": "2026-03-26T10:12:40+00:00"
+        },
+        {
+            "name": "3neti/laravel-model-input",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/laravel-model-input.git",
+                "reference": "b794753392536429ce1dcc2cd7348f37ab3ba5f3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/laravel-model-input/zipball/b794753392536429ce1dcc2cd7348f37ab3ba5f3",
+                "reference": "b794753392536429ce1dcc2cd7348f37ab3ba5f3",
+                "shasum": ""
+            },
+            "require": {
+                "propaganistas/laravel-phone": "^6.0",
+                "spatie/laravel-data": "^4.17"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\ModelInput\\ModelInputServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\ModelInput\\": "src/",
+                    "LBHurtado\\ModelInput\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "A package to enable assigning inputs to Eloquent Models",
+            "support": {
+                "issues": "https://github.com/3neti/laravel-model-input/issues",
+                "source": "https://github.com/3neti/laravel-model-input/tree/v1.0.0"
+            },
+            "time": "2026-03-26T09:42:38+00:00"
+        },
+        {
+            "name": "3neti/merchant",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/merchant.git",
+                "reference": "141e4fed330942693dd920de9d676e22ecd8351c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/merchant/zipball/141e4fed330942693dd920de9d676e22ecd8351c",
+                "reference": "141e4fed330942693dd920de9d676e22ecd8351c",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "^11.0|^12.0",
+                "illuminate/support": "^11.0|^12.0",
+                "lorisleiva/laravel-actions": "^2.9",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.15"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\Merchant\\MerchantServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\Merchant\\": "src/",
+                    "LBHurtado\\Merchant\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Merchant and Vendor Alias Registry",
+            "support": {
+                "issues": "https://github.com/3neti/merchant/issues",
+                "source": "https://github.com/3neti/merchant/tree/v1.0.0"
+            },
+            "time": "2026-03-26T10:30:27+00:00"
+        },
+        {
+            "name": "3neti/money-issuer",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/money-issuer.git",
+                "reference": "942c2908eea47fd5bb20ccb7081ad7c8470cbef7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/money-issuer/zipball/942c2908eea47fd5bb20ccb7081ad7c8470cbef7",
+                "reference": "942c2908eea47fd5bb20ccb7081ad7c8470cbef7",
+                "shasum": ""
+            },
+            "require": {
+                "brick/money": "^0.10.1",
+                "lorisleiva/laravel-actions": "^2.9",
+                "spatie/laravel-data": "^4.15"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\MoneyIssuer\\MoneyIssuerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Support/Helpers.php"
+                ],
+                "psr-4": {
+                    "LBHurtado\\MoneyIssuer\\": "src/",
+                    "LBHurtado\\MoneyIssuer\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Electronic Money Issuer",
+            "support": {
+                "issues": "https://github.com/3neti/money-issuer/issues",
+                "source": "https://github.com/3neti/money-issuer/tree/v1.0.0"
+            },
+            "time": "2026-03-26T10:43:25+00:00"
+        },
+        {
+            "name": "3neti/og-meta",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/og-meta.git",
+                "reference": "4a0cef18207e6635fade0a2b32d8a39a46f56446"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/og-meta/zipball/4a0cef18207e6635fade0a2b32d8a39a46f56446",
+                "reference": "4a0cef18207e6635fade0a2b32d8a39a46f56446",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/http": "^11.0 || ^12.0",
+                "illuminate/routing": "^11.0 || ^12.0",
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\OgMeta\\OgMetaServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\OgMeta\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Service-centric Open Graph meta tag generation with resolver-based architecture",
+            "support": {
+                "issues": "https://github.com/3neti/og-meta/issues",
+                "source": "https://github.com/3neti/og-meta/tree/v1.0.0"
+            },
+            "time": "2026-03-26T12:24:41+00:00"
+        },
+        {
+            "name": "3neti/omnichannel",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/omnichannel.git",
+                "reference": "b5f14171a1b422b0b5966e798eaca5e075f4af07"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/omnichannel/zipball/b5f14171a1b422b0b5966e798eaca5e075f4af07",
+                "reference": "b5f14171a1b422b0b5966e798eaca5e075f4af07",
+                "shasum": ""
+            },
+            "require": {
+                "propaganistas/laravel-phone": "^6.0",
+                "spatie/laravel-data": "^4.15"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\OmniChannel\\OmniChannelServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\OmniChannel\\": "src/",
+                    "LBHurtado\\OmniChannel\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "A package that would consume Omni Channel services",
+            "support": {
+                "issues": "https://github.com/3neti/omnichannel/issues",
+                "source": "https://github.com/3neti/omnichannel/tree/v1.0.0"
+            },
+            "time": "2026-03-26T11:49:13+00:00"
+        },
+        {
+            "name": "3neti/pwa-ui",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/pwa-ui.git",
+                "reference": "b0c71d3b27261bc3c2d8951a3ef3d635ab492619"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/pwa-ui/zipball/b0c71d3b27261bc3c2d8951a3ef3d635ab492619",
+                "reference": "b0c71d3b27261bc3c2d8951a3ef3d635ab492619",
+                "shasum": ""
             },
             "require": {
                 "illuminate/support": "^12.0",
@@ -440,6 +882,7 @@
                     "LBHurtado\\PwaUi\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "proprietary"
             ],
@@ -450,18 +893,81 @@
                 }
             ],
             "description": "PWA UI package for mobile-first subscriber experience",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/3neti/pwa-ui/issues",
+                "source": "https://github.com/3neti/pwa-ui/tree/v1.0.0"
+            },
+            "time": "2026-03-26T13:17:44+00:00"
+        },
+        {
+            "name": "3neti/report-registry",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/report-registry.git",
+                "reference": "a3067807422b0a8c7311ef96efe8b82407a956d9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/report-registry/zipball/a3067807422b0a8c7311ef96efe8b82407a956d9",
+                "reference": "a3067807422b0a8c7311ef96efe8b82407a956d9",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "^11.0 || ^12.0",
+                "illuminate/support": "^11.0 || ^12.0",
+                "php": "^8.2",
+                "spatie/laravel-data": "^4.0",
+                "symfony/yaml": "^7.0",
+                "zordius/lightncandy": "^1.2"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^9.0 || ^10.0",
+                "pestphp/pest": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\ReportRegistry\\ReportRegistryServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\ReportRegistry\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Driver-based report registry with multi-format output and Handlebars templating",
+            "support": {
+                "issues": "https://github.com/3neti/report-registry/issues",
+                "source": "https://github.com/3neti/report-registry/tree/v1.0.0"
+            },
+            "time": "2026-03-26T12:10:05+00:00"
         },
         {
             "name": "3neti/settlement-envelope",
-            "version": "dev-main",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/settlement-envelope.git",
+                "reference": "31bd49855d35f0443d40d7f6c072804f6e15ff78"
+            },
             "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/settlement-envelope",
-                "reference": "214651602921dc449e30e2bcc312c2a613bfa1e9"
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/settlement-envelope/zipball/31bd49855d35f0443d40d7f6c072804f6e15ff78",
+                "reference": "31bd49855d35f0443d40d7f6c072804f6e15ff78",
+                "shasum": ""
             },
             "require": {
                 "illuminate/database": "^11.0 || ^12.0",
@@ -488,11 +994,7 @@
                     "LBHurtado\\SettlementEnvelope\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\SettlementEnvelope\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -503,10 +1005,66 @@
                 }
             ],
             "description": "Driver-based evidence envelope system for settlement gating",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/3neti/settlement-envelope/issues",
+                "source": "https://github.com/3neti/settlement-envelope/tree/v1.0.0"
+            },
+            "time": "2026-03-26T13:04:45+00:00"
+        },
+        {
+            "name": "3neti/wallet",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/3neti/wallet.git",
+                "reference": "6e65dfa36e5ef352e9ca2e44fedfdf02fc7d953f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/3neti/wallet/zipball/6e65dfa36e5ef352e9ca2e44fedfdf02fc7d953f",
+                "reference": "6e65dfa36e5ef352e9ca2e44fedfdf02fc7d953f",
+                "shasum": ""
+            },
+            "require": {
+                "bavix/laravel-wallet": "^11.4",
+                "brick/money": "^0.10.1",
+                "lorisleiva/laravel-actions": "^2.9",
+                "spatie/laravel-data": "^4.15"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.3",
+                "pestphp/pest": "^3.8"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\Wallet\\WalletServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\Wallet\\": "src/",
+                    "LBHurtado\\Wallet\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "Custom wallet for X-Change",
+            "support": {
+                "issues": "https://github.com/3neti/wallet/issues",
+                "source": "https://github.com/3neti/wallet/tree/v1.0.0"
+            },
+            "time": "2026-03-26T08:15:57+00:00"
         },
         {
             "name": "aws/aws-crt-php",
@@ -3365,66 +3923,6 @@
             "time": "2025-02-25T16:27:36+00:00"
         },
         {
-            "name": "lbhurtado/cash",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/cash",
-                "reference": "9181f2b9ab9158c148f6828f0fc704ca3660eab9"
-            },
-            "require": {
-                "brick/money": "^0.10.1",
-                "lbhurtado/wallet": "dev-main",
-                "lorisleiva/laravel-actions": "^2.9",
-                "propaganistas/laravel-phone": "^6.0",
-                "spatie/laravel-data": "^4.16",
-                "spatie/laravel-model-status": "^1.18",
-                "spatie/laravel-tags": "^4.10"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\Cash\\CashServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\Cash\\": "src/",
-                    "LBHurtado\\Cash\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\Cash\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "A package to enable assigning cash to Eloquent Models",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "lbhurtado/common",
             "version": "v2.4.1",
             "source": {
@@ -3488,63 +3986,6 @@
                 "source": "https://github.com/lbhurtado/common/tree/v2.4.1"
             },
             "time": "2025-06-08T23:40:22+00:00"
-        },
-        {
-            "name": "lbhurtado/contact",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/contact",
-                "reference": "aaea500375b2e0aaab8eb26368a738bf4692d15f"
-            },
-            "require": {
-                "propaganistas/laravel-phone": "^6.0",
-                "spatie/laravel-data": "^4.17",
-                "spatie/laravel-schemaless-attributes": "^2.5"
-            },
-            "require-dev": {
-                "lbhurtado/laravel-model-input": "dev-main",
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\Contact\\ContactServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\Contact\\": "src/",
-                    "LBHurtado\\Contact\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\Contact\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "A package to enable assigning contacts to Eloquent Models",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
         },
         {
             "name": "lbhurtado/engagespark",
@@ -3616,174 +4057,6 @@
             "time": "2025-06-08T23:24:07+00:00"
         },
         {
-            "name": "lbhurtado/laravel-model-channel",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/model-channel",
-                "reference": "7321b2c0e1d2976841585260cbdb6476f0c37a1a"
-            },
-            "require": {
-                "propaganistas/laravel-phone": "^6.0"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\ModelChannel\\ModelChannelServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\ModelChannel\\": "src/",
-                    "LBHurtado\\ModelChannel\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\ModelChannel\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "A package to enable assigning channels to Eloquent Models",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/laravel-model-input",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/model-input",
-                "reference": "20758b737bb42e78449d18465cdcf439b78ade69"
-            },
-            "require": {
-                "propaganistas/laravel-phone": "^6.0",
-                "spatie/laravel-data": "^4.17"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\ModelInput\\ModelInputServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\ModelInput\\": "src/",
-                    "LBHurtado\\ModelInput\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\ModelInput\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "A package to enable assigning inputs to Eloquent Models",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/merchant",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/merchant",
-                "reference": "5c07761189e3e7bb95ed15d3a6c4b8241b8a5c72"
-            },
-            "require": {
-                "illuminate/database": "^11.0|^12.0",
-                "illuminate/support": "^11.0|^12.0",
-                "lorisleiva/laravel-actions": "^2.9",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.15"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8",
-                "pestphp/pest-plugin-laravel": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\Merchant\\MerchantServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\Merchant\\": "src/",
-                    "LBHurtado\\Merchant\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\Merchant\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Merchant and Vendor Alias Registry",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "lbhurtado/messaging-bot",
             "version": "dev-main",
             "dist": {
@@ -3839,177 +4112,20 @@
             }
         },
         {
-            "name": "lbhurtado/money-issuer",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/money-issuer",
-                "reference": "41c234454701d79f5c60dec5ad54cf146cbeec10"
-            },
-            "require": {
-                "brick/money": "^0.10.1",
-                "lorisleiva/laravel-actions": "^2.9",
-                "spatie/laravel-data": "^4.15"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\MoneyIssuer\\MoneyIssuerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\MoneyIssuer\\": "src/",
-                    "LBHurtado\\MoneyIssuer\\Database\\Factories\\": "database/factories/"
-                },
-                "files": [
-                    "src/Support/Helpers.php"
-                ]
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\MoneyIssuer\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Electronic Money Issuer",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/og-meta",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/og-meta",
-                "reference": "6c147dc44bc4090bcdf71bbf1fbdefaf5df338ac"
-            },
-            "require": {
-                "illuminate/http": "^11.0 || ^12.0",
-                "illuminate/routing": "^11.0 || ^12.0",
-                "illuminate/support": "^11.0 || ^12.0",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\OgMeta\\OgMetaServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\OgMeta\\": "src/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Service-centric Open Graph meta tag generation with resolver-based architecture",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/omnichannel",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/omnichannel",
-                "reference": "de47659c368210ded6245440dd54348bf28b4025"
-            },
-            "require": {
-                "propaganistas/laravel-phone": "^6.0",
-                "spatie/laravel-data": "^4.15"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\OmniChannel\\OmniChannelServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\OmniChannel\\": "src/",
-                    "LBHurtado\\OmniChannel\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\OmniChannel\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "A package that would consume Omni Channel services",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "lbhurtado/payment-gateway",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/payment-gateway",
-                "reference": "9b58003cdd27f9fbadd19e75052ee792792bca1a"
+                "reference": "5cd71bf8ba94f8f28aa508c18a0afc2d1f82da2b"
             },
             "require": {
+                "3neti/laravel-model-channel": "^v1.0",
+                "3neti/merchant": "^v1.0",
+                "3neti/money-issuer": "^v1.0",
+                "3neti/wallet": "^v1.0",
                 "brick/money": "^0.10.1",
                 "laravel/sanctum": "^4.0",
-                "lbhurtado/laravel-model-channel": "dev-main",
-                "lbhurtado/merchant": "dev-main",
-                "lbhurtado/money-issuer": "dev-main",
-                "lbhurtado/wallet": "dev-main",
                 "league/omnipay": "^3.2",
                 "lorisleiva/laravel-actions": "^2.9",
                 "omnipay/common": "^3.1",
@@ -4057,59 +4173,6 @@
                 }
             ],
             "description": "Payment Gateway",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/report-registry",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/report-registry",
-                "reference": "b21830cb45eec2349d398e6bedf6f32b3eea8bcb"
-            },
-            "require": {
-                "illuminate/database": "^11.0 || ^12.0",
-                "illuminate/support": "^11.0 || ^12.0",
-                "php": "^8.2",
-                "spatie/laravel-data": "^4.0",
-                "symfony/yaml": "^7.0",
-                "zordius/lightncandy": "^1.2"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^9.0 || ^10.0",
-                "pestphp/pest": "^3.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\ReportRegistry\\ReportRegistryServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\ReportRegistry\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\ReportRegistry\\Tests\\": "tests/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Driver-based report registry with multi-format output and Handlebars templating",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -4184,17 +4247,17 @@
             "dist": {
                 "type": "path",
                 "url": "./monorepo-packages/voucher",
-                "reference": "4df4bbddb8c6bbc20e31e5c1cf18cc87b70f4676"
+                "reference": "585febf2fd1262aca252b04fd8cd9c78612082f3"
             },
             "require": {
-                "3neti/settlement-envelope": "dev-main",
+                "3neti/cash": "^v1.0",
+                "3neti/contact": "^v1.0",
+                "3neti/laravel-model-input": "^v1.0",
+                "3neti/settlement-envelope": "^v1.0",
+                "3neti/wallet": "^v1.0",
                 "brick/money": "^0.10.1",
                 "frittenkeez/laravel-vouchers": "^0.6.0",
-                "lbhurtado/cash": "dev-main",
-                "lbhurtado/contact": "dev-main",
-                "lbhurtado/laravel-model-input": "dev-main",
                 "lbhurtado/payment-gateway": "dev-main",
-                "lbhurtado/wallet": "dev-main",
                 "lorisleiva/laravel-actions": "^2.9",
                 "propaganistas/laravel-phone": "^6.0",
                 "spatie/laravel-model-status": "^1.18",
@@ -4241,63 +4304,6 @@
                 }
             ],
             "description": "Digital voucher module for issuance, redemption, and lifecycle management",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "lbhurtado/wallet",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "./monorepo-packages/wallet",
-                "reference": "aba048d63e1acf6d067799ee645fc528719d28e4"
-            },
-            "require": {
-                "bavix/laravel-wallet": "^11.4",
-                "brick/money": "^0.10.1",
-                "lorisleiva/laravel-actions": "^2.9",
-                "spatie/laravel-data": "^4.15"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^10.3",
-                "pestphp/pest": "^3.8"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "LBHurtado\\Wallet\\WalletServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "LBHurtado\\Wallet\\": "src/",
-                    "LBHurtado\\Wallet\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "LBHurtado\\Wallet\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ]
-            },
-            "license": [
-                "proprietary"
-            ],
-            "authors": [
-                {
-                    "name": "Lester Hurtado",
-                    "email": "lester@hurtado.ph"
-                }
-            ],
-            "description": "Custom wallet for X-Change",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -15652,21 +15658,9 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "3neti/pwa-ui": 20,
-        "3neti/settlement-envelope": 20,
-        "lbhurtado/cash": 20,
-        "lbhurtado/contact": 20,
-        "lbhurtado/laravel-model-channel": 20,
-        "lbhurtado/laravel-model-input": 20,
-        "lbhurtado/merchant": 20,
         "lbhurtado/messaging-bot": 20,
-        "lbhurtado/money-issuer": 20,
-        "lbhurtado/og-meta": 20,
-        "lbhurtado/omnichannel": 20,
         "lbhurtado/payment-gateway": 20,
-        "lbhurtado/report-registry": 20,
-        "lbhurtado/voucher": 20,
-        "lbhurtado/wallet": 20
+        "lbhurtado/voucher": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

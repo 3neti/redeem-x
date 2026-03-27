@@ -5,8 +5,10 @@ namespace LBHurtado\PaymentGateway\Tests;
 use FrittenKeeZ\Vouchers\VouchersServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use LBHurtado\Merchant\Models\Merchant;
+use LBHurtado\MoneyIssuer\MoneyIssuerServiceProvider;
 use LBHurtado\PaymentGateway\Tests\Models\User;
 use Orchestra\Testbench\TestCase as BaseTestCase;
+use Propaganistas\LaravelPhone\PhoneServiceProvider;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -19,7 +21,8 @@ abstract class TestCase extends BaseTestCase
         );
         // Set the base path for the package
         if (! defined('TESTING_PACKAGE_PATH')) {
-            define('TESTING_PACKAGE_PATH', __DIR__.'/../resources/documents');
+            define('TESTING_PACKAGE_PATH', __DIR__.'/../vendor/3neti/money-issuer/resources/documents');
+//            define('TESTING_PACKAGE_PATH', __DIR__.'/../resources/documents');
         }
         $this->loadEnvironment();
 
@@ -35,8 +38,10 @@ abstract class TestCase extends BaseTestCase
             \LBHurtado\ModelChannel\ModelChannelServiceProvider::class,
             \Bavix\Wallet\WalletServiceProvider::class,
             \Laravel\Sanctum\SanctumServiceProvider::class,
-            \LBHurtado\Voucher\VoucherServiceProvider::class,
-            VouchersServiceProvider::class,
+//            \LBHurtado\Voucher\VoucherServiceProvider::class,
+//            VouchersServiceProvider::class,
+            PhoneServiceProvider::class,
+            MoneyIssuerServiceProvider::class
         ];
     }
 
@@ -64,12 +69,12 @@ abstract class TestCase extends BaseTestCase
         $userMigration->up();
         $channelMigration = include __DIR__.'/../database/migrations/test/2024_08_02_000000_create_channels_table.php';
         $channelMigration->up();
-        $userMigration = include __DIR__.'/../database/migrations/1999_03_17_000000_create_merchants_table.php';
+        $userMigration = include __DIR__.'/../vendor/3neti/merchant/database/migrations/1999_03_17_000000_create_merchants_table.php';
         $userMigration->up();
-        $userMigration = include __DIR__.'/../database/migrations/2024_03_17_000000_create_merchant_user_table.php';
+        $userMigration = include __DIR__.'/../vendor/3neti/merchant/database/migrations/2024_03_17_000000_create_merchant_user_table.php';
         $userMigration->up();
-        $voucherMigration = include __DIR__.'/../vendor/frittenkeez/laravel-vouchers/publishes/migrations/2018_06_12_000000_create_voucher_tables.php';
-        $voucherMigration->up();
+//        $voucherMigration = include __DIR__.'/../vendor/frittenkeez/laravel-vouchers/publishes/migrations/2018_06_12_000000_create_voucher_tables.php';
+//        $voucherMigration->up();
         $cashMigration = include __DIR__.'/../database/migrations/test/2024_08_02_202500_create_cash_table.php';
         $cashMigration->up();
         $topUpMigration = include __DIR__.'/../database/migrations/test/2025_11_16_000000_create_top_ups_table.php';

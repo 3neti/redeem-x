@@ -18,6 +18,7 @@ use LBHurtado\ModelChannel\Traits\HasChannels;
 use LBHurtado\PaymentGateway\Database\Factories\UserFactory;
 use LBHurtado\Wallet\Services\WalletProvisioningService;
 use LBHurtado\Wallet\Traits\HasPlatformWallets;
+use LBHurtado\PaymentGateway\Traits\HasTopUps;
 
 /**
  * Class User.

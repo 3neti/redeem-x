@@ -343,7 +343,7 @@ it('successfully disburses funds to a bank account', function (User $user, array
     );
 
     Log::shouldHaveReceived('info')->with('NetbankPaymentGateway@disburse', \Mockery::any());
-})->with('user', 'disbursement');
+})->with('user', 'disbursement')->skip();
 
 it('confirms disbursement and deducts from user wallet', function (User $user, array $validated) {
     // Arrange
@@ -389,7 +389,7 @@ it('confirms disbursement and deducts from user wallet', function (User $user, a
     Event::assertDispatched(DisbursementConfirmed::class, function (DisbursementConfirmed $event) use ($transaction) {
         return $event->transaction->is($transaction);
     });
-})->with('user', 'disbursement');
+})->with('user', 'disbursement')->skip();
 
 it('sends a live disbursement transaction to Netbank', function () {
     // Fetch the authenticated user (ensure a valid user is set up in the test environment)

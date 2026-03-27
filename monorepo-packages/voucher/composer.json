@@ -6,39 +6,7 @@
     "repositories": [
         {
             "type": "path",
-            "url": "./../cash"
-        },
-        {
-            "type": "path",
-            "url": "./../contact"
-        },
-        {
-            "type": "path",
-            "url": "./../merchant"
-        },
-        {
-            "type": "path",
-            "url": "./../model-channel"
-        },
-        {
-            "type": "path",
-            "url": "./../model-input"
-        },
-        {
-            "type": "path",
-            "url": "./../money-issuer"
-        },
-        {
-            "type": "path",
             "url": "./../payment-gateway"
-        },
-        {
-            "type": "path",
-            "url": "./../settlement-envelope"
-        },
-        {
-            "type": "path",
-            "url": "./../wallet"
         }
     ],
     "authors": [
@@ -66,18 +34,19 @@
         }
     },
     "require": {
-        "frittenkeez/laravel-vouchers": "^0.6.0",
-        "lorisleiva/laravel-actions": "^2.9",
+        "3neti/cash": "^v1.0",
+        "3neti/contact": "^v1.0",
+        "3neti/wallet": "^v1.0",
+        "3neti/laravel-model-input": "^v1.0",
+        "3neti/settlement-envelope": "^v1.0",
         "brick/money": "^0.10.1",
-        "lbhurtado/cash": "dev-main",
-        "lbhurtado/contact": "dev-main",
-        "lbhurtado/wallet": "dev-main",
+        "frittenkeez/laravel-vouchers": "^0.6.0",
+        "lbhurtado/payment-gateway": "dev-main",
+        "lorisleiva/laravel-actions": "^2.9",
+        "propaganistas/laravel-phone": "^6.0",
         "spatie/laravel-model-status": "^1.18",
         "spatie/laravel-tags": "^4.10",
-        "propaganistas/laravel-phone": "^6.0",
-        "lbhurtado/payment-gateway": "dev-main",
-        "lbhurtado/laravel-model-input": "dev-main",
-        "3neti/settlement-envelope": "dev-main"
+        "spatie/laravel-medialibrary": "^11.17"
     },
     "suggest": {
         "lbhurtado/report-registry": "Required for built-in voucher report resolvers and YAML report drivers"
@@ -91,7 +60,8 @@
     },
     "config": {
         "allow-plugins": {
-            "pestphp/pest-plugin": true
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
         }
     },
     "minimum-stability": "dev",

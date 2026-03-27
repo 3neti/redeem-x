@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace LBHurtado\PaymentGateway\Tests\Models;
 
-use Bavix\Wallet\Traits\CanConfirm;
-use Bavix\Wallet\Traits\HasWalletFloat;
+use LBHurtado\PaymentGateway\Database\Factories\AnotherUserFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use LBHurtado\ModelChannel\Traits\HasChannels;
+use LBHurtado\Merchant\Traits\HasMerchant;
 use Illuminate\Notifications\Notifiable;
 use LBHurtado\Merchant\Models\Merchant;
-use LBHurtado\Merchant\Traits\HasMerchant;
-use LBHurtado\ModelChannel\Traits\HasChannels;
-use LBHurtado\PaymentGateway\Database\Factories\AnotherUserFactory;
-
+use Bavix\Wallet\Traits\HasWalletFloat;
+use Bavix\Wallet\Traits\CanConfirm;
 /**
  * AnotherClass User.
  *
